@@ -24,9 +24,15 @@ const TeacherDashboard: React.FC = () => {
       <div className="container mx-auto py-8 px-4">
         {currentView === "main" ? (
           <>
-            <h2 className="text-2xl font-bold mb-6">Welcome, Teacher!</h2>
+            <Card className="mb-6 border-none shadow-lg pokemon-gradient-bg text-white">
+              <CardContent className="p-6">
+                <h2 className="text-3xl font-bold mb-2">Welcome, Pokémon Teacher!</h2>
+                <p>Manage your classes and create exciting battles for your students.</p>
+              </CardContent>
+            </Card>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <Card className="hover:shadow-lg transition-all">
+              <Card className="hover:shadow-lg transition-all pokemon-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Users className="h-6 w-6 text-blue-500" />
@@ -38,12 +44,12 @@ const TeacherDashboard: React.FC = () => {
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-500">
-                    Add new students, organize classes, and track student progress in this module.
+                    Add new students, organize classes, and assign Pokémon to your students.
                   </p>
                 </CardContent>
                 <CardFooter>
                   <Button 
-                    className="w-full" 
+                    className="w-full pokemon-button" 
                     onClick={() => setCurrentView("classes")}
                   >
                     Manage Classes
@@ -51,7 +57,7 @@ const TeacherDashboard: React.FC = () => {
                 </CardFooter>
               </Card>
 
-              <Card className="hover:shadow-lg transition-all">
+              <Card className="hover:shadow-lg transition-all pokemon-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Sword className="h-6 w-6 text-red-500" />
@@ -68,7 +74,7 @@ const TeacherDashboard: React.FC = () => {
                 </CardContent>
                 <CardFooter>
                   <Button 
-                    className="w-full"
+                    className="w-full pokemon-button"
                     onClick={() => setCurrentView("battle")}
                   >
                     Enter Battle Mode

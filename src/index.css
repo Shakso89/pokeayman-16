@@ -1,3 +1,4 @@
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -13,7 +14,7 @@
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 84% 4.9%;
 
-    --primary: 222.2 47.4% 11.2%;
+    --primary: 352 77% 55%;
     --primary-foreground: 210 40% 98%;
 
     --secondary: 210 40% 96.1%;
@@ -49,6 +50,11 @@
     --sidebar-border: 220 13% 91%;
 
     --sidebar-ring: 217.2 91.2% 59.8%;
+
+    /* Pokemon specific theme colors */
+    --pokemon-red: 352 77% 55%;
+    --pokemon-blue: 200 100% 50%;
+    --pokemon-yellow: 50 100% 50%;
   }
 
   .dark {
@@ -61,7 +67,7 @@
     --popover: 222.2 84% 4.9%;
     --popover-foreground: 210 40% 98%;
 
-    --primary: 210 40% 98%;
+    --primary: 352 77% 55%;
     --primary-foreground: 222.2 47.4% 11.2%;
 
     --secondary: 217.2 32.6% 17.5%;
@@ -97,5 +103,41 @@
 
   body {
     @apply bg-background text-foreground;
+    background-image: url('/lovable-uploads/df7b9259-e876-46a6-9b71-00aa60971cbf.png');
+    background-size: cover;
+    background-position: center;
+    background-attachment: fixed;
+    background-repeat: no-repeat;
   }
+}
+
+/* Pokemon-specific classes */
+.pokemon-card {
+  @apply relative overflow-hidden rounded-lg border border-border bg-card p-4 shadow-md transition-all hover:shadow-xl;
+  background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(220,220,220,0.6) 100%);
+}
+
+.pokemon-button {
+  @apply rounded-full bg-pokemon-red text-white hover:bg-red-600 transition-colors shadow-md;
+}
+
+.pokeball {
+  @apply relative inline-block w-6 h-6 bg-white rounded-full border-2 border-gray-800 before:content-[''] before:absolute before:w-6 before:h-[1px] before:bg-gray-800 before:top-1/2 before:-translate-y-1/2 before:left-0 after:content-[''] after:absolute after:w-2 after:h-2 after:bg-white after:rounded-full after:border after:border-gray-800 after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2;
+}
+
+.spin-wheel {
+  transition: transform 3s cubic-bezier(0.17, 0.67, 0.83, 0.67);
+}
+
+.pokeball-spin {
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.pokemon-gradient-bg {
+  background: linear-gradient(135deg, rgba(255,56,56,0.8) 0%, rgba(255,153,153,0.8) 100%);
 }

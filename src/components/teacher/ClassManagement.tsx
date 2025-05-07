@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -13,7 +13,14 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
-import { ChevronLeft, Plus, UserPlus, Trash2, School } from "lucide-react";
+import { ChevronLeft, Plus, UserPlus, Trash2, School, Coins, Award } from "lucide-react";
+import { 
+  initializeClassPokemonPool, 
+  getClassPokemonPool, 
+  assignPokemonToStudent,
+  awardCoinsToStudent
+} from "@/utils/pokemonData";
+import { Pokemon } from "@/types/pokemon";
 
 interface Student {
   id: string;
@@ -39,8 +46,11 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
     return savedClasses ? JSON.parse(savedClasses) : [];
   });
   
-  const [currentView, setCurrentView] = useState<"list" | "add" | "students">("list");
+  const [currentView, setCurrentView] = useState<"list" | "add" | "students" | "pokemon">("list");
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [pokemonPool, setPokemonPool] = useState<Pokemon[]>([]);
+  const [coinsToAward, setCoinsToAward] = useState<number>(1);
   
   const [newClass, setNewClass] = useState({
     name: "",
@@ -56,9 +66,23 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
   const selectedClass = classes.find(c => c.id === selectedClassId);
 
   // Save classes to localStorage whenever they change
-  React.useEffect(() => {
+  useEffect(() => {
     localStorage.setItem("classes", JSON.stringify(classes));
   }, [classes]);
+  
+  // Load Pokemon pool when a class is selected
+  useEffect(() => {
+    if (selectedClassId && currentView === "pokemon") {
+      const pool = getClassPokemonPool(selectedClassId);
+      if (pool) {
+        setPokemonPool(pool.availablePokemons);
+      } else {
+        // Initialize pool if it doesn't exist
+        const newPool = initializeClassPokemonPool(selectedClassId);
+        setPokemonPool(newPool.availablePokemons);
+      }
+    }
+  }, [selectedClassId, currentView]);
 
   const handleAddClass = () => {
     if (!newClass.name || !newClass.school) {
@@ -70,12 +94,16 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
       return;
     }
 
+    const newClassId = Date.now().toString();
     const newClassObject: Class = {
-      id: Date.now().toString(),
+      id: newClassId,
       name: newClass.name,
       school: newClass.school,
       students: []
     };
+
+    // Initialize Pokemon pool for this class
+    initializeClassPokemonPool(newClassId);
 
     setClasses([...classes, newClassObject]);
     setNewClass({ name: "", school: "" });
@@ -83,7 +111,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
     
     toast({
       title: "Success",
-      description: `Class "${newClass.name}" has been created!`
+      description: `Class "${newClass.name}" has been created with a Pokemon pool!`
     });
   };
 
@@ -149,6 +177,44 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
       description: "Student has been removed!"
     });
   };
+  
+  const handleAssignPokemon = (pokemonId: string) => {
+    if (!selectedStudent || !selectedClassId) return;
+    
+    const success = assignPokemonToStudent(selectedClassId, selectedStudent.id, pokemonId);
+    
+    if (success) {
+      toast({
+        title: "Success",
+        description: `Pokemon has been assigned to ${selectedStudent.name}!`
+      });
+      
+      // Refresh the Pokemon pool
+      const pool = getClassPokemonPool(selectedClassId);
+      if (pool) {
+        setPokemonPool(pool.availablePokemons);
+      }
+    } else {
+      toast({
+        title: "Error",
+        description: "Failed to assign Pokemon.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handleAwardCoins = () => {
+    if (!selectedStudent) return;
+    
+    awardCoinsToStudent(selectedStudent.id, coinsToAward);
+    
+    toast({
+      title: "Success", 
+      description: `${coinsToAward} coin(s) awarded to ${selectedStudent.name}!`
+    });
+    
+    setCoinsToAward(1);
+  };
 
   // Main class listing view
   if (currentView === "list") {
@@ -162,7 +228,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
             </Button>
             <h2 className="text-2xl font-bold">Manage Classes</h2>
           </div>
-          <Button onClick={() => setCurrentView("add")}>
+          <Button onClick={() => setCurrentView("add")} className="pokemon-button">
             <Plus className="h-4 w-4 mr-1" />
             Add New Class
           </Button>
@@ -171,7 +237,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
         {classes.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             {classes.map(cls => (
-              <Card key={cls.id} className="hover:shadow-md transition-shadow">
+              <Card key={cls.id} className="pokemon-card hover:shadow-md transition-shadow">
                 <CardHeader className="pb-2">
                   <CardTitle className="flex justify-between items-center">
                     <div className="flex items-center gap-2">
@@ -194,16 +260,19 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
                     <div>
                       <p className="text-sm">{cls.students.length} student{cls.students.length !== 1 ? 's' : ''}</p>
                     </div>
-                    <Button 
-                      size="sm" 
-                      onClick={() => {
-                        setSelectedClassId(cls.id);
-                        setCurrentView("students");
-                      }}
-                    >
-                      <UserPlus className="h-4 w-4 mr-1" />
-                      Manage Students
-                    </Button>
+                    <div className="space-x-2">
+                      <Button 
+                        size="sm" 
+                        onClick={() => {
+                          setSelectedClassId(cls.id);
+                          setCurrentView("students");
+                        }}
+                        className="pokemon-button"
+                      >
+                        <UserPlus className="h-4 w-4 mr-1" />
+                        Manage Students
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -215,7 +284,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
               <School className="h-12 w-12 mx-auto mb-4 text-gray-400" />
               <h3 className="text-lg font-medium mb-2">No Classes Yet</h3>
               <p className="text-gray-500 mb-6">Get started by adding your first class.</p>
-              <Button onClick={() => setCurrentView("add")}>
+              <Button onClick={() => setCurrentView("add")} className="pokemon-button">
                 <Plus className="h-4 w-4 mr-1" />
                 Add Your First Class
               </Button>
@@ -238,7 +307,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
           <h2 className="text-2xl font-bold ml-4">Add New Class</h2>
         </div>
         
-        <Card>
+        <Card className="pokemon-card">
           <CardContent className="pt-6">
             <form className="space-y-4">
               <div className="space-y-2">
@@ -269,7 +338,13 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
                 >
                   Cancel
                 </Button>
-                <Button type="button" onClick={handleAddClass}>Create Class</Button>
+                <Button 
+                  type="button" 
+                  onClick={handleAddClass}
+                  className="pokemon-button"
+                >
+                  Create Class
+                </Button>
               </div>
             </form>
           </CardContent>
@@ -282,18 +357,29 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
   if (currentView === "students" && selectedClass) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center">
-          <Button variant="outline" size="sm" onClick={() => setCurrentView("list")}>
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Back to Classes
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Button variant="outline" size="sm" onClick={() => setCurrentView("list")}>
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back to Classes
+            </Button>
+            <h2 className="text-2xl font-bold ml-4">
+              Students in {selectedClass.name}
+            </h2>
+          </div>
+          <Button
+            onClick={() => {
+              setCurrentView("pokemon");
+            }}
+            className="pokemon-button"
+          >
+            <span className="pokeball mr-2"></span>
+            Manage Pokémon
           </Button>
-          <h2 className="text-2xl font-bold ml-4">
-            Students in {selectedClass.name}
-          </h2>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <Card>
+          <Card className="pokemon-card">
             <CardHeader>
               <CardTitle>Add New Student</CardTitle>
             </CardHeader>
@@ -329,7 +415,11 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
                   />
                 </div>
                 
-                <Button type="button" onClick={handleAddStudent}>
+                <Button 
+                  type="button" 
+                  onClick={handleAddStudent}
+                  className="pokemon-button"
+                >
                   <Plus className="h-4 w-4 mr-1" />
                   Add Student
                 </Button>
@@ -345,8 +435,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
                   <TableRow>
                     <TableHead>Name</TableHead>
                     <TableHead>Username</TableHead>
-                    <TableHead>Password</TableHead>
-                    <TableHead className="w-[80px]">Actions</TableHead>
+                    <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -354,16 +443,29 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
                     <TableRow key={student.id}>
                       <TableCell>{student.name}</TableCell>
                       <TableCell>{student.username}</TableCell>
-                      <TableCell>{student.password}</TableCell>
                       <TableCell>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteStudent(student.id)}
-                          className="text-red-500 h-8 w-8 p-0"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        <div className="flex space-x-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => {
+                              setSelectedStudent(student);
+                              setCurrentView("pokemon");
+                            }}
+                            className="text-blue-500"
+                          >
+                            <span className="pokeball mr-1"></span>
+                            Pokemon
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDeleteStudent(student.id)}
+                            className="text-red-500 p-0 h-8 w-8"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -375,6 +477,99 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
               </div>
             )}
           </div>
+        </div>
+      </div>
+    );
+  }
+  
+  // Pokemon management view
+  if (currentView === "pokemon" && selectedClassId) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => {
+                setSelectedStudent(null);
+                setCurrentView("students");
+              }}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back to Students
+            </Button>
+            <h2 className="text-2xl font-bold ml-4">
+              {selectedStudent ? `Manage ${selectedStudent.name}'s Pokémon` : 'Class Pokémon Pool'}
+            </h2>
+          </div>
+        </div>
+        
+        {selectedStudent && (
+          <Card className="pokemon-card">
+            <CardHeader>
+              <CardTitle>Award Coins to {selectedStudent.name}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="flex items-center space-x-4">
+                <div className="flex-1">
+                  <Input
+                    type="number"
+                    min="1"
+                    value={coinsToAward}
+                    onChange={(e) => setCoinsToAward(parseInt(e.target.value) || 1)}
+                  />
+                </div>
+                <Button onClick={handleAwardCoins} className="pokemon-button">
+                  <Coins className="h-4 w-4 mr-1" />
+                  Award Coins
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          {pokemonPool.map(pokemon => (
+            <Card key={pokemon.id} className="pokemon-card">
+              <CardContent className="pt-6 text-center">
+                <div className="w-24 h-24 mx-auto mb-2">
+                  <img 
+                    src={pokemon.image} 
+                    alt={pokemon.name} 
+                    className="w-full h-full object-contain" 
+                  />
+                </div>
+                <h3 className="font-bold">{pokemon.name}</h3>
+                <p className="text-sm text-gray-500">{pokemon.type}</p>
+                <p className="text-xs mb-4">
+                  <span className={`inline-block px-2 py-1 rounded-full text-white ${
+                    pokemon.rarity === 'legendary' ? 'bg-yellow-500' :
+                    pokemon.rarity === 'rare' ? 'bg-purple-500' :
+                    pokemon.rarity === 'uncommon' ? 'bg-blue-500' : 'bg-green-500'
+                  }`}>
+                    {pokemon.rarity}
+                  </span>
+                </p>
+                
+                {selectedStudent && (
+                  <Button 
+                    onClick={() => handleAssignPokemon(pokemon.id)}
+                    className="w-full pokemon-button"
+                  >
+                    <Award className="h-4 w-4 mr-1" />
+                    Assign to Student
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          ))}
+          
+          {pokemonPool.length === 0 && (
+            <div className="col-span-full text-center p-8">
+              <p>No Pokémon available in this class pool.</p>
+            </div>
+          )}
         </div>
       </div>
     );

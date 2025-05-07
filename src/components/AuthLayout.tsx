@@ -20,15 +20,17 @@ export const AuthLayout = ({
   className,
 }: AuthLayoutProps) => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-purple-600 via-blue-500 to-purple-400 p-4">
-      <Card className={cn("w-full max-w-md shadow-xl", className)}>
+    <div className="flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat p-4" 
+         style={{backgroundImage: "url('/lovable-uploads/df7b9259-e876-46a6-9b71-00aa60971cbf.png')"}}>
+      <Card className={cn("w-full max-w-md shadow-xl border-none bg-white/90 backdrop-blur-sm", className)}>
         <CardHeader>
-          <div className="flex justify-center mb-4">
+          <div className="flex justify-center mb-4 relative">
             <img
-              src="/lovable-uploads/40c04be5-3d6e-4938-9a00-006177dbef3b.png"
+              src="/lovable-uploads/3e3a2694-943e-4281-80c9-f08239485026.png"
               alt="TR Ayman Logo"
-              className="h-24 w-auto"
+              className="h-32 w-auto z-10"
             />
+            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-white/60 rounded-full -z-10 animate-pulse"></div>
           </div>
           <CardTitle className="text-2xl font-bold text-center">{title}</CardTitle>
           {description && (
