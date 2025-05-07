@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,11 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// Add Pokemon theme colors
+				'pokemon-red': 'hsl(var(--pokemon-red))',
+				'pokemon-blue': 'hsl(var(--pokemon-blue))',
+				'pokemon-yellow': 'hsl(var(--pokemon-yellow))'
 			},
 			borderRadius: {
 				lg: 'var(--radius)',

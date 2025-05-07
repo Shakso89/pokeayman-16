@@ -10,10 +10,10 @@ import { User } from "lucide-react";
 
 interface LoginFormProps {
   type: "teacher" | "student";
-  onSuccess?: () => void;
+  onLoginSuccess?: (username: string, password: string) => void;
 }
 
-export const LoginForm: React.FC<LoginFormProps> = ({ type, onSuccess }) => {
+export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -34,6 +34,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onSuccess }) => {
           });
           localStorage.setItem("userType", "teacher");
           localStorage.setItem("isLoggedIn", "true");
+          
+          if (onLoginSuccess) {
+            onLoginSuccess(username, password);
+          }
+          
           navigate("/teacher-dashboard");
         } else {
           toast({
@@ -53,6 +58,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onSuccess }) => {
           localStorage.setItem("userType", "student");
           localStorage.setItem("isLoggedIn", "true");
           localStorage.setItem("studentName", username);
+          
+          if (onLoginSuccess) {
+            onLoginSuccess(username, password);
+          }
+          
           navigate("/student-dashboard");
         } else {
           toast({
