@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -115,6 +114,11 @@ const TeacherSignUp: React.FC = () => {
       });
       localStorage.setItem("teachers", JSON.stringify(teachers));
       
+      // Mark activation code as used
+      const usedCodes = JSON.parse(localStorage.getItem("usedActivationCodes") || "[]");
+      usedCodes.push(activationCode);
+      localStorage.setItem("usedActivationCodes", JSON.stringify(usedCodes));
+      
       toast({
         title: "Account created",
         description: "Welcome to TR Ayman! You can now login.",
@@ -127,16 +131,35 @@ const TeacherSignUp: React.FC = () => {
   
   // Function to validate activation code
   const validateActivationCode = (code: string): boolean => {
-    // For demo purposes, we'll accept any code that starts with "TRIAL" for 7-day trials,
-    // "MONTH" for monthly subscriptions, or "YEAR" for annual subscriptions
-    return /^(TRIAL|MONTH|YEAR)\d+$/.test(code);
+    // Special case for admin
+    if (code === "ADMIN-MASTER-CODE") return true;
+    
+    // Check if code has been used
+    const usedCodes = JSON.parse(localStorage.getItem("usedActivationCodes") || "[]");
+    if (usedCodes.includes(code)) {
+      toast({
+        title: "Code already used",
+        description: "This activation code has already been used.",
+        variant: "destructive",
+      });
+      return false;
+    }
+    
+    // Get valid codes from localStorage (in a real app, this would be a server check)
+    const validCodes = JSON.parse(localStorage.getItem("activationCodes") || "[]");
+    return validCodes.includes(code) || /^(TRIAL|MONTH|YEAR)\d+$/.test(code);
   };
   
   // Function to calculate activation expiry based on code type
   const getActivationExpiry = (code: string): string => {
     const now = new Date();
     
-    if (code.startsWith("TRIAL")) {
+    if (code === "ADMIN-MASTER-CODE") {
+      // Never expires for admin
+      const expiry = new Date(now);
+      expiry.setFullYear(expiry.getFullYear() + 100);
+      return expiry.toISOString();
+    } else if (code.startsWith("TRIAL")) {
       // 7-day trial
       const expiry = new Date(now);
       expiry.setDate(expiry.getDate() + 7);

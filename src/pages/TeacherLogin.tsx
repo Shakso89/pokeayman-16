@@ -1,14 +1,24 @@
 
 import React from "react";
 import { LoginForm } from "@/components/LoginForm";
+import { CodeGenerator } from "@/components/CodeGenerator";
 
 const TeacherLogin: React.FC = () => {
   const handleLoginSuccess = (username: string, password: string) => {
-    // Set teacher ID in localStorage for reference
-    localStorage.setItem("teacherId", "teacher-" + Date.now().toString());
+    // Check if this is the admin login
+    const isAdmin = username === "Admin" && password === "AdminAyman";
+    
+    // Store admin status if it's the admin
+    if (isAdmin) {
+      localStorage.setItem("isAdmin", "true");
+    }
   };
   
-  return <LoginForm type="teacher" onLoginSuccess={handleLoginSuccess} />;
+  return (
+    <>
+      <LoginForm type="teacher" onLoginSuccess={handleLoginSuccess} />
+    </>
+  );
 };
 
 export default TeacherLogin;

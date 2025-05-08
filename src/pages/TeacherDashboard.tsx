@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
+import { CodeGenerator } from "@/components/CodeGenerator";
 
 const TeacherDashboard: React.FC = () => {
   const [currentView, setCurrentView] = useState<"main" | "classes" | "battle">("main");
@@ -21,12 +22,16 @@ const TeacherDashboard: React.FC = () => {
     displayName: "",
   });
   const [teacherData, setTeacherData] = useState<any>(null);
+  const [isAdmin, setIsAdmin] = useState(false);
   
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const userType = localStorage.getItem("userType");
   const teacherId = localStorage.getItem("teacherId");
 
   useEffect(() => {
+    // Check if user is admin
+    setIsAdmin(localStorage.getItem("isAdmin") === "true");
+    
     // Load teacher data
     if (teacherId) {
       const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
@@ -128,8 +133,13 @@ const TeacherDashboard: React.FC = () => {
           <>
             <Card className="mb-6 border-none shadow-lg pokemon-gradient-bg text-white">
               <CardContent className="p-6">
-                <h2 className="text-3xl font-bold mb-2">Welcome, Pokémon Teacher!</h2>
-                <p>Manage your classes and create exciting battles for your students.</p>
+                <div className="flex justify-between items-center">
+                  <div>
+                    <h2 className="text-3xl font-bold mb-2">Welcome, Pokémon Teacher!</h2>
+                    <p>Manage your classes and create exciting battles for your students.</p>
+                  </div>
+                  {isAdmin && <CodeGenerator />}
+                </div>
               </CardContent>
             </Card>
             
