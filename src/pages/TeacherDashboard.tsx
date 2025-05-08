@@ -1,17 +1,119 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { NavBar } from "@/components/NavBar";
-import { Users, Sword } from "lucide-react";
+import { Users, Sword, UserPlus } from "lucide-react";
 import ClassManagement from "@/components/teacher/ClassManagement";
 import BattleMode from "@/components/teacher/BattleMode";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { toast } from "@/hooks/use-toast";
 
 const TeacherDashboard: React.FC = () => {
   const [currentView, setCurrentView] = useState<"main" | "classes" | "battle">("main");
+  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+  const [studentData, setStudentData] = useState({
+    username: "",
+    password: "",
+    displayName: "",
+  });
+  const [teacherData, setTeacherData] = useState<any>(null);
+  
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const userType = localStorage.getItem("userType");
+  const teacherId = localStorage.getItem("teacherId");
+
+  useEffect(() => {
+    // Load teacher data
+    if (teacherId) {
+      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+      const teacher = teachers.find((t: any) => t.id === teacherId);
+      if (teacher) {
+        setTeacherData(teacher);
+      }
+    }
+  }, [teacherId]);
+
+  const handleAddStudent = () => {
+    // Validate student data
+    if (!studentData.username || !studentData.password || !studentData.displayName) {
+      toast({
+        title: "Missing information",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Create student ID
+    const studentId = "student-" + Date.now().toString();
+    
+    // Get all students
+    const students = JSON.parse(localStorage.getItem("students") || "[]");
+    
+    // Check if username is already taken
+    if (students.some((s: any) => s.username === studentData.username)) {
+      toast({
+        title: "Username taken",
+        description: "This username is already in use",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    // Create new student
+    const newStudent = {
+      id: studentId,
+      username: studentData.username,
+      password: studentData.password,
+      displayName: studentData.displayName,
+      teacherId: teacherId,
+      createdAt: new Date().toISOString(),
+      pokemon: []
+    };
+    
+    // Add to students array
+    students.push(newStudent);
+    localStorage.setItem("students", JSON.stringify(students));
+    
+    // Add student to teacher's student list
+    if (teacherData) {
+      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+      const teacherIndex = teachers.findIndex((t: any) => t.id === teacherId);
+      
+      if (teacherIndex !== -1) {
+        if (!teachers[teacherIndex].students) {
+          teachers[teacherIndex].students = [];
+        }
+        
+        teachers[teacherIndex].students.push(studentId);
+        localStorage.setItem("teachers", JSON.stringify(teachers));
+        
+        // Update local teacher data
+        setTeacherData({
+          ...teacherData,
+          students: [...(teacherData.students || []), studentId]
+        });
+      }
+    }
+    
+    // Show success message
+    toast({
+      title: "Success",
+      description: "Student account created",
+    });
+    
+    // Reset form and close dialog
+    setStudentData({
+      username: "",
+      password: "",
+      displayName: "",
+    });
+    setIsAddStudentOpen(false);
+  };
 
   if (!isLoggedIn || userType !== "teacher") {
     return <Navigate to="/teacher-login" />;
@@ -30,6 +132,14 @@ const TeacherDashboard: React.FC = () => {
                 <p>Manage your classes and create exciting battles for your students.</p>
               </CardContent>
             </Card>
+            
+            <Button 
+              className="mb-6 bg-green-500 hover:bg-green-600 text-white flex items-center gap-2"
+              onClick={() => setIsAddStudentOpen(true)}
+            >
+              <UserPlus className="h-4 w-4" />
+              Create Student Account
+            </Button>
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="hover:shadow-lg transition-all pokemon-card">
@@ -89,6 +199,60 @@ const TeacherDashboard: React.FC = () => {
           <BattleMode onBack={() => setCurrentView("main")} />
         )}
       </div>
+      
+      {/* Add Student Dialog */}
+      <Dialog open={isAddStudentOpen} onOpenChange={setIsAddStudentOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create Student Account</DialogTitle>
+            <DialogDescription>
+              Create a new account that a student can use to log in.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="studentUsername">Username</Label>
+              <Input
+                id="studentUsername"
+                value={studentData.username}
+                onChange={(e) => setStudentData({...studentData, username: e.target.value})}
+                placeholder="Student username"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="studentDisplayName">Display Name</Label>
+              <Input
+                id="studentDisplayName"
+                value={studentData.displayName}
+                onChange={(e) => setStudentData({...studentData, displayName: e.target.value})}
+                placeholder="Student's display name"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="studentPassword">Password</Label>
+              <Input
+                id="studentPassword"
+                type="password"
+                value={studentData.password}
+                onChange={(e) => setStudentData({...studentData, password: e.target.value})}
+                placeholder="Create a password"
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddStudentOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleAddStudent}>
+              Create Account
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

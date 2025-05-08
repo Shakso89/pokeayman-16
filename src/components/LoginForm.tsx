@@ -27,13 +27,25 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
     // Simple authentication for demo purposes
     setTimeout(() => {
       if (type === "teacher") {
-        if (username === "Admin" && password === "AdminAyman") {
+        // Check if user exists in our "database" (localStorage)
+        const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+        const teacher = teachers.find((t: any) => t.username === username && t.password === password);
+        
+        if (teacher || (username === "Admin" && password === "AdminAyman")) {
           toast({
             title: "Success!",
             description: "Welcome back, Teacher!",
           });
           localStorage.setItem("userType", "teacher");
           localStorage.setItem("isLoggedIn", "true");
+          
+          // If it's a registered teacher (not Admin), store their ID
+          if (teacher) {
+            localStorage.setItem("teacherId", teacher.id);
+          } else {
+            // For Admin login
+            localStorage.setItem("teacherId", "teacher-" + Date.now().toString());
+          }
           
           if (onLoginSuccess) {
             onLoginSuccess(username, password);
@@ -48,9 +60,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
           });
         }
       } else {
-        // For student login, we would normally check against database
-        // For this demo, let's accept any username/password combo for students
-        if (username && password) {
+        // For student login, we check if the student exists
+        const students = JSON.parse(localStorage.getItem("students") || "[]");
+        const student = students.find((s: any) => s.username === username && s.password === password);
+        
+        if (student) {
           toast({
             title: "Success!",
             description: "Welcome back, Student!",
@@ -58,6 +72,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
           localStorage.setItem("userType", "student");
           localStorage.setItem("isLoggedIn", "true");
           localStorage.setItem("studentName", username);
+          localStorage.setItem("studentId", student.id);
           
           if (onLoginSuccess) {
             onLoginSuccess(username, password);
@@ -67,7 +82,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
         } else {
           toast({
             title: "Authentication failed",
-            description: "Username and password are required.",
+            description: "Invalid username or password. If you don't have an account, ask your teacher to create one for you.",
             variant: "destructive",
           });
         }
@@ -111,6 +126,21 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
           {isLoading ? "Logging in..." : "Login"}
         </Button>
         
+        {type === "teacher" && (
+          <div className="text-center text-sm mt-4">
+            <p>
+              Don't have an account?{" "}
+              <button 
+                type="button" 
+                onClick={() => navigate("/teacher-signup")}
+                className="text-blue-600 hover:underline"
+              >
+                Sign up
+              </button>
+            </p>
+          </div>
+        )}
+        
         {type === "student" && (
           <div className="text-center text-sm mt-4">
             <p>
@@ -122,7 +152,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
         <div className="text-center text-sm mt-2">
           <button 
             type="button" 
-            onClick={() => navigate(type === "teacher" ? "/" : "/")}
+            onClick={() => navigate("/")}
             className="text-blue-600 hover:underline"
           >
             Back to home
