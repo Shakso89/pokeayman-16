@@ -1,7 +1,7 @@
 
 import React from "react";
 import { LoginForm } from "@/components/LoginForm";
-import { CodeGenerator } from "@/components/CodeGenerator";
+import CodeGenerator from "@/components/CodeGenerator";
 
 const TeacherLogin: React.FC = () => {
   const handleLoginSuccess = (username: string, password: string) => {

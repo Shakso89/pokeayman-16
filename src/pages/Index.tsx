@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 
 const PokemonOrbit = () => {
   const orbitRef = useRef<HTMLDivElement>(null);
+  const navigate = useNavigate();
   const pokemonCount = 12;
   const pokemonImages = [
     "/lovable-uploads/40c04be5-3d6e-4938-9a00-006177dbef3b.png", // Your logo (will be in the center)
@@ -57,11 +58,14 @@ const PokemonOrbit = () => {
 
   return (
     <div className="relative w-full h-[400px] mb-8">
-      {/* Center logo */}
-      <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
+      {/* Center logo - now clickable */}
+      <div 
+        className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 cursor-pointer"
+        onClick={() => navigate('/student-login')}
+      >
         <img 
           src="/lovable-uploads/40c04be5-3d6e-4938-9a00-006177dbef3b.png" 
-          alt="TR Ayman Logo" 
+          alt="PokéAyman Logo" 
           className="h-40 w-auto"
         />
       </div>
@@ -120,7 +124,7 @@ const Index = () => {
     <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 flex flex-col items-center">
       {/* Top Nav with Sign In and Contact Info */}
       <div className="w-full bg-white/10 backdrop-blur-md py-4 px-6 flex justify-between items-center">
-        <div className="text-white text-2xl font-bold">TR Ayman</div>
+        <div className="text-white text-2xl font-bold">PokéAyman</div>
         
         <div className="flex items-center gap-6">
           {/* Contact Info */}
@@ -215,7 +219,7 @@ const Index = () => {
 
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-6xl p-6">
         <div className="text-center mb-4">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Welcome to TR Ayman</h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Welcome to PokéAyman</h1>
           <p className="text-xl text-white/90 max-w-2xl mx-auto">
             Your interactive Pokemon-based learning platform for students and teachers
           </p>
@@ -227,7 +231,7 @@ const Index = () => {
         {/* Call to action */}
         <div className="text-center mt-8">
           <Button 
-            onClick={() => navigate("/teacher-login")} 
+            onClick={() => navigate("/student-login")} 
             className="bg-pokemon-red hover:bg-red-600 text-white font-bold text-xl px-10 py-6 rounded-full shadow-lg hover:shadow-xl transform transition-all hover:scale-105 animate-pulse"
           >
             Get Started
@@ -241,7 +245,7 @@ const Index = () => {
       
       <footer className="w-full bg-white/10 backdrop-blur-md py-4 text-center text-white">
         <div className="container mx-auto">
-          <p>© 2025 TR Ayman. All rights reserved.</p>
+          <p>© 2025 PokéAyman. All rights reserved.</p>
           <div className="flex justify-center mt-2 gap-4">
             <a 
               href="https://www.facebook.com/ayman.soliman89/" 
