@@ -22,6 +22,9 @@ interface TeacherData {
   expiryDate?: string;
   subscriptionType?: "trial" | "monthly" | "annual";
   isActive: boolean;
+  // Add the missing properties that were calculated in the useEffect
+  numSchools?: number;
+  numStudents?: number;
 }
 
 interface StudentData {
