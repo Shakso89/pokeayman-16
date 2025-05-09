@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { AuthLayout } from "./AuthLayout";
 import { toast } from "@/hooks/use-toast";
 import { User } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface LoginFormProps {
   type: "teacher" | "student";
@@ -17,6 +18,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { t } = useTranslation();
   
   const navigate = useNavigate();
 
@@ -38,6 +40,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
           });
           localStorage.setItem("userType", "teacher");
           localStorage.setItem("isLoggedIn", "true");
+          
+          // Store the teacher's username for admin access check
+          localStorage.setItem("teacherUsername", username);
+          
+          // If it's Admin account, set isAdmin flag
+          if (username === "Admin") {
+            localStorage.setItem("isAdmin", "true");
+          } else {
+            localStorage.removeItem("isAdmin");
+          }
           
           // If it's a registered teacher (not Admin), store their ID
           if (teacher) {
@@ -93,16 +105,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
 
   return (
     <AuthLayout
-      title={`${type === "teacher" ? "Teacher" : "Student"} Login`}
-      description={`Login to access your ${type === "teacher" ? "teacher" : "student"} dashboard`}
+      title={type === "teacher" ? t("teacher-login") : t("student-login")}
+      description={`${t("login-to-access")} ${type === "teacher" ? t("teacher-dashboard").toLowerCase() : t("student-dashboard").toLowerCase()}`}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="username">Username</Label>
+          <Label htmlFor="username">{t("username") || "Username"}</Label>
           <div className="relative">
             <Input
               id="username"
-              placeholder="Enter your username"
+              placeholder={t("enter-your-username") || "Enter your username"}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className="pl-10"
@@ -112,30 +124,30 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
+          <Label htmlFor="password">{t("password") || "Password"}</Label>
           <Input
             id="password"
             type="password"
-            placeholder="Enter your password"
+            placeholder={t("enter-your-password") || "Enter your password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
           />
         </div>
         <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Logging in..." : "Login"}
+          {isLoading ? t("logging-in") || "Logging in..." : t("login") || "Login"}
         </Button>
         
         {type === "teacher" && (
           <div className="text-center text-sm mt-4">
             <p>
-              Don't have an account?{" "}
+              {t("dont-have-account") || "Don't have an account?"}{" "}
               <button 
                 type="button" 
                 onClick={() => navigate("/teacher-signup")}
                 className="text-blue-600 hover:underline"
               >
-                Sign up
+                {t("sign-up") || "Sign up"}
               </button>
             </p>
           </div>
@@ -144,7 +156,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
         {type === "student" && (
           <div className="text-center text-sm mt-4">
             <p>
-              Don't have an account? Ask your teacher to create one for you.
+              {t("student-account-help") || "Don't have an account? Ask your teacher to create one for you."}
             </p>
           </div>
         )}
@@ -155,7 +167,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
             onClick={() => navigate("/")}
             className="text-blue-600 hover:underline"
           >
-            Back to home
+            {t("back-to-home") || "Back to home"}
           </button>
         </div>
       </form>

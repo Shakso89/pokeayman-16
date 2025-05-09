@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
 import LanguageSelector from "./LanguageSelector";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface NavBarProps {
   userType: "teacher" | "student";
@@ -12,11 +13,14 @@ interface NavBarProps {
 
 export const NavBar: React.FC<NavBarProps> = ({ userType, userName }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   const handleLogout = () => {
     localStorage.removeItem("userType");
     localStorage.removeItem("isLoggedIn");
     localStorage.removeItem("studentName");
+    localStorage.removeItem("teacherUsername");
+    localStorage.removeItem("isAdmin");
     navigate("/");
   };
   
@@ -30,16 +34,16 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName }) => {
             className="h-12 w-auto" 
           />
           <h1 className="text-xl font-bold">
-            {userType === "teacher" ? "Teacher Dashboard" : "Student Dashboard"}
+            {userType === "teacher" ? t("teacher-dashboard") : t("student-dashboard")}
           </h1>
         </div>
         
         <div className="flex items-center gap-4">
-          <LanguageSelector />
           <div className="hidden md:block text-right">
-            <p className="text-sm text-gray-500">Logged in as</p>
-            <p className="font-medium">{userType === "teacher" ? "Admin" : userName || "Student"}</p>
+            <p className="text-sm text-gray-500">{t("logged-in-as") || "Logged in as"}</p>
+            <p className="font-medium">{userType === "teacher" ? (userName || "Teacher") : (userName || "Student")}</p>
           </div>
+          <LanguageSelector />
           <Button 
             variant="outline" 
             size="sm"
@@ -47,7 +51,7 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName }) => {
             className="flex items-center gap-1"
           >
             <LogOut size={16} />
-            <span>Logout</span>
+            <span>{t("logout")}</span>
           </Button>
         </div>
       </div>

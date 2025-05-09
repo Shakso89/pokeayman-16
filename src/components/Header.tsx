@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
+import LanguageSelector from "./LanguageSelector";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -27,6 +28,8 @@ const Header: React.FC = () => {
       </div>
       
       <div className="flex items-center gap-6">
+        <LanguageSelector className="text-white hover:bg-white/20" />
+        
         {/* Navigation Menu */}
         <NavigationMenu>
           <NavigationMenuList>

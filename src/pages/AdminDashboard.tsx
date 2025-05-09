@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Shield } from "lucide-react";
 import CodeGenerator from "@/components/CodeGenerator";
+import { useTranslation } from "@/hooks/useTranslation";
 
 // Types for our user data
 interface TeacherData {
@@ -45,11 +45,12 @@ const AdminDashboard: React.FC = () => {
   const [students, setStudents] = useState<StudentData[]>([]);
   const [activationMessage, setActivationMessage] = useState("");
   const [activeTab, setActiveTab] = useState("teachers");
-  const [activeCodeTab, setActiveCodeTab] = useState("generate"); // Added for nested tabs state
+  const { t } = useTranslation();
   
-  // Check if current user is Admin
-  const isAdmin = localStorage.getItem("isAdmin") === "true";
+  // Check if current user is Admin - UPDATED to check for username "Admin"
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+  const username = localStorage.getItem("teacherUsername") || "";
+  const isAdmin = username === "Admin";
   
   useEffect(() => {
     // Load teachers data
@@ -165,8 +166,8 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  // Redirect if not admin
-  if (!isAdmin || !isLoggedIn) {
+  // Redirect if not admin with username "Admin"
+  if (!isLoggedIn || !isAdmin) {
     return <Navigate to="/teacher-login" />;
   }
   
@@ -179,164 +180,158 @@ const AdminDashboard: React.FC = () => {
           <CardContent className="p-6">
             <div className="flex items-center gap-2">
               <Shield className="h-8 w-8" />
-              <h1 className="text-3xl font-bold">Admin Dashboard</h1>
+              <h1 className="text-3xl font-bold">{t("admin-dashboard")}</h1>
             </div>
-            <p className="mt-2">Full system oversight and controls</p>
+            <p className="mt-2">{t("admin-dashboard-description") || "Full system oversight and controls"}</p>
           </CardContent>
         </Card>
         
-        <div className="flex flex-wrap items-center gap-2 mb-6">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow">
-            <TabsList className="mb-6 w-full md:w-auto">
-              <TabsTrigger value="teachers">Teachers</TabsTrigger>
-              <TabsTrigger value="students">Students</TabsTrigger>
-              <TabsTrigger value="codes">Activation Codes</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="teachers" className="mt-0">
-              <div className="grid gap-4">
-                {teachers.map((teacher) => (
-                  <Card key={teacher.id} className="relative">
-                    {teacher.username === "Admin" && (
-                      <div className="absolute top-0 right-0 m-2">
-                        <Badge className="bg-purple-500">Admin Account</Badge>
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="mb-6 w-full md:w-auto">
+            <TabsTrigger value="teachers">{t("teachers") || "Teachers"}</TabsTrigger>
+            <TabsTrigger value="students">{t("students") || "Students"}</TabsTrigger>
+            <TabsTrigger value="codes">{t("activation-codes") || "Activation Codes"}</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="teachers" className="mt-0">
+            <div className="grid gap-4">
+              {teachers.map((teacher) => (
+                <Card key={teacher.id} className="relative">
+                  {teacher.username === "Admin" && (
+                    <div className="absolute top-0 right-0 m-2">
+                      <Badge className="bg-purple-500">{t("admin-account") || "Admin Account"}</Badge>
+                    </div>
+                  )}
+                  <CardHeader>
+                    <CardTitle className="flex justify-between">
+                      <span>{teacher.displayName} ({teacher.username})</span>
+                      <Badge className={teacher.isActive ? "bg-green-500" : "bg-red-500"}>
+                        {teacher.isActive ? t("active") || "Active" : t("frozen") || "Frozen"}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-gray-500">{t("account-type") || "Account Type"}</p>
+                        <p>{teacher.subscriptionType}</p>
                       </div>
-                    )}
-                    <CardHeader>
-                      <CardTitle className="flex justify-between">
-                        <span>{teacher.displayName} ({teacher.username})</span>
-                        <Badge className={teacher.isActive ? "bg-green-500" : "bg-red-500"}>
-                          {teacher.isActive ? "Active" : "Frozen"}
-                        </Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm text-gray-500">Account Type</p>
-                          <p>{teacher.subscriptionType}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Expiry Date</p>
-                          <p>{teacher.expiryDate}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Created</p>
-                          <p>{new Date(teacher.createdAt).toLocaleDateString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Last Login</p>
-                          <p>{teacher.lastLogin}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Time Spent</p>
-                          <p>{teacher.timeSpent} minutes</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Classes</p>
-                          <p>{teacher.numSchools} schools, {teacher.numStudents} students</p>
-                        </div>
+                      <div>
+                        <p className="text-sm text-gray-500">{t("expiry-date") || "Expiry Date"}</p>
+                        <p>{teacher.expiryDate}</p>
                       </div>
-                      
-                      {teacher.username !== "Admin" && (
-                        <div className="flex gap-2">
-                          <Button 
-                            onClick={() => handleToggleAccount(teacher.id, "teacher")}
-                            variant={teacher.isActive ? "destructive" : "default"}
-                          >
-                            {teacher.isActive ? "Freeze Account" : "Unfreeze Account"}
-                          </Button>
-                          <Button 
-                            onClick={() => handleDeleteAccount(teacher.id, "teacher")}
-                            variant="outline"
-                            className="text-red-500 border-red-500 hover:bg-red-50"
-                          >
-                            Delete Account
-                          </Button>
-                        </div>
-                      )}
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="students" className="mt-0">
-              <div className="grid gap-4">
-                {students.map((student) => (
-                  <Card key={student.id}>
-                    <CardHeader>
-                      <CardTitle className="flex justify-between">
-                        <span>{student.displayName} ({student.username})</span>
-                        <Badge className={student.isActive ? "bg-green-500" : "bg-red-500"}>
-                          {student.isActive ? "Active" : "Frozen"}
-                        </Badge>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                        <div>
-                          <p className="text-sm text-gray-500">Teacher ID</p>
-                          <p>{student.teacherId}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Created</p>
-                          <p>{new Date(student.createdAt).toLocaleDateString()}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Last Login</p>
-                          <p>{student.lastLogin}</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Time Spent</p>
-                          <p>{student.timeSpent} minutes</p>
-                        </div>
-                        <div>
-                          <p className="text-sm text-gray-500">Coins Spent</p>
-                          <p>{student.coinsSpent}</p>
-                        </div>
+                      <div>
+                        <p className="text-sm text-gray-500">{t("created") || "Created"}</p>
+                        <p>{new Date(teacher.createdAt).toLocaleDateString()}</p>
                       </div>
-                      
+                      <div>
+                        <p className="text-sm text-gray-500">{t("last-login") || "Last Login"}</p>
+                        <p>{teacher.lastLogin}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">{t("time-spent") || "Time Spent"}</p>
+                        <p>{teacher.timeSpent} {t("minutes") || "minutes"}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">{t("classes") || "Classes"}</p>
+                        <p>{teacher.numSchools} {t("schools") || "schools"}, {teacher.numStudents} {t("students") || "students"}</p>
+                      </div>
+                    </div>
+                    
+                    {teacher.username !== "Admin" && (
                       <div className="flex gap-2">
                         <Button 
-                          onClick={() => handleToggleAccount(student.id, "student")}
-                          variant={student.isActive ? "destructive" : "default"}
+                          onClick={() => handleToggleAccount(teacher.id, "teacher")}
+                          variant={teacher.isActive ? "destructive" : "default"}
                         >
-                          {student.isActive ? "Freeze Account" : "Unfreeze Account"}
+                          {teacher.isActive ? t("freeze-account") || "Freeze Account" : t("unfreeze-account") || "Unfreeze Account"}
                         </Button>
                         <Button 
-                          onClick={() => handleDeleteAccount(student.id, "student")}
+                          onClick={() => handleDeleteAccount(teacher.id, "teacher")}
                           variant="outline"
                           className="text-red-500 border-red-500 hover:bg-red-50"
                         >
-                          Delete Account
+                          {t("delete-account") || "Delete Account"}
                         </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            </TabsContent>
-            
-            <TabsContent value="codes" className="mt-0">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Activation Code Management</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <p className="mb-4">Generate and manage activation codes for teachers and schools.</p>
-                  <div className="grid place-items-center p-6">
-                    <CodeGenerator />
-                  </div>
-                </CardContent>
-              </Card>
-            </TabsContent>
-          </Tabs>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
           
-          <div className="flex-shrink-0">
-            <CodeGenerator />
-          </div>
-        </div>
+          <TabsContent value="students" className="mt-0">
+            <div className="grid gap-4">
+              {students.map((student) => (
+                <Card key={student.id}>
+                  <CardHeader>
+                    <CardTitle className="flex justify-between">
+                      <span>{student.displayName} ({student.username})</span>
+                      <Badge className={student.isActive ? "bg-green-500" : "bg-red-500"}>
+                        {student.isActive ? t("active") || "Active" : t("frozen") || "Frozen"}
+                      </Badge>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      <div>
+                        <p className="text-sm text-gray-500">{t("teacher-id") || "Teacher ID"}</p>
+                        <p>{student.teacherId}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">{t("created") || "Created"}</p>
+                        <p>{new Date(student.createdAt).toLocaleDateString()}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">{t("last-login") || "Last Login"}</p>
+                        <p>{student.lastLogin}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">{t("time-spent") || "Time Spent"}</p>
+                        <p>{student.timeSpent} {t("minutes") || "minutes"}</p>
+                      </div>
+                      <div>
+                        <p className="text-sm text-gray-500">{t("coins-spent") || "Coins Spent"}</p>
+                        <p>{student.coinsSpent}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="flex gap-2">
+                      <Button 
+                        onClick={() => handleToggleAccount(student.id, "student")}
+                        variant={student.isActive ? "destructive" : "default"}
+                      >
+                        {student.isActive ? t("freeze-account") || "Freeze Account" : t("unfreeze-account") || "Unfreeze Account"}
+                      </Button>
+                      <Button 
+                        onClick={() => handleDeleteAccount(student.id, "student")}
+                        variant="outline"
+                        className="text-red-500 border-red-500 hover:bg-red-50"
+                      >
+                        {t("delete-account") || "Delete Account"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="codes" className="mt-0">
+            <Card>
+              <CardHeader>
+                <CardTitle>{t("activation-code-management") || "Activation Code Management"}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="mb-4">{t("generate-codes-description") || "Generate and manage activation codes for teachers and schools."}</p>
+                <div className="grid place-items-center p-6">
+                  <CodeGenerator />
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </div>
   );
