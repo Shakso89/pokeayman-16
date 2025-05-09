@@ -1,8 +1,9 @@
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { Button } from "@/components/ui/button";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { Languages } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
 export type Language = "en" | "zh";
 
@@ -12,17 +13,10 @@ interface LanguageSelectorProps {
 }
 
 export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onChange, className }) => {
-  const [language, setLanguage] = useState<Language>("en");
-
-  useEffect(() => {
-    // Load saved language preference
-    const savedLanguage = localStorage.getItem("language") as Language || "en";
-    setLanguage(savedLanguage);
-  }, []);
+  const { language, setLanguage } = useTranslation();
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
-    localStorage.setItem("language", lang);
     if (onChange) {
       onChange(lang);
     }

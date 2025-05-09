@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 
 const PokemonOrbit: React.FC = () => {
   const orbitRef = useRef<HTMLDivElement>(null);
+  const logoRef = useRef<HTMLImageElement>(null);
   const navigate = useNavigate();
   const pokemonCount = 12;
   const pokemonImages = [
@@ -44,17 +45,28 @@ const PokemonOrbit: React.FC = () => {
     };
   }, []);
 
+  const handleLogoClick = () => {
+    // Add a pulsing animation to the logo on click
+    if (logoRef.current) {
+      logoRef.current.classList.add('scale-pulse');
+      setTimeout(() => {
+        navigate('/student-login');
+      }, 600);
+    }
+  };
+
   return (
     <div className="relative w-full h-[400px] mb-8">
-      {/* Center logo - now clickable */}
+      {/* Center logo - now clickable with animation */}
       <div 
         className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10 cursor-pointer"
-        onClick={() => navigate('/student-login')}
+        onClick={handleLogoClick}
       >
         <img 
+          ref={logoRef}
           src="/lovable-uploads/40c04be5-3d6e-4938-9a00-006177dbef3b.png" 
           alt="PokéAyman Logo" 
-          className="h-40 w-auto"
+          className="h-52 w-auto transition-transform duration-500 hover:scale-110"
         />
       </div>
       
@@ -65,7 +77,7 @@ const PokemonOrbit: React.FC = () => {
       >
         {Array.from({ length: pokemonCount }).map((_, i) => {
           const angle = (i / pokemonCount) * 2 * Math.PI;
-          const radius = 160; // Distance from center
+          const radius = 180; // Increased distance from center
           const x = Math.cos(angle) * radius;
           const y = Math.sin(angle) * radius;
           const pokemonImg = pokemonImages[(i % pokemonImages.length) + 1]; // Skip the first image (logo)
@@ -82,7 +94,7 @@ const PokemonOrbit: React.FC = () => {
               <img 
                 src={pokemonImg} 
                 alt={`Pokemon ${i}`} 
-                className="h-16 w-16 object-contain transform -rotate-[var(--rotation)]"
+                className="h-16 w-16 object-contain hover:scale-125 transition-transform"
                 style={{ transform: `rotate(-${(i / pokemonCount) * 360}deg)` }} // Counter-rotate to keep pokemon upright
               />
             </div>

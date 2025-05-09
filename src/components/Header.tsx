@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Facebook, Phone } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { 
   NavigationMenu,
   NavigationMenuContent,
@@ -11,42 +11,27 @@ import {
   navigationMenuTriggerStyle
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { useNavigate } from "react-router-dom";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   return (
     <div className="w-full bg-white/10 backdrop-blur-md py-4 px-6 flex justify-between items-center">
-      <div className="text-white text-2xl font-bold">PokéAyman</div>
+      <div 
+        className="text-white text-2xl font-bold cursor-pointer"
+        onClick={() => navigate("/")}
+      >
+        PokéAyman
+      </div>
       
       <div className="flex items-center gap-6">
-        {/* Contact Info */}
-        <div className="hidden md:flex items-center gap-4">
-          <a 
-            href="https://www.facebook.com/ayman.soliman89/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="flex items-center gap-2 text-white hover:text-blue-200 transition-colors"
-          >
-            <Facebook className="h-5 w-5" />
-            <span>ayman.soliman89</span>
-          </a>
-          
-          <a 
-            href="tel:+886900170038" 
-            className="flex items-center gap-2 text-white hover:text-blue-200 transition-colors"
-          >
-            <Phone className="h-5 w-5" />
-            <span>+886 900 170 038</span>
-          </a>
-        </div>
-        
         {/* Navigation Menu */}
         <NavigationMenu>
           <NavigationMenuList>
             <NavigationMenuItem>
-              <NavigationMenuTrigger className="bg-transparent text-white hover:bg-white/20">Sign In</NavigationMenuTrigger>
+              <NavigationMenuTrigger className="bg-transparent text-white hover:bg-white/20">{t("sign-in")}</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid gap-3 p-4 w-[200px]">
                   <li>
@@ -58,7 +43,7 @@ const Header: React.FC = () => {
                           "cursor-pointer flex items-center justify-start gap-2"
                         )}
                       >
-                        Teacher Login
+                        {t("teacher-login")}
                       </a>
                     </NavigationMenuLink>
                   </li>
@@ -71,7 +56,7 @@ const Header: React.FC = () => {
                           "cursor-pointer flex items-center justify-start gap-2"
                         )}
                       >
-                        Student Login
+                        {t("student-login")}
                       </a>
                     </NavigationMenuLink>
                   </li>
@@ -80,31 +65,17 @@ const Header: React.FC = () => {
             </NavigationMenuItem>
             
             <NavigationMenuItem>
-              <NavigationMenuTrigger className="bg-transparent text-white hover:bg-white/20">Contact</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid gap-3 p-4 w-[250px]">
-                  <li className="flex flex-col">
-                    <span className="font-medium">Facebook:</span>
-                    <a 
-                      href="https://www.facebook.com/ayman.soliman89/" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-500 hover:underline"
-                    >
-                      ayman.soliman89
-                    </a>
-                  </li>
-                  <li className="flex flex-col">
-                    <span className="font-medium">Phone / WhatsApp / Line:</span>
-                    <a 
-                      href="tel:+886900170038" 
-                      className="text-blue-500 hover:underline"
-                    >
-                      +886 900 170 038
-                    </a>
-                  </li>
-                </ul>
-              </NavigationMenuContent>
+              <NavigationMenuLink asChild>
+                <a
+                  onClick={() => navigate("/contact")}
+                  className={cn(
+                    navigationMenuTriggerStyle(),
+                    "cursor-pointer bg-transparent text-white hover:bg-white/20"
+                  )}
+                >
+                  {t("contact-us")}
+                </a>
+              </NavigationMenuLink>
             </NavigationMenuItem>
           </NavigationMenuList>
         </NavigationMenu>

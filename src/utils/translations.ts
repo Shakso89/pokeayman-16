@@ -51,6 +51,46 @@ export const translations: TranslationMap = {
     en: "Create Student Account",
     zh: "创建学生帐户"
   },
+  "sign-in": {
+    en: "Sign In",
+    zh: "登录"
+  },
+  "contact-us": {
+    en: "Contact Us",
+    zh: "联系我们"
+  },
+  "all-rights-reserved": {
+    en: "All rights reserved.",
+    zh: "保留所有权利。"
+  },
+  "phone": {
+    en: "Phone",
+    zh: "电话"
+  },
+  "email": {
+    en: "Email",
+    zh: "电子邮件"
+  },
+  "click-to-connect": {
+    en: "Click to connect",
+    zh: "点击连接"
+  },
+  "back-to-home": {
+    en: "Back to Home",
+    zh: "返回首页"
+  },
+  "teacher-login": {
+    en: "Teacher Login",
+    zh: "教师登录"
+  },
+  "student-login": {
+    en: "Student Login",
+    zh: "学生登录"
+  },
+  "are-you-a-teacher": {
+    en: "Are you a Teacher?",
+    zh: "您是老师吗？"
+  },
 };
 
 export const translate = (key: string, language: string = "en"): string => {

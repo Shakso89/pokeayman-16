@@ -19,9 +19,18 @@ const TeacherLogin: React.FC = () => {
   };
   
   return (
-    <>
+    <div className="relative">
+      {/* Logo at the top */}
+      <div className="flex justify-center pt-4 mb-4">
+        <img 
+          src="/lovable-uploads/40c04be5-3d6e-4938-9a00-006177dbef3b.png" 
+          alt="PokéAyman Logo" 
+          className="h-24 w-auto cursor-pointer hover:scale-105 transition-transform"
+          onClick={() => navigate("/")}
+        />
+      </div>
       <LoginForm type="teacher" onLoginSuccess={handleLoginSuccess} />
-    </>
+    </div>
   );
 };
 

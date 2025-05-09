@@ -6,9 +6,11 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PokemonOrbit from "@/components/PokemonOrbit";
 import LanguageSelector from "@/components/LanguageSelector";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const Index: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   
   // Check if user is already logged in
   useEffect(() => {
@@ -28,9 +30,9 @@ const Index: React.FC = () => {
 
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-6xl p-6">
         <div className="text-center mb-4">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Welcome to PokéAyman</h1>
+          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">{t('welcome')}</h1>
           <p className="text-xl text-white/90 max-w-2xl mx-auto">
-            Your interactive Pokemon-based learning platform for students and teachers
+            {t('platform-description')}
           </p>
         </div>
         
@@ -39,8 +41,8 @@ const Index: React.FC = () => {
           <LanguageSelector className="text-white hover:bg-white/20" />
         </div>
         
-        {/* Pokemon orbit animation */}
-        <div onClick={() => navigate("/student-login")} className="cursor-pointer">
+        {/* Pokemon orbit animation - centered and larger */}
+        <div className="my-8 flex justify-center w-full">
           <PokemonOrbit />
         </div>
         
@@ -50,11 +52,11 @@ const Index: React.FC = () => {
             onClick={() => navigate("/student-login")} 
             className="bg-pokemon-red hover:bg-red-600 text-white font-bold text-xl px-10 py-6 rounded-full shadow-lg hover:shadow-xl transform transition-all hover:scale-105 animate-pulse"
           >
-            Get Started
+            {t('get-started')}
           </Button>
           
           <p className="text-white mt-4">
-            Join our community of educators and students
+            {t('join-community')}
           </p>
         </div>
       </div>

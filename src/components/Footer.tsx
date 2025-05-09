@@ -1,29 +1,33 @@
 
 import React from "react";
-import { Facebook, Phone } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import LanguageSelector from "./LanguageSelector";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const Footer: React.FC = () => {
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+
   return (
-    <footer className="w-full bg-white/10 backdrop-blur-md py-4 text-center text-white">
+    <footer className="w-full bg-white/10 backdrop-blur-md py-6 text-center text-white">
       <div className="container mx-auto">
-        <p>© 2025 PokéAyman. All rights reserved.</p>
-        <div className="flex justify-center mt-2 gap-4">
-          <a 
-            href="https://www.facebook.com/ayman.soliman89/" 
-            target="_blank" 
-            rel="noopener noreferrer"
-            className="text-white hover:text-blue-200 transition-colors"
-          >
-            <Facebook className="h-5 w-5" />
-          </a>
-          <a 
-            href="tel:+886900170038" 
-            className="text-white hover:text-blue-200 transition-colors"
-          >
-            <Phone className="h-5 w-5" />
-          </a>
+        <div className="flex justify-center mb-4">
+          <img 
+            src="/lovable-uploads/40c04be5-3d6e-4938-9a00-006177dbef3b.png" 
+            alt="PokéAyman Logo" 
+            className="h-12 w-auto cursor-pointer hover:scale-110 transition-transform"
+            onClick={() => navigate("/")}
+          />
+        </div>
+        <p>© 2025 PokéAyman. {t("all-rights-reserved")}</p>
+        <div className="flex justify-center mt-4 gap-4">
           <LanguageSelector className="text-white hover:text-blue-200 transition-colors" />
+          <button
+            onClick={() => navigate("/contact")}
+            className="text-white hover:text-blue-200 transition-colors"
+          >
+            {t("contact-us")}
+          </button>
         </div>
       </div>
     </footer>
