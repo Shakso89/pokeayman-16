@@ -100,8 +100,22 @@ const SchoolCollaboration: React.FC<SchoolCollaborationProps> = ({
     setClasses(allClasses);
     
     // Load merge requests
-    const requests = JSON.parse(localStorage.getItem("mergeRequests") || "[]");
-    setMergeRequests(requests);
+    const savedRequests = JSON.parse(localStorage.getItem("mergeRequests") || "[]");
+    
+    // Ensure all merge requests have a valid status value
+    const typedRequests: MergeRequest[] = savedRequests.map((req: any) => {
+      // Ensure status is one of the allowed values
+      let status: "pending" | "accepted" | "rejected" = "pending";
+      if (req.status === "accepted") status = "accepted";
+      if (req.status === "rejected") status = "rejected";
+      
+      return {
+        ...req,
+        status
+      };
+    });
+    
+    setMergeRequests(typedRequests);
   }, []);
   
   const handleSendMergeRequest = () => {
@@ -152,7 +166,7 @@ const SchoolCollaboration: React.FC<SchoolCollaborationProps> = ({
     // Update the request status
     const updatedRequests = mergeRequests.map(req => {
       if (req.id === request.id) {
-        return { ...req, status: "accepted" };
+        return { ...req, status: "accepted" as const };
       }
       return req;
     });
@@ -187,7 +201,7 @@ const SchoolCollaboration: React.FC<SchoolCollaborationProps> = ({
     // Update the request status
     const updatedRequests = mergeRequests.map(req => {
       if (req.id === request.id) {
-        return { ...req, status: "rejected" };
+        return { ...req, status: "rejected" as const };
       }
       return req;
     });
