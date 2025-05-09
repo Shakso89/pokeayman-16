@@ -1,19 +1,31 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut } from "lucide-react";
+import { LogOut, Settings, MessageSquare, User } from "lucide-react";
 import LanguageSelector from "./LanguageSelector";
 import { useTranslation } from "@/hooks/useTranslation";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { 
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import UserSettingsModal from "./modals/UserSettingsModal";
 
 interface NavBarProps {
   userType: "teacher" | "student";
   userName?: string;
+  userAvatar?: string;
 }
 
-export const NavBar: React.FC<NavBarProps> = ({ userType, userName }) => {
+export const NavBar: React.FC<NavBarProps> = ({ userType, userName, userAvatar }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   
   const handleLogout = () => {
     localStorage.removeItem("userType");
@@ -21,8 +33,13 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName }) => {
     localStorage.removeItem("studentName");
     localStorage.removeItem("teacherUsername");
     localStorage.removeItem("isAdmin");
+    localStorage.removeItem("studentId");
+    localStorage.removeItem("teacherId");
+    localStorage.removeItem("studentClassId");
     navigate("/");
   };
+  
+  const isAdmin = localStorage.getItem("teacherUsername") === "Admin";
   
   return (
     <div className="bg-white border-b shadow-sm">
@@ -39,22 +56,61 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName }) => {
         </div>
         
         <div className="flex items-center gap-4">
-          <div className="hidden md:block text-right">
-            <p className="text-sm text-gray-500">{t("logged-in-as") || "Logged in as"}</p>
-            <p className="font-medium">{userType === "teacher" ? (userName || "Teacher") : (userName || "Student")}</p>
-          </div>
           <LanguageSelector />
+          
           <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleLogout}
-            className="flex items-center gap-1"
+            variant="ghost" 
+            size="icon"
+            onClick={() => navigate(`/${userType === "teacher" ? "teacher" : "student"}/messages`)}
+            title={t("messages")}
           >
-            <LogOut size={16} />
-            <span>{t("logout")}</span>
+            <MessageSquare size={20} />
           </Button>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                <Avatar>
+                  <AvatarImage src={userAvatar} alt={userName} />
+                  <AvatarFallback>
+                    {userName?.substring(0, 2).toUpperCase() || "NA"}
+                  </AvatarFallback>
+                </Avatar>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              <div className="flex items-center justify-start p-2">
+                <div className="flex flex-col space-y-1 leading-none">
+                  <p className="font-medium">{userName}</p>
+                  <p className="text-sm text-gray-500">{userType}</p>
+                </div>
+              </div>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>{t("settings")}</span>
+              </DropdownMenuItem>
+              {isAdmin && userType === "teacher" && (
+                <DropdownMenuItem onClick={() => navigate("/admin-dashboard")}>
+                  <User className="mr-2 h-4 w-4" />
+                  <span>{t("admin-dashboard")}</span>
+                </DropdownMenuItem>
+              )}
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleLogout}>
+                <LogOut className="mr-2 h-4 w-4" />
+                <span>{t("logout")}</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </div>
+      
+      <UserSettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={() => setIsSettingsOpen(false)} 
+        userType={userType} 
+      />
     </div>
   );
 };

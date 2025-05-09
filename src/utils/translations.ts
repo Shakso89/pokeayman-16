@@ -1,315 +1,533 @@
 
-type TranslationMap = {
-  [key: string]: {
-    en: string;
-    zh: string;
-  };
-};
+export const translations = {
+  en: {
+    // Login & Authentication
+    "teacher-login": "Teacher Login",
+    "student-login": "Student Login",
+    "email": "Email",
+    "username": "Username",
+    "password": "Password",
+    "login": "Login",
+    "create-account": "Create Account",
+    "dont-have-account": "Don't have an account?",
+    "sign-up": "Sign up",
+    "logout": "Logout",
+    "logged-in-as": "Logged in as",
+    "sign-in": "Sign In",
+    "display-name": "Display Name",
+    "create-password": "Create a password",
+    "cancel": "Cancel",
+    
+    // Dashboards
+    "teacher-dashboard": "Teacher Dashboard",
+    "student-dashboard": "Student Dashboard",
+    "admin-dashboard": "Admin Dashboard",
+    "welcome-teacher": "Welcome, Pokémon Teacher!",
+    "manage-classes-description": "Manage your classes and create exciting battles for your students.",
+    "back-to-dashboard": "Back to Dashboard",
+    
+    // Navigation
+    "contact-us": "Contact Us",
+    "back": "Back",
+    "settings": "Settings",
+    "messages": "Messages",
+    
+    // School Management
+    "manage-schools": "Manage Schools",
+    "add-new-school": "Add New School",
+    "school-name": "School Name",
+    "add-school": "Add School",
+    "no-schools-yet": "No Schools Yet",
+    "create-first-school-description": "Create your first school to get started with organizing classes.",
+    "school-created": "School created successfully",
+    "school-updated": "School updated successfully",
+    "school-deleted": "School deleted successfully",
+    "cannot-delete-school-with-classes": "Cannot delete a school that has classes",
+    "school": "School",
+    "entire-school": "Entire School",
+    "unknown-school": "Unknown School",
+    
+    // Class Management
+    "manage-classes": "Manage Classes/Schools",
+    "manage-classes-desc": "Create and manage classes, add students, and organize your schools",
+    "manage-classes-details": "Add new students, organize classes, and assign Pokémon to your students.",
+    "add-new-class": "Add New Class",
+    "class-name": "Class Name",
+    "add-class": "Add Class",
+    "no-classes-yet": "No Classes Yet",
+    "create-first-class-description": "Create your first class to start adding students.",
+    "back-to-schools": "Back to Schools",
+    "class-created": "Class created successfully",
+    "class-updated": "Class updated successfully",
+    "class-deleted": "Class deleted successfully",
+    "cannot-delete-class-with-students": "Cannot delete a class that has students",
+    "class": "Class",
+    "specific-class": "Specific Class",
+    "select-class": "Select Class",
+    "select-school": "Select School",
+    "unknown-class": "Unknown Class",
+    
+    // Student Management
+    "students": "Students",
+    "manage-students": "Manage Students",
+    "add-new-student": "Add New Student",
+    "enter-student-full-name": "Enter student's full name",
+    "create-username-for-student": "Create a username for the student",
+    "full-name": "Full Name",
+    "student-username": "Student username",
+    "student-display-name": "Student's display name",
+    "add-student": "Add Student",
+    "student-list": "Student List",
+    "no-students-added-yet": "No students added yet.",
+    "students-in": "Students in {name}",
+    "student-added": "Student added successfully",
+    "student-removed": "Student removed successfully",
+    "name": "Name",
+    "actions": "Actions",
 
-export const translations: TranslationMap = {
-  "welcome": {
-    en: "Welcome to PokéAyman",
-    zh: "欢迎来到 PokéAyman"
-  },
-  "platform-description": {
-    en: "Your interactive Pokemon-based learning platform for students and teachers",
-    zh: "适合学生和教师的互动式宝可梦学习平台"
-  },
-  "get-started": {
-    en: "Get Started",
-    zh: "开始使用"
-  },
-  "join-community": {
-    en: "Join our community of educators and students",
-    zh: "加入我们的教育者和学生社区"
-  },
-  "teacher-dashboard": {
-    en: "Teacher Dashboard",
-    zh: "教师仪表板"
-  },
-  "student-dashboard": {
-    en: "Student Dashboard",
-    zh: "学生仪表板"
-  },
-  "admin-dashboard": {
-    en: "Admin Dashboard",
-    zh: "管理员仪表板"
-  },
-  "admin-dashboard-description": {
-    en: "Full system oversight and controls",
-    zh: "完整的系统监督和控制"
-  },
-  "logout": {
-    en: "Logout",
-    zh: "登出"
-  },
-  "manage-classes": {
-    en: "Manage Classes",
-    zh: "管理班级"
-  },
-  "battle-mode": {
-    en: "Battle Mode",
-    zh: "对战模式"
-  },
-  "create-student": {
-    en: "Create Student Account",
-    zh: "创建学生帐户"
-  },
-  "sign-in": {
-    en: "Sign In",
-    zh: "登录"
-  },
-  "contact-us": {
-    en: "Contact Us",
-    zh: "联系我们"
-  },
-  "all-rights-reserved": {
-    en: "All rights reserved.",
-    zh: "保留所有权利。"
-  },
-  "phone": {
-    en: "Phone",
-    zh: "电话"
-  },
-  "email": {
-    en: "Email",
-    zh: "电子邮件"
-  },
-  "click-to-connect": {
-    en: "Click to connect",
-    zh: "点击连接"
-  },
-  "back-to-home": {
-    en: "Back to Home",
-    zh: "返回首页"
-  },
-  "teacher-login": {
-    en: "Teacher Login",
-    zh: "教师登录"
-  },
-  "student-login": {
-    en: "Student Login",
-    zh: "学生登录"
-  },
-  "are-you-a-teacher": {
-    en: "Are you a Teacher?",
-    zh: "您是老师吗？"
-  },
-  "teachers": {
-    en: "Teachers",
-    zh: "教师"
-  },
-  "students": {
-    en: "Students",
-    zh: "学生"
-  },
-  "activation-codes": {
-    en: "Activation Codes",
-    zh: "激活码"
-  },
-  "admin-account": {
-    en: "Admin Account",
-    zh: "管理员账户"
-  },
-  "active": {
-    en: "Active",
-    zh: "活跃"
-  },
-  "frozen": {
-    en: "Frozen",
-    zh: "冻结"
-  },
-  "account-type": {
-    en: "Account Type",
-    zh: "账户类型"
-  },
-  "expiry-date": {
-    en: "Expiry Date",
-    zh: "到期日期"
-  },
-  "created": {
-    en: "Created",
-    zh: "创建日期"
-  },
-  "last-login": {
-    en: "Last Login",
-    zh: "上次登录"
-  },
-  "time-spent": {
-    en: "Time Spent",
-    zh: "花费时间"
-  },
-  "minutes": {
-    en: "minutes",
-    zh: "分钟"
-  },
-  "classes": {
-    en: "Classes",
-    zh: "班级"
-  },
-  "schools": {
-    en: "schools",
-    zh: "学校"
-  },
-  "freeze-account": {
-    en: "Freeze Account",
-    zh: "冻结账户"
-  },
-  "unfreeze-account": {
-    en: "Unfreeze Account",
-    zh: "解冻账户"
-  },
-  "delete-account": {
-    en: "Delete Account",
-    zh: "删除账户"
-  },
-  "teacher-id": {
-    en: "Teacher ID",
-    zh: "教师ID"
-  },
-  "coins-spent": {
-    en: "Coins Spent",
-    zh: "花费的金币"
-  },
-  "activation-code-management": {
-    en: "Activation Code Management",
-    zh: "激活码管理"
-  },
-  "generate-codes-description": {
-    en: "Generate and manage activation codes for teachers and schools.",
-    zh: "生成和管理教师和学校的激活码。"
-  },
-  "logged-in-as": {
-    en: "Logged in as",
-    zh: "登录为"
-  },
-  "welcome-teacher": {
-    en: "Welcome, Pokémon Teacher!",
-    zh: "欢迎，宝可梦老师！"
-  },
-  "manage-classes-description": {
-    en: "Manage your classes and create exciting battles for your students.",
-    zh: "管理您的班级并为学生创建激动人心的对战。"
-  },
-  "manage-classes-desc": {
-    en: "Create and manage classes, add students, and organize your schools",
-    zh: "创建和管理班级，添加学生，组织您的学校"
-  },
-  "manage-classes-details": {
-    en: "Add new students, organize classes, and assign Pokémon to your students.",
-    zh: "添加新学生，组织班级，并为您的学生分配宝可梦。"
-  },
-  "battle-mode-desc": {
-    en: "Create and manage competition battles between students or classes",
-    zh: "创建和管理学生或班级之间的竞赛对战"
-  },
-  "battle-mode-details": {
-    en: "Set up competitive activities, manage scoring, and track student performance.",
-    zh: "设置竞争活动，管理评分，跟踪学生表现。"
-  },
-  "enter-battle-mode": {
-    en: "Enter Battle Mode",
-    zh: "进入对战模式"
-  },
-  "school-collaboration": {
-    en: "School Collaboration",
-    zh: "学校协作"
-  },
-  "school-collab-desc": {
-    en: "Collaborate with other teachers in the same schools",
-    zh: "与同一学校的其他教师协作"
-  },
-  "school-collab-details": {
-    en: "Manage shared access to classes, send collaboration requests, and work with other teachers.",
-    zh: "管理对班级的共享访问，发送协作请求，与其他教师合作。"
-  },
-  "back-to-dashboard": {
-    en: "Back to Dashboard",
-    zh: "返回仪表板"
-  },
-  "create-student-desc": {
-    en: "Create a new account that a student can use to log in.",
-    zh: "创建学生可用于登录的新账户。"
-  },
-  "username": {
-    en: "Username",
-    zh: "用户名"
-  },
-  "display-name": {
-    en: "Display Name",
-    zh: "显示名称"
-  },
-  "password": {
-    en: "Password",
-    zh: "密码"
-  },
-  "student-username": {
-    en: "Student username",
-    zh: "学生用户名"
-  },
-  "student-display-name": {
-    en: "Student's display name",
-    zh: "学生显示名称"
-  },
-  "create-password": {
-    en: "Create a password",
-    zh: "创建密码"
-  },
-  "cancel": {
-    en: "Cancel",
-    zh: "取消"
-  },
-  "create-account": {
-    en: "Create Account",
-    zh: "创建账户"
-  },
-  "login-to-access": {
-    en: "Login to access your",
-    zh: "登录访问您的"
-  },
-  "enter-your-username": {
-    en: "Enter your username",
-    zh: "输入您的用户名"
-  },
-  "enter-your-password": {
-    en: "Enter your password",
-    zh: "输入您的密码"
-  },
-  "logging-in": {
-    en: "Logging in...",
-    zh: "正在登录..."
-  },
-  "login": {
-    en: "Login",
-    zh: "登录"
-  },
-  "dont-have-account": {
-    en: "Don't have an account?",
-    zh: "没有账户？"
-  },
-  "sign-up": {
-    en: "Sign up",
-    zh: "注册"
-  },
-  "student-account-help": {
-    en: "Don't have an account? Ask your teacher to create one for you.",
-    zh: "没有账户？请您的老师为您创建一个。"
-  }
-};
+    // Pokemon Management
+    "pokemon": "Pokémon",
+    "manage-pokemon": "Manage Pokémon",
+    "school-pokemon-pool": "School Pokémon Pool",
+    "manage-student-pokemon": "Manage {name}'s Pokémon",
+    "award-coins-to": "Award Coins to {name}",
+    "award-coins": "Award Coins",
+    "remove-coins-from": "Remove Coins from {name}",
+    "remove-coins": "Remove Coins",
+    "pokemon-management": "Pokémon Management",
+    "remove-random-pokemon": "Remove Random Pokémon",
+    "assign-to-student": "Assign to Student",
+    "no-pokemon-available": "No Pokémon available in this pool.",
+    "coins-awarded": "{count} coin(s) awarded to {name}",
+    "coins-removed": "{count} coin(s) removed from {name}",
+    "not-enough-coins": "Student doesn't have enough coins to remove",
+    "random-pokemon-removed": "Random Pokémon removed from {name}'s collection",
+    "student-has-no-pokemon": "Student doesn't have any Pokémon to remove",
+    "pokemon-assigned": "Pokémon has been assigned to {name}",
+    "failed-assign-pokemon": "Failed to assign Pokémon to student",
+    "pokemon-distribution": "Pokémon Distribution",
+    "by-type": "By Type",
+    "by-rarity": "By Rarity",
+    "no-pokemon-distribution-data": "No Pokémon distribution data available",
+    
+    // Battle Mode
+    "battle-mode": "Battle Mode",
+    "battle-mode-desc": "Create and manage competition battles between students or classes",
+    "battle-mode-details": "Set up competitive activities, manage scoring, and track student performance.",
+    "enter-battle-mode": "Enter Battle Mode",
+    "create-new-battle": "Create New Battle",
+    "battle-name": "Battle Name",
+    "enter-battle-name": "Enter a name for this battle",
+    "enter-battle-description": "Enter battle description",
+    "description": "Description",
+    "create-battle": "Create Battle",
+    "no-battles-created": "No Battles Created",
+    "create-first-battle-prompt": "Create your first battle to get started.",
+    "create-first-battle": "Create Your First Battle",
+    "battle-created": "Battle created successfully!",
+    "start-battle": "Start Battle",
+    "delete": "Delete",
+    "view-answers": "View Answers",
+    "complete-battle": "Complete Battle",
+    "view-details": "View Details",
+    "battle-started": "Battle Started",
+    "battle-started-description": "The battle has begun!",
+    "battle-completed": "Battle Completed",
+    "battle-completed-description": "The battle has ended!",
+    "battle-deleted": "Battle Deleted",
+    "battle-deleted-description": "The battle has been removed.",
+    "pending": "Pending",
+    "active": "Active",
+    "completed": "Completed",
+    "ends-at": "Ends at",
+    "scope": "Scope",
+    "back-to-battles": "Back to Battles",
+    "base-reward-coins": "Base Reward (Coins)",
+    "base-reward-description": "Students will receive the base reward + 1 coin per participant if they win",
+    "time-limit": "Time Limit",
+    "battle-details": "Battle Details",
+    "reward": "Reward",
+    "reward-details": "Base: {base} coins + Participants: {participants} coins = Total: {total} coins",
+    "winner": "Winner",
+    "answers": "Answers",
+    "participants": "Participants",
+    "submitted-answers": "Submitted Answers",
+    "total-answers": "{count} answers submitted",
+    "no-answers-yet": "No answers submitted yet",
+    "waiting-for-answers": "Waiting for students to submit answers",
+    "total-participants": "{count} students participating",
+    "no-participants-yet": "No participants yet",
+    "waiting-for-participants": "Waiting for students to join the battle",
+    "select-as-winner": "Select as Winner",
+    "winner-selected": "Winner Selected",
+    "winner-selected-description": "{name} has been awarded {coins} coins as the winner!",
+    "expired": "Expired",
+    
+    // Student Battle Page
+    "battle-arena": "Battle Arena",
+    "active-battles": "Active Battles",
+    "completed-battles": "Completed Battles",
+    "answer-required": "Answer Required",
+    "answer-submitted": "Answer Submitted",
+    "answer-battle": "Answer Battle",
+    "view-submission": "View Submission",
+    "submit-answer": "Submit Your Answer",
+    "submit-answer-description": "Upload a photo or record your voice to submit your answer",
+    "take-photo": "Take Photo",
+    "record-voice": "Record Voice",
+    "submitting": "Submitting...",
+    "recording": "Recording",
+    "recording-description": "Recording your voice... speak clearly!",
+    "recording-stopped": "Recording Stopped",
+    "recording-stopped-description": "Your voice recording is ready to submit",
+    "answer-submitted-title": "Your Answer Has Been Submitted",
+    "answer-submitted-waiting": "Now waiting for the teacher to review all answers and select a winner.",
+    "answer-submitted-description": "Your answer has been submitted successfully",
+    "battle-winner": "Battle Winner",
+    "you-won-battle": "You won this battle!",
+    "reward-received": "You've received {coins} coins as your reward!",
+    "better-luck-next-time": "Better luck next time!",
+    "no-winner-declared": "No winner has been declared for this battle",
+    "you-participated-and-submitted": "You participated and submitted an answer",
+    "you-participated": "You participated but didn't submit an answer",
+    "you-did-not-participate": "You didn't participate in this battle",
+    "no-active-battles": "No Active Battles",
+    "no-active-battles-description": "There are currently no active battles to participate in.",
+    "no-completed-battles": "No Completed Battles",
+    "no-completed-battles-description": "You haven't participated in any completed battles yet.",
+    "days-remaining": "{count} days remaining",
+    "hours-remaining": "{count} hours {minutes} minutes remaining",
+    "minutes-remaining": "{count} minutes remaining",
+    "coins": "Coins",
 
-export const translate = (key: string, language: string = "en"): string => {
-  if (!translations[key]) {
-    return key; // Return the key if no translation found
-  }
-  
-  if (language === "zh" && translations[key].zh) {
-    return translations[key].zh;
-  }
-  
-  return translations[key].en;
-};
+    // School Collaboration
+    "school-collaboration": "School Collaboration",
+    "school-collab-desc": "Collaborate with other teachers in the same schools",
+    "school-collab-details": "Manage shared access to classes, send collaboration requests, and work with other teachers.",
+    
+    // Messaging
+    "search": "Search",
+    "requests": "Requests",
+    "search-by-name-or-username": "Search by name or username",
+    "search-prompt": "Search for teachers or students to add as friends",
+    "no-results": "No results found",
+    "send-request": "Send Request",
+    "already-friends": "Already Friends",
+    "already-friends-description": "You are already friends with this user",
+    "request-exists": "Request Exists",
+    "request-already-sent": "You've already sent a friend request to this user",
+    "request-already-received": "This user has already sent you a friend request",
+    "request-sent": "Request Sent",
+    "request-sent-description": "Friend request sent successfully",
+    "accept": "Accept",
+    "reject": "Reject",
+    "request-accepted": "Request Accepted",
+    "request-accepted-description": "You are now friends with this user",
+    "request-rejected": "Request Rejected",
+    "request-rejected-description": "Friend request rejected",
+    "no-pending-requests": "No pending friend requests",
+    "add-friends": "Add Friends",
+    "add-friends-description": "Search for users to add as friends",
+    "add-friend": "Add Friend",
+    "type-message": "Type a message...",
+    "no-contacts": "No Contacts",
+    "add-friends-to-message": "Add friends to start messaging",
+    "select-contact": "Select a Contact",
+    "select-contact-description": "Select a contact from the list to start chatting",
+    "microphone-access-error": "Error accessing microphone. Please check your permissions.",
+    
+    // Settings
+    "user-settings": "User Settings",
+    "user-settings-description": "Update your profile and settings",
+    "save-changes": "Save Changes",
+    "settings-saved": "Settings Saved",
+    "settings-saved-description": "Your settings have been saved successfully",
+    
+    // Reports & Analytics
+    "reports-analytics": "Reports & Analytics",
+    "participation": "Participation",
+    "engagement": "Engagement",
+    "student-participation": "Student Participation by School",
+    "student-engagement": "Student Engagement Over Time",
+    "participated": "Participated",
+    "total-students": "Total Students",
+    "logins": "Logins",
+    "battle-participation": "Battle Participation",
+    "no-participation-data": "No participation data available",
+    
+    // General
+    "error": "Error",
+    "success": "Success",
+    "fill-all-fields": "Please fill in all fields",
+    "fill-required-fields": "Please fill in all required fields",
+    "school-name-required": "School name is required",
+    "class-name-required": "Class name is required",
+    "create-student": "Create Student Account",
+    "create-student-desc": "Create a new account that a student can use to log in."
+  },
+  zh: {
+    // Login & Authentication
+    "teacher-login": "老师登录",
+    "student-login": "学生登录",
+    "email": "电子邮件",
+    "username": "用户名",
+    "password": "密码",
+    "login": "登录",
+    "create-account": "创建账户",
+    "dont-have-account": "没有账户?",
+    "sign-up": "注册",
+    "logout": "退出登录",
+    "logged-in-as": "登录为",
+    "sign-in": "登录",
+    "display-name": "显示名称",
+    "create-password": "创建密码",
+    "cancel": "取消",
+    
+    // Dashboards
+    "teacher-dashboard": "老师控制台",
+    "student-dashboard": "学生控制台",
+    "admin-dashboard": "管理员控制台",
+    "welcome-teacher": "欢迎，宝可梦老师!",
+    "manage-classes-description": "管理您的班级并为您的学生创建激动人心的对战。",
+    "back-to-dashboard": "返回控制台",
+    
+    // Navigation
+    "contact-us": "联系我们",
+    "back": "返回",
+    "settings": "设置",
+    "messages": "消息",
+    
+    // School Management
+    "manage-schools": "管理学校",
+    "add-new-school": "添加新学校",
+    "school-name": "学校名称",
+    "add-school": "添加学校",
+    "no-schools-yet": "暂无学校",
+    "create-first-school-description": "创建您的第一所学校，开始组织班级。",
+    "school-created": "学校创建成功",
+    "school-updated": "学校更新成功",
+    "school-deleted": "学校删除成功",
+    "cannot-delete-school-with-classes": "无法删除有班级的学校",
+    "school": "学校",
+    "entire-school": "整个学校",
+    "unknown-school": "未知学校",
+    
+    // Class Management
+    "manage-classes": "管理班级/学校",
+    "manage-classes-desc": "创建并管理班级，添加学生，组织您的学校",
+    "manage-classes-details": "添加新学生，组织班级，并为您的学生分配宝可梦。",
+    "add-new-class": "添加新班级",
+    "class-name": "班级名称",
+    "add-class": "添加班级",
+    "no-classes-yet": "暂无班级",
+    "create-first-class-description": "创建您的第一个班级，开始添加学生。",
+    "back-to-schools": "返回学校",
+    "class-created": "班级创建成功",
+    "class-updated": "班级更新成功",
+    "class-deleted": "班级删除成功",
+    "cannot-delete-class-with-students": "无法删除有学生的班级",
+    "class": "班级",
+    "specific-class": "特定班级",
+    "select-class": "选择班级",
+    "select-school": "选择学校",
+    "unknown-class": "未知班级",
+    
+    // Student Management
+    "students": "学生",
+    "manage-students": "管理学生",
+    "add-new-student": "添加新学生",
+    "enter-student-full-name": "输入学生全名",
+    "create-username-for-student": "为学生创建用户名",
+    "full-name": "全名",
+    "student-username": "学生用户名",
+    "student-display-name": "学生显示名称",
+    "add-student": "添加学生",
+    "student-list": "学生列表",
+    "no-students-added-yet": "暂未添加学生。",
+    "students-in": "{name}中的学生",
+    "student-added": "学生添加成功",
+    "student-removed": "学生移除成功",
+    "name": "名称",
+    "actions": "操作",
 
-// Hook to get current language
-export const getCurrentLanguage = (): "en" | "zh" => {
-  return (localStorage.getItem("language") as "en" | "zh") || "en";
+    // Pokemon Management
+    "pokemon": "宝可梦",
+    "manage-pokemon": "管理宝可梦",
+    "school-pokemon-pool": "学校宝可梦池",
+    "manage-student-pokemon": "管理{name}的宝可梦",
+    "award-coins-to": "给{name}奖励金币",
+    "award-coins": "奖励金币",
+    "remove-coins-from": "从{name}移除金币",
+    "remove-coins": "移除金币",
+    "pokemon-management": "宝可梦管理",
+    "remove-random-pokemon": "移除随机宝可梦",
+    "assign-to-student": "分配给学生",
+    "no-pokemon-available": "此池中没有可用的宝可梦。",
+    "coins-awarded": "{count}个金币已奖励给{name}",
+    "coins-removed": "{count}个金币已从{name}移除",
+    "not-enough-coins": "学生没有足够的金币可以移除",
+    "random-pokemon-removed": "随机宝可梦已从{name}的收藏中移除",
+    "student-has-no-pokemon": "学生没有任何宝可梦可以移除",
+    "pokemon-assigned": "宝可梦已分配给{name}",
+    "failed-assign-pokemon": "未能将宝可梦分配给学生",
+    "pokemon-distribution": "宝可梦分布",
+    "by-type": "按类型",
+    "by-rarity": "按稀有度",
+    "no-pokemon-distribution-data": "没有可用的宝可梦分布数据",
+    
+    // Battle Mode
+    "battle-mode": "对战模式",
+    "battle-mode-desc": "创建并管理学生或班级之间的竞争对战",
+    "battle-mode-details": "设置竞争活动，管理评分，并跟踪学生表现。",
+    "enter-battle-mode": "进入对战模式",
+    "create-new-battle": "创建新对战",
+    "battle-name": "对战名称",
+    "enter-battle-name": "输入对战名称",
+    "enter-battle-description": "输入对战描述",
+    "description": "描述",
+    "create-battle": "创建对战",
+    "no-battles-created": "暂无创建的对战",
+    "create-first-battle-prompt": "创建您的第一个对战以开始。",
+    "create-first-battle": "创建您的第一个对战",
+    "battle-created": "对战创建成功!",
+    "start-battle": "开始对战",
+    "delete": "删除",
+    "view-answers": "查看答案",
+    "complete-battle": "完成对战",
+    "view-details": "查看详情",
+    "battle-started": "对战已开始",
+    "battle-started-description": "对战已经开始了!",
+    "battle-completed": "对战已完成",
+    "battle-completed-description": "对战已经结束!",
+    "battle-deleted": "对战已删除",
+    "battle-deleted-description": "对战已被移除。",
+    "pending": "待定",
+    "active": "进行中",
+    "completed": "已完成",
+    "ends-at": "结束于",
+    "scope": "范围",
+    "back-to-battles": "返回对战",
+    "base-reward-coins": "基础奖励（金币）",
+    "base-reward-description": "如果学生获胜，他们将获得基础奖励+每位参与者1个金币",
+    "time-limit": "时间限制",
+    "battle-details": "对战详情",
+    "reward": "奖励",
+    "reward-details": "基础: {base}金币 + 参与者: {participants}金币 = 总计: {total}金币",
+    "winner": "获胜者",
+    "answers": "回答",
+    "participants": "参与者",
+    "submitted-answers": "提交的答案",
+    "total-answers": "已提交{count}个答案",
+    "no-answers-yet": "暂无提交的答案",
+    "waiting-for-answers": "等待学生提交答案",
+    "total-participants": "{count}名学生参与",
+    "no-participants-yet": "暂无参与者",
+    "waiting-for-participants": "等待学生加入对战",
+    "select-as-winner": "选为获胜者",
+    "winner-selected": "已选择获胜者",
+    "winner-selected-description": "{name}已获得{coins}个金币作为获胜奖励!",
+    "expired": "已过期",
+    
+    // Student Battle Page
+    "battle-arena": "对战场",
+    "active-battles": "活跃对战",
+    "completed-battles": "已完成对战",
+    "answer-required": "需要回答",
+    "answer-submitted": "答案已提交",
+    "answer-battle": "回答对战",
+    "view-submission": "查看提交",
+    "submit-answer": "提交您的答案",
+    "submit-answer-description": "上传照片或录制语音来提交您的答案",
+    "take-photo": "拍照",
+    "record-voice": "录音",
+    "submitting": "提交中...",
+    "recording": "录音中",
+    "recording-description": "正在录制您的声音...请清晰地说话!",
+    "recording-stopped": "录音已停止",
+    "recording-stopped-description": "您的语音录音已准备好提交",
+    "answer-submitted-title": "您的答案已提交",
+    "answer-submitted-waiting": "现在等待老师审查所有答案并选择获胜者。",
+    "answer-submitted-description": "您的答案已成功提交",
+    "battle-winner": "对战获胜者",
+    "you-won-battle": "您赢得了这场对战!",
+    "reward-received": "您已收到{coins}个金币作为奖励!",
+    "better-luck-next-time": "下次好运!",
+    "no-winner-declared": "此对战尚未宣布获胜者",
+    "you-participated-and-submitted": "您参与了并提交了答案",
+    "you-participated": "您参与了但没有提交答案",
+    "you-did-not-participate": "您没有参与此对战",
+    "no-active-battles": "没有活跃的对战",
+    "no-active-battles-description": "目前没有可参与的活跃对战。",
+    "no-completed-battles": "没有已完成的对战",
+    "no-completed-battles-description": "您尚未参与任何已完成的对战。",
+    "days-remaining": "剩余{count}天",
+    "hours-remaining": "剩余{count}小时{minutes}分钟",
+    "minutes-remaining": "剩余{count}分钟",
+    "coins": "金币",
+
+    // School Collaboration
+    "school-collaboration": "学校协作",
+    "school-collab-desc": "与同一所学校的其他教师协作",
+    "school-collab-details": "管理班级的共享访问权限，发送协作请求，并与其他教师合作。",
+    
+    // Messaging
+    "search": "搜索",
+    "requests": "请求",
+    "search-by-name-or-username": "按姓名或用户名搜索",
+    "search-prompt": "搜索教师或学生以添加为好友",
+    "no-results": "未找到结果",
+    "send-request": "发送请求",
+    "already-friends": "已经是好友",
+    "already-friends-description": "您已经是此用户的好友",
+    "request-exists": "请求已存在",
+    "request-already-sent": "您已向此用户发送好友请求",
+    "request-already-received": "此用户已向您发送好友请求",
+    "request-sent": "请求已发送",
+    "request-sent-description": "好友请求发送成功",
+    "accept": "接受",
+    "reject": "拒绝",
+    "request-accepted": "请求已接受",
+    "request-accepted-description": "您现在与此用户成为了好友",
+    "request-rejected": "请求已拒绝",
+    "request-rejected-description": "好友请求已拒绝",
+    "no-pending-requests": "没有待处理的好友请求",
+    "add-friends": "添加好友",
+    "add-friends-description": "搜索用户以添加为好友",
+    "add-friend": "添加好友",
+    "type-message": "输入消息...",
+    "no-contacts": "没有联系人",
+    "add-friends-to-message": "添加好友以开始消息",
+    "select-contact": "选择联系人",
+    "select-contact-description": "从列表中选择一个联系人以开始聊天",
+    "microphone-access-error": "访问麦克风时出错。请检查您的权限。",
+    
+    // Settings
+    "user-settings": "用户设置",
+    "user-settings-description": "更新您的个人资料和设置",
+    "save-changes": "保存更改",
+    "settings-saved": "设置已保存",
+    "settings-saved-description": "您的设置已成功保存",
+    
+    // Reports & Analytics
+    "reports-analytics": "报表与分析",
+    "participation": "参与度",
+    "engagement": "互动",
+    "student-participation": "按学校划分的学生参与度",
+    "student-engagement": "学生互动随时间变化",
+    "participated": "已参与",
+    "total-students": "学生总数",
+    "logins": "登录次数",
+    "battle-participation": "对战参与",
+    "no-participation-data": "无可用的参与数据",
+    
+    // General
+    "error": "错误",
+    "success": "成功",
+    "fill-all-fields": "请填写所有字段",
+    "fill-required-fields": "请填写所有必填字段",
+    "school-name-required": "学校名称为必填项",
+    "class-name-required": "班级名称为必填项",
+    "create-student": "创建学生账户",
+    "create-student-desc": "创建一个学生可以用来登录的新账户。"
+  }
 };

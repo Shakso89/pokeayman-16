@@ -590,21 +590,97 @@ export const saveStudentPokemons = (studentPokemons: StudentPokemon[]) => {
   localStorage.setItem("studentPokemons", JSON.stringify(studentPokemons));
 };
 
-// Initialize Pokemon pool for a school
-export const initializeSchoolPokemonPool = (schoolId: string): PokemonPool => {
-  // Create a deep copy of sample Pokemons
-  const pokemons = JSON.parse(JSON.stringify(samplePokemons));
-  
-  const pool: PokemonPool = {
+// Initialize a Pokemon pool for a school
+export const initializeSchoolPokemonPool = (schoolId: string) => {
+  // Check if the pool already exists
+  const existingPool = getClassPokemonPool(schoolId);
+  if (existingPool) {
+    return existingPool;
+  }
+
+  // Create a pool of 600 Pokemons
+  const pokemons: Pokemon[] = [];
+  const existingPools = JSON.parse(localStorage.getItem("pokemonPools") || "[]");
+
+  // Generate 600 pokemons
+  for (let i = 1; i <= 600; i++) {
+    const rarity = getRarityForId(i);
+    pokemons.push({
+      id: `pokemon-${schoolId}-${i}`,
+      name: `Pokemon #${i}`,
+      type: getRandomType(),
+      image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${i}.png`,
+      rarity
+    });
+  }
+
+  const newPool = {
     schoolId,
     availablePokemons: pokemons
   };
+
+  // Add to existing pools
+  existingPools.push(newPool);
+  localStorage.setItem("pokemonPools", JSON.stringify(existingPools));
+
+  return newPool;
+};
+
+// Alias for backward compatibility
+export const initializeClassPokemonPool = (classId: string) => {
+  return initializeSchoolPokemonPool(classId);
+};
+
+// Remove a random pokemon from a student
+export const removePokemonFromStudent = (studentId: string): boolean => {
+  const collection = getStudentPokemonCollection(studentId);
+  if (!collection || collection.pokemons.length === 0) {
+    return false;
+  }
+
+  // Select a random pokemon to remove
+  const randomIndex = Math.floor(Math.random() * collection.pokemons.length);
   
-  const existingPools = getPokemonPools();
-  const updatedPools = [...existingPools.filter(p => p.schoolId !== schoolId), pool];
-  savePokemonPools(updatedPools);
+  // Remove the pokemon from the student's collection
+  collection.pokemons.splice(randomIndex, 1);
   
-  return pool;
+  // Update localStorage
+  const studentCollections = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
+  const studentIndex = studentCollections.findIndex((item: any) => item.studentId === studentId);
+  
+  if (studentIndex !== -1) {
+    studentCollections[studentIndex].pokemons = collection.pokemons;
+    localStorage.setItem("studentPokemons", JSON.stringify(studentCollections));
+    return true;
+  }
+  
+  return false;
+};
+
+// Remove coins from a student
+export const removeCoinsFromStudent = (studentId: string, amount: number): boolean => {
+  const collection = getStudentPokemonCollection(studentId);
+  if (!collection) {
+    return false;
+  }
+  
+  if (collection.coins < amount) {
+    return false;
+  }
+  
+  collection.coins -= amount;
+  
+  // Update localStorage
+  const studentCollections = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
+  const studentIndex = studentCollections.findIndex((item: any) => item.studentId === studentId);
+  
+  if (studentIndex !== -1) {
+    studentCollections[studentIndex].coins = collection.coins;
+    localStorage.setItem("studentPokemons", JSON.stringify(studentCollections));
+    return true;
+  }
+  
+  return false;
 };
 
 // Award coins to a student

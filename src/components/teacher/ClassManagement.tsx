@@ -18,22 +18,24 @@ import {
   initializeClassPokemonPool, 
   getClassPokemonPool, 
   assignPokemonToStudent,
-  awardCoinsToStudent
+  awardCoinsToStudent,
+  removePokemonFromStudent,
+  removeCoinsFromStudent,
+  initializeSchoolPokemonPool
 } from "@/utils/pokemonData";
-import { Pokemon } from "@/types/pokemon";
+import { Pokemon, Class } from "@/types/pokemon";
+import SchoolManagement from "./SchoolManagement";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface Student {
   id: string;
   name: string;
   username: string;
   password: string;
-}
-
-interface Class {
-  id: string;
-  name: string;
-  school: string;
-  students: Student[];
+  displayName: string;
+  avatar?: string;
+  schoolId: string;
+  classId: string;
 }
 
 interface ClassManagementProps {
@@ -41,21 +43,22 @@ interface ClassManagementProps {
 }
 
 const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
-  const [classes, setClasses] = useState<Class[]>(() => {
-    const savedClasses = localStorage.getItem("classes");
-    return savedClasses ? JSON.parse(savedClasses) : [];
-  });
+  const [classes, setClasses] = useState<Class[]>([]);
+  const { t } = useTranslation();
   
-  const [currentView, setCurrentView] = useState<"list" | "add" | "students" | "pokemon">("list");
+  const [currentView, setCurrentView] = useState<"schools" | "classes" | "students" | "pokemon">("schools");
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [pokemonPool, setPokemonPool] = useState<Pokemon[]>([]);
   const [coinsToAward, setCoinsToAward] = useState<number>(1);
+  const [coinsToRemove, setCoinsToRemove] = useState<number>(1);
   
   const [newClass, setNewClass] = useState({
     name: "",
-    school: ""
   });
+  
+  const [editingClassId, setEditingClassId] = useState<string | null>(null);
   
   const [newStudent, setNewStudent] = useState({
     name: "",
@@ -64,140 +67,281 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
   });
 
   const selectedClass = classes.find(c => c.id === selectedClassId);
+  const teacherId = localStorage.getItem("teacherId") || "";
 
-  // Save classes to localStorage whenever they change
+  // Load classes when school is selected
   useEffect(() => {
-    localStorage.setItem("classes", JSON.stringify(classes));
-  }, [classes]);
+    if (selectedSchoolId && currentView === "classes") {
+      loadClasses();
+    }
+  }, [selectedSchoolId, currentView]);
   
-  // Load Pokemon pool when a class is selected
+  // Load Pokemon pool when a school is selected for student management
   useEffect(() => {
-    if (selectedClassId && currentView === "pokemon") {
-      const pool = getClassPokemonPool(selectedClassId);
+    if (selectedSchoolId && currentView === "pokemon") {
+      const pool = getClassPokemonPool(selectedSchoolId);
       if (pool) {
         setPokemonPool(pool.availablePokemons);
       } else {
         // Initialize pool if it doesn't exist
-        const newPool = initializeClassPokemonPool(selectedClassId);
+        const newPool = initializeSchoolPokemonPool(selectedSchoolId);
         setPokemonPool(newPool.availablePokemons);
       }
     }
-  }, [selectedClassId, currentView]);
+  }, [selectedSchoolId, currentView]);
+
+  const loadClasses = () => {
+    if (!selectedSchoolId) return;
+    
+    const savedClasses = localStorage.getItem("classes");
+    let schoolClasses: Class[] = [];
+    
+    if (savedClasses) {
+      const parsedClasses = JSON.parse(savedClasses);
+      schoolClasses = parsedClasses.filter((cls: Class) => 
+        cls.schoolId === selectedSchoolId && cls.teacherId === teacherId
+      );
+    }
+    
+    setClasses(schoolClasses);
+  };
 
   const handleAddClass = () => {
-    if (!newClass.name || !newClass.school) {
+    if (!newClass.name || !selectedSchoolId) {
       toast({
-        title: "Error",
-        description: "Please fill in all fields",
+        title: t("error"),
+        description: t("class-name-required"),
         variant: "destructive"
       });
       return;
     }
 
-    const newClassId = Date.now().toString();
+    const newClassId = `class-${Date.now()}`;
     const newClassObject: Class = {
       id: newClassId,
       name: newClass.name,
-      school: newClass.school,
-      students: []
+      schoolId: selectedSchoolId,
+      teacherId: teacherId,
+      students: [],
+      createdAt: new Date().toISOString()
     };
 
-    // Initialize Pokemon pool for this class
-    initializeClassPokemonPool(newClassId);
+    // Save to localStorage
+    const savedClasses = localStorage.getItem("classes");
+    const parsedClasses = savedClasses ? JSON.parse(savedClasses) : [];
+    parsedClasses.push(newClassObject);
+    localStorage.setItem("classes", JSON.stringify(parsedClasses));
 
+    // Update local state
     setClasses([...classes, newClassObject]);
-    setNewClass({ name: "", school: "" });
-    setCurrentView("list");
+    setNewClass({ name: "" });
     
     toast({
-      title: "Success",
-      description: `Class "${newClass.name}" has been created with a Pokemon pool!`
+      title: t("success"),
+      description: t("class-created"),
+    });
+  };
+
+  const handleUpdateClass = (classId: string, newName: string) => {
+    if (!newName.trim()) {
+      toast({
+        title: t("error"),
+        description: t("class-name-required"),
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Update in localStorage
+    const savedClasses = localStorage.getItem("classes");
+    const parsedClasses = savedClasses ? JSON.parse(savedClasses) : [];
+    const updatedClasses = parsedClasses.map((cls: Class) =>
+      cls.id === classId ? { ...cls, name: newName } : cls
+    );
+    localStorage.setItem("classes", JSON.stringify(updatedClasses));
+
+    // Update local state
+    setClasses(classes.map(cls => 
+      cls.id === classId ? { ...cls, name: newName } : cls
+    ));
+    setEditingClassId(null);
+
+    toast({
+      title: t("success"),
+      description: t("class-updated"),
+    });
+  };
+
+  const handleDeleteClass = (classId: string) => {
+    // Check if class has students
+    const selectedClass = classes.find(cls => cls.id === classId);
+    if (selectedClass && selectedClass.students.length > 0) {
+      toast({
+        title: t("error"),
+        description: t("cannot-delete-class-with-students"),
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Delete from localStorage
+    const savedClasses = localStorage.getItem("classes");
+    const parsedClasses = savedClasses ? JSON.parse(savedClasses) : [];
+    const updatedClasses = parsedClasses.filter((cls: Class) => cls.id !== classId);
+    localStorage.setItem("classes", JSON.stringify(updatedClasses));
+
+    // Update local state
+    setClasses(classes.filter(cls => cls.id !== classId));
+
+    toast({
+      title: t("success"),
+      description: t("class-deleted"),
     });
   };
 
   const handleAddStudent = () => {
-    if (!newStudent.name || !newStudent.username || !newStudent.password) {
+    if (!newStudent.name || !newStudent.username || !newStudent.password || !selectedClassId || !selectedSchoolId) {
       toast({
-        title: "Error",
-        description: "Please fill in all fields",
+        title: t("error"),
+        description: t("fill-all-fields"),
         variant: "destructive"
       });
       return;
     }
 
+    const studentId = `student-${Date.now()}`;
+    const student = {
+      id: studentId,
+      displayName: newStudent.name,
+      username: newStudent.username,
+      password: newStudent.password,
+      teacherId,
+      schoolId: selectedSchoolId,
+      classId: selectedClassId,
+      createdAt: new Date().toISOString(),
+      avatar: undefined,
+      friends: []
+    };
+
+    // Add to students array
+    const students = JSON.parse(localStorage.getItem("students") || "[]");
+    students.push(student);
+    localStorage.setItem("students", JSON.stringify(students));
+    
+    // Add student to class
     const updatedClasses = classes.map(cls => {
       if (cls.id === selectedClassId) {
         return {
           ...cls,
-          students: [
-            ...cls.students,
-            {
-              id: Date.now().toString(),
-              name: newStudent.name,
-              username: newStudent.username,
-              password: newStudent.password
-            }
-          ]
+          students: [...cls.students, studentId]
         };
       }
       return cls;
     });
-
+    
     setClasses(updatedClasses);
+    
+    // Update in localStorage
+    const savedClasses = localStorage.getItem("classes");
+    const parsedClasses = savedClasses ? JSON.parse(savedClasses) : [];
+    const updatedStoredClasses = parsedClasses.map((cls: Class) => {
+      if (cls.id === selectedClassId) {
+        return {
+          ...cls,
+          students: [...cls.students, studentId]
+        };
+      }
+      return cls;
+    });
+    localStorage.setItem("classes", JSON.stringify(updatedStoredClasses));
+    
+    // Reset form
     setNewStudent({ name: "", username: "", password: "" });
     
     toast({
-      title: "Success",
-      description: `Student "${newStudent.name}" has been added!`
-    });
-  };
-  
-  const handleDeleteClass = (classId: string) => {
-    setClasses(classes.filter(c => c.id !== classId));
-    toast({
-      title: "Success",
-      description: "Class has been deleted!"
+      title: t("success"),
+      description: t("student-added"),
     });
   };
 
   const handleDeleteStudent = (studentId: string) => {
+    // Remove from class
     const updatedClasses = classes.map(cls => {
       if (cls.id === selectedClassId) {
         return {
           ...cls,
-          students: cls.students.filter(student => student.id !== studentId)
+          students: cls.students.filter(id => id !== studentId)
         };
       }
       return cls;
     });
-
+    
     setClasses(updatedClasses);
+    
+    // Update in localStorage
+    const savedClasses = localStorage.getItem("classes");
+    const parsedClasses = savedClasses ? JSON.parse(savedClasses) : [];
+    const updatedStoredClasses = parsedClasses.map((cls: Class) => {
+      if (cls.id === selectedClassId) {
+        return {
+          ...cls,
+          students: cls.students.filter((id: string) => id !== studentId)
+        };
+      }
+      return cls;
+    });
+    localStorage.setItem("classes", JSON.stringify(updatedStoredClasses));
+    
+    // Remove student from students array
+    const students = JSON.parse(localStorage.getItem("students") || "[]");
+    const updatedStudents = students.filter((s: any) => s.id !== studentId);
+    localStorage.setItem("students", JSON.stringify(updatedStudents));
+    
     toast({
-      title: "Success",
-      description: "Student has been removed!"
+      title: t("success"),
+      description: t("student-removed"),
     });
   };
   
   const handleAssignPokemon = (pokemonId: string) => {
-    if (!selectedStudent || !selectedClassId) return;
+    if (!selectedStudent || !selectedSchoolId) return;
     
-    const success = assignPokemonToStudent(selectedClassId, selectedStudent.id, pokemonId);
+    const success = assignPokemonToStudent(selectedSchoolId, selectedStudent.id, pokemonId);
     
     if (success) {
       toast({
-        title: "Success",
-        description: `Pokemon has been assigned to ${selectedStudent.name}!`
+        title: t("success"),
+        description: t("pokemon-assigned", { name: selectedStudent.displayName }),
       });
       
       // Refresh the Pokemon pool
-      const pool = getClassPokemonPool(selectedClassId);
+      const pool = getClassPokemonPool(selectedSchoolId);
       if (pool) {
         setPokemonPool(pool.availablePokemons);
       }
     } else {
       toast({
-        title: "Error",
-        description: "Failed to assign Pokemon.",
+        title: t("error"),
+        description: t("failed-assign-pokemon"),
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRemovePokemon = () => {
+    if (!selectedStudent) return;
+    
+    const success = removePokemonFromStudent(selectedStudent.id);
+    
+    if (success) {
+      toast({
+        title: t("success"),
+        description: t("random-pokemon-removed", { name: selectedStudent.displayName }),
+      });
+    } else {
+      toast({
+        title: t("error"),
+        description: t("student-has-no-pokemon"),
         variant: "destructive"
       });
     }
@@ -209,162 +353,183 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
     awardCoinsToStudent(selectedStudent.id, coinsToAward);
     
     toast({
-      title: "Success", 
-      description: `${coinsToAward} coin(s) awarded to ${selectedStudent.name}!`
+      title: t("success"), 
+      description: t("coins-awarded", { count: coinsToAward, name: selectedStudent.displayName }),
     });
     
     setCoinsToAward(1);
   };
+  
+  const handleRemoveCoins = () => {
+    if (!selectedStudent) return;
+    
+    const success = removeCoinsFromStudent(selectedStudent.id, coinsToRemove);
+    
+    if (success) {
+      toast({
+        title: t("success"),
+        description: t("coins-removed", { count: coinsToRemove, name: selectedStudent.displayName }),
+      });
+      setCoinsToRemove(1);
+    } else {
+      toast({
+        title: t("error"),
+        description: t("not-enough-coins"),
+        variant: "destructive"
+      });
+    }
+  };
 
-  // Main class listing view
-  if (currentView === "list") {
+  const getStudentsFromIds = (studentIds: string[]): Student[] => {
+    const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+    return allStudents.filter((student: any) => studentIds.includes(student.id));
+  };
+
+  // Schools management view
+  if (currentView === "schools") {
+    return (
+      <SchoolManagement
+        onBack={onBack}
+        onSelectSchool={(schoolId) => {
+          setSelectedSchoolId(schoolId);
+          setCurrentView("classes");
+        }}
+        teacherId={teacherId}
+      />
+    );
+  }
+
+  // Classes management view
+  if (currentView === "classes" && selectedSchoolId) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={onBack}>
+            <Button variant="outline" size="sm" onClick={() => {
+              setSelectedSchoolId(null);
+              setCurrentView("schools");
+            }}>
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Back to Dashboard
+              {t("back-to-schools")}
             </Button>
-            <h2 className="text-2xl font-bold">Manage Classes</h2>
+            <h2 className="text-2xl font-bold">{t("manage-classes")}</h2>
           </div>
-          <Button onClick={() => setCurrentView("add")} className="pokemon-button">
-            <Plus className="h-4 w-4 mr-1" />
-            Add New Class
-          </Button>
-        </div>
-
-        {classes.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {classes.map(cls => (
-              <Card key={cls.id} className="pokemon-card hover:shadow-md transition-shadow">
-                <CardHeader className="pb-2">
-                  <CardTitle className="flex justify-between items-center">
-                    <div className="flex items-center gap-2">
-                      <School className="h-5 w-5 text-blue-500" />
-                      {cls.name}
-                    </div>
-                    <Button 
-                      variant="ghost" 
-                      size="sm"
-                      onClick={() => handleDeleteClass(cls.id)}
-                      className="text-red-500 h-8 w-8 p-0"
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </CardTitle>
-                  <p className="text-sm text-gray-500">{cls.school}</p>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm">{cls.students.length} student{cls.students.length !== 1 ? 's' : ''}</p>
-                    </div>
-                    <div className="space-x-2">
-                      <Button 
-                        size="sm" 
-                        onClick={() => {
-                          setSelectedClassId(cls.id);
-                          setCurrentView("students");
-                        }}
-                        className="pokemon-button"
-                      >
-                        <UserPlus className="h-4 w-4 mr-1" />
-                        Manage Students
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card className="border-dashed p-8">
-            <div className="text-center">
-              <School className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-medium mb-2">No Classes Yet</h3>
-              <p className="text-gray-500 mb-6">Get started by adding your first class.</p>
-              <Button onClick={() => setCurrentView("add")} className="pokemon-button">
-                <Plus className="h-4 w-4 mr-1" />
-                Add Your First Class
-              </Button>
-            </div>
-          </Card>
-        )}
-      </div>
-    );
-  }
-  
-  // Add new class form
-  if (currentView === "add") {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center">
-          <Button variant="outline" size="sm" onClick={() => setCurrentView("list")}>
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            Back to Classes
-          </Button>
-          <h2 className="text-2xl font-bold ml-4">Add New Class</h2>
         </div>
         
         <Card className="pokemon-card">
-          <CardContent className="pt-6">
-            <form className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="className">Class Name</Label>
-                <Input 
-                  id="className" 
-                  placeholder="Enter class name" 
-                  value={newClass.name}
-                  onChange={(e) => setNewClass({...newClass, name: e.target.value})}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="schoolName">School Name</Label>
-                <Input 
-                  id="schoolName" 
-                  placeholder="Enter school name" 
-                  value={newClass.school}
-                  onChange={(e) => setNewClass({...newClass, school: e.target.value})}
-                />
-              </div>
-              
-              <div className="flex justify-end space-x-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setCurrentView("list")}
-                >
-                  Cancel
-                </Button>
-                <Button 
-                  type="button" 
-                  onClick={handleAddClass}
-                  className="pokemon-button"
-                >
-                  Create Class
-                </Button>
-              </div>
-            </form>
+          <CardHeader>
+            <CardTitle>{t("add-new-class")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <Input
+                placeholder={t("class-name")}
+                value={newClass.name}
+                onChange={(e) => setNewClass({ name: e.target.value })}
+              />
+              <Button onClick={handleAddClass} className="pokemon-button">
+                <Plus className="h-4 w-4 mr-1" />
+                {t("add-class")}
+              </Button>
+            </div>
           </CardContent>
         </Card>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {classes.map((cls) => (
+            <Card key={cls.id} className="pokemon-card hover:shadow-md transition-shadow">
+              {editingClassId === cls.id ? (
+                <CardContent className="pt-6">
+                  <Input
+                    defaultValue={cls.name}
+                    autoFocus
+                    onBlur={(e) => handleUpdateClass(cls.id, e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        handleUpdateClass(cls.id, e.currentTarget.value);
+                      } else if (e.key === "Escape") {
+                        setEditingClassId(null);
+                      }
+                    }}
+                  />
+                </CardContent>
+              ) : (
+                <>
+                  <CardHeader className="pb-2">
+                    <div className="flex justify-between items-center">
+                      <CardTitle className="flex items-center gap-2">
+                        <School className="h-5 w-5 text-blue-500" />
+                        {cls.name}
+                      </CardTitle>
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingClassId(cls.id)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteClass(cls.id)}
+                          className="text-red-500 h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-500">{cls.students.length} {t("students")}</p>
+                  </CardHeader>
+                  <CardContent>
+                    <Button 
+                      className="w-full pokemon-button"
+                      onClick={() => {
+                        setSelectedClassId(cls.id);
+                        setCurrentView("students");
+                      }}
+                    >
+                      <UserPlus className="h-4 w-4 mr-1" />
+                      {t("manage-students")}
+                    </Button>
+                  </CardContent>
+                </>
+              )}
+            </Card>
+          ))}
+          
+          {classes.length === 0 && (
+            <Card className="col-span-full border-dashed">
+              <CardContent className="p-8 text-center">
+                <School className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                <h3 className="text-lg font-medium mb-2">{t("no-classes-yet")}</h3>
+                <p className="text-gray-500 mb-6">{t("create-first-class-description")}</p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
       </div>
     );
   }
   
-  // Manage students for a class
+  // Students management view
   if (currentView === "students" && selectedClass) {
+    const students = getStudentsFromIds(selectedClass.students);
+    
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div className="flex items-center">
-            <Button variant="outline" size="sm" onClick={() => setCurrentView("list")}>
+            <Button variant="outline" size="sm" onClick={() => {
+              setSelectedClassId(null);
+              setCurrentView("classes");
+            }}>
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Back to Classes
+              {t("back-to-classes")}
             </Button>
             <h2 className="text-2xl font-bold ml-4">
-              Students in {selectedClass.name}
+              {t("students-in", { name: selectedClass.name })}
             </h2>
           </div>
           <Button
@@ -374,42 +539,42 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
             className="pokemon-button"
           >
             <span className="pokeball mr-2"></span>
-            Manage Pokémon
+            {t("manage-pokemon")}
           </Button>
         </div>
         
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <Card className="pokemon-card">
             <CardHeader>
-              <CardTitle>Add New Student</CardTitle>
+              <CardTitle>{t("add-new-student")}</CardTitle>
             </CardHeader>
             <CardContent>
               <form className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="studentName">Full Name</Label>
+                  <Label htmlFor="studentName">{t("full-name")}</Label>
                   <Input 
                     id="studentName" 
-                    placeholder="Enter student's full name" 
+                    placeholder={t("enter-student-full-name")} 
                     value={newStudent.name}
                     onChange={(e) => setNewStudent({...newStudent, name: e.target.value})}
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="studentUsername">Username</Label>
+                  <Label htmlFor="studentUsername">{t("username")}</Label>
                   <Input 
                     id="studentUsername" 
-                    placeholder="Create a username for the student" 
+                    placeholder={t("create-username-for-student")} 
                     value={newStudent.username}
                     onChange={(e) => setNewStudent({...newStudent, username: e.target.value})}
                   />
                 </div>
                 
                 <div className="space-y-2">
-                  <Label htmlFor="studentPassword">Password</Label>
+                  <Label htmlFor="studentPassword">{t("password")}</Label>
                   <Input 
                     id="studentPassword" 
-                    placeholder="Create a password" 
+                    placeholder={t("create-password")} 
                     value={newStudent.password}
                     onChange={(e) => setNewStudent({...newStudent, password: e.target.value})}
                   />
@@ -421,27 +586,27 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
                   className="pokemon-button"
                 >
                   <Plus className="h-4 w-4 mr-1" />
-                  Add Student
+                  {t("add-student")}
                 </Button>
               </form>
             </CardContent>
           </Card>
           
           <div>
-            <h3 className="text-lg font-medium mb-4">Student List</h3>
-            {selectedClass.students.length > 0 ? (
+            <h3 className="text-lg font-medium mb-4">{t("student-list")}</h3>
+            {students.length > 0 ? (
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Name</TableHead>
-                    <TableHead>Username</TableHead>
-                    <TableHead>Actions</TableHead>
+                    <TableHead>{t("name")}</TableHead>
+                    <TableHead>{t("username")}</TableHead>
+                    <TableHead>{t("actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {selectedClass.students.map((student) => (
+                  {students.map((student) => (
                     <TableRow key={student.id}>
-                      <TableCell>{student.name}</TableCell>
+                      <TableCell>{student.displayName || student.name}</TableCell>
                       <TableCell>{student.username}</TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
@@ -455,7 +620,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
                             className="text-blue-500"
                           >
                             <span className="pokeball mr-1"></span>
-                            Pokemon
+                            {t("pokemon")}
                           </Button>
                           <Button
                             variant="ghost"
@@ -473,7 +638,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
               </Table>
             ) : (
               <div className="text-center p-8 border rounded-md">
-                <p className="text-gray-500">No students added yet.</p>
+                <p className="text-gray-500">{t("no-students-added-yet")}</p>
               </div>
             )}
           </div>
@@ -482,8 +647,8 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
     );
   }
   
-  // Pokemon management view
-  if (currentView === "pokemon" && selectedClassId) {
+  // Pokémon management view
+  if (currentView === "pokemon" && selectedSchoolId) {
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -497,36 +662,74 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
               }}
             >
               <ChevronLeft className="h-4 w-4 mr-1" />
-              Back to Students
+              {t("back-to-students")}
             </Button>
             <h2 className="text-2xl font-bold ml-4">
-              {selectedStudent ? `Manage ${selectedStudent.name}'s Pokémon` : 'Class Pokémon Pool'}
+              {selectedStudent 
+                ? t("manage-student-pokemon", { name: selectedStudent.displayName || selectedStudent.name })
+                : t("school-pokemon-pool")}
             </h2>
           </div>
         </div>
         
         {selectedStudent && (
-          <Card className="pokemon-card">
-            <CardHeader>
-              <CardTitle>Award Coins to {selectedStudent.name}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex items-center space-x-4">
-                <div className="flex-1">
-                  <Input
-                    type="number"
-                    min="1"
-                    value={coinsToAward}
-                    onChange={(e) => setCoinsToAward(parseInt(e.target.value) || 1)}
-                  />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <Card className="pokemon-card">
+              <CardHeader>
+                <CardTitle>{t("award-coins-to", { name: selectedStudent.displayName || selectedStudent.name })}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center space-x-4">
+                  <div className="flex-1">
+                    <Input
+                      type="number"
+                      min="1"
+                      value={coinsToAward}
+                      onChange={(e) => setCoinsToAward(parseInt(e.target.value) || 1)}
+                    />
+                  </div>
+                  <Button onClick={handleAwardCoins} className="pokemon-button">
+                    <Coins className="h-4 w-4 mr-1" />
+                    {t("award-coins")}
+                  </Button>
                 </div>
-                <Button onClick={handleAwardCoins} className="pokemon-button">
-                  <Coins className="h-4 w-4 mr-1" />
-                  Award Coins
+              </CardContent>
+            </Card>
+            
+            <Card className="pokemon-card">
+              <CardHeader>
+                <CardTitle>{t("remove-coins-from", { name: selectedStudent.displayName || selectedStudent.name })}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex items-center space-x-4">
+                  <div className="flex-1">
+                    <Input
+                      type="number"
+                      min="1"
+                      value={coinsToRemove}
+                      onChange={(e) => setCoinsToRemove(parseInt(e.target.value) || 1)}
+                    />
+                  </div>
+                  <Button onClick={handleRemoveCoins} variant="destructive">
+                    <Coins className="h-4 w-4 mr-1" />
+                    {t("remove-coins")}
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+            
+            <Card className="pokemon-card col-span-full">
+              <CardHeader>
+                <CardTitle>{t("pokemon-management")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <Button onClick={handleRemovePokemon} variant="destructive" className="w-full">
+                  <Award className="h-4 w-4 mr-1" />
+                  {t("remove-random-pokemon")}
                 </Button>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         )}
         
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -558,7 +761,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
                     className="w-full pokemon-button"
                   >
                     <Award className="h-4 w-4 mr-1" />
-                    Assign to Student
+                    {t("assign-to-student")}
                   </Button>
                 )}
               </CardContent>
@@ -567,7 +770,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack }) => {
           
           {pokemonPool.length === 0 && (
             <div className="col-span-full text-center p-8">
-              <p>No Pokémon available in this class pool.</p>
+              <p>{t("no-pokemon-available")}</p>
             </div>
           )}
         </div>

@@ -4,7 +4,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { NavBar } from "@/components/NavBar";
-import { Users, Sword, UserPlus, Shield, School } from "lucide-react";
+import { Users, Sword, UserPlus, Shield, School, MessageSquare, BarChart } from "lucide-react";
 import ClassManagement from "@/components/teacher/ClassManagement";
 import BattleMode from "@/components/teacher/BattleMode";
 import SchoolCollaboration from "@/components/teacher/SchoolCollaboration";
@@ -47,8 +47,8 @@ const TeacherDashboard: React.FC = () => {
     // Validate student data
     if (!studentData.username || !studentData.password || !studentData.displayName) {
       toast({
-        title: "Missing information",
-        description: "Please fill in all fields",
+        title: t("error"),
+        description: t("fill-all-fields"),
         variant: "destructive",
       });
       return;
@@ -63,7 +63,7 @@ const TeacherDashboard: React.FC = () => {
     // Check if username is already taken
     if (students.some((s: any) => s.username === studentData.username)) {
       toast({
-        title: "Username taken",
+        title: t("error"),
         description: "This username is already in use",
         variant: "destructive",
       });
@@ -108,8 +108,8 @@ const TeacherDashboard: React.FC = () => {
     
     // Show success message
     toast({
-      title: "Success",
-      description: "Student account created",
+      title: t("success"),
+      description: t("student-added"),
     });
     
     // Reset form and close dialog
@@ -127,7 +127,11 @@ const TeacherDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <NavBar userType="teacher" userName={teacherData?.displayName || username || "Teacher"} />
+      <NavBar 
+        userType="teacher" 
+        userName={teacherData?.displayName || username || "Teacher"} 
+        userAvatar={teacherData?.avatar}
+      />
       
       <div className="container mx-auto py-8 px-4">
         {currentView === "main" ? (
@@ -136,8 +140,8 @@ const TeacherDashboard: React.FC = () => {
               <CardContent className="p-6">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h2 className="text-3xl font-bold mb-2">{t("welcome-teacher") || "Welcome, Pokémon Teacher!"}</h2>
-                    <p>{t("manage-classes-description") || "Manage your classes and create exciting battles for your students."}</p>
+                    <h2 className="text-3xl font-bold mb-2">{t("welcome-teacher")}</h2>
+                    <p>{t("manage-classes-description")}</p>
                   </div>
                   {isAdmin && (
                     <Button 
@@ -145,7 +149,7 @@ const TeacherDashboard: React.FC = () => {
                       className="bg-purple-600 hover:bg-purple-700 flex items-center gap-2"
                     >
                       <Shield className="h-4 w-4" />
-                      {t("admin-dashboard") || "Admin Dashboard"}
+                      {t("admin-dashboard")}
                     </Button>
                   )}
                 </div>
@@ -157,23 +161,23 @@ const TeacherDashboard: React.FC = () => {
               onClick={() => setIsAddStudentOpen(true)}
             >
               <UserPlus className="h-4 w-4" />
-              {t("create-student") || "Create Student Account"}
+              {t("create-student")}
             </Button>
             
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="hover:shadow-lg transition-all pokemon-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <Users className="h-6 w-6 text-blue-500" />
-                    {t("manage-classes") || "Manage Classes/Schools"}
+                    <School className="h-6 w-6 text-blue-500" />
+                    {t("manage-classes")}
                   </CardTitle>
                   <CardDescription>
-                    {t("manage-classes-desc") || "Create and manage classes, add students, and organize your schools"}
+                    {t("manage-classes-desc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-500">
-                    {t("manage-classes-details") || "Add new students, organize classes, and assign Pokémon to your students."}
+                    {t("manage-classes-details")}
                   </p>
                 </CardContent>
                 <CardFooter>
@@ -181,7 +185,7 @@ const TeacherDashboard: React.FC = () => {
                     className="w-full pokemon-button" 
                     onClick={() => setCurrentView("classes")}
                   >
-                    {t("manage-classes") || "Manage Classes"}
+                    {t("manage-classes")}
                   </Button>
                 </CardFooter>
               </Card>
@@ -190,15 +194,15 @@ const TeacherDashboard: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <Sword className="h-6 w-6 text-red-500" />
-                    {t("battle-mode") || "Battle Mode"}
+                    {t("battle-mode")}
                   </CardTitle>
                   <CardDescription>
-                    {t("battle-mode-desc") || "Create and manage competition battles between students or classes"}
+                    {t("battle-mode-desc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-500">
-                    {t("battle-mode-details") || "Set up competitive activities, manage scoring, and track student performance."}
+                    {t("battle-mode-details")}
                   </p>
                 </CardContent>
                 <CardFooter>
@@ -206,7 +210,7 @@ const TeacherDashboard: React.FC = () => {
                     className="w-full pokemon-button"
                     onClick={() => setCurrentView("battle")}
                   >
-                    {t("enter-battle-mode") || "Enter Battle Mode"}
+                    {t("enter-battle-mode")}
                   </Button>
                 </CardFooter>
               </Card>
@@ -214,24 +218,49 @@ const TeacherDashboard: React.FC = () => {
               <Card className="hover:shadow-lg transition-all pokemon-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
-                    <School className="h-6 w-6 text-green-500" />
-                    {t("school-collaboration") || "School Collaboration"}
+                    <MessageSquare className="h-6 w-6 text-green-500" />
+                    {t("messages")}
                   </CardTitle>
                   <CardDescription>
-                    {t("school-collab-desc") || "Collaborate with other teachers in the same schools"}
+                    {t("school-collab-desc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-500">
-                    {t("school-collab-details") || "Manage shared access to classes, send collaboration requests, and work with other teachers."}
+                    {t("school-collab-details")}
                   </p>
                 </CardContent>
                 <CardFooter>
                   <Button 
                     className="w-full pokemon-button"
-                    onClick={() => setCurrentView("collaboration")}
+                    onClick={() => navigate("/teacher/messages")}
                   >
-                    {t("school-collaboration") || "School Collaboration"}
+                    {t("messages")}
+                  </Button>
+                </CardFooter>
+              </Card>
+              
+              <Card className="hover:shadow-lg transition-all pokemon-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <BarChart className="h-6 w-6 text-purple-500" />
+                    {t("reports-analytics")}
+                  </CardTitle>
+                  <CardDescription>
+                    {t("student-participation")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-500">
+                    {t("student-engagement")}
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    className="w-full pokemon-button"
+                    onClick={() => navigate("/teacher/reports")}
+                  >
+                    {t("reports-analytics")}
                   </Button>
                 </CardFooter>
               </Card>
@@ -245,9 +274,10 @@ const TeacherDashboard: React.FC = () => {
           <div>
             <div className="flex items-center mb-6">
               <Button variant="outline" onClick={() => setCurrentView("main")} className="mr-4">
-                {t("back-to-dashboard") || "Back to Dashboard"}
+                <ChevronLeft className="h-4 w-4 mr-1" />
+                {t("back-to-dashboard")}
               </Button>
-              <h2 className="text-2xl font-bold">{t("school-collaboration") || "School Collaboration"}</h2>
+              <h2 className="text-2xl font-bold">{t("school-collaboration")}</h2>
             </div>
             
             <SchoolCollaboration 
@@ -262,51 +292,51 @@ const TeacherDashboard: React.FC = () => {
       <Dialog open={isAddStudentOpen} onOpenChange={setIsAddStudentOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("create-student") || "Create Student Account"}</DialogTitle>
+            <DialogTitle>{t("create-student")}</DialogTitle>
             <DialogDescription>
-              {t("create-student-desc") || "Create a new account that a student can use to log in."}
+              {t("create-student-desc")}
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="studentUsername">{t("username") || "Username"}</Label>
+              <Label htmlFor="studentUsername">{t("username")}</Label>
               <Input
                 id="studentUsername"
                 value={studentData.username}
                 onChange={(e) => setStudentData({...studentData, username: e.target.value})}
-                placeholder={t("student-username") || "Student username"}
+                placeholder={t("student-username")}
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="studentDisplayName">{t("display-name") || "Display Name"}</Label>
+              <Label htmlFor="studentDisplayName">{t("display-name")}</Label>
               <Input
                 id="studentDisplayName"
                 value={studentData.displayName}
                 onChange={(e) => setStudentData({...studentData, displayName: e.target.value})}
-                placeholder={t("student-display-name") || "Student's display name"}
+                placeholder={t("student-display-name")}
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="studentPassword">{t("password") || "Password"}</Label>
+              <Label htmlFor="studentPassword">{t("password")}</Label>
               <Input
                 id="studentPassword"
                 type="password"
                 value={studentData.password}
                 onChange={(e) => setStudentData({...studentData, password: e.target.value})}
-                placeholder={t("create-password") || "Create a password"}
+                placeholder={t("create-password")}
               />
             </div>
           </div>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddStudentOpen(false)}>
-              {t("cancel") || "Cancel"}
+              {t("cancel")}
             </Button>
             <Button onClick={handleAddStudent}>
-              {t("create-account") || "Create Account"}
+              {t("create-account")}
             </Button>
           </DialogFooter>
         </DialogContent>

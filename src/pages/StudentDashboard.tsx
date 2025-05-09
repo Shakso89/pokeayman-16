@@ -1,40 +1,49 @@
 
 import React, { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NavBar } from "@/components/NavBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sword, Award, Coins, PlusCircle } from "lucide-react";
+import { Sword, Award, Coins, PlusCircle, MessageSquare } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { 
   getStudentPokemonCollection, 
   getClassPokemonPool
 } from "@/utils/pokemonData";
 import { Pokemon, StudentPokemon } from "@/types/pokemon";
 import PokemonWheel from "@/components/student/PokemonWheel";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const StudentDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const userType = localStorage.getItem("userType");
   const studentName = localStorage.getItem("studentName") || "Student";
   const studentId = localStorage.getItem("studentId") || "";
   const classId = localStorage.getItem("studentClassId") || "";
+  const schoolId = localStorage.getItem("studentSchoolId") || "";
+  const { t } = useTranslation();
   
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
   const [coins, setCoins] = useState(0);
   const [classPokemons, setClassPokemons] = useState<Pokemon[]>([]);
   const [activeTab, setActiveTab] = useState("collection");
+  const [activeBattles, setActiveBattles] = useState<any[]>([]);
+  const [avatar, setAvatar] = useState<string | null>(null);
   
   useEffect(() => {
     if (studentId) {
       loadStudentData();
+      loadActiveBattles();
     }
     
-    if (classId) {
-      loadClassPokemonPool();
+    if (schoolId) {
+      loadSchoolPokemonPool();
     }
-  }, [studentId, classId]);
+  }, [studentId, schoolId]);
   
   const loadStudentData = () => {
+    // Load Pokemon collection and coins
     const collection = getStudentPokemonCollection(studentId);
     if (collection) {
       setStudentPokemons(collection.pokemons);
@@ -43,10 +52,17 @@ const StudentDashboard: React.FC = () => {
       setStudentPokemons([]);
       setCoins(0);
     }
+    
+    // Load avatar
+    const students = JSON.parse(localStorage.getItem("students") || "[]");
+    const student = students.find((s: any) => s.id === studentId);
+    if (student && student.avatar) {
+      setAvatar(student.avatar);
+    }
   };
   
-  const loadClassPokemonPool = () => {
-    const pool = getClassPokemonPool(classId);
+  const loadSchoolPokemonPool = () => {
+    const pool = getClassPokemonPool(schoolId);
     if (pool) {
       setClassPokemons(pool.availablePokemons);
     } else {
@@ -54,10 +70,30 @@ const StudentDashboard: React.FC = () => {
     }
   };
   
+  const loadActiveBattles = () => {
+    if (!studentId || !classId || !schoolId) return;
+    
+    const savedBattles = localStorage.getItem("battles");
+    const allBattles = savedBattles ? JSON.parse(savedBattles) : [];
+    
+    // Filter battles relevant to this student
+    const relevantBattles = allBattles.filter((battle: any) => {
+      // School-wide or specific class
+      const isRelevant = (battle.schoolId === schoolId && (!battle.classId || battle.classId === classId));
+      // Active and not expired
+      const isActive = battle.status === "active";
+      const isNotExpired = new Date(battle.timeLimit).getTime() > Date.now();
+      
+      return isRelevant && isActive && isNotExpired;
+    });
+    
+    setActiveBattles(relevantBattles);
+  };
+  
   const handlePokemonWon = (pokemon: Pokemon) => {
     // Refresh data
     loadStudentData();
-    loadClassPokemonPool();
+    loadSchoolPokemonPool();
   };
 
   if (!isLoggedIn || userType !== "student") {
@@ -66,15 +102,41 @@ const StudentDashboard: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <NavBar userType="student" userName={studentName} />
+      <NavBar 
+        userType="student" 
+        userName={studentName} 
+        userAvatar={avatar || undefined}
+      />
       
       <div className="container mx-auto py-8 px-4">
         <Card className="mb-6 border-none shadow-lg pokemon-gradient-bg text-white">
           <CardContent className="p-6">
             <h2 className="text-3xl font-bold mb-2">Welcome, {studentName}!</h2>
-            <div className="flex items-center gap-2">
-              <Coins className="h-5 w-5" />
-              <span className="font-bold">{coins} Coins</span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Coins className="h-5 w-5" />
+                <span className="font-bold">{coins} Coins</span>
+              </div>
+              
+              <div className="flex gap-2">
+                {activeBattles.length > 0 && (
+                  <Button 
+                    className="bg-red-500 hover:bg-red-600 flex items-center gap-2"
+                    onClick={() => navigate("/student/battles")}
+                  >
+                    <Sword className="h-4 w-4" />
+                    {t("active-battles")} ({activeBattles.length})
+                  </Button>
+                )}
+                
+                <Button 
+                  className="bg-blue-500 hover:bg-blue-600 flex items-center gap-2"
+                  onClick={() => navigate("/student/messages")}
+                >
+                  <MessageSquare className="h-4 w-4" />
+                  {t("messages")}
+                </Button>
+              </div>
             </div>
           </CardContent>
         </Card>
@@ -136,7 +198,7 @@ const StudentDashboard: React.FC = () => {
                 <CardContent className="flex justify-center p-6">
                   <PokemonWheel 
                     studentId={studentId} 
-                    classId={classId}
+                    classId={schoolId}
                     pokemonPool={classPokemons}
                     coins={coins}
                     onPokemonWon={handlePokemonWon}
