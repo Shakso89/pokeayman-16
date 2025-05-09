@@ -4,9 +4,10 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { NavBar } from "@/components/NavBar";
-import { Users, Sword, UserPlus, Shield } from "lucide-react";
+import { Users, Sword, UserPlus, Shield, School } from "lucide-react";
 import ClassManagement from "@/components/teacher/ClassManagement";
 import BattleMode from "@/components/teacher/BattleMode";
+import SchoolCollaboration from "@/components/teacher/SchoolCollaboration";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -14,7 +15,7 @@ import { toast } from "@/hooks/use-toast";
 
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState<"main" | "classes" | "battle">("main");
+  const [currentView, setCurrentView] = useState<"main" | "classes" | "battle" | "collaboration">("main");
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [studentData, setStudentData] = useState({
     username: "",
@@ -159,7 +160,7 @@ const TeacherDashboard: React.FC = () => {
               Create Student Account
             </Button>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
               <Card className="hover:shadow-lg transition-all pokemon-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -209,12 +210,51 @@ const TeacherDashboard: React.FC = () => {
                   </Button>
                 </CardFooter>
               </Card>
+              
+              <Card className="hover:shadow-lg transition-all pokemon-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <School className="h-6 w-6 text-green-500" />
+                    School Collaboration
+                  </CardTitle>
+                  <CardDescription>
+                    Collaborate with other teachers in the same schools
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-500">
+                    Manage shared access to classes, send collaboration requests, and work with other teachers.
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    className="w-full pokemon-button"
+                    onClick={() => setCurrentView("collaboration")}
+                  >
+                    School Collaboration
+                  </Button>
+                </CardFooter>
+              </Card>
             </div>
           </>
         ) : currentView === "classes" ? (
           <ClassManagement onBack={() => setCurrentView("main")} />
-        ) : (
+        ) : currentView === "battle" ? (
           <BattleMode onBack={() => setCurrentView("main")} />
+        ) : (
+          <div>
+            <div className="flex items-center mb-6">
+              <Button variant="outline" onClick={() => setCurrentView("main")} className="mr-4">
+                Back to Dashboard
+              </Button>
+              <h2 className="text-2xl font-bold">School Collaboration</h2>
+            </div>
+            
+            <SchoolCollaboration 
+              teacherId={teacherId || ""} 
+              teacherName={teacherData?.displayName || "Teacher"} 
+            />
+          </div>
         )}
       </div>
       

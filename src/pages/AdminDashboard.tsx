@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Shield } from "lucide-react";
+import CodeGenerator from "@/components/CodeGenerator";
 
 // Types for our user data
 interface TeacherData {
@@ -22,7 +23,7 @@ interface TeacherData {
   expiryDate?: string;
   subscriptionType?: "trial" | "monthly" | "annual";
   isActive: boolean;
-  // Add the missing properties that were calculated in the useEffect
+  // Add the properties that were calculated in the useEffect
   numSchools?: number;
   numStudents?: number;
 }
@@ -43,6 +44,7 @@ const AdminDashboard: React.FC = () => {
   const [teachers, setTeachers] = useState<TeacherData[]>([]);
   const [students, setStudents] = useState<StudentData[]>([]);
   const [activationMessage, setActivationMessage] = useState("");
+  const [activeTab, setActiveTab] = useState("teachers");
   
   // Check if current user is Admin
   const isAdmin = localStorage.getItem("isAdmin") === "true";
@@ -182,137 +184,158 @@ const AdminDashboard: React.FC = () => {
           </CardContent>
         </Card>
         
-        <Tabs defaultValue="teachers">
-          <TabsList className="mb-6">
-            <TabsTrigger value="teachers">Teachers</TabsTrigger>
-            <TabsTrigger value="students">Students</TabsTrigger>
-          </TabsList>
+        <div className="flex flex-wrap items-center gap-2 mb-6">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-grow">
+            <TabsList className="mb-6 w-full md:w-auto">
+              <TabsTrigger value="teachers">Teachers</TabsTrigger>
+              <TabsTrigger value="students">Students</TabsTrigger>
+              <TabsTrigger value="codes">Activation Codes</TabsTrigger>
+            </TabsList>
+          </Tabs>
           
-          <TabsContent value="teachers">
-            <div className="grid gap-4">
-              {teachers.map((teacher) => (
-                <Card key={teacher.id} className="relative">
-                  {teacher.username === "Admin" && (
-                    <div className="absolute top-0 right-0 m-2">
-                      <Badge className="bg-purple-500">Admin Account</Badge>
+          <div className="flex-shrink-0">
+            <CodeGenerator />
+          </div>
+        </div>
+        
+        <TabsContent value="teachers" className="mt-0">
+          <div className="grid gap-4">
+            {teachers.map((teacher) => (
+              <Card key={teacher.id} className="relative">
+                {teacher.username === "Admin" && (
+                  <div className="absolute top-0 right-0 m-2">
+                    <Badge className="bg-purple-500">Admin Account</Badge>
+                  </div>
+                )}
+                <CardHeader>
+                  <CardTitle className="flex justify-between">
+                    <span>{teacher.displayName} ({teacher.username})</span>
+                    <Badge className={teacher.isActive ? "bg-green-500" : "bg-red-500"}>
+                      {teacher.isActive ? "Active" : "Frozen"}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Account Type</p>
+                      <p>{teacher.subscriptionType}</p>
                     </div>
-                  )}
-                  <CardHeader>
-                    <CardTitle className="flex justify-between">
-                      <span>{teacher.displayName} ({teacher.username})</span>
-                      <Badge className={teacher.isActive ? "bg-green-500" : "bg-red-500"}>
-                        {teacher.isActive ? "Active" : "Frozen"}
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Account Type</p>
-                        <p>{teacher.subscriptionType}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Expiry Date</p>
-                        <p>{teacher.expiryDate}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Created</p>
-                        <p>{new Date(teacher.createdAt).toLocaleDateString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Last Login</p>
-                        <p>{teacher.lastLogin}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Time Spent</p>
-                        <p>{teacher.timeSpent} minutes</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Classes</p>
-                        <p>{teacher.numSchools} schools, {teacher.numStudents} students</p>
-                      </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Expiry Date</p>
+                      <p>{teacher.expiryDate}</p>
                     </div>
-                    
-                    {teacher.username !== "Admin" && (
-                      <div className="flex gap-2">
-                        <Button 
-                          onClick={() => handleToggleAccount(teacher.id, "teacher")}
-                          variant={teacher.isActive ? "destructive" : "default"}
-                        >
-                          {teacher.isActive ? "Freeze Account" : "Unfreeze Account"}
-                        </Button>
-                        <Button 
-                          onClick={() => handleDeleteAccount(teacher.id, "teacher")}
-                          variant="outline"
-                          className="text-red-500 border-red-500 hover:bg-red-50"
-                        >
-                          Delete Account
-                        </Button>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="students">
-            <div className="grid gap-4">
-              {students.map((student) => (
-                <Card key={student.id}>
-                  <CardHeader>
-                    <CardTitle className="flex justify-between">
-                      <span>{student.displayName} ({student.username})</span>
-                      <Badge className={student.isActive ? "bg-green-500" : "bg-red-500"}>
-                        {student.isActive ? "Active" : "Frozen"}
-                      </Badge>
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                      <div>
-                        <p className="text-sm text-gray-500">Teacher ID</p>
-                        <p>{student.teacherId}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Created</p>
-                        <p>{new Date(student.createdAt).toLocaleDateString()}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Last Login</p>
-                        <p>{student.lastLogin}</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Time Spent</p>
-                        <p>{student.timeSpent} minutes</p>
-                      </div>
-                      <div>
-                        <p className="text-sm text-gray-500">Coins Spent</p>
-                        <p>{student.coinsSpent}</p>
-                      </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Created</p>
+                      <p>{new Date(teacher.createdAt).toLocaleDateString()}</p>
                     </div>
-                    
+                    <div>
+                      <p className="text-sm text-gray-500">Last Login</p>
+                      <p>{teacher.lastLogin}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Time Spent</p>
+                      <p>{teacher.timeSpent} minutes</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Classes</p>
+                      <p>{teacher.numSchools} schools, {teacher.numStudents} students</p>
+                    </div>
+                  </div>
+                  
+                  {teacher.username !== "Admin" && (
                     <div className="flex gap-2">
                       <Button 
-                        onClick={() => handleToggleAccount(student.id, "student")}
-                        variant={student.isActive ? "destructive" : "default"}
+                        onClick={() => handleToggleAccount(teacher.id, "teacher")}
+                        variant={teacher.isActive ? "destructive" : "default"}
                       >
-                        {student.isActive ? "Freeze Account" : "Unfreeze Account"}
+                        {teacher.isActive ? "Freeze Account" : "Unfreeze Account"}
                       </Button>
                       <Button 
-                        onClick={() => handleDeleteAccount(student.id, "student")}
+                        onClick={() => handleDeleteAccount(teacher.id, "teacher")}
                         variant="outline"
                         className="text-red-500 border-red-500 hover:bg-red-50"
                       >
                         Delete Account
                       </Button>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </TabsContent>
-        </Tabs>
+                  )}
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="students" className="mt-0">
+          <div className="grid gap-4">
+            {students.map((student) => (
+              <Card key={student.id}>
+                <CardHeader>
+                  <CardTitle className="flex justify-between">
+                    <span>{student.displayName} ({student.username})</span>
+                    <Badge className={student.isActive ? "bg-green-500" : "bg-red-500"}>
+                      {student.isActive ? "Active" : "Frozen"}
+                    </Badge>
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                    <div>
+                      <p className="text-sm text-gray-500">Teacher ID</p>
+                      <p>{student.teacherId}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Created</p>
+                      <p>{new Date(student.createdAt).toLocaleDateString()}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Last Login</p>
+                      <p>{student.lastLogin}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Time Spent</p>
+                      <p>{student.timeSpent} minutes</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">Coins Spent</p>
+                      <p>{student.coinsSpent}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => handleToggleAccount(student.id, "student")}
+                      variant={student.isActive ? "destructive" : "default"}
+                    >
+                      {student.isActive ? "Freeze Account" : "Unfreeze Account"}
+                    </Button>
+                    <Button 
+                      onClick={() => handleDeleteAccount(student.id, "student")}
+                      variant="outline"
+                      className="text-red-500 border-red-500 hover:bg-red-50"
+                    >
+                      Delete Account
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </TabsContent>
+        
+        <TabsContent value="codes" className="mt-0">
+          <Card>
+            <CardHeader>
+              <CardTitle>Activation Code Management</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="mb-4">Generate and manage activation codes for teachers and schools.</p>
+              <div className="grid place-items-center p-6">
+                <CodeGenerator />
+              </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
       </div>
     </div>
   );
