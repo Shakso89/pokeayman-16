@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PokemonOrbit from "@/components/PokemonOrbit";
+import LanguageSelector from "@/components/LanguageSelector";
 
 const Index: React.FC = () => {
   const navigate = useNavigate();
@@ -33,8 +34,15 @@ const Index: React.FC = () => {
           </p>
         </div>
         
+        {/* Language selector */}
+        <div className="absolute top-4 right-4">
+          <LanguageSelector className="text-white hover:bg-white/20" />
+        </div>
+        
         {/* Pokemon orbit animation */}
-        <PokemonOrbit />
+        <div onClick={() => navigate("/student-login")} className="cursor-pointer">
+          <PokemonOrbit />
+        </div>
         
         {/* Call to action */}
         <div className="text-center mt-8">

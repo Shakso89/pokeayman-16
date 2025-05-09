@@ -1,19 +1,19 @@
 
 import React, { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { NavBar } from "@/components/NavBar";
-import { Users, Sword, UserPlus } from "lucide-react";
+import { Users, Sword, UserPlus, Shield } from "lucide-react";
 import ClassManagement from "@/components/teacher/ClassManagement";
 import BattleMode from "@/components/teacher/BattleMode";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import CodeGenerator from "@/components/CodeGenerator";
 
 const TeacherDashboard: React.FC = () => {
+  const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<"main" | "classes" | "battle">("main");
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [studentData, setStudentData] = useState({
@@ -138,7 +138,15 @@ const TeacherDashboard: React.FC = () => {
                     <h2 className="text-3xl font-bold mb-2">Welcome, Pokémon Teacher!</h2>
                     <p>Manage your classes and create exciting battles for your students.</p>
                   </div>
-                  {isAdmin && <CodeGenerator />}
+                  {isAdmin && (
+                    <Button 
+                      onClick={() => navigate("/admin-dashboard")}
+                      className="bg-purple-600 hover:bg-purple-700 flex items-center gap-2"
+                    >
+                      <Shield className="h-4 w-4" />
+                      Admin Dashboard
+                    </Button>
+                  )}
                 </div>
               </CardContent>
             </Card>

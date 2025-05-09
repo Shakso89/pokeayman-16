@@ -1,7 +1,6 @@
-
 import { Pokemon, PokemonPool, StudentPokemon } from "@/types/pokemon";
 
-// Expanded Pokemon data
+// Expanded Pokemon data with up to 600 entries
 export const samplePokemons: Pokemon[] = [
   // Original Pokémon
   {
@@ -591,18 +590,18 @@ export const saveStudentPokemons = (studentPokemons: StudentPokemon[]) => {
   localStorage.setItem("studentPokemons", JSON.stringify(studentPokemons));
 };
 
-// Initialize Pokemon pool for a class
-export const initializeClassPokemonPool = (classId: string): PokemonPool => {
+// Initialize Pokemon pool for a school
+export const initializeSchoolPokemonPool = (schoolId: string): PokemonPool => {
   // Create a deep copy of sample Pokemons
   const pokemons = JSON.parse(JSON.stringify(samplePokemons));
   
   const pool: PokemonPool = {
-    classId,
+    schoolId,
     availablePokemons: pokemons
   };
   
   const existingPools = getPokemonPools();
-  const updatedPools = [...existingPools.filter(p => p.classId !== classId), pool];
+  const updatedPools = [...existingPools.filter(p => p.schoolId !== schoolId), pool];
   savePokemonPools(updatedPools);
   
   return pool;
@@ -627,9 +626,9 @@ export const awardCoinsToStudent = (studentId: string, amount: number): void => 
 };
 
 // Assign Pokemon to a student
-export const assignPokemonToStudent = (classId: string, studentId: string, pokemonId: string): boolean => {
+export const assignPokemonToStudent = (schoolId: string, studentId: string, pokemonId: string): boolean => {
   const pools = getPokemonPools();
-  const poolIndex = pools.findIndex(p => p.classId === classId);
+  const poolIndex = pools.findIndex(p => p.schoolId === schoolId);
   
   if (poolIndex < 0) return false;
   
@@ -664,10 +663,10 @@ export const getStudentPokemonCollection = (studentId: string): StudentPokemon |
   return studentPokemons.find(sp => sp.studentId === studentId) || null;
 };
 
-// Get class Pokemon pool
-export const getClassPokemonPool = (classId: string): PokemonPool | null => {
+// Get school Pokemon pool
+export const getSchoolPokemonPool = (schoolId: string): PokemonPool | null => {
   const pools = getPokemonPools();
-  return pools.find(p => p.classId === classId) || null;
+  return pools.find(p => p.schoolId === schoolId) || null;
 };
 
 // Use a coin to spin the wheel
@@ -684,11 +683,15 @@ export const useStudentCoin = (studentId: string): boolean => {
   return true;
 };
 
-// Get a random Pokemon from the class pool
-export const getRandomPokemonFromPool = (classId: string): Pokemon | null => {
-  const pool = getClassPokemonPool(classId);
+// Get a random Pokemon from the school pool
+export const getRandomPokemonFromPool = (schoolId: string): Pokemon | null => {
+  const pool = getSchoolPokemonPool(schoolId);
   if (!pool || pool.availablePokemons.length === 0) return null;
   
   const randomIndex = Math.floor(Math.random() * pool.availablePokemons.length);
   return pool.availablePokemons[randomIndex];
 };
+
+// For backward compatibility
+export const getClassPokemonPool = getSchoolPokemonPool;
+export const initializeClassPokemonPool = initializeSchoolPokemonPool;

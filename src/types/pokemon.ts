@@ -8,7 +8,7 @@ export interface Pokemon {
 }
 
 export interface PokemonPool {
-  classId: string;
+  schoolId: string; // Changed from classId to schoolId
   availablePokemons: Pokemon[];
 }
 

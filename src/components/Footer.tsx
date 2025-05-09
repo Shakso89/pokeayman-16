@@ -1,6 +1,7 @@
 
 import React from "react";
 import { Facebook, Phone } from "lucide-react";
+import LanguageSelector from "./LanguageSelector";
 
 const Footer: React.FC = () => {
   return (
@@ -22,6 +23,7 @@ const Footer: React.FC = () => {
           >
             <Phone className="h-5 w-5" />
           </a>
+          <LanguageSelector className="text-white hover:text-blue-200 transition-colors" />
         </div>
       </div>
     </footer>

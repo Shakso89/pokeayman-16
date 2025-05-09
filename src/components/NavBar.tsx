@@ -1,8 +1,9 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { LogOut } from "lucide-react";
+import LanguageSelector from "./LanguageSelector";
 
 interface NavBarProps {
   userType: "teacher" | "student";
@@ -25,7 +26,7 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName }) => {
         <div className="flex items-center gap-4">
           <img 
             src="/lovable-uploads/40c04be5-3d6e-4938-9a00-006177dbef3b.png"
-            alt="TR Ayman Logo" 
+            alt="PokéAyman Logo" 
             className="h-12 w-auto" 
           />
           <h1 className="text-xl font-bold">
@@ -34,6 +35,7 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName }) => {
         </div>
         
         <div className="flex items-center gap-4">
+          <LanguageSelector />
           <div className="hidden md:block text-right">
             <p className="text-sm text-gray-500">Logged in as</p>
             <p className="font-medium">{userType === "teacher" ? "Admin" : userName || "Student"}</p>
