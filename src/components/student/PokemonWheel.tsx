@@ -78,7 +78,7 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
         setWonPokemon(pokemon);
         setShowWinModal(true);
         
-        // Notify parent component
+        // Notify parent component with just the pokemon
         onPokemonWon(pokemon);
         
         toast({
