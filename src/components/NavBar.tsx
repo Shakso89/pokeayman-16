@@ -74,22 +74,23 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName, userAvatar }
           
           <LanguageSelector />
           
+          {/* Changed from ghost icon button to a regular button with the ranking variant */}
           <Button 
-            variant="ghost" 
-            size="icon"
+            variant="ranking" 
             onClick={() => navigate(`/${userType === "teacher" ? "teacher" : "student"}/rankings`)}
-            title={t("rankings")}
+            className="flex items-center gap-2"
           >
             <Medal size={20} />
+            {t("rankings")}
           </Button>
 
           <Button 
-            variant="ghost" 
-            size="icon"
+            variant="secondary" 
             onClick={() => navigate(`/${userType === "teacher" ? "teacher" : "student"}/messages`)}
-            title={t("messages")}
+            className="flex items-center gap-2"
           >
             <MessageSquare size={20} />
+            {t("messages")}
           </Button>
 
           <DropdownMenu>
