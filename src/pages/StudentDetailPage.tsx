@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -13,6 +12,7 @@ import { ChevronLeft, Coins, Gift, Trash2, Eye, Award, Sword } from "lucide-reac
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Pokemon, Student } from "@/types/pokemon";
+import PokemonSelectList from "@/components/pokemon/PokemonSelectList";
 
 const StudentDetailPage: React.FC = () => {
   const { studentId } = useParams<{ studentId: string }>();
@@ -168,7 +168,7 @@ const StudentDetailPage: React.FC = () => {
       
       toast({
         title: t("success"),
-        description: t("coins-given-to-student", { count: coinAmount })
+        description: t("coins-given-to-student")
       });
       
       setIsGiveCoinDialogOpen(false);
@@ -210,7 +210,7 @@ const StudentDetailPage: React.FC = () => {
       
       toast({
         title: t("success"),
-        description: t("pokemon-given-to-student", { name: selectedPokemon.name })
+        description: t("pokemon-given-to-student")
       });
       
       setSelectedPokemon(null);
@@ -243,7 +243,7 @@ const StudentDetailPage: React.FC = () => {
         
         toast({
           title: t("success"),
-          description: t("pokemon-removed", { name: pokemon.name })
+          description: t("pokemon-removed")
         });
       }
     } catch (error) {
@@ -454,7 +454,7 @@ const StudentDetailPage: React.FC = () => {
       <Dialog open={isGiveCoinDialogOpen} onOpenChange={setIsGiveCoinDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("give-coins-to-student", { name: student.displayName })}</DialogTitle>
+            <DialogTitle>{t("give-coins-to-student")}</DialogTitle>
             <DialogDescription>
               {t("give-coins-description")}
             </DialogDescription>
@@ -488,7 +488,7 @@ const StudentDetailPage: React.FC = () => {
       <Dialog open={isGivePokemonDialogOpen} onOpenChange={setIsGivePokemonDialogOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("give-pokemon-to-student", { name: student.displayName })}</DialogTitle>
+            <DialogTitle>{t("give-pokemon-to-student")}</DialogTitle>
             <DialogDescription>
               {t("give-pokemon-description")}
             </DialogDescription>
