@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -16,7 +15,8 @@ import { getSchoolPokemonPool } from "@/utils/pokemonData";
 interface GivePokemonDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  schoolId: string;
+  schoolId?: string;  // Make schoolId optional
+  availablePokemons?: Pokemon[];  // Add availablePokemons as an optional prop
   onGivePokemon: (pokemon: Pokemon) => void;
 }
 
@@ -24,6 +24,7 @@ const GivePokemonDialog: React.FC<GivePokemonDialogProps> = ({
   open, 
   onOpenChange, 
   schoolId,
+  availablePokemons: propAvailablePokemons, // Rename to avoid naming conflict
   onGivePokemon
 }) => {
   const { t } = useTranslation();
@@ -31,16 +32,30 @@ const GivePokemonDialog: React.FC<GivePokemonDialogProps> = ({
   const [availablePokemons, setAvailablePokemons] = useState<Pokemon[]>([]);
 
   useEffect(() => {
-    if (open && schoolId) {
-      // Get available pokemons from the school pool
-      const schoolPool = getSchoolPokemonPool(schoolId);
-      if (schoolPool) {
-        setAvailablePokemons(schoolPool.availablePokemons);
+    if (open) {
+      // If availablePokemons is provided as a prop, use that
+      if (propAvailablePokemons) {
+        setAvailablePokemons(propAvailablePokemons);
+      } 
+      // Otherwise fetch from school pool if schoolId is provided
+      else if (schoolId) {
+        // Get available pokemons from the school pool using the imported function
+        try {
+          const schoolPokemonPool = getSchoolPokemonPool(schoolId);
+          if (schoolPokemonPool) {
+            setAvailablePokemons(schoolPokemonPool.availablePokemons);
+          } else {
+            setAvailablePokemons([]);
+          }
+        } catch (error) {
+          console.error("Error fetching school pokemon pool:", error);
+          setAvailablePokemons([]);
+        }
       } else {
         setAvailablePokemons([]);
       }
     }
-  }, [open, schoolId]);
+  }, [open, schoolId, propAvailablePokemons]);
 
   const handleGivePokemon = () => {
     if (selectedPokemon) {
