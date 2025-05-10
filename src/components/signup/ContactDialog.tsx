@@ -19,11 +19,11 @@ interface ContactDialogProps {
 const ContactDialog: React.FC<ContactDialogProps> = ({ isOpen, onClose }) => {
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
+      <DialogContent className="bg-black/80 text-white border-gray-700">
         <DialogHeader>
           <DialogTitle>Get Your Activation Code</DialogTitle>
-          <DialogDescription>
-            Contact us to get a trial, monthly, or annual activation code.
+          <DialogDescription className="text-gray-300">
+            Contact us to activate your account and unlock all features.
           </DialogDescription>
         </DialogHeader>
         
@@ -34,10 +34,10 @@ const ContactDialog: React.FC<ContactDialogProps> = ({ isOpen, onClose }) => {
               href="https://www.facebook.com/ayman.soliman89/" 
               target="_blank" 
               rel="noopener noreferrer"
-              className="text-blue-500 hover:underline flex items-center gap-2"
+              className="text-blue-400 hover:underline flex items-center gap-2"
             >
-              <div className="bg-blue-100 p-2 rounded-full">
-                <Contact className="h-4 w-4 text-blue-500" />
+              <div className="bg-blue-900/50 p-2 rounded-full">
+                <Contact className="h-4 w-4 text-blue-400" />
               </div>
               ayman.soliman89
             </a>
@@ -47,16 +47,16 @@ const ContactDialog: React.FC<ContactDialogProps> = ({ isOpen, onClose }) => {
             <span className="font-medium mb-1">Phone / WhatsApp / Line:</span>
             <a 
               href="tel:+886900170038" 
-              className="text-blue-500 hover:underline flex items-center gap-2"
+              className="text-blue-400 hover:underline flex items-center gap-2"
             >
-              <div className="bg-blue-100 p-2 rounded-full">
-                <Contact className="h-4 w-4 text-blue-500" />
+              <div className="bg-blue-900/50 p-2 rounded-full">
+                <Contact className="h-4 w-4 text-blue-400" />
               </div>
               +886 900 170 038
             </a>
           </div>
           
-          <div className="text-sm text-gray-500 mt-2">
+          <div className="text-sm text-gray-400 mt-2">
             <p>Available activation codes:</p>
             <ul className="list-disc pl-5 mt-1">
               <li>7-day trial (starts with "TRIAL")</li>
@@ -67,7 +67,7 @@ const ContactDialog: React.FC<ContactDialogProps> = ({ isOpen, onClose }) => {
         </div>
         
         <DialogFooter>
-          <Button onClick={onClose}>Close</Button>
+          <Button onClick={onClose} className="bg-blue-600 hover:bg-blue-700">Close</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

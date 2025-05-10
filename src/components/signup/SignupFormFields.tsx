@@ -19,6 +19,7 @@ interface SignupFormFieldsProps {
   isLoading: boolean;
   onOpenContactDialog: () => void;
   onNavigateToLogin: () => void;
+  activationOptional?: boolean;
 }
 
 const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
@@ -34,7 +35,8 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
   setActivationCode,
   isLoading,
   onOpenContactDialog,
-  onNavigateToLogin
+  onNavigateToLogin,
+  activationOptional = false
 }) => {
   return (
     <>
@@ -47,10 +49,10 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
             placeholder="Enter your username"
             value={username}
             onChange={(e) => setUsername(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-black/30 border-gray-700 text-white"
             required
           />
-          <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
+          <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
         </div>
       </div>
       
@@ -64,10 +66,10 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
             placeholder="Enter your email"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-black/30 border-gray-700 text-white"
             required
           />
-          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
+          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
         </div>
       </div>
       
@@ -81,10 +83,10 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
             placeholder="Enter your password"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-black/30 border-gray-700 text-white"
             required
           />
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
         </div>
       </div>
       
@@ -98,41 +100,46 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
             placeholder="Confirm your password"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
-            className="pl-10"
+            className="pl-10 bg-black/30 border-gray-700 text-white"
             required
           />
-          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
+          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
         </div>
       </div>
       
-      {/* Activation Code field */}
+      {/* Activation Code field - optional now */}
       <div className="space-y-2">
         <div className="flex items-center justify-between">
-          <Label htmlFor="activationCode">Activation Code</Label>
+          <Label htmlFor="activationCode">
+            Activation Code {activationOptional && <span className="text-gray-400 text-xs">(optional)</span>}
+          </Label>
           <Button 
             type="button" 
             variant="link" 
             size="sm" 
             onClick={onOpenContactDialog}
-            className="text-xs"
+            className="text-xs text-blue-400"
           >
             Need a code?
           </Button>
         </div>
         <Input
           id="activationCode"
-          placeholder="Enter your activation code"
+          placeholder="Enter your activation code (optional)"
           value={activationCode}
           onChange={(e) => setActivationCode(e.target.value)}
-          required
+          className="bg-black/30 border-gray-700 text-white"
+          required={!activationOptional}
         />
-        <p className="text-xs text-gray-500">
-          Use code starting with TRIAL for a 7-day trial
+        <p className="text-xs text-gray-400">
+          {activationOptional 
+            ? "You can register without a code, but will need one to access all features"
+            : "Use code starting with TRIAL for a 7-day trial"}
         </p>
       </div>
       
       {/* Submit button */}
-      <Button type="submit" className="w-full" disabled={isLoading}>
+      <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
         {isLoading ? "Creating Account..." : "Create Account"}
       </Button>
       
@@ -142,7 +149,7 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
           <button 
             type="button" 
             onClick={onNavigateToLogin}
-            className="text-blue-600 hover:underline"
+            className="text-blue-400 hover:underline"
           >
             Sign in
           </button>

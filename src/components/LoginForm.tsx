@@ -9,13 +9,15 @@ import { toast } from "@/hooks/use-toast";
 import { User } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { setActivationStatus } from "@/utils/activationService";
+import { cn } from "@/lib/utils";
 
 interface LoginFormProps {
   type: "teacher" | "student";
   onLoginSuccess?: (username: string, password: string) => void;
+  darkMode?: boolean;
 }
 
-export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) => {
+export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, darkMode = false }) => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -52,8 +54,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
           } else {
             localStorage.removeItem("isAdmin");
             
-            // Set activation status - in a real app, this would be fetched from a database
-            // For demo purposes, we'll set it to false for new sign-ups
+            // Set activation status based on teacher record
             if (teacher && teacher.activated) {
               setActivationStatus(true);
             } else {
@@ -117,34 +118,40 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
     <AuthLayout
       title={type === "teacher" ? t("teacher-login") : t("student-login")}
       description={`${t("login-to-access")} ${type === "teacher" ? t("teacher-dashboard").toLowerCase() : t("student-dashboard").toLowerCase()}`}
+      className={darkMode ? "bg-black/70 text-white border-gray-800" : undefined}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="username">{t("username") || "Username"}</Label>
+          <Label htmlFor="username" className={darkMode ? "text-white" : ""}>{t("username") || "Username"}</Label>
           <div className="relative">
             <Input
               id="username"
               placeholder={t("enter-your-username") || "Enter your username"}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="pl-10"
+              className={cn("pl-10", darkMode && "bg-black/30 border-gray-700 text-white")}
               required
             />
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
+            <User className={`absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 ${darkMode ? "text-gray-400" : "text-gray-500"}`} />
           </div>
         </div>
         <div className="space-y-2">
-          <Label htmlFor="password">{t("password") || "Password"}</Label>
+          <Label htmlFor="password" className={darkMode ? "text-white" : ""}>{t("password") || "Password"}</Label>
           <Input
             id="password"
             type="password"
             placeholder={t("enter-your-password") || "Enter your password"}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
+            className={darkMode ? "bg-black/30 border-gray-700 text-white" : ""}
             required
           />
         </div>
-        <Button type="submit" className="w-full" disabled={isLoading}>
+        <Button 
+          type="submit" 
+          className={cn("w-full", darkMode && "bg-blue-600 hover:bg-blue-700")} 
+          disabled={isLoading}
+        >
           {isLoading ? t("logging-in") || "Logging in..." : t("login") || "Login"}
         </Button>
         
@@ -155,7 +162,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
               <button 
                 type="button" 
                 onClick={() => navigate("/teacher-signup")}
-                className="text-blue-600 hover:underline"
+                className={darkMode ? "text-blue-400 hover:underline" : "text-blue-600 hover:underline"}
               >
                 {t("sign-up") || "Sign up"}
               </button>
@@ -164,10 +171,20 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
         )}
         
         {type === "student" && (
-          <div className="text-center text-sm mt-4">
-            <p>
-              {t("student-account-help") || "Don't have an account? Ask your teacher to create one for you."}
-            </p>
+          <div className="mt-4 text-center">
+            <div className={cn("bg-black/50 backdrop-blur-sm p-4 rounded-lg", !darkMode && "bg-white/80")}>
+              <p className="font-medium mb-2">{t("are-you-a-teacher") || "Are you a teacher?"}</p>
+              <Button
+                variant="default"
+                onClick={() => navigate("/teacher-login")}
+                className={cn("w-full", darkMode && "bg-blue-600 hover:bg-blue-700")}
+              >
+                {t("teacher-login") || "Teacher Login"}
+              </Button>
+              <p className="text-sm mt-2 text-gray-400">
+                {t("student-account-help") || "Students need an account created by their teacher"}
+              </p>
+            </div>
           </div>
         )}
         
@@ -175,7 +192,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
           <button 
             type="button" 
             onClick={() => navigate("/")}
-            className="text-blue-600 hover:underline"
+            className={darkMode ? "text-blue-400 hover:underline" : "text-blue-600 hover:underline"}
           >
             {t("back-to-home") || "Back to home"}
           </button>

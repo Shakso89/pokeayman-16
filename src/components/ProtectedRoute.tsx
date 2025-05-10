@@ -25,8 +25,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     if (isLoggedIn && userType === "teacher" && !isActivated && !isAdmin) {
       setShowActivationModal(true);
       toast({
-        title: t("account-not-activated"),
-        description: t("need-activation-code-contact-us"),
+        title: "Account Activation Required",
+        description: "Need an activation code? Contact us—there's a whole new teaching experience waiting for you!",
         variant: "destructive",
       });
     }
@@ -50,9 +50,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       <>
         <ActivationModal isOpen={showActivationModal} onClose={handleCloseModal} />
         <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-          <div className="text-center p-8">
-            <h2 className="text-2xl font-bold mb-4">{t("account-activation-required")}</h2>
-            <p>{t("need-activation-code-contact-us")}</p>
+          <div className="text-center p-8 max-w-md bg-white rounded-lg shadow-lg">
+            <h2 className="text-2xl font-bold mb-4">Account Activation Required</h2>
+            <p className="mb-6">Need an activation code? Contact us—there's a whole new teaching experience waiting for you!</p>
+            <button 
+              onClick={() => navigate("/contact")}
+              className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition-colors"
+            >
+              Contact Us
+            </button>
           </div>
         </div>
       </>

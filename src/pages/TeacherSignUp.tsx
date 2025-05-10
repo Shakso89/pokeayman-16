@@ -36,24 +36,15 @@ const TeacherSignUp: React.FC = () => {
       return;
     }
     
-    // Validate activation code
-    if (!validateActivationCode(activationCode)) {
-      toast({
-        title: "Invalid activation code",
-        description: "Please enter a valid activation code or contact us to get one.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
-    }
-    
     // Registration logic
     setTimeout(() => {
       // In a real app, you would make an API call to register the user
-      
       const teacherId = "teacher-" + Date.now().toString();
       
-      // Store user data in localStorage (this is a simple demo, in a real app, you would use a server)
+      // Check if activation code is provided (optional now)
+      const isActivated = activationCode ? validateActivationCode(activationCode) : false;
+      
+      // Store user data in localStorage
       const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
       teachers.push({
         id: teacherId,
@@ -62,20 +53,25 @@ const TeacherSignUp: React.FC = () => {
         password, // In a real app, you would never store plain-text passwords
         avatarUrl,
         activationCode,
-        activationExpiry: getActivationExpiry(activationCode),
+        activated: isActivated, // Default to not activated if no code provided
+        activationExpiry: isActivated ? getActivationExpiry(activationCode) : "",
         students: [],
         createdAt: new Date().toISOString()
       });
       localStorage.setItem("teachers", JSON.stringify(teachers));
       
-      // Mark activation code as used
-      const usedCodes = JSON.parse(localStorage.getItem("usedActivationCodes") || "[]");
-      usedCodes.push(activationCode);
-      localStorage.setItem("usedActivationCodes", JSON.stringify(usedCodes));
+      // Mark activation code as used if provided
+      if (activationCode) {
+        const usedCodes = JSON.parse(localStorage.getItem("usedActivationCodes") || "[]");
+        usedCodes.push(activationCode);
+        localStorage.setItem("usedActivationCodes", JSON.stringify(usedCodes));
+      }
       
       toast({
         title: "Account created",
-        description: "Welcome to TR Ayman! You can now login.",
+        description: isActivated 
+          ? "Welcome to TR Ayman! Your account is fully activated."
+          : "Welcome to TR Ayman! Please contact us to activate your account for full access.",
       });
       
       navigate("/teacher-login");
@@ -134,54 +130,58 @@ const TeacherSignUp: React.FC = () => {
   };
   
   return (
-    <div className="min-h-screen bg-cover bg-center relative overflow-hidden" 
-         style={{ 
-           backgroundImage: "linear-gradient(to right, #ffc3a0 0%, #ffafbd 100%)"
-         }}>
-      <div className="absolute top-4 left-4 flex items-center gap-2">
+    <div className="min-h-screen bg-black relative overflow-hidden">
+      {/* Header area with home button */}
+      <div className="absolute top-4 left-4 z-10">
         <Button 
           variant="ghost" 
           size="icon"
           onClick={() => navigate("/")}
-          className="bg-white/50 backdrop-blur-sm hover:bg-white/70"
+          className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white"
         >
           <Home className="h-5 w-5" />
         </Button>
       </div>
       
-      <AuthLayout
-        title="Teacher Sign Up"
-        description="Create your account to manage your classes"
-      >
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <AvatarSelector 
-            avatarUrl={avatarUrl}
-            setAvatarUrl={setAvatarUrl}
-          />
+      {/* Main content */}
+      <div className="relative z-10">
+        <AuthLayout
+          title="Teacher Sign Up"
+          description="Create your account to manage your classes"
+          className="bg-black/70 text-white border-gray-800"
+        >
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <AvatarSelector 
+              avatarUrl={avatarUrl}
+              setAvatarUrl={setAvatarUrl}
+            />
+            
+            <SignupFormFields
+              username={username}
+              setUsername={setUsername}
+              email={email}
+              setEmail={setEmail}
+              password={password}
+              setPassword={setPassword}
+              confirmPassword={confirmPassword}
+              setConfirmPassword={setConfirmPassword}
+              activationCode={activationCode}
+              setActivationCode={setActivationCode}
+              isLoading={isLoading}
+              onOpenContactDialog={() => setContactDialogOpen(true)}
+              onNavigateToLogin={() => navigate("/teacher-login")}
+              activationOptional={true} // Make activation code optional
+            />
+          </form>
           
-          <SignupFormFields
-            username={username}
-            setUsername={setUsername}
-            email={email}
-            setEmail={setEmail}
-            password={password}
-            setPassword={setPassword}
-            confirmPassword={confirmPassword}
-            setConfirmPassword={setConfirmPassword}
-            activationCode={activationCode}
-            setActivationCode={setActivationCode}
-            isLoading={isLoading}
-            onOpenContactDialog={() => setContactDialogOpen(true)}
-            onNavigateToLogin={() => navigate("/teacher-login")}
+          <ContactDialog 
+            isOpen={contactDialogOpen} 
+            onClose={() => setContactDialogOpen(false)}
           />
-        </form>
-        
-        <ContactDialog 
-          isOpen={contactDialogOpen} 
-          onClose={() => setContactDialogOpen(false)}
-        />
-      </AuthLayout>
+        </AuthLayout>
+      </div>
       
+      {/* Pokemon decorations as silhouettes */}
       <PokemonDecorations />
     </div>
   );
