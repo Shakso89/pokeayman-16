@@ -1,11 +1,12 @@
+
 import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { Pokemon } from "@/types/pokemon";
-import { useTranslation } from "@/hooks/useTranslation";
 import { Package } from "lucide-react";
 import { useStudentCoin, assignRandomPokemonToStudent } from "@/utils/pokemon/studentPokemon";
 import MysteryBallResult from "./MysteryBallResult";
+
 interface MysteryBallProps {
   studentId: string;
   schoolId: string;
@@ -16,10 +17,12 @@ interface MysteryBallProps {
   dailyAttemptUsed: boolean;
   setDailyAttemptUsed: (used: boolean) => void;
 }
+
 type BallResult = {
   type: "pokemon" | "coins" | "nothing";
   data?: Pokemon | number;
 };
+
 const MysteryBall: React.FC<MysteryBallProps> = ({
   studentId,
   schoolId,
@@ -30,15 +33,11 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
   dailyAttemptUsed,
   setDailyAttemptUsed
 }) => {
-  const {
-    t
-  } = useTranslation();
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const [isOpening, setIsOpening] = useState(false);
   const [result, setResult] = useState<BallResult | null>(null);
   const [showResult, setShowResult] = useState(false);
+
   const determineResult = (): BallResult => {
     // Determine the result: Pokemon (30%), Coins (40%), or Nothing (30%)
     const roll = Math.random() * 100;
@@ -64,12 +63,12 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
       };
     }
   };
+
   const openBall = async (useFreeDailyAttempt: boolean) => {
     if (!useFreeDailyAttempt && coins < 2) {
       toast({
-        title: t("not-enough-coins"),
-        description: t("need-coins-to-open-ball"),
-        variant: "destructive"
+        title: "Not enough coins",
+        description: "You need 2 coins to open the mystery ball"
       });
       return;
     }
@@ -80,9 +79,8 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
       const success = useStudentCoin(studentId, 2);
       if (!success) {
         toast({
-          title: t("error"),
-          description: t("failed-to-use-coins"),
-          variant: "destructive"
+          title: "Error",
+          description: "Failed to use coins"
         });
         setIsOpening(false);
         return;
@@ -113,32 +111,51 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
       setIsOpening(false);
     }, 1500);
   };
+
   const closeResult = () => {
     setShowResult(false);
     setResult(null);
   };
-  return <div className="flex flex-col items-center">
+
+  return (
+    <div className="flex flex-col items-center">
       <div className="mb-4 relative w-48 h-48 flex items-center justify-center">
-        <img alt="Mystery Pokémon Ball" className="" src="/lovable-uploads/4c78e665-5c3d-423d-b622-e43a286687a5.png" />
-        {isOpening && <div className="absolute inset-0 flex items-center justify-center">
+        <img
+          alt="Mystery Pokémon Ball"
+          className=""
+          src="/lovable-uploads/4c78e665-5c3d-423d-b622-e43a286687a5.png"
+        />
+        {isOpening && (
+          <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-16 h-16 border-t-4 border-purple-500 border-solid rounded-full animate-spin"></div>
-          </div>}
+          </div>
+        )}
       </div>
       
       <div className="flex gap-3 mt-2">
-        {!dailyAttemptUsed && <Button onClick={() => openBall(true)} disabled={isOpening} className="bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800">
-            {t("open-free-daily")}
-          </Button>}
+        {!dailyAttemptUsed && (
+          <Button
+            onClick={() => openBall(true)}
+            disabled={isOpening}
+            className="bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800"
+          >
+            Open Free Daily
+          </Button>
+        )}
         
-        <Button onClick={() => openBall(false)} disabled={isOpening || coins < 2} className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800">
+        <Button
+          onClick={() => openBall(false)}
+          disabled={isOpening || coins < 2}
+          className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800"
+        >
           <Package className="h-4 w-4" />
-          {t("open-for-coins", {
-          count: 2
-        })}
+          Open for 2 coins
         </Button>
       </div>
       
       {showResult && result && <MysteryBallResult result={result} onClose={closeResult} />}
-    </div>;
+    </div>
+  );
 };
+
 export default MysteryBall;

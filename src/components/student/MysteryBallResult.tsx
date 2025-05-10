@@ -8,8 +8,7 @@ import {
   DialogFooter
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { useTranslation } from "@/hooks/useTranslation";
-import { Coins, Package, X } from "lucide-react";
+import { Coins, X } from "lucide-react";
 import { Pokemon } from "@/types/pokemon";
 import confetti from "canvas-confetti";
 
@@ -22,8 +21,6 @@ interface MysteryBallResultProps {
 }
 
 const MysteryBallResult: React.FC<MysteryBallResultProps> = ({ result, onClose }) => {
-  const { t } = useTranslation();
-
   useEffect(() => {
     // Trigger confetti for pokemon or coins
     if (result.type === "pokemon" || result.type === "coins") {
@@ -48,7 +45,7 @@ const MysteryBallResult: React.FC<MysteryBallResultProps> = ({ result, onClose }
                 className="w-full h-full object-contain animate-bounce-slow"
               />
               <div className="absolute -right-1 -top-1 bg-purple-600 text-white text-xs rounded-full w-8 h-8 flex items-center justify-center font-bold">
-                {t("new")}
+                NEW
               </div>
             </div>
             
@@ -73,9 +70,9 @@ const MysteryBallResult: React.FC<MysteryBallResultProps> = ({ result, onClose }
             </div>
             
             <h3 className="text-xl font-bold mb-3 flex items-center justify-center gap-2">
-              <span className="text-amber-600">+{coins}</span> {t("coins")}
+              <span className="text-amber-600">+{coins}</span> coins
             </h3>
-            <p className="text-gray-600">{t("coins-added-to-balance")}</p>
+            <p className="text-gray-600">Coins added to your balance</p>
           </div>
         );
       
@@ -86,8 +83,8 @@ const MysteryBallResult: React.FC<MysteryBallResultProps> = ({ result, onClose }
               <X className="w-16 h-16 text-red-400" />
             </div>
             
-            <h3 className="text-xl font-bold mb-3 text-red-500">{t("nothing-found")}</h3>
-            <p className="text-gray-600">{t("try-again-later")}</p>
+            <h3 className="text-xl font-bold mb-3 text-red-500">Nothing Found!</h3>
+            <p className="text-gray-600">Try again later</p>
           </div>
         );
       
@@ -101,9 +98,9 @@ const MysteryBallResult: React.FC<MysteryBallResultProps> = ({ result, onClose }
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center">
-            {result.type === "pokemon" ? t("you-got-pokemon") : 
-             result.type === "coins" ? t("you-got-coins") : 
-             t("empty-ball")}
+            {result.type === "pokemon" ? "You Got a Pokémon!" : 
+             result.type === "coins" ? "You Got Coins!" : 
+             "Empty Ball"}
           </DialogTitle>
         </DialogHeader>
         
@@ -113,7 +110,7 @@ const MysteryBallResult: React.FC<MysteryBallResultProps> = ({ result, onClose }
         
         <DialogFooter>
           <Button onClick={onClose} className="w-full">
-            {t("close")}
+            Close
           </Button>
         </DialogFooter>
       </DialogContent>

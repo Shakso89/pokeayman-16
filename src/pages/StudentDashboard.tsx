@@ -10,7 +10,6 @@ import {
   awardCoinsToStudent
 } from "@/utils/pokemon";
 import { Pokemon } from "@/types/pokemon";
-import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/hooks/use-toast";
 
 // Import our components
@@ -26,7 +25,6 @@ const StudentDashboard: React.FC = () => {
   const studentId = localStorage.getItem("studentId") || "";
   const classId = localStorage.getItem("studentClassId") || "";
   const schoolId = localStorage.getItem("studentSchoolId") || "";
-  const { t } = useTranslation();
   const { toast } = useToast();
   
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
@@ -109,8 +107,8 @@ const StudentDashboard: React.FC = () => {
     console.log("Pokemon won:", pokemon);
     // Refresh data after pokemon is won
     toast({
-      title: t("congratulations"),
-      description: t("you-got-new-pokemon", { name: pokemon.name }),
+      title: "Congratulations!",
+      description: `You got a new Pokémon: ${pokemon.name}`
     });
     loadStudentData();
     loadSchoolPokemonPool();
@@ -123,8 +121,8 @@ const StudentDashboard: React.FC = () => {
     awardCoinsToStudent(studentId, amount);
     // Refresh data
     toast({
-      title: t("congratulations"),
-      description: t("you-got-coins", { amount }),
+      title: "Congratulations!",
+      description: `You got ${amount} coins!`
     });
     loadStudentData();
   };
@@ -160,8 +158,8 @@ const StudentDashboard: React.FC = () => {
         
         <Tabs defaultValue="collection" value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="collection" className="text-lg">{t("my-collection")}</TabsTrigger>
-            <TabsTrigger value="mysteryball" className="text-lg">{t("mystery-ball")}</TabsTrigger>
+            <TabsTrigger value="collection" className="text-lg">My Collection</TabsTrigger>
+            <TabsTrigger value="mysteryball" className="text-lg">Mystery Ball</TabsTrigger>
           </TabsList>
           
           <TabsContent value="collection">
