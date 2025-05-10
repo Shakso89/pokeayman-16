@@ -1,30 +1,31 @@
+
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Coins, Gift } from "lucide-react";
+import { Coins } from "lucide-react";
 import { Student } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
+
 interface StudentProfileProps {
   student: Student;
   coins: number;
   pokemonCount: number;
   battlesCount: number;
   onGiveCoins: () => void;
-  onGivePokemon: () => void;
 }
+
 const StudentProfile: React.FC<StudentProfileProps> = ({
   student,
   coins,
   pokemonCount,
   battlesCount,
   onGiveCoins,
-  onGivePokemon
 }) => {
-  const {
-    t
-  } = useTranslation();
-  return <Card className="col-span-1 pokemon-card">
+  const { t } = useTranslation();
+  
+  return (
+    <Card className="col-span-1 pokemon-card">
       <CardHeader>
         <CardTitle>{t("student-profile")}</CardTitle>
       </CardHeader>
@@ -58,11 +59,11 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
               <Coins className="h-4 w-4 mr-2" />
               {t("give-coins")}
             </Button>
-            
-            
           </div>
         </div>
       </CardContent>
-    </Card>;
+    </Card>
+  );
 };
+
 export default StudentProfile;

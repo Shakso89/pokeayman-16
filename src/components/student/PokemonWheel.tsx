@@ -3,9 +3,8 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pokemon } from "@/types/pokemon";
-import { RefreshCw, Coins, Sparkle, CirclePlay } from "lucide-react";
+import { Coins, Sparkle, CirclePlay } from "lucide-react";
 import { 
-  getSchoolPokemonPool, 
   assignPokemonToStudent, 
   useStudentCoin 
 } from "@/utils/pokemon";
@@ -160,7 +159,7 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
       )}
       
       {/* Wheel Animation */}
-      <div className="relative w-72 h-72 mb-6">
+      <div className="relative w-72 h-72 mb-8">
         {/* Pointer */}
         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
           <div className="w-6 h-6 bg-red-500 rotate-45 transform origin-bottom shadow-lg"></div>
@@ -219,7 +218,7 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
         </div>
       </div>
       
-      {/* Controls */}
+      {/* Spin Button */}
       <div className="flex flex-col items-center gap-4 mt-4">
         <Button
           className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-full text-lg flex items-center gap-2 shadow-lg"

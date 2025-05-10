@@ -273,7 +273,7 @@ const StudentDashboard: React.FC = () => {
                   <div className="flex justify-center">
                     <PokemonWheel 
                       studentId={studentId} 
-                      classId={schoolId}
+                      classId={classId}
                       coins={coins}
                       onPokemonWon={handlePokemonWon}
                       wheelPokemons={wheelPokemon}
@@ -288,7 +288,7 @@ const StudentDashboard: React.FC = () => {
       
       {/* School Pokémon Pool Dialog */}
       <Dialog open={showSchoolPool} onOpenChange={setShowSchoolPool}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-3xl">
           <DialogHeader>
             <DialogTitle>
               {t("school-pokemon-pool") || "School Pokémon Pool"}
@@ -300,39 +300,47 @@ const StudentDashboard: React.FC = () => {
               <p className="text-sm font-medium">
                 {t("available-pokemon") || "Available Pokémon"}: {schoolPokemons.length}
               </p>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={loadSchoolPokemonPool}
-              >
-                {t("refresh") || "Refresh"}
-              </Button>
             </div>
             
-            <div className="grid grid-cols-4 sm:grid-cols-6 gap-3 max-h-96 overflow-y-auto p-2">
-              {schoolPokemons.slice(0, 48).map((pokemon) => (
-                <div key={pokemon.id} className="text-center">
-                  <div className="bg-white p-1 rounded-lg shadow-sm">
+            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 max-h-[70vh] overflow-y-auto p-2 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg">
+              {schoolPokemons.slice(0, 96).map((pokemon) => (
+                <div key={pokemon.id} className="text-center group hover-scale">
+                  <div className={`bg-white p-2 rounded-lg shadow-sm border-2 ${
+                    pokemon.rarity === 'legendary' ? 'border-yellow-500 hover:border-yellow-400' :
+                    pokemon.rarity === 'rare' ? 'border-purple-500 hover:border-purple-400' :
+                    pokemon.rarity === 'uncommon' ? 'border-blue-500 hover:border-blue-400' : 
+                    'border-green-500 hover:border-green-400'
+                  } transition-all duration-200 transform hover:scale-105`}>
                     <img 
                       src={pokemon.image} 
                       alt={pokemon.name} 
-                      className="w-12 h-12 object-contain mx-auto" 
+                      className="w-16 h-16 object-contain mx-auto" 
                     />
+                    <div className="mt-1 p-1 bg-gray-100 rounded-md">
+                      <p className="text-xs font-medium truncate">{pokemon.name}</p>
+                      <p className="text-xs text-gray-500">{pokemon.type}</p>
+                      <span className={`inline-block px-1 py-0.5 rounded-full text-[10px] text-white ${
+                        pokemon.rarity === 'legendary' ? 'bg-yellow-500' :
+                        pokemon.rarity === 'rare' ? 'bg-purple-500' :
+                        pokemon.rarity === 'uncommon' ? 'bg-blue-500' : 'bg-green-500'
+                      }`}>
+                        {pokemon.rarity}
+                      </span>
+                    </div>
                   </div>
-                  <p className="text-xs mt-1 truncate">{pokemon.name}</p>
                 </div>
               ))}
               
-              {schoolPokemons.length > 48 && (
-                <div className="col-span-full text-center py-2 text-gray-500 text-sm">
-                  {t("and-more-pokemon", { count: schoolPokemons.length - 48 }) || 
-                    `And ${schoolPokemons.length - 48} more Pokémon...`
+              {schoolPokemons.length > 96 && (
+                <div className="col-span-full text-center py-4 text-gray-500 text-sm bg-white/50 rounded-lg">
+                  {t("and-more-pokemon", { count: schoolPokemons.length - 96 }) || 
+                    `And ${schoolPokemons.length - 96} more Pokémon...`
                   }
                 </div>
               )}
               
               {schoolPokemons.length === 0 && (
-                <div className="col-span-full text-center py-4 text-gray-500">
+                <div className="col-span-full text-center py-8 text-gray-500">
                   {t("no-pokemon-in-pool") || "No Pokémon available in the school pool."}
                 </div>
               )}

@@ -12,21 +12,21 @@ export const initializeSchoolPokemonPool = (schoolId: string) => {
     return existingPool;
   }
 
-  // Create a pool of exactly 600 unique Pokemons
+  // Create a pool of exactly 300 unique Pokemons
   const pokemons: Pokemon[] = [];
   const existingPools = getPokemonPools();
 
-  // First add the sample pokemons (up to 80)
+  // First add the sample pokemons (up to 60)
   const samplePokemonsCopy = [...samplePokemons];
-  for (let i = 0; i < Math.min(80, samplePokemonsCopy.length); i++) {
+  for (let i = 0; i < Math.min(60, samplePokemonsCopy.length); i++) {
     const pokemon = {...samplePokemonsCopy[i]};
     // Ensure unique ID for each Pokemon
     pokemon.id = `pokemon-${schoolId}-${i+1}`;
     pokemons.push(pokemon);
   }
 
-  // Then generate the remaining pokemons to reach exactly 600
-  const remainingCount = 600 - pokemons.length;
+  // Then generate the remaining pokemons to reach exactly 300
+  const remainingCount = 300 - pokemons.length;
   for (let i = 1; i <= remainingCount; i++) {
     const index = pokemons.length + i;
     const rarity = getRarityForId(index);
