@@ -139,7 +139,7 @@ const StudentDashboard: React.FC = () => {
     setActiveBattles(relevantBattles);
   };
   
-  // Fix the function to accept only one Pokemon parameter
+  // Updated to correctly accept only one Pokemon parameter
   const handlePokemonWon = (pokemon: Pokemon) => {
     console.log("Pokemon won:", pokemon);
     // Refresh data after pokemon is won
