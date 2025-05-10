@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -130,7 +129,7 @@ const TeacherSignUp: React.FC = () => {
   };
   
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 relative overflow-hidden">
       {/* Header area with home button */}
       <div className="absolute top-4 left-4 z-10">
         <Button 
@@ -181,7 +180,7 @@ const TeacherSignUp: React.FC = () => {
         </AuthLayout>
       </div>
       
-      {/* Pokemon decorations as silhouettes */}
+      {/* Pokemon decorations */}
       <PokemonDecorations />
     </div>
   );

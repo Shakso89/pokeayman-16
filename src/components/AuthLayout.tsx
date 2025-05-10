@@ -23,13 +23,12 @@ export const AuthLayout = ({
     <div className="flex min-h-screen items-center justify-center p-4">
       <Card className={cn("w-full max-w-md shadow-xl border-none backdrop-blur-md", className)}>
         <CardHeader>
-          <div className="flex justify-center mb-4 relative">
+          <div className="flex justify-center mb-4">
             <img
               src="/lovable-uploads/3e3a2694-943e-4281-80c9-f08239485026.png"
               alt="TR Ayman Logo"
               className="h-32 w-auto z-10"
             />
-            <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-32 h-32 bg-white/20 rounded-full -z-10 animate-pulse"></div>
           </div>
           <CardTitle className="text-2xl font-bold text-center">{title}</CardTitle>
           {description && (

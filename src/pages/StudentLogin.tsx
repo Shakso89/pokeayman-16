@@ -31,7 +31,7 @@ const StudentLogin: React.FC = () => {
   };
   
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 relative overflow-hidden">
       <div className="absolute top-4 left-4 z-10">
         <Button 
           variant="ghost" 
@@ -43,11 +43,21 @@ const StudentLogin: React.FC = () => {
         </Button>
       </div>
       
+      {/* Logo at the top */}
+      <div className="flex justify-center pt-4 mb-4 relative z-10">
+        <img 
+          src="/lovable-uploads/40c04be5-3d6e-4938-9a00-006177dbef3b.png" 
+          alt="PokéAyman Logo" 
+          className="h-24 w-auto cursor-pointer hover:scale-105 transition-transform"
+          onClick={() => navigate("/")}
+        />
+      </div>
+      
       <div className="relative z-10 flex-grow">
         <LoginForm type="student" onLoginSuccess={handleLoginSuccess} darkMode={true} />
       </div>
       
-      {/* Pokemon decoration as silhouettes */}
+      {/* Pokemon decorations */}
       <PokemonDecorations />
     </div>
   );

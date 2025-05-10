@@ -22,7 +22,7 @@ const TeacherLogin: React.FC = () => {
   };
   
   return (
-    <div className="min-h-screen bg-black relative overflow-hidden">
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 relative overflow-hidden">
       <div className="absolute top-4 left-4 z-10">
         <Button 
           variant="ghost" 
@@ -48,7 +48,7 @@ const TeacherLogin: React.FC = () => {
         <LoginForm type="teacher" onLoginSuccess={handleLoginSuccess} darkMode={true} />
       </div>
       
-      {/* Pokemon decoration as silhouettes */}
+      {/* Pokemon decorations */}
       <PokemonDecorations />
     </div>
   );
