@@ -1,4 +1,3 @@
-
 import { Pokemon, StudentPokemon } from "@/types/pokemon";
 import { getStudentPokemons, saveStudentPokemons } from "./storage";
 import { getPokemonPools, savePokemonPools } from "./storage";
@@ -113,7 +112,60 @@ export const assignPokemonToStudent = (schoolId: string, studentId: string, poke
   return true;
 };
 
+// Assign a random Pokemon from the school pool to a student
+export const assignRandomPokemonToStudent = (schoolId: string, studentId: string, specificPokemonId?: string): boolean => {
+  if (!schoolId || !studentId) {
+    console.error("Missing required parameters:", { schoolId, studentId });
+    return false;
+  }
+
+  // Get all the pools
+  const pools = getPokemonPools();
+  const poolIndex = pools.findIndex(p => p.schoolId === schoolId);
+  
+  if (poolIndex < 0 || pools[poolIndex].availablePokemons.length === 0) {
+    console.error("School pool not found or empty for:", schoolId);
+    return false;
+  }
+  
+  let pokemonIndex = -1;
+  
+  // If specificPokemonId is provided, find that pokemon
+  if (specificPokemonId) {
+    pokemonIndex = pools[poolIndex].availablePokemons.findIndex(p => p.id === specificPokemonId);
+    if (pokemonIndex < 0) {
+      console.error("Specific Pokemon not found in school pool:", specificPokemonId);
+      return false;
+    }
+  } else {
+    // Otherwise select a random pokemon
+    pokemonIndex = Math.floor(Math.random() * pools[poolIndex].availablePokemons.length);
+  }
+  
+  // Remove Pokemon from pool
+  const pokemon = pools[poolIndex].availablePokemons.splice(pokemonIndex, 1)[0];
+  savePokemonPools(pools);
+  
+  // Add Pokemon to student
+  const studentPokemons = getStudentPokemons();
+  const studentIndex = studentPokemons.findIndex(sp => sp.studentId === studentId);
+  
+  if (studentIndex >= 0) {
+    studentPokemons[studentIndex].pokemons.push(pokemon);
+  } else {
+    studentPokemons.push({
+      studentId,
+      pokemons: [pokemon],
+      coins: 0
+    });
+  }
+  
+  saveStudentPokemons(studentPokemons);
+  console.log("Pokemon assigned successfully:", pokemon.name, "to student:", studentId);
+  return true;
+};
+
 // Use a coin to spin the wheel
-export const useStudentCoin = (studentId: string): boolean => {
-  return removeCoinsFromStudent(studentId, 1);
+export const useStudentCoin = (studentId: string, amount: number = 1): boolean => {
+  return removeCoinsFromStudent(studentId, amount);
 };

@@ -7,15 +7,16 @@ import {
   getStudentPokemonCollection, 
   getSchoolPokemonPool,
   initializeSchoolPokemonPool,
-  getDailyWheelPokemons
+  awardCoinsToStudent
 } from "@/utils/pokemon";
 import { Pokemon } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useToast } from "@/hooks/use-toast";
 
 // Import our components
 import StudentHeader from "@/components/student/StudentHeader";
 import StudentCollection from "@/components/student/StudentCollection";
-import PokemonWheelTab from "@/components/student/PokemonWheelTab";
+import MysteryBallTab from "@/components/student/MysteryBallTab";
 import SchoolPoolDialog from "@/components/student/SchoolPoolDialog";
 
 const StudentDashboard: React.FC = () => {
@@ -26,6 +27,7 @@ const StudentDashboard: React.FC = () => {
   const classId = localStorage.getItem("studentClassId") || "";
   const schoolId = localStorage.getItem("studentSchoolId") || "";
   const { t } = useTranslation();
+  const { toast } = useToast();
   
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
   const [coins, setCoins] = useState(0);
@@ -34,8 +36,7 @@ const StudentDashboard: React.FC = () => {
   const [activeBattles, setActiveBattles] = useState<any[]>([]);
   const [avatar, setAvatar] = useState<string | null>(null);
   const [showSchoolPool, setShowSchoolPool] = useState(false);
-  const [wheelPokemon, setWheelPokemon] = useState<Pokemon[]>([]);
-  const [isLoadingWheel, setIsLoadingWheel] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   
   useEffect(() => {
     console.log("StudentDashboard loaded with:", { studentId, classId, schoolId });
@@ -49,12 +50,6 @@ const StudentDashboard: React.FC = () => {
       loadSchoolPokemonPool();
     }
   }, [studentId, schoolId]);
-
-  useEffect(() => {
-    if (activeTab === "wheel") {
-      loadWheelPokemon();
-    }
-  }, [activeTab]);
   
   const loadStudentData = () => {
     console.log("Loading student data for:", studentId);
@@ -88,25 +83,6 @@ const StudentDashboard: React.FC = () => {
       setSchoolPokemons([]);
     }
   };
-
-  const loadWheelPokemon = () => {
-    if (!schoolId) return;
-    
-    setIsLoadingWheel(true);
-    console.log("Loading wheel pokemon for school:", schoolId);
-    
-    // Get daily wheel pokemons
-    const dailyWheelPokemons = getDailyWheelPokemons(schoolId);
-    console.log("Daily wheel pokemons:", dailyWheelPokemons);
-    
-    if (dailyWheelPokemons.length > 0) {
-      setWheelPokemon(dailyWheelPokemons);
-    } else {
-      setWheelPokemon([]);
-    }
-    
-    setIsLoadingWheel(false);
-  };
   
   const loadActiveBattles = () => {
     if (!studentId || !classId || !schoolId) return;
@@ -132,9 +108,34 @@ const StudentDashboard: React.FC = () => {
   const handlePokemonWon = (pokemon: Pokemon) => {
     console.log("Pokemon won:", pokemon);
     // Refresh data after pokemon is won
+    toast({
+      title: t("congratulations"),
+      description: t("you-got-new-pokemon", { name: pokemon.name }),
+    });
     loadStudentData();
     loadSchoolPokemonPool();
-    loadWheelPokemon();
+  };
+  
+  // Handle coins won event
+  const handleCoinsWon = (amount: number) => {
+    console.log("Coins won:", amount);
+    // Add coins to student
+    awardCoinsToStudent(studentId, amount);
+    // Refresh data
+    toast({
+      title: t("congratulations"),
+      description: t("you-got-coins", { amount }),
+    });
+    loadStudentData();
+  };
+
+  // Handle refresh pool
+  const handleRefreshPool = () => {
+    setIsLoading(true);
+    setTimeout(() => {
+      loadSchoolPokemonPool();
+      setIsLoading(false);
+    }, 1000);
   };
 
   if (!isLoggedIn || userType !== "student") {
@@ -159,23 +160,24 @@ const StudentDashboard: React.FC = () => {
         
         <Tabs defaultValue="collection" value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="collection" className="text-lg">{t("my-collection") || "My Collection"}</TabsTrigger>
-            <TabsTrigger value="wheel" className="text-lg">{t("pokemon-wheel") || "Pokémon Wheel"}</TabsTrigger>
+            <TabsTrigger value="collection" className="text-lg">{t("my-collection")}</TabsTrigger>
+            <TabsTrigger value="mysteryball" className="text-lg">{t("mystery-ball")}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="collection">
             <StudentCollection pokemons={studentPokemons} />
           </TabsContent>
           
-          <TabsContent value="wheel">
-            <PokemonWheelTab 
-              wheelPokemons={wheelPokemon} 
+          <TabsContent value="mysteryball">
+            <MysteryBallTab 
+              schoolPokemons={schoolPokemons} 
               studentId={studentId}
               schoolId={schoolId}
               coins={coins}
-              isLoadingWheel={isLoadingWheel}
+              isLoading={isLoading}
               onPokemonWon={handlePokemonWon}
-              onRefreshWheel={loadWheelPokemon}
+              onCoinsWon={handleCoinsWon}
+              onRefreshPool={handleRefreshPool}
             />
           </TabsContent>
         </Tabs>
