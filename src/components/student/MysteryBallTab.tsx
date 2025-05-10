@@ -36,8 +36,15 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
   
   return (
     <Card className="mx-auto max-w-xl shadow-lg">
-      <CardHeader className="text-center bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-t-md">
-        <CardTitle className="text-2xl">Mystery Pokémon Ball</CardTitle>
+      <CardHeader className="text-center bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-t-md relative">
+        <div className="absolute -top-6 left-1/2 transform -translate-x-1/2 w-12 h-12">
+          <img
+            src="/lovable-uploads/b11bcb27-9dd4-43ab-8112-ea075303ce55.png"
+            alt="PokéAyman"
+            className="w-full h-full object-contain"
+          />
+        </div>
+        <CardTitle className="text-2xl pt-4">Mystery Pokémon Ball</CardTitle>
         <CardDescription className="text-white opacity-90">
           Open a mystery ball and win a Pokémon or coins!
         </CardDescription>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -12,6 +13,7 @@ import StudentHeader from "@/components/student/StudentHeader";
 import StudentCollection from "@/components/student/StudentCollection";
 import MysteryBallTab from "@/components/student/MysteryBallTab";
 import SchoolPoolDialog from "@/components/student/SchoolPoolDialog";
+
 const StudentDashboard: React.FC = () => {
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const userType = localStorage.getItem("userType");
@@ -19,12 +21,10 @@ const StudentDashboard: React.FC = () => {
   const studentId = localStorage.getItem("studentId") || "";
   const classId = localStorage.getItem("studentClassId") || "";
   const schoolId = localStorage.getItem("studentSchoolId") || "";
-  const {
-    t
-  } = useTranslation();
-  const {
-    toast
-  } = useToast();
+  
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
   const [coins, setCoins] = useState(0);
   const [schoolPokemons, setSchoolPokemons] = useState<Pokemon[]>([]);
@@ -33,20 +33,24 @@ const StudentDashboard: React.FC = () => {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [showSchoolPool, setShowSchoolPool] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  
   useEffect(() => {
     console.log("StudentDashboard loaded with:", {
       studentId,
       classId,
       schoolId
     });
+    
     if (studentId) {
       loadStudentData();
       loadActiveBattles();
     }
+    
     if (schoolId) {
       loadSchoolPokemonPool();
     }
   }, [studentId, schoolId]);
+  
   const loadStudentData = () => {
     console.log("Loading student data for:", studentId);
     // Load Pokemon collection and coins
@@ -67,6 +71,7 @@ const StudentDashboard: React.FC = () => {
       setAvatar(student.avatar);
     }
   };
+  
   const loadSchoolPokemonPool = () => {
     console.log("Loading school pokemon pool for:", schoolId);
     // Initialize the school pool if it doesn't exist
@@ -78,6 +83,7 @@ const StudentDashboard: React.FC = () => {
       setSchoolPokemons([]);
     }
   };
+  
   const loadActiveBattles = () => {
     if (!studentId || !classId || !schoolId) return;
     const savedBattles = localStorage.getItem("battles");
@@ -100,10 +106,8 @@ const StudentDashboard: React.FC = () => {
     console.log("Pokemon won:", pokemon);
     // Refresh data after pokemon is won
     toast({
-      title: t("congratulations"),
-      description: t("you-got-new-pokemon", {
-        name: pokemon.name
-      })
+      title: "Congratulations",
+      description: `You got a new Pokemon: ${pokemon.name}!`
     });
     loadStudentData();
     loadSchoolPokemonPool();
@@ -116,10 +120,8 @@ const StudentDashboard: React.FC = () => {
     awardCoinsToStudent(studentId, amount);
     // Refresh data
     toast({
-      title: t("congratulations"),
-      description: t("you-got-coins", {
-        amount
-      })
+      title: "Congratulations",
+      description: `You got ${amount} coins!`
     });
     loadStudentData();
   };
@@ -132,19 +134,62 @@ const StudentDashboard: React.FC = () => {
       setIsLoading(false);
     }, 1000);
   };
+  
   if (!isLoggedIn || userType !== "student") {
     return <Navigate to="/student-login" />;
   }
-  return <div className="min-h-screen bg-gray-100">
+  
+  return (
+    <div className="min-h-screen bg-gray-100">
       <NavBar userType="student" userName={studentName} userAvatar={avatar || undefined} />
       
       <div className="container mx-auto py-8 px-4">
         <StudentHeader studentName={studentName} coins={coins} activeBattles={activeBattles} onOpenSchoolPool={() => setShowSchoolPool(true)} />
         
-        
+        <div className="mt-10 relative">
+          {/* Logo displayed on top of tabs */}
+          <div className="absolute -top-14 left-1/2 transform -translate-x-1/2 w-24 h-24 z-10">
+            <img 
+              src="/lovable-uploads/b11bcb27-9dd4-43ab-8112-ea075303ce55.png"
+              alt="PokéAyman"
+              className="w-full h-full object-contain"
+            />
+          </div>
+          
+          <Tabs 
+            defaultValue="collection" 
+            className="w-full mt-8"
+            value={activeTab}
+            onValueChange={setActiveTab}
+          >
+            <TabsList className="grid w-full grid-cols-2 mb-8">
+              <TabsTrigger value="collection">My Collection</TabsTrigger>
+              <TabsTrigger value="mystery-ball">Mystery Ball</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="collection" className="mt-4">
+              <StudentCollection pokemons={studentPokemons} />
+            </TabsContent>
+            
+            <TabsContent value="mystery-ball" className="mt-4">
+              <MysteryBallTab
+                schoolPokemons={schoolPokemons}
+                studentId={studentId}
+                schoolId={schoolId}
+                coins={coins}
+                isLoading={isLoading}
+                onPokemonWon={handlePokemonWon}
+                onCoinsWon={handleCoinsWon}
+                onRefreshPool={handleRefreshPool}
+              />
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
       
       <SchoolPoolDialog open={showSchoolPool} onOpenChange={setShowSchoolPool} schoolPokemons={schoolPokemons} />
-    </div>;
+    </div>
+  );
 };
+
 export default StudentDashboard;

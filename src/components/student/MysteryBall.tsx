@@ -112,6 +112,11 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
     }, 1500);
   };
 
+  const handleBallClick = () => {
+    // When the ball image is clicked, use the free daily attempt if available, otherwise use coins
+    openBall(dailyAttemptUsed ? false : true);
+  };
+
   const closeResult = () => {
     setShowResult(false);
     setResult(null);
@@ -119,7 +124,11 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
 
   return (
     <div className="flex flex-col items-center">
-      <div className="mb-4 relative w-48 h-48 flex items-center justify-center cursor-pointer" onClick={() => openBall(dailyAttemptUsed ? false : true)}>
+      <div 
+        className="mb-4 relative w-48 h-48 flex items-center justify-center cursor-pointer" 
+        onClick={handleBallClick}
+        title={dailyAttemptUsed ? "Click to open for 2 coins" : "Click to use your free daily attempt"}
+      >
         <img
           alt="Mystery Pokémon Ball"
           className={isOpening ? "animate-bounce" : "hover:scale-110 transition-transform"}
