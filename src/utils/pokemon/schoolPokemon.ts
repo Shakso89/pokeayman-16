@@ -6,15 +6,17 @@ import { getRandomType, getRarityForId } from "./types";
 
 // Initialize a Pokemon pool for a school
 export const initializeSchoolPokemonPool = (schoolId: string) => {
-  // Check if the pool already exists
-  const existingPool = getSchoolPokemonPool(schoolId);
+  // Check if the pool already exists by directly searching through pools
+  // instead of calling getSchoolPokemonPool to avoid recursion
+  const existingPools = getPokemonPools();
+  const existingPool = existingPools.find(p => p.schoolId === schoolId);
+  
   if (existingPool && existingPool.availablePokemons.length > 0) {
     return existingPool;
   }
 
   // Create a pool of exactly 200 unique Pokemons
   const pokemons: Pokemon[] = [];
-  const existingPools = getPokemonPools();
 
   // First add the sample pokemons (up to 60)
   const samplePokemonsCopy = [...samplePokemons];
@@ -69,6 +71,7 @@ export const getSchoolPokemonPool = (schoolId: string): PokemonPool | null => {
   const pool = pools.find(p => p.schoolId === schoolId);
   
   // If there's no pool but we have a school ID, initialize it
+  // FIXED: Moving the initialization check outside to avoid recursion
   if (!pool && schoolId) {
     return initializeSchoolPokemonPool(schoolId);
   }
