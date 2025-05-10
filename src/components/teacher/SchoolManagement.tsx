@@ -2,12 +2,12 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { School, Class } from "@/types/pokemon";
+import { School, Class, Student } from "@/types/pokemon";
 import { toast } from "@/hooks/use-toast";
-import { ChevronLeft, Plus, Edit, Trash2, School as SchoolIcon } from "lucide-react";
+import { ChevronLeft, Plus, Edit, Trash2, School as SchoolIcon, Eye } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface SchoolManagementProps {
   onBack: () => void;
@@ -21,6 +21,10 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
   const [newSchool, setNewSchool] = useState({
     name: "",
   });
+  const [showStudentPokemon, setShowStudentPokemon] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [studentPokemon, setStudentPokemon] = useState<any[]>([]);
+  
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -126,6 +130,31 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
     });
   };
 
+  const handleViewStudentPokemon = (studentId: string) => {
+    // Get student data
+    const studentsData = localStorage.getItem("students");
+    if (studentsData) {
+      const students = JSON.parse(studentsData);
+      const student = students.find((s: Student) => s.id === studentId);
+      
+      if (student) {
+        setSelectedStudent(student);
+        
+        // Get student pokemon data
+        const pokemonData = localStorage.getItem("studentPokemons");
+        if (pokemonData) {
+          const pokemons = JSON.parse(pokemonData);
+          const studentPokemons = pokemons.find((p: any) => p.studentId === studentId)?.pokemon || [];
+          setStudentPokemon(studentPokemons);
+        } else {
+          setStudentPokemon([]);
+        }
+        
+        setShowStudentPokemon(true);
+      }
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -227,6 +256,36 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
           </Card>
         )}
       </div>
+
+      {/* Student Pokemon Dialog */}
+      <Dialog open={showStudentPokemon} onOpenChange={setShowStudentPokemon}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>
+              {selectedStudent?.displayName}'s {t("pokemon")}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            {studentPokemon.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                {studentPokemon.map((pokemon, index) => (
+                  <div key={index} className="text-center">
+                    <img 
+                      src={pokemon.image || "/placeholder.svg"} 
+                      alt={pokemon.name} 
+                      className="w-20 h-20 mx-auto object-contain" 
+                    />
+                    <p className="text-sm font-medium mt-2">{pokemon.name}</p>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center py-6">{t("no-pokemon-yet")}</p>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

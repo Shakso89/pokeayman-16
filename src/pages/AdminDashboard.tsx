@@ -116,9 +116,6 @@ const AdminDashboard: React.FC = () => {
         title: "Teacher account updated",
         description: `Teacher account has been ${updatedTeachers.find(t => t.id === userId)?.isActive ? "activated" : "frozen"}`
       });
-
-      // Set a message for the teacher
-      setActivationMessage(`Your account has been ${updatedTeachers.find(t => t.id === userId)?.isActive ? "activated" : "frozen"} by an admin.`);
     } else {
       const updatedStudents = students.map(student => {
         if (student.id === userId) {

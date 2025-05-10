@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,6 +7,7 @@ import { Users, Sword, UserPlus, Shield, School, MessageSquare, BarChart, Chevro
 import ClassManagement from "@/components/teacher/ClassManagement";
 import BattleMode from "@/components/teacher/BattleMode";
 import SchoolCollaboration from "@/components/teacher/SchoolCollaboration";
+import SchoolManagement from "@/components/teacher/SchoolManagement";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +24,7 @@ const TeacherDashboard: React.FC = () => {
     displayName: "",
   });
   const [teacherData, setTeacherData] = useState<any>(null);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
   const { t } = useTranslation();
   
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
@@ -267,7 +268,19 @@ const TeacherDashboard: React.FC = () => {
             </div>
           </>
         ) : currentView === "classes" ? (
-          <ClassManagement onBack={() => setCurrentView("main")} />
+          selectedSchoolId ? (
+            <ClassManagement 
+              onBack={() => setSelectedSchoolId(null)}
+              schoolId={selectedSchoolId}
+              teacherId={teacherId || ""}
+            />
+          ) : (
+            <SchoolManagement 
+              onBack={() => setCurrentView("main")} 
+              onSelectSchool={(schoolId) => setSelectedSchoolId(schoolId)}
+              teacherId={teacherId || ""}
+            />
+          )
         ) : currentView === "battle" ? (
           <BattleMode onBack={() => setCurrentView("main")} />
         ) : (
