@@ -40,12 +40,17 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     return <Navigate to={userType === "teacher" ? "/teacher-login" : "/student-login"} />;
   }
 
+  // For teachers who are not activated, we only show the activation modal
+  // but don't render children until they're activated
   if (userType === "teacher" && !isActivated) {
     return (
-      <>
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
         <ActivationModal isOpen={showActivationModal} onClose={handleCloseModal} />
-        {children} {/* Render children but with modal overlay */}
-      </>
+        <div className="text-center p-8">
+          <h2 className="text-2xl font-bold mb-4">{t("account-activation-required")}</h2>
+          <p>{t("need-activation-code-contact-us")}</p>
+        </div>
+      </div>
     );
   }
 

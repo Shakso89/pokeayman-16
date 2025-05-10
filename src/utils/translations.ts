@@ -1,3 +1,5 @@
+import React from "react";
+
 export const getTranslation = (locale: string, key: string): string => {
   const translations = {
     en: {
@@ -76,7 +78,7 @@ export const getTranslation = (locale: string, key: string): string => {
       "contact-us": "Contact Us",
       "phone": "Phone",
       "click-to-connect": "Click to connect",
-      "back-to-home": "Back to Home",
+      "return-to-home": "Back to Home",
       "active-battles": "Active Battles",
       "ends-at": "Ends at",
       "reward": "Reward",
@@ -109,6 +111,8 @@ export const getTranslation = (locale: string, key: string): string => {
       "account-activated-successfully": "Your account has been activated successfully!",
       "invalid-code": "Invalid Code",
       "please-enter-a-valid-activation-code": "Please enter a valid activation code.",
+      "home": "Home",
+      "admin-dashboard": "Admin Dashboard"
     },
     fr: {
       "welcome": "Bienvenue à PokéAyman!",
@@ -186,7 +190,7 @@ export const getTranslation = (locale: string, key: string): string => {
       "contact-us": "Contactez-nous",
       "phone": "Téléphone",
       "click-to-connect": "Cliquez pour vous connecter",
-      "back-to-home": "Retour à l'Accueil",
+      "return-to-home": "Retour à l'Accueil",
       "active-battles": "Batailles Actives",
       "ends-at": "Se termine le",
       "reward": "Récompense",
@@ -219,6 +223,8 @@ export const getTranslation = (locale: string, key: string): string => {
       "account-activated-successfully": "Votre compte a été activé avec succès!",
       "invalid-code": "Code invalide",
       "please-enter-a-valid-activation-code": "Veuillez entrer un code d'activation valide.",
+      "home": "Accueil",
+      "admin-dashboard": "Tableau de bord administrateur"
     },
     zh: {
       "welcome": "欢迎来到 PokéAyman!",
@@ -296,8 +302,8 @@ export const getTranslation = (locale: string, key: string): string => {
       "contact-us": "联系我们",
       "phone": "电话",
       "click-to-connect": "点击连接",
-      "back-to-home": "返回主页",
-       "active-battles": "激活的战斗",
+      "return-to-home": "返回主页",
+      "active-battles": "激活的战斗",
       "ends-at": "结束于",
       "reward": "奖励",
       "coins": "硬币",
@@ -329,6 +335,8 @@ export const getTranslation = (locale: string, key: string): string => {
       "account-activated-successfully": "您的帐户已成功激活！",
       "invalid-code": "无效代码",
       "please-enter-a-valid-activation-code": "请输入有效的激活码。",
+      "home": "首页",
+      "admin-dashboard": "管理员仪表板"
     },
     es: {
       "welcome": "¡Bienvenido a PokéAyman!",
@@ -406,7 +414,7 @@ export const getTranslation = (locale: string, key: string): string => {
       "contact-us": "Contáctanos",
       "phone": "Teléfono",
       "click-to-connect": "Haz clic para conectar",
-      "back-to-home": "Volver a la Página de Inicio",
+      "return-to-home": "Volver a la Página de Inicio",
       "active-battles": "Batallas Activas",
       "ends-at": "Termina en",
       "reward": "Recompensa",
@@ -439,6 +447,8 @@ export const getTranslation = (locale: string, key: string): string => {
       "account-activated-successfully": "¡Su cuenta ha sido activada con éxito!",
       "invalid-code": "Código inválido",
       "please-enter-a-valid-activation-code": "Por favor, introduzca un código de activación válido.",
+      "home": "Inicio",
+      "admin-dashboard": "Panel de administración"
     },
     ar: {
       "welcome": "مرحبًا بك في PokéAyman!",
@@ -460,7 +470,7 @@ export const getTranslation = (locale: string, key: string): string => {
       "sign-up": "اشتراك",
       "back-to-home": "العودة إلى الصفحة الرئيسية",
       "student-account-help": "ليس لديك حساب؟ اطلب من معلمك إنشاء حساب لك.",
-      "are-you-a-teacher": "هل أنت معلم؟",
+      "are-you-a-teacher": "هل أنت معلم?",
       "create-class": "إنشاء فصل",
       "class-name": "اسم الفصل",
       "enter-class-name": "أدخل اسم الفصل",
@@ -516,7 +526,7 @@ export const getTranslation = (locale: string, key: string): string => {
       "contact-us": "اتصل بنا",
       "phone": "الهاتف",
       "click-to-connect": "انقر للاتصال",
-      "back-to-home": "العودة إلى الرئيسية",
+      "return-to-home": "العودة إلى الرئيسية",
       "active-battles": "المعارك النشطة",
       "ends-at": "ينتهي في",
       "reward": "المكافأة",
@@ -529,7 +539,7 @@ export const getTranslation = (locale: string, key: string): string => {
       "no-completed-battles": "لا توجد معارك مكتملة",
       "no-active-battles-description": "انضم إلى معركة لاختبار معلوماتك وكسب المكافآت.",
       "no-completed-battles-description": "ستظهر المعارك المكتملة هنا.",
-      "student-reports": "تقارير الطلاب",
+      "student-reports": "تقا��ير الطلاب",
       "generate-report": "إنشاء تقرير",
       "select-student": "اختر طالبا",
       "select-class": "اختر فصلا",
@@ -549,22 +559,28 @@ export const getTranslation = (locale: string, key: string): string => {
       "account-activated-successfully": "تم تفعيل حسابك بنجاح!",
       "invalid-code": "رمز غير صالح",
       "please-enter-a-valid-activation-code": "الرجاء إدخال رمز تفعيل صالح.",
+      "home": "الرئيسية",
+      "admin-dashboard": "لوحة تحكم المسؤول"
     },
   };
 
   return translations[locale as keyof typeof translations]?.[key] || key;
 };
 
-export const useTranslation = () => {
-  const getLocale = () => {
-    const storedLocale = localStorage.getItem('locale');
-    return storedLocale || 'en';
-  };
+export const getCurrentLanguage = (): "en" | "zh" => {
+  return (localStorage.getItem("language") as "en" | "zh") || "en";
+};
 
-  const [locale, setLocale] = React.useState(getLocale());
+export const translate = (key: string, language: string): string => {
+  return getTranslation(language, key);
+};
+
+// Export our useTranslation hook
+export const useTranslation = () => {
+  const [locale, setLocale] = React.useState(getCurrentLanguage());
 
   React.useEffect(() => {
-    localStorage.setItem('locale', locale);
+    localStorage.setItem('language', locale);
   }, [locale]);
 
   const t = (key: string) => getTranslation(locale, key);

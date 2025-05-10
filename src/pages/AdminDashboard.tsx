@@ -1,12 +1,13 @@
+
 import React, { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { NavBar } from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
-import { Shield } from "lucide-react";
+import { Shield, Home } from "lucide-react";
 import CodeGenerator from "@/components/CodeGenerator";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -46,6 +47,7 @@ const AdminDashboard: React.FC = () => {
   const [activationMessage, setActivationMessage] = useState("");
   const [activeTab, setActiveTab] = useState("teachers");
   const { t } = useTranslation();
+  const navigate = useNavigate();
   
   // Check if current user is Admin - UPDATED to check for username "Admin"
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
@@ -166,6 +168,10 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
+  const handleHomeClick = () => {
+    navigate("/teacher-dashboard");
+  };
+
   // Redirect if not admin with username "Admin"
   if (!isLoggedIn || !isAdmin) {
     return <Navigate to="/teacher-login" />;
@@ -178,9 +184,19 @@ const AdminDashboard: React.FC = () => {
       <div className="container mx-auto py-8 px-4">
         <Card className="mb-6 border-none shadow-lg bg-gradient-to-br from-purple-600 to-blue-500 text-white">
           <CardContent className="p-6">
-            <div className="flex items-center gap-2">
-              <Shield className="h-8 w-8" />
-              <h1 className="text-3xl font-bold">{t("admin-dashboard")}</h1>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Shield className="h-8 w-8" />
+                <h1 className="text-3xl font-bold">{t("admin-dashboard")}</h1>
+              </div>
+              <Button 
+                variant="secondary"
+                className="flex items-center gap-2"
+                onClick={handleHomeClick}
+              >
+                <Home className="h-4 w-4" />
+                {t("home")}
+              </Button>
             </div>
             <p className="mt-2">{t("admin-dashboard-description") || "Full system oversight and controls"}</p>
           </CardContent>
