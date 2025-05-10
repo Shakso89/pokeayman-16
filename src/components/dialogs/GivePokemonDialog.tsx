@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -11,26 +11,41 @@ import {
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Pokemon } from "@/types/pokemon";
+import { getSchoolPokemonPool } from "@/utils/pokemonData";
 
 interface GivePokemonDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  availablePokemons: Pokemon[];
+  schoolId: string;
   onGivePokemon: (pokemon: Pokemon) => void;
 }
 
 const GivePokemonDialog: React.FC<GivePokemonDialogProps> = ({ 
   open, 
   onOpenChange, 
-  availablePokemons,
+  schoolId,
   onGivePokemon
 }) => {
   const { t } = useTranslation();
   const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
+  const [availablePokemons, setAvailablePokemons] = useState<Pokemon[]>([]);
+
+  useEffect(() => {
+    if (open && schoolId) {
+      // Get available pokemons from the school pool
+      const schoolPool = getSchoolPokemonPool(schoolId);
+      if (schoolPool) {
+        setAvailablePokemons(schoolPool.availablePokemons);
+      } else {
+        setAvailablePokemons([]);
+      }
+    }
+  }, [open, schoolId]);
 
   const handleGivePokemon = () => {
     if (selectedPokemon) {
       onGivePokemon(selectedPokemon);
+      setSelectedPokemon(null);
     }
   };
 

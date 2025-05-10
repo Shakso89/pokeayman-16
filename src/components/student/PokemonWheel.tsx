@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Pokemon } from "@/types/pokemon";
-import { useStudentCoin, assignPokemonToStudent } from "@/utils/pokemonData";
+import { useStudentCoin, assignPokemonToStudent, getSchoolPokemonPool } from "@/utils/pokemonData";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Sparkle, Star } from "lucide-react";
 
@@ -36,14 +36,27 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
   const MAX_WHEEL_POKEMON = 12;
   
   useEffect(() => {
-    // Randomly select a subset of Pokemon for the wheel if there are more than MAX_WHEEL_POKEMON
-    if (pokemonPool.length > MAX_WHEEL_POKEMON) {
-      const shuffled = [...pokemonPool].sort(() => 0.5 - Math.random());
-      setVisiblePokemon(shuffled.slice(0, MAX_WHEEL_POKEMON));
-    } else {
-      setVisiblePokemon(pokemonPool);
-    }
-  }, [pokemonPool]);
+    // Get the latest available Pokemon from the school pool
+    const refreshPoolData = () => {
+      if (classId) {
+        const schoolPool = getSchoolPokemonPool(classId);
+        if (schoolPool && schoolPool.availablePokemons.length > 0) {
+          // Randomly select a subset of Pokemon for the wheel if there are more than MAX_WHEEL_POKEMON
+          if (schoolPool.availablePokemons.length > MAX_WHEEL_POKEMON) {
+            const shuffled = [...schoolPool.availablePokemons].sort(() => 0.5 - Math.random());
+            setVisiblePokemon(shuffled.slice(0, MAX_WHEEL_POKEMON));
+          } else {
+            setVisiblePokemon([...schoolPool.availablePokemons]);
+          }
+        } else {
+          setVisiblePokemon([]);
+        }
+      }
+    };
+
+    // Initial load
+    refreshPoolData();
+  }, [classId, pokemonPool]);
   
   const wheelSegmentDegree = 360 / visiblePokemon.length;
   
@@ -97,31 +110,27 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
       if (winnerIndex >= 0 && winnerIndex < visiblePokemon.length) {
         const wonPokemon = visiblePokemon[winnerIndex];
         
-        // Find the actual Pokemon in the pool (not just the visible subset)
-        const actualPokemon = pokemonPool.find(p => p.id === wonPokemon.id);
+        // Assign Pokemon to student (which will remove it from the school pool)
+        const success = assignPokemonToStudent(classId, studentId, wonPokemon.id);
         
-        if (actualPokemon) {
-          const success = assignPokemonToStudent(classId, studentId, actualPokemon.id);
+        if (success) {
+          setWonPokemon(wonPokemon);
+          setShowWinAnimation(true);
           
-          if (success) {
-            setWonPokemon(actualPokemon);
-            setShowWinAnimation(true);
-            
-            // Wait a moment before showing the toast to let the animation start
-            setTimeout(() => {
-              toast({
-                title: t("congratulations"),
-                description: t("you-won-pokemon").replace("{name}", actualPokemon.name)
-              });
-            }, 500);
-            
-            onPokemonWon(actualPokemon);
-          } else {
+          // Wait a moment before showing the toast to let the animation start
+          setTimeout(() => {
             toast({
-              title: t("error"),
-              description: "Failed to claim Pokémon."
+              title: t("congratulations"),
+              description: t("you-won-pokemon").replace("{name}", wonPokemon.name)
             });
-          }
+          }, 500);
+          
+          onPokemonWon(wonPokemon);
+        } else {
+          toast({
+            title: t("error"),
+            description: "Failed to claim Pokémon."
+          });
         }
       }
     }, 3000);

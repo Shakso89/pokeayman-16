@@ -8,9 +8,14 @@ import { useTranslation } from "@/hooks/useTranslation";
 interface PokemonListProps {
   pokemons: Pokemon[];
   onRemovePokemon: (pokemon: Pokemon) => void;
+  showRemoveButton?: boolean;
 }
 
-const PokemonList: React.FC<PokemonListProps> = ({ pokemons, onRemovePokemon }) => {
+const PokemonList: React.FC<PokemonListProps> = ({ 
+  pokemons, 
+  onRemovePokemon,
+  showRemoveButton = true
+}) => {
   const { t } = useTranslation();
 
   if (pokemons.length === 0) {
@@ -34,12 +39,14 @@ const PokemonList: React.FC<PokemonListProps> = ({ pokemons, onRemovePokemon }) 
           <p className="text-sm text-gray-500">{pokemon.type}</p>
           <p className="text-xs text-gray-500 capitalize">{pokemon.rarity}</p>
           
-          <button 
-            className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-            onClick={() => onRemovePokemon(pokemon)}
-          >
-            <Trash2 className="h-4 w-4" />
-          </button>
+          {showRemoveButton && (
+            <button 
+              className="absolute top-2 right-2 text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+              onClick={() => onRemovePokemon(pokemon)}
+            >
+              <Trash2 className="h-4 w-4" />
+            </button>
+          )}
         </div>
       ))}
     </div>

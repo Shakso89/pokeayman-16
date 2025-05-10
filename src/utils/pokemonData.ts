@@ -1,3 +1,4 @@
+
 import { Pokemon, PokemonPool, StudentPokemon } from "@/types/pokemon";
 
 // Helper functions for generating random Pokemon data
@@ -642,16 +643,26 @@ export const initializeSchoolPokemonPool = (schoolId: string) => {
 
   // Create a pool of 600 Pokemons
   const pokemons: Pokemon[] = [];
-  const existingPools = JSON.parse(localStorage.getItem("pokemonPools") || "[]");
+  const existingPools = getPokemonPools();
 
-  // Generate 600 pokemons
-  for (let i = 1; i <= 600; i++) {
-    const rarity = getRarityForId(i);
+  // First add the sample pokemons (up to 80)
+  const samplePokemonsCopy = [...samplePokemons];
+  for (let i = 0; i < Math.min(80, samplePokemonsCopy.length); i++) {
+    const pokemon = {...samplePokemonsCopy[i]};
+    pokemon.id = `pokemon-${schoolId}-${i+1}`;
+    pokemons.push(pokemon);
+  }
+
+  // Then generate the remaining pokemons to reach 600
+  const remainingCount = 600 - pokemons.length;
+  for (let i = 1; i <= remainingCount; i++) {
+    const index = pokemons.length + i;
+    const rarity = getRarityForId(index);
     pokemons.push({
-      id: `pokemon-${schoolId}-${i}`,
-      name: `Pokemon #${i}`,
+      id: `pokemon-${schoolId}-${index}`,
+      name: `Pokemon #${index}`,
       type: getRandomType(),
-      image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${i}.png`,
+      image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${(index % 898) + 1}.png`,
       rarity
     });
   }
@@ -663,7 +674,7 @@ export const initializeSchoolPokemonPool = (schoolId: string) => {
 
   // Add to existing pools
   existingPools.push(newPool);
-  localStorage.setItem("pokemonPools", JSON.stringify(existingPools));
+  savePokemonPools(existingPools);
 
   return newPool;
 };

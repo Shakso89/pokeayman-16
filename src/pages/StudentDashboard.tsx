@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,7 +7,8 @@ import { Sword, Award, Coins, PlusCircle, MessageSquare } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   getStudentPokemonCollection, 
-  getClassPokemonPool
+  getSchoolPokemonPool,
+  initializeSchoolPokemonPool
 } from "@/utils/pokemonData";
 import { Pokemon, StudentPokemon } from "@/types/pokemon";
 import PokemonWheel from "@/components/student/PokemonWheel";
@@ -26,7 +26,7 @@ const StudentDashboard: React.FC = () => {
   
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
   const [coins, setCoins] = useState(0);
-  const [classPokemons, setClassPokemons] = useState<Pokemon[]>([]);
+  const [schoolPokemons, setSchoolPokemons] = useState<Pokemon[]>([]);
   const [activeTab, setActiveTab] = useState("collection");
   const [activeBattles, setActiveBattles] = useState<any[]>([]);
   const [avatar, setAvatar] = useState<string | null>(null);
@@ -62,11 +62,12 @@ const StudentDashboard: React.FC = () => {
   };
   
   const loadSchoolPokemonPool = () => {
-    const pool = getClassPokemonPool(schoolId);
+    // Initialize the school pool if it doesn't exist
+    const pool = initializeSchoolPokemonPool(schoolId);
     if (pool) {
-      setClassPokemons(pool.availablePokemons);
+      setSchoolPokemons(pool.availablePokemons);
     } else {
-      setClassPokemons([]);
+      setSchoolPokemons([]);
     }
   };
   
@@ -199,7 +200,7 @@ const StudentDashboard: React.FC = () => {
                   <PokemonWheel 
                     studentId={studentId} 
                     classId={schoolId}
-                    pokemonPool={classPokemons}
+                    pokemonPool={schoolPokemons}
                     coins={coins}
                     onPokemonWon={handlePokemonWon}
                   />

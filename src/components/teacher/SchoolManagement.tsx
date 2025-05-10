@@ -8,6 +8,7 @@ import { toast } from "@/hooks/use-toast";
 import { ChevronLeft, Plus, Edit, Trash2, School as SchoolIcon, Eye } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { initializeSchoolPokemonPool } from "@/utils/pokemonData";
 
 interface SchoolManagementProps {
   onBack: () => void;
@@ -46,6 +47,20 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
       return;
     }
 
+    // Check for duplicate school name from this teacher
+    const duplicateSchool = schools.find(school => 
+      school.name.toLowerCase() === newSchool.name.trim().toLowerCase()
+    );
+    
+    if (duplicateSchool) {
+      toast({
+        title: t("error"),
+        description: t("school-name-already-exists"),
+        variant: "destructive",
+      });
+      return;
+    }
+
     const schoolId = `school-${Date.now()}`;
     const newSchoolData: School = {
       id: schoolId,
@@ -63,6 +78,9 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
     // Update local state
     setSchools([...schools, newSchoolData]);
     setNewSchool({ name: "" });
+    
+    // Initialize Pokemon pool for the new school
+    initializeSchoolPokemonPool(schoolId);
 
     toast({
       title: t("success"),
@@ -75,6 +93,20 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
       toast({
         title: t("error"),
         description: t("school-name-required"),
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check for duplicate school name from this teacher (excluding the current school being edited)
+    const duplicateSchool = schools.find(school => 
+      school.name.toLowerCase() === newName.trim().toLowerCase() && school.id !== schoolId
+    );
+    
+    if (duplicateSchool) {
+      toast({
+        title: t("error"),
+        description: t("school-name-already-exists"),
         variant: "destructive",
       });
       return;
