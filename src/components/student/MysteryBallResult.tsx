@@ -26,27 +26,19 @@ interface MysteryBallResultProps {
 const MysteryBallResult: React.FC<MysteryBallResultProps> = ({ isOpen, onClose, result, pokemon, coins }) => {
   useEffect(() => {
     // Trigger confetti for pokemon or coins
-    if (isOpen && (result.type === "pokemon" || result.type === "coins")) {
+    if (result.type === "pokemon" || result.type === "coins") {
       confetti({
         particleCount: result.type === "pokemon" ? 100 : 50,
         spread: 70,
         origin: { y: 0.6 }
       });
     }
-  }, [isOpen, result.type]);
+  }, [result.type]);
 
   const renderContent = () => {
     switch (result.type) {
       case "pokemon":
-        // Use pokemon prop directly instead of result.data as it might be undefined
-        if (!pokemon) {
-          return (
-            <div className="text-center">
-              <p>No Pokémon data available</p>
-            </div>
-          );
-        }
-        
+        const pokemon = result.data as Pokemon;
         return (
           <div className="text-center">
             <div className="relative mx-auto w-40 h-40 bg-gradient-to-br from-blue-50 to-purple-50 rounded-full p-3 mb-4 border-4 border-purple-300 shadow-lg">
@@ -73,6 +65,7 @@ const MysteryBallResult: React.FC<MysteryBallResultProps> = ({ isOpen, onClose, 
         );
       
       case "coins":
+        const coins = result.data as number;
         return (
           <div className="text-center">
             <div className="mx-auto w-32 h-32 bg-amber-100 rounded-full p-3 mb-4 border-4 border-amber-300 shadow-lg flex items-center justify-center">

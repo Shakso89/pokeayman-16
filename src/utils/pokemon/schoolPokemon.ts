@@ -1,28 +1,8 @@
+
 import { Pokemon, PokemonPool } from "@/types/pokemon";
 import { getPokemonPools, savePokemonPools } from "./storage";
 import { samplePokemons } from "./sampleData";
 import { getRandomType, getRarityForId } from "./types";
-
-// Pokemon name generator
-const getPokemonName = (index: number): string => {
-  const prefixes = [
-    "Bolt", "Flame", "Aqua", "Leaf", "Shadow", "Cosmo", "Terra", "Aero", 
-    "Frost", "Psych", "Spark", "Petal", "Dusk", "Dawn", "Giga", "Mega", 
-    "Crystal", "Mystic", "Hyper", "Proto", "Neo", "Spectra", "Blaze", "Hydro"
-  ];
-  
-  const suffixes = [
-    "saur", "zard", "meleon", "chu", "cune", "dos", "zor", "bat", 
-    "puff", "tails", "wag", "sire", "king", "queen", "mon", "tron", 
-    "mite", "vire", "dra", "flex", "pex", "byte", "wing", "claw"
-  ];
-  
-  // Use the index to create some deterministic variation
-  const prefixIndex = index % prefixes.length;
-  const suffixIndex = Math.floor(index / prefixes.length) % suffixes.length;
-  
-  return `${prefixes[prefixIndex]}${suffixes[suffixIndex]}`;
-};
 
 // Initialize a Pokemon pool for a school
 export const initializeSchoolPokemonPool = (schoolId: string) => {
@@ -54,7 +34,7 @@ export const initializeSchoolPokemonPool = (schoolId: string) => {
     const rarity = getRarityForId(index);
     pokemons.push({
       id: `pokemon-${schoolId}-${index}`,
-      name: getPokemonName(index),  // Using our new name generator
+      name: `Pokemon #${index}`,
       type: getRandomType(),
       image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${(index % 898) + 1}.png`,
       rarity

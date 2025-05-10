@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { RefreshCw, Package, Gift, X, Dice6 } from "lucide-react";
 import { Pokemon } from "@/types/pokemon";
 import MysteryBall from "@/components/student/MysteryBall";
-
 interface MysteryBallTabProps {
   schoolPokemons: Pokemon[];
   studentId: string;
@@ -16,7 +15,6 @@ interface MysteryBallTabProps {
   onCoinsWon: (amount: number) => void;
   onRefreshPool: () => void;
 }
-
 const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
   schoolPokemons,
   studentId,
@@ -41,23 +39,19 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
     pokemonsAvailable: schoolPokemons.length
   });
   
-  return (
-    <Card className="mx-auto max-w-xl shadow-lg">
+  return <Card className="mx-auto max-w-xl shadow-lg">
       <CardHeader className="text-center bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-t-md">
         <CardTitle className="text-2xl">Mystery Pokémon Ball</CardTitle>
         <CardDescription className="text-white opacity-90">2 coins per try, first attempt is free daily</CardDescription>
       </CardHeader>
       <CardContent className="p-6">
-        {schoolPokemons.length === 0 ? (
-          <div className="text-center p-8">
+        {schoolPokemons.length === 0 ? <div className="text-center p-8">
             <p className="mb-4 text-lg text-gray-700">No available Pokémon</p>
             <Button onClick={onRefreshPool} className="mx-auto flex items-center gap-2" disabled={isLoading}>
               <RefreshCw className="h-4 w-4" />
               {isLoading ? "Checking..." : "Check Availability"}
             </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center">
+          </div> : <div className="flex flex-col items-center">
             <MysteryBall 
               studentId={studentId} 
               schoolId={schoolId} 
@@ -86,11 +80,8 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
                 </div>
               </div>
             </div>
-          </div>
-        )}
+          </div>}
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default MysteryBallTab;
