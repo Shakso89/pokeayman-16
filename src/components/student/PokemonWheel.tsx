@@ -1,10 +1,9 @@
-
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Pokemon } from "@/types/pokemon";
-import { useStudentCoin, assignPokemonToStudent, getSchoolPokemonPool, removeCoinsFromStudent } from "@/utils/pokemonData";
+import { useStudentCoin, assignPokemonToStudent, getSchoolPokemonPool, removeCoinsFromStudent } from "@/utils/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Sparkle, Star, RefreshCw } from "lucide-react";
 

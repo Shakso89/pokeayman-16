@@ -23,12 +23,12 @@ export const removePokemonFromStudent = (studentId: string): boolean => {
   collection.pokemons.splice(randomIndex, 1);
   
   // Update localStorage
-  const studentCollections = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
-  const studentIndex = studentCollections.findIndex((item: any) => item.studentId === studentId);
+  const studentCollections = getStudentPokemons();
+  const studentIndex = studentCollections.findIndex(item => item.studentId === studentId);
   
   if (studentIndex !== -1) {
     studentCollections[studentIndex].pokemons = collection.pokemons;
-    localStorage.setItem("studentPokemons", JSON.stringify(studentCollections));
+    saveStudentPokemons(studentCollections);
     return true;
   }
   
@@ -37,28 +37,16 @@ export const removePokemonFromStudent = (studentId: string): boolean => {
 
 // Remove coins from a student
 export const removeCoinsFromStudent = (studentId: string, amount: number): boolean => {
-  const collection = getStudentPokemonCollection(studentId);
-  if (!collection) {
+  const studentPokemons = getStudentPokemons();
+  const studentIndex = studentPokemons.findIndex(sp => sp.studentId === studentId);
+  
+  if (studentIndex < 0 || studentPokemons[studentIndex].coins < amount) {
     return false;
   }
   
-  if (collection.coins < amount) {
-    return false;
-  }
-  
-  collection.coins -= amount;
-  
-  // Update localStorage
-  const studentCollections = getStudentPokemons();
-  const studentIndex = studentCollections.findIndex((item) => item.studentId === studentId);
-  
-  if (studentIndex !== -1) {
-    studentCollections[studentIndex].coins = collection.coins;
-    saveStudentPokemons(studentCollections);
-    return true;
-  }
-  
-  return false;
+  studentPokemons[studentIndex].coins -= amount;
+  saveStudentPokemons(studentPokemons);
+  return true;
 };
 
 // Award coins to a student
@@ -81,11 +69,13 @@ export const awardCoinsToStudent = (studentId: string, amount: number): void => 
 
 // Assign Pokemon to a student
 export const assignPokemonToStudent = (schoolId: string, studentId: string, pokemonId: string): boolean => {
+  // Get all the pools
   const pools = getPokemonPools();
   const poolIndex = pools.findIndex(p => p.schoolId === schoolId);
   
   if (poolIndex < 0) return false;
   
+  // Find the Pokemon in the school pool
   const pokemonIndex = pools[poolIndex].availablePokemons.findIndex(p => p.id === pokemonId);
   if (pokemonIndex < 0) return false;
   
@@ -113,14 +103,5 @@ export const assignPokemonToStudent = (schoolId: string, studentId: string, poke
 
 // Use a coin to spin the wheel
 export const useStudentCoin = (studentId: string): boolean => {
-  const studentPokemons = getStudentPokemons();
-  const studentIndex = studentPokemons.findIndex(sp => sp.studentId === studentId);
-  
-  if (studentIndex < 0 || studentPokemons[studentIndex].coins <= 0) {
-    return false;
-  }
-  
-  studentPokemons[studentIndex].coins -= 1;
-  saveStudentPokemons(studentPokemons);
-  return true;
+  return removeCoinsFromStudent(studentId, 1);
 };

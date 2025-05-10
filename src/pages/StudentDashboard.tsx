@@ -13,6 +13,7 @@ import {
 import { Pokemon, StudentPokemon } from "@/types/pokemon";
 import PokemonWheel from "@/components/student/PokemonWheel";
 import { useTranslation } from "@/hooks/useTranslation";
+import { toast } from "@/hooks/use-toast";
 
 const StudentDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -92,6 +93,14 @@ const StudentDashboard: React.FC = () => {
   };
   
   const handlePokemonWon = (pokemon: Pokemon) => {
+    // Toast notification
+    if (pokemon && pokemon.id) {
+      toast({
+        title: t("congratulations"),
+        description: t("you-won-pokemon").replace("{name}", pokemon.name || "Pokemon"),
+      });
+    }
+    
     // Refresh data
     loadStudentData();
     loadSchoolPokemonPool();

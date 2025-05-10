@@ -8,7 +8,7 @@ import { getRandomType, getRarityForId } from "./types";
 export const initializeSchoolPokemonPool = (schoolId: string) => {
   // Check if the pool already exists
   const existingPool = getSchoolPokemonPool(schoolId);
-  if (existingPool) {
+  if (existingPool && existingPool.availablePokemons.length > 0) {
     return existingPool;
   }
 
@@ -39,16 +39,23 @@ export const initializeSchoolPokemonPool = (schoolId: string) => {
     });
   }
 
-  const newPool = {
-    schoolId,
-    availablePokemons: pokemons
-  };
-
-  // Add to existing pools
-  existingPools.push(newPool);
+  // Check if school pool already exists in the pools array
+  const existingPoolIndex = existingPools.findIndex(p => p.schoolId === schoolId);
+  
+  if (existingPoolIndex >= 0) {
+    // Update existing pool
+    existingPools[existingPoolIndex].availablePokemons = pokemons;
+  } else {
+    // Add new pool
+    existingPools.push({
+      schoolId,
+      availablePokemons: pokemons
+    });
+  }
+  
   savePokemonPools(existingPools);
-
-  return newPool;
+  
+  return existingPoolIndex >= 0 ? existingPools[existingPoolIndex] : existingPools[existingPools.length - 1];
 };
 
 // Get school Pokemon pool
