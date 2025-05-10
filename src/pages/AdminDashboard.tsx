@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,7 +27,6 @@ interface TeacherData {
   numSchools?: number;
   numStudents?: number;
 }
-
 interface StudentData {
   id: string;
   username: string;
@@ -40,32 +38,31 @@ interface StudentData {
   coinsSpent?: number;
   isActive: boolean;
 }
-
 const AdminDashboard: React.FC = () => {
   const [teachers, setTeachers] = useState<TeacherData[]>([]);
   const [students, setStudents] = useState<StudentData[]>([]);
   const [activationMessage, setActivationMessage] = useState("");
   const [activeTab, setActiveTab] = useState("teachers");
-  const { t } = useTranslation();
+  const {
+    t
+  } = useTranslation();
   const navigate = useNavigate();
-  
+
   // Check if current user is Admin - UPDATED to check for username "Admin"
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const username = localStorage.getItem("teacherUsername") || "";
   const isAdmin = username === "Admin";
-  
   useEffect(() => {
     // Load teachers data
     const storedTeachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-    
+
     // Process teacher data to include additional admin metrics
     const processedTeachers = storedTeachers.map((teacher: any) => {
       // Calculate number of schools
       const numSchools = teacher.schools ? teacher.schools.length : 0;
-      
+
       // Calculate number of students
       const numStudents = teacher.students ? teacher.students.length : 0;
-      
       return {
         ...teacher,
         numSchools,
@@ -75,99 +72,91 @@ const AdminDashboard: React.FC = () => {
         lastLogin: teacher.lastLogin || "Never",
         expiryDate: teacher.expiryDate || "No expiry",
         subscriptionType: teacher.subscriptionType || "trial",
-        isActive: teacher.isActive !== false, // Default to true if not specified
+        isActive: teacher.isActive !== false // Default to true if not specified
       };
     });
-    
     setTeachers(processedTeachers);
-    
+
     // Load students data
     const storedStudents = JSON.parse(localStorage.getItem("students") || "[]");
-    
+
     // Get student Pokémon to calculate coins spent
     const studentPokemon = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
-    
+
     // Process student data
     const processedStudents = storedStudents.map((student: any) => {
       // Find student's coin data
       const pokemonData = studentPokemon.find((sp: any) => sp.studentId === student.id);
       const coinsSpent = pokemonData ? pokemonData.coins || 0 : 0;
-      
       return {
         ...student,
         coinsSpent,
         timeSpent: student.timeSpent || 0,
         lastLogin: student.lastLogin || "Never",
-        isActive: student.isActive !== false, // Default to true if not specified
+        isActive: student.isActive !== false // Default to true if not specified
       };
     });
-    
     setStudents(processedStudents);
   }, []);
-  
   const handleToggleAccount = (userId: string, userType: "teacher" | "student") => {
     if (userType === "teacher") {
       const updatedTeachers = teachers.map(teacher => {
         if (teacher.id === userId) {
           const newIsActive = !teacher.isActive;
-          return { ...teacher, isActive: newIsActive };
+          return {
+            ...teacher,
+            isActive: newIsActive
+          };
         }
         return teacher;
       });
-      
       setTeachers(updatedTeachers);
       localStorage.setItem("teachers", JSON.stringify(updatedTeachers));
-      
       toast({
         title: "Teacher account updated",
-        description: `Teacher account has been ${updatedTeachers.find(t => t.id === userId)?.isActive ? "activated" : "frozen"}`,
+        description: `Teacher account has been ${updatedTeachers.find(t => t.id === userId)?.isActive ? "activated" : "frozen"}`
       });
-      
+
       // Set a message for the teacher
       setActivationMessage(`Your account has been ${updatedTeachers.find(t => t.id === userId)?.isActive ? "activated" : "frozen"} by an admin.`);
-      
     } else {
       const updatedStudents = students.map(student => {
         if (student.id === userId) {
           const newIsActive = !student.isActive;
-          return { ...student, isActive: newIsActive };
+          return {
+            ...student,
+            isActive: newIsActive
+          };
         }
         return student;
       });
-      
       setStudents(updatedStudents);
       localStorage.setItem("students", JSON.stringify(updatedStudents));
-      
       toast({
         title: "Student account updated",
-        description: `Student account has been ${updatedStudents.find(s => s.id === userId)?.isActive ? "activated" : "frozen"}`,
+        description: `Student account has been ${updatedStudents.find(s => s.id === userId)?.isActive ? "activated" : "frozen"}`
       });
     }
   };
-  
   const handleDeleteAccount = (userId: string, userType: "teacher" | "student") => {
     if (userType === "teacher") {
       const filteredTeachers = teachers.filter(teacher => teacher.id !== userId);
       setTeachers(filteredTeachers);
       localStorage.setItem("teachers", JSON.stringify(filteredTeachers));
-      
       toast({
         title: "Teacher account deleted",
-        description: "Teacher account has been permanently deleted",
+        description: "Teacher account has been permanently deleted"
       });
-      
     } else {
       const filteredStudents = students.filter(student => student.id !== userId);
       setStudents(filteredStudents);
       localStorage.setItem("students", JSON.stringify(filteredStudents));
-      
       toast({
         title: "Student account deleted",
-        description: "Student account has been permanently deleted",
+        description: "Student account has been permanently deleted"
       });
     }
   };
-
   const handleHomeClick = () => {
     navigate("/teacher-dashboard");
   };
@@ -176,9 +165,7 @@ const AdminDashboard: React.FC = () => {
   if (!isLoggedIn || !isAdmin) {
     return <Navigate to="/teacher-login" />;
   }
-  
-  return (
-    <div className="min-h-screen bg-gray-100">
+  return <div className="min-h-screen bg-gray-100">
       <NavBar userType="teacher" userName="Admin" />
       
       <div className="container mx-auto py-8 px-4">
@@ -189,14 +176,7 @@ const AdminDashboard: React.FC = () => {
                 <Shield className="h-8 w-8" />
                 <h1 className="text-3xl font-bold">{t("admin-dashboard")}</h1>
               </div>
-              <Button 
-                variant="secondary"
-                className="flex items-center gap-2"
-                onClick={handleHomeClick}
-              >
-                <Home className="h-4 w-4" />
-                {t("home")}
-              </Button>
+              
             </div>
             <p className="mt-2">{t("admin-dashboard-description") || "Full system oversight and controls"}</p>
           </CardContent>
@@ -211,13 +191,10 @@ const AdminDashboard: React.FC = () => {
           
           <TabsContent value="teachers" className="mt-0">
             <div className="grid gap-4">
-              {teachers.map((teacher) => (
-                <Card key={teacher.id} className="relative">
-                  {teacher.username === "Admin" && (
-                    <div className="absolute top-0 right-0 m-2">
+              {teachers.map(teacher => <Card key={teacher.id} className="relative">
+                  {teacher.username === "Admin" && <div className="absolute top-0 right-0 m-2">
                       <Badge className="bg-purple-500">{t("admin-account") || "Admin Account"}</Badge>
-                    </div>
-                  )}
+                    </div>}
                   <CardHeader>
                     <CardTitle className="flex justify-between">
                       <span>{teacher.displayName} ({teacher.username})</span>
@@ -254,33 +231,22 @@ const AdminDashboard: React.FC = () => {
                       </div>
                     </div>
                     
-                    {teacher.username !== "Admin" && (
-                      <div className="flex gap-2">
-                        <Button 
-                          onClick={() => handleToggleAccount(teacher.id, "teacher")}
-                          variant={teacher.isActive ? "destructive" : "default"}
-                        >
+                    {teacher.username !== "Admin" && <div className="flex gap-2">
+                        <Button onClick={() => handleToggleAccount(teacher.id, "teacher")} variant={teacher.isActive ? "destructive" : "default"}>
                           {teacher.isActive ? t("freeze-account") || "Freeze Account" : t("unfreeze-account") || "Unfreeze Account"}
                         </Button>
-                        <Button 
-                          onClick={() => handleDeleteAccount(teacher.id, "teacher")}
-                          variant="outline"
-                          className="text-red-500 border-red-500 hover:bg-red-50"
-                        >
+                        <Button onClick={() => handleDeleteAccount(teacher.id, "teacher")} variant="outline" className="text-red-500 border-red-500 hover:bg-red-50">
                           {t("delete-account") || "Delete Account"}
                         </Button>
-                      </div>
-                    )}
+                      </div>}
                   </CardContent>
-                </Card>
-              ))}
+                </Card>)}
             </div>
           </TabsContent>
           
           <TabsContent value="students" className="mt-0">
             <div className="grid gap-4">
-              {students.map((student) => (
-                <Card key={student.id}>
+              {students.map(student => <Card key={student.id}>
                   <CardHeader>
                     <CardTitle className="flex justify-between">
                       <span>{student.displayName} ({student.username})</span>
@@ -314,23 +280,15 @@ const AdminDashboard: React.FC = () => {
                     </div>
                     
                     <div className="flex gap-2">
-                      <Button 
-                        onClick={() => handleToggleAccount(student.id, "student")}
-                        variant={student.isActive ? "destructive" : "default"}
-                      >
+                      <Button onClick={() => handleToggleAccount(student.id, "student")} variant={student.isActive ? "destructive" : "default"}>
                         {student.isActive ? t("freeze-account") || "Freeze Account" : t("unfreeze-account") || "Unfreeze Account"}
                       </Button>
-                      <Button 
-                        onClick={() => handleDeleteAccount(student.id, "student")}
-                        variant="outline"
-                        className="text-red-500 border-red-500 hover:bg-red-50"
-                      >
+                      <Button onClick={() => handleDeleteAccount(student.id, "student")} variant="outline" className="text-red-500 border-red-500 hover:bg-red-50">
                         {t("delete-account") || "Delete Account"}
                       </Button>
                     </div>
                   </CardContent>
-                </Card>
-              ))}
+                </Card>)}
             </div>
           </TabsContent>
           
@@ -349,8 +307,6 @@ const AdminDashboard: React.FC = () => {
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default AdminDashboard;
