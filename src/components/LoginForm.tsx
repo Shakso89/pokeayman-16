@@ -50,15 +50,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
           // If it's Admin account, set isAdmin flag and activate account
           if (username === "Admin") {
             localStorage.setItem("isAdmin", "true");
-            setActivationStatus(true); // Admin is always activated
+            setActivationStatus(true); // Updated to pass only boolean
           } else {
             localStorage.removeItem("isAdmin");
             
             // Set activation status based on teacher record
-            if (teacher && teacher.activated) {
-              setActivationStatus(true);
+            if (teacher && teacher.isActive) {
+              setActivationStatus(true); // Updated to pass only boolean
             } else {
-              setActivationStatus(false);
+              setActivationStatus(false); // Updated to pass only boolean
             }
           }
           

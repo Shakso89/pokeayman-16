@@ -28,10 +28,22 @@ export interface School {
 export interface Class {
   id: string;
   name: string;
+  description?: string; // Added description as optional
   schoolId: string;
   teacherId: string;
   students: string[];
   createdAt: string;
+}
+
+export interface Student {
+  id: string;
+  username: string;
+  displayName: string;
+  avatar?: string;
+  password?: string;
+  teacherId: string;
+  classId: string;
+  schoolId: string;
 }
 
 export interface Battle {

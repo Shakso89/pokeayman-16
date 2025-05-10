@@ -29,12 +29,16 @@ export const isTeacherActivated = (): boolean => {
 
 /**
  * Sets activation status directly (for admin purposes)
+ * @param isActivated boolean indicating if the account should be activated
  */
-export const setActivationStatus = (userId: string, isActivated: boolean): void => {
+export const setActivationStatus = (isActivated: boolean): void => {
+  const teacherId = localStorage.getItem("teacherId");
+  if (!teacherId) return;
+  
   const teacherData = localStorage.getItem("teachers");
   if (teacherData) {
     const teachers = JSON.parse(teacherData);
-    const teacherIndex = teachers.findIndex((t: any) => t.id === userId);
+    const teacherIndex = teachers.findIndex((t: any) => t.id === teacherId);
     
     if (teacherIndex !== -1) {
       teachers[teacherIndex].isActive = isActivated;
