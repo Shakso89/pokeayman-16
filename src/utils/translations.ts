@@ -1,721 +1,442 @@
+export const translations = {
+  en: {
+    "home": "Home",
+    "about": "About",
+    "contact": "Contact",
+    "login": "Login",
+    "signup": "Sign Up",
+    "dashboard": "Dashboard",
+    "logout": "Logout",
+    "welcome": "Welcome",
+    "email": "Email",
+    "password": "Password",
+    "confirm-password": "Confirm Password",
+    "name": "Name",
+    "required": "This field is required",
+    "invalid-email": "Invalid email address",
+    "password-mismatch": "Passwords do not match",
+    "login-success": "Login successful!",
+    "signup-success": "Signup successful!",
+    "logout-success": "Logout successful!",
+    "go-to-dashboard": "Go to Dashboard",
+    "student": "Student",
+    "teacher": "Teacher",
+    "admin": "Admin",
+    "students": "Students",
+    "teachers": "Teachers",
+    "classes": "Classes",
+    "schools": "Schools",
+    "add": "Add",
+    "edit": "Edit",
+    "delete": "Delete",
+    "save": "Save",
+    "cancel": "Cancel",
+    "create": "Create",
+    "update": "Update",
+    "delete-confirmation": "Are you sure you want to delete this?",
+    "yes": "Yes",
+    "no": "No",
+    "search": "Search",
+    "actions": "Actions",
+    "details": "Details",
+    "create-new": "Create New",
+    "edit-item": "Edit Item",
+    "view-details": "View Details",
+    "back-to-list": "Back to List",
+    "student-dashboard": "Student Dashboard",
+    "teacher-dashboard": "Teacher Dashboard",
+    "admin-dashboard": "Admin Dashboard",
+    "teacher-login": "Teacher Login",
+    "student-login": "Student Login",
+    "teacher-signup": "Teacher Sign Up",
+    "admin-login": "Admin Login",
+    "user-management": "User Management",
+    "class-management": "Class Management",
+    "school-management": "School Management",
+    "settings": "Settings",
+    "profile": "Profile",
+    "general": "General",
+    "security": "Security",
+    "notifications": "Notifications",
+    "account": "Account",
+    "preferences": "Preferences",
+    "appearance": "Appearance",
+    "language": "Language",
+    "theme": "Theme",
+    "light": "Light",
+    "dark": "Dark",
+    "system": "System",
+    "english": "English",
+    "spanish": "Spanish",
+    "messages-page": "Messages",
+    "student-name": "Student Name",
+    "teacher-name": "Teacher Name",
+    "class-name": "Class Name",
+    "school-name": "School Name",
+    "student-class": "Student Class",
+    "student-school": "Student School",
+    "teacher-class": "Teacher Class",
+    "teacher-school": "Teacher School",
+    "add-student": "Add Student",
+    "add-teacher": "Add Teacher",
+    "add-class": "Add Class",
+    "add-school": "Add School",
+    "edit-student": "Edit Student",
+    "edit-teacher": "Edit Teacher",
+    "edit-class": "Edit Class",
+    "edit-school": "Edit School",
+    "student-added": "Student added successfully!",
+    "teacher-added": "Teacher added successfully!",
+    "class-added": "Class added successfully!",
+    "school-added": "School added successfully!",
+    "student-updated": "Student updated successfully!",
+    "teacher-updated": "Teacher updated successfully!",
+    "class-updated": "Class updated successfully!",
+    "school-updated": "School updated successfully!",
+    "student-deleted": "Student deleted successfully!",
+    "teacher-deleted": "Teacher deleted successfully!",
+    "class-deleted": "Class deleted successfully!",
+    "school-deleted": "School deleted successfully!",
+    "avatar": "Avatar",
+    "select-avatar": "Select Avatar",
+    "upload-new-avatar": "Upload New Avatar",
+    "reset-avatar": "Reset Avatar",
+    "avatar-updated": "Avatar updated successfully!",
+    "coins": "Coins",
+    "you-have": "You have",
+    "last-spin": "Last spin",
+    "close": "Close",
+    
+    // Pokemon related
+    "pokemon-wheel": "Pokemon Wheel",
+    "spin-wheel": "Spin the Wheel",
+    "spin-wheel-description": "Spend coins to spin the wheel and win a Pokemon!",
+    "spinning": "Spinning...",
+    "congratulations": "Congratulations!",
+    "you-won-pokemon": "You won a {name}!",
+    "pokemon-added": "The Pokemon has been added to your collection.",
+    "pokemon-type": "Type: {type}",
+    "pokemon-rarity": "Rarity: {rarity}",
+    "not-enough-coins": "You don't have enough coins!",
+    "pokemon-collection": "Pokemon Collection",
+    "no-pokemon-yet": "No Pokemon Yet",
+    "use-wheel-message": "Use the Pokemon Wheel to get your first Pokemon!",
 
-// Define available languages
-type Language = "en" | "zh";
+    // Messages
+    "messages": "Messages",
+    "new-message": "New Message",
+    "send": "Send",
+    "message-sent": "Message Sent",
+    "message-sent-description": "Your message has been sent successfully.",
+    "send-message": "Send Message",
+    "message": "Message",
+    "sender": "Sender",
+    "receiver": "Receiver",
+    "message-content": "Message Content",
+    "no-messages": "No Messages",
+    "no-messages-description": "You don't have any messages yet.",
+    "friends": "Friends",
+    "add-friend": "Add Friend",
+    "search-users": "Search Users",
+    "send-friend-request": "Send Friend Request",
+    "friend-request-sent": "Friend Request Sent",
+    "accept": "Accept",
+    "decline": "Decline",
+    "friend-request-accepted": "Friend Request Accepted",
+    "friend-request-declined": "Friend Request Declined",
+    "pending-requests": "Pending Requests",
+    "no-pending-requests": "No Pending Requests",
+    "no-friends-yet": "No Friends Yet",
+    "find-friends": "Find Friends",
+    
+    // Battles
+    "battle-arena": "Battle Arena",
+    "active-battles": "Active Battles",
+    "completed-battles": "Completed Battles",
+    "join-battle": "Join Battle",
+    "create-battle": "Create Battle",
+    "battle-name": "Battle Name",
+    "battle-description": "Battle Description",
+    "battle-reward": "Battle Reward",
+    "battle-time-limit": "Time Limit",
+    "battle-created": "Battle Created",
+    "battle-joined": "Battle Joined",
+    "joined-battle": "Battle Joined",
+    "joined-battle-description": "You've successfully joined the battle!",
+    "submit-answer": "Submit Answer",
+    "submit-answer-description": "Submit your answer to this battle challenge",
+    "take-photo": "Take Photo",
+    "record-voice": "Record Voice",
+    "answer-submitted": "Answer Submitted",
+    "answer-submitted-description": "Your answer has been submitted successfully.",
+    "answer-submitted-title": "Answer Submitted",
+    "answer-submitted-waiting": "Your answer has been submitted. Wait for the teacher to review it.",
+    "submitting": "Submitting...",
+    "battle-winner": "Battle Winner",
+    "winner": "Winner",
+    "you-won-battle": "You won this battle!",
+    "better-luck-next-time": "Better luck next time!",
+    "no-winner-declared": "No winner has been declared yet.",
+    "reward-received": "You received {coins} coins!",
+    "you-participated": "You participated",
+    "you-participated-and-submitted": "You participated and submitted an answer",
+    "you-did-not-participate": "You didn't participate",
+    "days-remaining": "{count} days remaining",
+    "hours-remaining": "{count}h {minutes}m remaining",
+    "minutes-remaining": "{count} minutes remaining",
+    "expired": "Expired",
+    "ends-at": "Ends at",
+    "completed": "Completed",
+    "answer-required": "Answer Required",
+    "back-to-battles": "Back to Battles",
+    "participants": "Participants",
+    "reward": "Reward",
+    "answer-battle": "Answer Battle",
+    "view-submission": "View Submission",
+    "no-active-battles": "No Active Battles",
+    "no-active-battles-description": "There are no active battles at the moment.",
+    "no-completed-battles": "No Completed Battles",
+    "no-completed-battles-description": "You haven't participated in any battles yet.",
+    "error": "Error",
+    "recording": "Recording",
+    "recording-description": "Recording your voice... Speak now!",
+    "recording-stopped": "Recording Stopped",
+    "recording-stopped-description": "Your voice recording has been saved.",
+    "microphone-access-error": "Could not access microphone. Please check your browser permissions.",
+    "cancel": "Cancel",
+    
+    // Reports
+    "reports": "Reports",
+    "student-participation": "Student Participation",
+    "class-engagement": "Class Engagement",
+    "pokemon-distribution": "Pokemon Distribution",
+    "generate-report": "Generate Report",
+    "report-generated": "Report Generated",
+    "report-period": "Report Period",
+    "daily": "Daily",
+    "weekly": "Weekly",
+    "monthly": "Monthly",
+    "export-csv": "Export CSV",
+    "view-details": "View Details"
+  },
+  es: {
+    "home": "Inicio",
+    "about": "Acerca de",
+    "contact": "Contacto",
+    "login": "Iniciar sesión",
+    "signup": "Registrarse",
+    "dashboard": "Panel de control",
+    "logout": "Cerrar sesión",
+    "welcome": "Bienvenido",
+    "email": "Correo electrónico",
+    "password": "Contraseña",
+    "confirm-password": "Confirmar contraseña",
+    "name": "Nombre",
+    "required": "Este campo es obligatorio",
+    "invalid-email": "Dirección de correo electrónico no válida",
+    "password-mismatch": "Las contraseñas no coinciden",
+    "login-success": "¡Inicio de sesión exitoso!",
+    "signup-success": "¡Registro exitoso!",
+    "logout-success": "¡Cierre de sesión exitoso!",
+    "go-to-dashboard": "Ir al panel de control",
+    "student": "Estudiante",
+    "teacher": "Profesor",
+    "admin": "Administrador",
+    "students": "Estudiantes",
+    "teachers": "Profesores",
+    "classes": "Clases",
+    "schools": "Escuelas",
+    "add": "Agregar",
+    "edit": "Editar",
+    "delete": "Eliminar",
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "create": "Crear",
+    "update": "Actualizar",
+    "delete-confirmation": "¿Está seguro de que desea eliminar esto?",
+    "yes": "Sí",
+    "no": "No",
+    "search": "Buscar",
+    "actions": "Acciones",
+    "details": "Detalles",
+    "create-new": "Crear nuevo",
+    "edit-item": "Editar elemento",
+    "view-details": "Ver detalles",
+    "back-to-list": "Volver a la lista",
+    "student-dashboard": "Panel de control del estudiante",
+    "teacher-dashboard": "Panel de control del profesor",
+    "admin-dashboard": "Panel de control del administrador",
+    "teacher-login": "Inicio de sesión del profesor",
+    "student-login": "Inicio de sesión del estudiante",
+    "teacher-signup": "Registro del profesor",
+    "admin-login": "Inicio de sesión del administrador",
+    "user-management": "Gestión de usuarios",
+    "class-management": "Gestión de clases",
+    "school-management": "Gestión escolar",
+    "settings": "Ajustes",
+    "profile": "Perfil",
+    "general": "General",
+    "security": "Seguridad",
+    "notifications": "Notificaciones",
+    "account": "Cuenta",
+    "preferences": "Preferencias",
+    "appearance": "Apariencia",
+    "language": "Idioma",
+    "theme": "Tema",
+    "light": "Claro",
+    "dark": "Oscuro",
+    "system": "Sistema",
+    "english": "Inglés",
+    "spanish": "Español",
+     "messages-page": "Mensajes",
+     "student-name": "Nombre del estudiante",
+     "teacher-name": "Nombre del profesor",
+     "class-name": "Nombre de la clase",
+     "school-name": "Nombre de la escuela",
+     "student-class": "Clase del estudiante",
+     "student-school": "Escuela del estudiante",
+     "teacher-class": "Clase del profesor",
+     "teacher-school": "Escuela del profesor",
+     "add-student": "Agregar estudiante",
+     "add-teacher": "Agregar profesor",
+     "add-class": "Agregar clase",
+     "add-school": "Agregar escuela",
+     "edit-student": "Editar estudiante",
+     "edit-teacher": "Editar profesor",
+     "edit-class": "Editar clase",
+     "edit-school": "Editar escuela",
+     "student-added": "¡Estudiante agregado exitosamente!",
+     "teacher-added": "¡Profesor agregado exitosamente!",
+     "class-added": "¡Clase agregada exitosamente!",
+     "school-added": "¡Escuela agregada exitosamente!",
+     "student-updated": "¡Estudiante actualizado exitosamente!",
+     "teacher-updated": "¡Profesor actualizado exitosamente!",
+     "class-updated": "¡Clase actualizada exitosamente!",
+     "school-updated": "¡Escuela actualizada exitosamente!",
+     "student-deleted": "¡Estudiante eliminado exitosamente!",
+     "teacher-deleted": "¡Profesor eliminado exitosamente!",
+     "class-deleted": "¡Clase eliminada exitosamente!",
+     "school-deleted": "¡Escuela eliminada exitosamente!",
+     "avatar": "Avatar",
+     "select-avatar": "Seleccionar Avatar",
+     "upload-new-avatar": "Cargar Nuevo Avatar",
+     "reset-avatar": "Restablecer Avatar",
+     "avatar-updated": "¡Avatar actualizado exitosamente!",
+     "coins": "Monedas",
+     "you-have": "Tienes",
+     "last-spin": "Último giro",
+     "close": "Cerrar",
 
-// Get the current language from localStorage or default to English
-export const getCurrentLanguage = (): Language => {
-  const savedLanguage = localStorage.getItem("language") as Language;
-  return savedLanguage || "en";
-};
+     // Pokemon related
+     "pokemon-wheel": "Ruleta Pokémon",
+     "spin-wheel": "Girar la Ruleta",
+     "spin-wheel-description": "¡Gasta monedas para girar la ruleta y ganar un Pokémon!",
+     "spinning": "Girando...",
+     "congratulations": "¡Felicitaciones!",
+     "you-won-pokemon": "¡Ganaste un {name}!",
+     "pokemon-added": "El Pokémon ha sido agregado a tu colección.",
+     "pokemon-type": "Tipo: {type}",
+     "pokemon-rarity": "Rareza: {rarity}",
+     "not-enough-coins": "¡No tienes suficientes monedas!",
+     "pokemon-collection": "Colección Pokémon",
+     "no-pokemon-yet": "Aún no hay Pokémon",
+     "use-wheel-message": "¡Usa la Ruleta Pokémon para obtener tu primer Pokémon!",
 
-// Translations dictionary
-const translations: Record<string, Record<Language, string>> = {
-  // General
-  "welcome": {
-    en: "Welcome to PokéAyman",
-    zh: "欢迎来到宝可梦世界"
-  },
-  "welcome-teacher": {
-    en: "Welcome, Teacher!",
-    zh: "欢迎，老师！"
-  },
-  "sign-in": {
-    en: "Sign In",
-    zh: "登录"
-  },
-  "sign-up": {
-    en: "Sign Up",
-    zh: "注册"
-  },
-  "logout": {
-    en: "Logout",
-    zh: "退出登录"
-  },
-  "success": {
-    en: "Success",
-    zh: "成功"
-  },
-  "error": {
-    en: "Error",
-    zh: "错误"
-  },
-  "cancel": {
-    en: "Cancel",
-    zh: "取消"
-  },
-  "save": {
-    en: "Save",
-    zh: "保存"
-  },
-  "edit": {
-    en: "Edit",
-    zh: "编辑"
-  },
-  "delete": {
-    en: "Delete",
-    zh: "删除"
-  },
-  "create": {
-    en: "Create",
-    zh: "创建"
-  },
-  "back": {
-    en: "Back",
-    zh: "返回"
-  },
-  "settings": {
-    en: "Settings",
-    zh: "设置"
-  },
-  "messages": {
-    en: "Messages",
-    zh: "消息"
-  },
-  "admin-dashboard": {
-    en: "Admin Dashboard",
-    zh: "管理员面板"
-  },
-  "contact-us": {
-    en: "Contact Us",
-    zh: "联系我们"
-  },
-  
-  // Login / Auth
-  "teacher-login": {
-    en: "Teacher Login",
-    zh: "教师登录"
-  },
-  "student-login": {
-    en: "Student Login",
-    zh: "学生登录"
-  },
-  "username": {
-    en: "Username",
-    zh: "用户名"
-  },
-  "password": {
-    en: "Password",
-    zh: "密码"
-  },
-  "display-name": {
-    en: "Display Name",
-    zh: "显示名称"
-  },
-  "login": {
-    en: "Login",
-    zh: "登录"
-  },
-  "signup": {
-    en: "Signup",
-    zh: "注册"
-  },
-  "create-account": {
-    en: "Create Account",
-    zh: "创建账号"
-  },
-  "create-password": {
-    en: "Create Password",
-    zh: "创建密码"
-  },
-  "invalid-credentials": {
-    en: "Invalid username or password",
-    zh: "用户名或密码无效"
-  },
-  "student-username": {
-    en: "Student Username",
-    zh: "学生用户名"
-  },
-  "student-display-name": {
-    en: "Student Display Name",
-    zh: "学生显示名称"
-  },
-  "create-student": {
-    en: "Create Student",
-    zh: "创建学生"
-  },
-  "create-student-desc": {
-    en: "Create a new student account with login credentials",
-    zh: "创建带有登录凭证的新学生账户"
-  },
-  "student-added": {
-    en: "Student added successfully!",
-    zh: "学生添加成功！"
-  },
-  "fill-all-fields": {
-    en: "Please fill all fields",
-    zh: "请填写所有字段"
-  },
-  
-  // Dashboard
-  "teacher-dashboard": {
-    en: "Teacher Dashboard",
-    zh: "教师仪表板"
-  },
-  "student-dashboard": {
-    en: "Student Dashboard",
-    zh: "学生仪表板"
-  },
-  "manage-classes": {
-    en: "Manage Classes",
-    zh: "管理班级"
-  },
-  "manage-classes-desc": {
-    en: "Create and manage your classes",
-    zh: "创建和管理您的班级"
-  },
-  "manage-classes-details": {
-    en: "Create classes, add students, and manage assignments",
-    zh: "创建班级、添加学生并管理作业"
-  },
-  "manage-classes-description": {
-    en: "Organize your students into classes for better management",
-    zh: "将学生组织到班级中以更好地管理"
-  },
-  "battle-mode": {
-    en: "Battle Mode",
-    zh: "对战模式"
-  },
-  "battle-mode-desc": {
-    en: "Create challenges for students",
-    zh: "为学生创建挑战"
-  },
-  "battle-mode-details": {
-    en: "Set up battles with rewards for winners",
-    zh: "设置对战并为获胜者提供奖励"
-  },
-  "enter-battle-mode": {
-    en: "Enter Battle Mode",
-    zh: "进入对战模式"
-  },
-  "school-collab": {
-    en: "School Collaboration",
-    zh: "学校协作"
-  },
-  "school-collab-desc": {
-    en: "Connect with other teachers",
-    zh: "与其他教师联系"
-  },
-  "school-collab-details": {
-    en: "Work together across schools and classes",
-    zh: "跨学校和班级一起工作"
-  },
-  "school-collaboration": {
-    en: "School Collaboration",
-    zh: "学校协作"
-  },
-  "active-battles": {
-    en: "Active Battles",
-    zh: "活跃对战"
-  },
-  "back-to-dashboard": {
-    en: "Back to Dashboard",
-    zh: "返回仪表板"
-  },
-  "reports-analytics": {
-    en: "Reports & Analytics",
-    zh: "报告与分析"
-  },
-  "student-participation": {
-    en: "Track student participation",
-    zh: "跟踪学生参与情况"
-  },
-  "student-engagement": {
-    en: "Monitor student engagement and rewards",
-    zh: "监控学生参与度和奖励"
-  },
-  
-  // Pokemon
-  "pokemon-wheel": {
-    en: "Pokémon Wheel",
-    zh: "宝可梦转盘"
-  },
-  "spin-wheel": {
-    en: "Spin Wheel",
-    zh: "旋转转盘"
-  },
-  "insufficient-coins": {
-    en: "You need at least 1 coin to spin the wheel",
-    zh: "您需要至少1个硬币来旋转转盘"
-  },
-  "no-pokemon-available": {
-    en: "No Pokémon available in the pool",
-    zh: "池中没有可用的宝可梦"
-  },
-  
-  // Class Management
-  "classes": {
-    en: "Classes",
-    zh: "班级"
-  },
-  "students": {
-    en: "Students",
-    zh: "学生"
-  },
-  "create-class": {
-    en: "Create Class",
-    zh: "创建班级"
-  },
-  "class-name": {
-    en: "Class Name",
-    zh: "班级名称"
-  },
-  "create-new-class": {
-    en: "Create New Class",
-    zh: "创建新班级"
-  },
-  "new-class-created": {
-    en: "New class created successfully",
-    zh: "新班级创建成功"
-  },
-  "edit-class": {
-    en: "Edit Class",
-    zh: "编辑班级"
-  },
-  "class-updated": {
-    en: "Class updated successfully",
-    zh: "班级更新成功"
-  },
-  "confirm-delete-class": {
-    en: "Are you sure you want to delete this class?",
-    zh: "您确定要删除此班级吗？"
-  },
-  "class-deleted": {
-    en: "Class deleted successfully",
-    zh: "班级删除成功"
-  },
-  "view-students": {
-    en: "View Students",
-    zh: "查看学生"
-  },
-  "add-student": {
-    en: "Add Student",
-    zh: "添加学生"
-  },
-  "remove-student": {
-    en: "Remove Student",
-    zh: "移除学生"
-  },
-  "confirm-remove-student": {
-    en: "Are you sure you want to remove this student from the class?",
-    zh: "您确定要从班级中移除此学生吗？"
-  },
-  "student-removed": {
-    en: "Student removed successfully",
-    zh: "学生移除成功"
-  },
-  "no-students-in-class": {
-    en: "No students in this class",
-    zh: "该班级中没有学生"
-  },
-  "award-coins": {
-    en: "Award Coins",
-    zh: "奖励硬币"
-  },
-  "remove-coins": {
-    en: "Remove Coins",
-    zh: "移除硬币"
-  },
-  "remove-pokemon": {
-    en: "Remove Pokémon",
-    zh: "移除宝可梦"
-  },
-  "coin-amount": {
-    en: "Coin Amount",
-    zh: "硬币数量"
-  },
-  "award-student-coins": {
-    en: "Award Student Coins",
-    zh: "给学生奖励硬币"
-  },
-  "award-coins-desc": {
-    en: "Enter the amount of coins to award to the student",
-    zh: "输入要奖励给学生的硬币数量"
-  },
-  "coins-awarded": {
-    en: "Coins awarded successfully",
-    zh: "硬币奖励成功"
-  },
-  "pokemon-removed": {
-    en: "A random Pokémon was removed from student's collection",
-    zh: "一个随机宝可梦已从学生的收藏中移除"
-  },
-  "no-pokemon-to-remove": {
-    en: "Student doesn't have any Pokémon to remove",
-    zh: "学生没有宝可梦可移除"
-  },
-  "coins-removed": {
-    en: "Coins removed successfully",
-    zh: "硬币移除成功"
-  },
-  "insufficient-student-coins": {
-    en: "Student doesn't have enough coins",
-    zh: "学生硬币不足"
-  },
-  
-  // Battle Mode
-  "create-battle": {
-    en: "Create Battle",
-    zh: "创建对战"
-  },
-  "battle-name": {
-    en: "Battle Name",
-    zh: "对战名称"
-  },
-  "battle-description": {
-    en: "Battle Description",
-    zh: "对战描述"
-  },
-  "battle-scope": {
-    en: "Battle Scope",
-    zh: "对战范围"
-  },
-  "school-wide": {
-    en: "School-wide",
-    zh: "全校范围"
-  },
-  "class-only": {
-    en: "Class only",
-    zh: "仅班级"
-  },
-  "select-class": {
-    en: "Select Class",
-    zh: "选择班级"
-  },
-  "base-reward": {
-    en: "Base Reward (coins)",
-    zh: "基础奖励（硬币）"
-  },
-  "time-limit": {
-    en: "Time Limit",
-    zh: "时间限制"
-  },
-  "battle-created": {
-    en: "Battle created successfully",
-    zh: "对战创建成功"
-  },
-  "active-battles": {
-    en: "Active Battles",
-    zh: "活跃对战"
-  },
-  "completed-battles": {
-    en: "Completed Battles",
-    zh: "已完成对战"
-  },
-  "no-active-battles": {
-    en: "No active battles",
-    zh: "没有活跃对战"
-  },
-  "no-completed-battles": {
-    en: "No completed battles",
-    zh: "没有已完成对战"
-  },
-  "battle-ends": {
-    en: "Battle ends",
-    zh: "对战结束"
-  },
-  "view-submissions": {
-    en: "View Submissions",
-    zh: "查看提交"
-  },
-  "end-battle": {
-    en: "End Battle",
-    zh: "结束对战"
-  },
-  "submissions": {
-    en: "Submissions",
-    zh: "提交"
-  },
-  "confirm-end-battle": {
-    en: "Are you sure you want to end this battle? This action cannot be undone.",
-    zh: "您确定要结束此对战吗？此操作无法撤消。"
-  },
-  "select-winner": {
-    en: "Select Winner",
-    zh: "选择获胜者"
-  },
-  "winner-selected": {
-    en: "Winner selected successfully",
-    zh: "获胜者选择成功"
-  },
-  "photo": {
-    en: "Photo",
-    zh: "照片"
-  },
-  "voice": {
-    en: "Voice",
-    zh: "语音"
-  },
-  "battle-details": {
-    en: "Battle Details",
-    zh: "对战详情"
-  },
-  "enter-battle": {
-    en: "Enter Battle",
-    zh: "进入对战"
-  },
-  "battle-expired": {
-    en: "This battle has expired",
-    zh: "此对战已过期"
-  },
-  "battle-completed": {
-    en: "This battle is completed",
-    zh: "此对战已完成"
-  },
-  "submit-answer": {
-    en: "Submit Answer",
-    zh: "提交答案"
-  },
-  "record-voice": {
-    en: "Record Voice",
-    zh: "录制语音"
-  },
-  "take-photo": {
-    en: "Take Photo",
-    zh: "拍照"
-  },
-  "recording": {
-    en: "Recording...",
-    zh: "录音中..."
-  },
-  "submit": {
-    en: "Submit",
-    zh: "提交"
-  },
-  "answer-submitted": {
-    en: "Your answer has been submitted",
-    zh: "您的答案已提交"
-  },
-  "already-submitted": {
-    en: "You have already submitted an answer",
-    zh: "您已经提交了答案"
-  },
-  "no-media": {
-    en: "Please record a voice or take a photo",
-    zh: "请录制语音或拍照"
-  },
-  "winner-announcement": {
-    en: "Winner",
-    zh: "获胜者"
-  },
-  
-  // Messaging
-  "add-friend": {
-    en: "Add Friend",
-    zh: "添加好友"
-  },
-  "add-friends": {
-    en: "Add Friends",
-    zh: "添加好友"
-  },
-  "add-friends-description": {
-    en: "Search for other users and send friend requests",
-    zh: "搜索其他用户并发送好友请求"
-  },
-  "search": {
-    en: "Search",
-    zh: "搜索"
-  },
-  "requests": {
-    en: "Requests",
-    zh: "请求"
-  },
-  "search-by-name-or-username": {
-    en: "Search by name or username",
-    zh: "按名称或用户名搜索"
-  },
-  "search-prompt": {
-    en: "Type a name or username to search",
-    zh: "输入名称或用户名进行搜索"
-  },
-  "no-results": {
-    en: "No results found",
-    zh: "未找到结果"
-  },
-  "send-request": {
-    en: "Send Request",
-    zh: "发送请求"
-  },
-  "already-friends": {
-    en: "Already Friends",
-    zh: "已经是好友"
-  },
-  "already-friends-description": {
-    en: "You are already friends with this user",
-    zh: "您已经与此用户成为好友"
-  },
-  "request-exists": {
-    en: "Request Exists",
-    zh: "请求已存在"
-  },
-  "request-already-sent": {
-    en: "You have already sent a friend request to this user",
-    zh: "您已经向此用户发送了好友请求"
-  },
-  "request-already-received": {
-    en: "This user has already sent you a friend request",
-    zh: "此用户已经向您发送了好友请求"
-  },
-  "request-sent": {
-    en: "Request Sent",
-    zh: "请求已发送"
-  },
-  "request-sent-description": {
-    en: "Your friend request has been sent",
-    zh: "您的好友请求已发送"
-  },
-  "accept": {
-    en: "Accept",
-    zh: "接受"
-  },
-  "reject": {
-    en: "Reject",
-    zh: "拒绝"
-  },
-  "request-accepted": {
-    en: "Request Accepted",
-    zh: "请求已接受"
-  },
-  "request-accepted-description": {
-    en: "You are now friends with this user",
-    zh: "您现在与此用户成为好友"
-  },
-  "request-rejected": {
-    en: "Request Rejected",
-    zh: "请求已拒绝"
-  },
-  "request-rejected-description": {
-    en: "Friend request rejected",
-    zh: "好友请求已拒绝"
-  },
-  "no-pending-requests": {
-    en: "No pending friend requests",
-    zh: "没有待处理的好友请求"
-  },
-  "no-contacts": {
-    en: "No contacts yet",
-    zh: "暂无联系人"
-  },
-  "add-friends-to-message": {
-    en: "Add friends to start messaging",
-    zh: "添加好友开始聊天"
-  },
-  "select-contact": {
-    en: "Select a contact to chat",
-    zh: "选择联系人开始聊天"
-  },
-  "select-contact-description": {
-    en: "Click on a contact to start chatting",
-    zh: "点击联系人开始聊天"
-  },
-  "type-message": {
-    en: "Type a message",
-    zh: "输入消息"
-  },
-  "microphone-access-error": {
-    en: "Error accessing microphone",
-    zh: "访问麦克风时出错"
-  },
-  
-  // Profile & Settings
-  "profile-settings": {
-    en: "Profile Settings",
-    zh: "个人资料设置"
-  },
-  "update-avatar": {
-    en: "Update Avatar",
-    zh: "更新头像"
-  },
-  "take-picture": {
-    en: "Take Picture",
-    zh: "拍照"
-  },
-  "upload-image": {
-    en: "Upload Image",
-    zh: "上传图片"
-  },
-  "avatar-updated": {
-    en: "Avatar updated successfully",
-    zh: "头像更新成功"
-  },
-  "update-profile": {
-    en: "Update Profile",
-    zh: "更新个人资料"
-  },
-  "profile-updated": {
-    en: "Profile updated successfully",
-    zh: "个人资料更新成功"
-  },
-  "change-language": {
-    en: "Change Language",
-    zh: "更改语言"
-  },
-  "language-changed": {
-    en: "Language changed successfully",
-    zh: "语言更改成功"
-  },
-  "english": {
-    en: "English",
-    zh: "英语"
-  },
-  "chinese": {
-    en: "Chinese",
-    zh: "中文"
-  },
-  "change-password": {
-    en: "Change Password",
-    zh: "更改密码"
-  },
-  "current-password": {
-    en: "Current Password",
-    zh: "当前密码"
-  },
-  "new-password": {
-    en: "New Password",
-    zh: "新密码"
-  },
-  "confirm-password": {
-    en: "Confirm Password",
-    zh: "确认密码"
-  },
-  "passwords-dont-match": {
-    en: "Passwords don't match",
-    zh: "密码不匹配"
-  },
-  "password-changed": {
-    en: "Password changed successfully",
-    zh: "密码更改成功"
-  },
-  "incorrect-password": {
-    en: "Incorrect current password",
-    zh: "当前密码不正确"
-  },
-  "account": {
-    en: "Account",
-    zh: "账户"
-  },
-  "appearance": {
-    en: "Appearance",
-    zh: "外观"
-  },
-  "notifications": {
-    en: "Notifications",
-    zh: "通知"
-  }
-};
+     // Messages
+     "messages": "Mensajes",
+     "new-message": "Nuevo Mensaje",
+     "send": "Enviar",
+     "message-sent": "Mensaje Enviado",
+     "message-sent-description": "Tu mensaje ha sido enviado exitosamente.",
+     "send-message": "Enviar Mensaje",
+     "message": "Mensaje",
+     "sender": "Remitente",
+     "receiver": "Destinatario",
+     "message-content": "Contenido del Mensaje",
+     "no-messages": "Sin Mensajes",
+     "no-messages-description": "Aún no tienes ningún mensaje.",
+     "friends": "Amigos",
+     "add-friend": "Agregar Amigo",
+     "search-users": "Buscar Usuarios",
+     "send-friend-request": "Enviar Solicitud de Amistad",
+     "friend-request-sent": "Solicitud de Amistad Enviada",
+     "accept": "Aceptar",
+     "decline": "Rechazar",
+     "friend-request-accepted": "Solicitud de Amistad Aceptada",
+     "friend-request-declined": "Solicitud de Amistad Rechazada",
+     "pending-requests": "Solicitudes Pendientes",
+     "no-pending-requests": "Sin Solicitudes Pendientes",
+     "no-friends-yet": "Aún no tienes Amigos",
+     "find-friends": "Encontrar Amigos",
 
-// Function to translate a key to the specified language
-export const translate = (key: string, language: Language): string => {
-  // Return the translation if it exists, otherwise return the key itself
-  if (translations[key] && translations[key][language]) {
-    return translations[key][language];
-  }
-  
-  // Fallback to English if the requested language translation doesn't exist
-  if (translations[key] && translations[key]["en"]) {
-    return translations[key]["en"];
-  }
-  
-  // Return the key itself as a last resort
-  console.warn(`Translation missing for key: ${key}`);
-  return key;
+     // Battles
+     "battle-arena": "Arena de Batalla",
+     "active-battles": "Batallas Activas",
+     "completed-battles": "Batallas Completadas",
+     "join-battle": "Unirse a la Batalla",
+     "create-battle": "Crear Batalla",
+     "battle-name": "Nombre de la Batalla",
+     "battle-description": "Descripción de la Batalla",
+     "battle-reward": "Recompensa de la Batalla",
+     "battle-time-limit": "Límite de Tiempo",
+     "battle-created": "Batalla Creada",
+     "battle-joined": "Batalla Unida",
+     "joined-battle": "Batalla Unida",
+     "joined-battle-description": "¡Te has unido exitosamente a la batalla!",
+     "submit-answer": "Enviar Respuesta",
+     "submit-answer-description": "Envía tu respuesta a este desafío de batalla",
+     "take-photo": "Tomar Foto",
+     "record-voice": "Grabar Voz",
+     "answer-submitted": "Respuesta Enviada",
+     "answer-submitted-description": "Tu respuesta ha sido enviada exitosamente.",
+     "answer-submitted-title": "Respuesta Enviada",
+     "answer-submitted-waiting": "Tu respuesta ha sido enviada. Espera a que el profesor la revise.",
+     "submitting": "Enviando...",
+     "battle-winner": "Ganador de la Batalla",
+     "winner": "Ganador",
+     "you-won-battle": "¡Ganaste esta batalla!",
+     "better-luck-next-time": "¡Mejor suerte la próxima vez!",
+     "no-winner-declared": "Aún no se ha declarado ningún ganador.",
+     "reward-received": "¡Recibiste {coins} monedas!",
+     "you-participated": "Participaste",
+     "you-participated-and-submitted": "Participaste y enviaste una respuesta",
+     "you-did-not-participate": "No participaste",
+     "days-remaining": "{count} días restantes",
+     "hours-remaining": "{count}h {minutes}m restantes",
+     "minutes-remaining": "{count} minutos restantes",
+     "expired": "Expirado",
+     "ends-at": "Termina en",
+     "completed": "Completado",
+     "answer-required": "Respuesta Requerida",
+     "back-to-battles": "Volver a las Batallas",
+     "participants": "Participantes",
+     "reward": "Recompensa",
+     "answer-battle": "Responder Batalla",
+     "view-submission": "Ver Envío",
+     "no-active-battles": "Sin Batallas Activas",
+     "no-active-battles-description": "No hay batallas activas en este momento.",
+     "no-completed-battles": "Sin Batallas Completadas",
+     "no-completed-battles-description": "Aún no has participado en ninguna batalla.",
+     "error": "Error",
+     "recording": "Grabando",
+     "recording-description": "Grabando tu voz... ¡Habla ahora!",
+     "recording-stopped": "Grabación Detenida",
+     "recording-stopped-description": "Tu grabación de voz ha sido guardada.",
+     "microphone-access-error": "No se pudo acceder al micrófono. Por favor, verifica los permisos de tu navegador.",
+     "cancel": "Cancelar",
+
+     // Reports
+     "reports": "Informes",
+     "student-participation": "Participación del Estudiante",
+     "class-engagement": "Compromiso de la Clase",
+     "pokemon-distribution": "Distribución de Pokémon",
+     "generate-report": "Generar Informe",
+     "report-generated": "Informe Generado",
+     "report-period": "Período del Informe",
+     "daily": "Diario",
+     "weekly": "Semanal",
+     "monthly": "Mensual",
+     "export-csv": "Exportar CSV",
+     "view-details": "Ver Detalles"
+   },
 };
