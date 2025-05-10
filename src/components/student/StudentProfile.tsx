@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,6 @@ import { Separator } from "@/components/ui/separator";
 import { Coins, Gift } from "lucide-react";
 import { Student } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
-
 interface StudentProfileProps {
   student: Student;
   coins: number;
@@ -15,7 +13,6 @@ interface StudentProfileProps {
   onGiveCoins: () => void;
   onGivePokemon: () => void;
 }
-
 const StudentProfile: React.FC<StudentProfileProps> = ({
   student,
   coins,
@@ -24,10 +21,10 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
   onGiveCoins,
   onGivePokemon
 }) => {
-  const { t } = useTranslation();
-
-  return (
-    <Card className="col-span-1 pokemon-card">
+  const {
+    t
+  } = useTranslation();
+  return <Card className="col-span-1 pokemon-card">
       <CardHeader>
         <CardTitle>{t("student-profile")}</CardTitle>
       </CardHeader>
@@ -57,26 +54,15 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
           <Separator className="my-2" />
           
           <div className="flex flex-col gap-2">
-            <Button
-              className="w-full flex items-center"
-              onClick={onGiveCoins}
-            >
+            <Button className="w-full flex items-center" onClick={onGiveCoins}>
               <Coins className="h-4 w-4 mr-2" />
               {t("give-coins")}
             </Button>
             
-            <Button
-              className="w-full flex items-center"
-              onClick={onGivePokemon}
-            >
-              <Gift className="h-4 w-4 mr-2" />
-              {t("give-pokemon")}
-            </Button>
+            
           </div>
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default StudentProfile;
