@@ -21,8 +21,10 @@ const TeacherLogin: React.FC = () => {
   };
   
   return (
-    <div className="min-h-screen bg-cover bg-center" 
-         style={{ backgroundImage: "url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/25.png'), linear-gradient(to right, #accbee 0%, #e7f0fd 100%)" }}>
+    <div className="min-h-screen bg-cover bg-center relative overflow-hidden" 
+         style={{ 
+           backgroundImage: "linear-gradient(to right, #accbee 0%, #e7f0fd 100%)"
+         }}>
       <div className="absolute top-4 left-4 flex items-center gap-2">
         <Button 
           variant="ghost" 
@@ -43,7 +45,30 @@ const TeacherLogin: React.FC = () => {
           onClick={() => navigate("/")}
         />
       </div>
+      
       <LoginForm type="teacher" onLoginSuccess={handleLoginSuccess} />
+      
+      {/* Pokémon decoration at the bottom */}
+      <div className="absolute bottom-0 left-0 right-0 flex justify-around pointer-events-none">
+        <img 
+          src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/25.png" 
+          alt="Pikachu" 
+          className="h-24 w-auto animate-bounce" 
+          style={{ animationDuration: "2s", animationDelay: "0.2s" }}
+        />
+        <img 
+          src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/4.png" 
+          alt="Charmander" 
+          className="h-24 w-auto animate-bounce" 
+          style={{ animationDuration: "2.5s", animationDelay: "0.5s" }}
+        />
+        <img 
+          src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/7.png" 
+          alt="Squirtle" 
+          className="h-24 w-auto animate-bounce" 
+          style={{ animationDuration: "2.2s", animationDelay: "0.3s" }}
+        />
+      </div>
     </div>
   );
 };

@@ -6,8 +6,12 @@
  * @returns boolean indicating if the account is activated
  */
 export const isTeacherActivated = (): boolean => {
-  // In a real app, this would check against a database
-  // For now, we'll check localStorage
+  // Check if user is admin (admins are always activated)
+  if (localStorage.getItem("isAdmin") === "true") {
+    return true;
+  }
+  
+  // For regular teachers, check activation status
   return localStorage.getItem("teacherActivated") === "true";
 };
 

@@ -15,12 +15,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const userType = localStorage.getItem("userType");
   const isActivated = isTeacherActivated();
+  const isAdmin = localStorage.getItem("isAdmin") === "true";
   const navigate = useNavigate();
   const { t } = useTranslation();
 
   useEffect(() => {
     // For teachers who are logged in but not activated, show the modal
-    if (isLoggedIn && userType === "teacher" && !isActivated) {
+    // Skip for admin users who are always activated
+    if (isLoggedIn && userType === "teacher" && !isActivated && !isAdmin) {
       setShowActivationModal(true);
       toast({
         title: t("account-not-activated"),
@@ -28,7 +30,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         variant: "destructive",
       });
     }
-  }, [isLoggedIn, userType, isActivated, t]);
+  }, [isLoggedIn, userType, isActivated, isAdmin, t]);
 
   const handleCloseModal = () => {
     setShowActivationModal(false);
@@ -36,12 +38,14 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     navigate("/contact");
   };
 
+  // Handle login check
   if (!isLoggedIn) {
     return <Navigate to={userType === "teacher" ? "/teacher-login" : "/student-login"} />;
   }
 
   // For teachers who are not activated, render a simple placeholder with the activation modal
-  if (userType === "teacher" && !isActivated) {
+  // Admin users are exempt from activation check
+  if (userType === "teacher" && !isActivated && !isAdmin) {
     return (
       <>
         <ActivationModal isOpen={showActivationModal} onClose={handleCloseModal} />

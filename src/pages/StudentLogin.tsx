@@ -30,8 +30,10 @@ const StudentLogin: React.FC = () => {
   };
   
   return (
-    <div className="min-h-screen bg-cover bg-center flex flex-col" 
-         style={{ backgroundImage: "url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/1.png'), linear-gradient(90deg, hsla(139, 70%, 75%, 1) 0%, hsla(63, 90%, 76%, 1) 100%)" }}>
+    <div className="min-h-screen bg-cover bg-center relative overflow-hidden" 
+         style={{ 
+           backgroundImage: "linear-gradient(90deg, hsla(139, 70%, 75%, 1) 0%, hsla(63, 90%, 76%, 1) 100%)"
+         }}>
       <div className="absolute top-4 left-4 flex items-center gap-2">
         <Button 
           variant="ghost" 
@@ -46,10 +48,10 @@ const StudentLogin: React.FC = () => {
       <div className="flex-grow">
         <LoginForm type="student" onLoginSuccess={handleLoginSuccess} />
       
-        {/* Teacher login redirection button moved inside the card */}
+        {/* Teacher login redirection box */}
         <div className="flex justify-center mt-4 pb-8">
-          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-4 shadow-md">
-            <p className="text-center mb-2 text-gray-700">{t("are-you-a-teacher")}</p>
+          <div className="bg-white/80 backdrop-blur-sm rounded-lg p-6 shadow-md max-w-md w-full">
+            <p className="text-center mb-4 text-gray-700 font-medium">{t("are-you-a-teacher")}</p>
             <Button
               variant="default"
               onClick={() => navigate("/teacher-login")}
@@ -59,6 +61,28 @@ const StudentLogin: React.FC = () => {
             </Button>
           </div>
         </div>
+      </div>
+
+      {/* Pokémon decoration at the bottom */}
+      <div className="absolute bottom-0 left-0 right-0 flex justify-around pointer-events-none">
+        <img 
+          src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/1.png" 
+          alt="Bulbasaur" 
+          className="h-24 w-auto animate-bounce" 
+          style={{ animationDuration: "2.3s", animationDelay: "0.1s" }}
+        />
+        <img 
+          src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/152.png" 
+          alt="Chikorita" 
+          className="h-24 w-auto animate-bounce" 
+          style={{ animationDuration: "2.1s", animationDelay: "0.4s" }}
+        />
+        <img 
+          src="https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/133.png" 
+          alt="Eevee" 
+          className="h-24 w-auto animate-bounce" 
+          style={{ animationDuration: "2.4s", animationDelay: "0.6s" }}
+        />
       </div>
     </div>
   );
