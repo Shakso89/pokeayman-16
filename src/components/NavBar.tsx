@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, MessageSquare, User, Home } from "lucide-react";
+import { LogOut, Settings, MessageSquare, User, Home, Medal } from "lucide-react";
 import LanguageSelector from "./LanguageSelector";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -74,6 +74,15 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName, userAvatar }
           
           <LanguageSelector />
           
+          <Button 
+            variant="ghost" 
+            size="icon"
+            onClick={() => navigate(`/${userType === "teacher" ? "teacher" : "student"}/rankings`)}
+            title={t("rankings")}
+          >
+            <Medal size={20} />
+          </Button>
+
           <Button 
             variant="ghost" 
             size="icon"
