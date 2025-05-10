@@ -1,0 +1,126 @@
+
+import { Pokemon, StudentPokemon } from "@/types/pokemon";
+import { getStudentPokemons, saveStudentPokemons } from "./storage";
+import { getPokemonPools, savePokemonPools } from "./storage";
+
+// Get student Pokemon collection
+export const getStudentPokemonCollection = (studentId: string): StudentPokemon | null => {
+  const studentPokemons = getStudentPokemons();
+  return studentPokemons.find(sp => sp.studentId === studentId) || null;
+};
+
+// Remove a random pokemon from a student
+export const removePokemonFromStudent = (studentId: string): boolean => {
+  const collection = getStudentPokemonCollection(studentId);
+  if (!collection || collection.pokemons.length === 0) {
+    return false;
+  }
+
+  // Select a random pokemon to remove
+  const randomIndex = Math.floor(Math.random() * collection.pokemons.length);
+  
+  // Remove the pokemon from the student's collection
+  collection.pokemons.splice(randomIndex, 1);
+  
+  // Update localStorage
+  const studentCollections = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
+  const studentIndex = studentCollections.findIndex((item: any) => item.studentId === studentId);
+  
+  if (studentIndex !== -1) {
+    studentCollections[studentIndex].pokemons = collection.pokemons;
+    localStorage.setItem("studentPokemons", JSON.stringify(studentCollections));
+    return true;
+  }
+  
+  return false;
+};
+
+// Remove coins from a student
+export const removeCoinsFromStudent = (studentId: string, amount: number): boolean => {
+  const collection = getStudentPokemonCollection(studentId);
+  if (!collection) {
+    return false;
+  }
+  
+  if (collection.coins < amount) {
+    return false;
+  }
+  
+  collection.coins -= amount;
+  
+  // Update localStorage
+  const studentCollections = getStudentPokemons();
+  const studentIndex = studentCollections.findIndex((item) => item.studentId === studentId);
+  
+  if (studentIndex !== -1) {
+    studentCollections[studentIndex].coins = collection.coins;
+    saveStudentPokemons(studentCollections);
+    return true;
+  }
+  
+  return false;
+};
+
+// Award coins to a student
+export const awardCoinsToStudent = (studentId: string, amount: number): void => {
+  const studentPokemons = getStudentPokemons();
+  const studentIndex = studentPokemons.findIndex(sp => sp.studentId === studentId);
+  
+  if (studentIndex >= 0) {
+    studentPokemons[studentIndex].coins += amount;
+  } else {
+    studentPokemons.push({
+      studentId,
+      pokemons: [],
+      coins: amount
+    });
+  }
+  
+  saveStudentPokemons(studentPokemons);
+};
+
+// Assign Pokemon to a student
+export const assignPokemonToStudent = (schoolId: string, studentId: string, pokemonId: string): boolean => {
+  const pools = getPokemonPools();
+  const poolIndex = pools.findIndex(p => p.schoolId === schoolId);
+  
+  if (poolIndex < 0) return false;
+  
+  const pokemonIndex = pools[poolIndex].availablePokemons.findIndex(p => p.id === pokemonId);
+  if (pokemonIndex < 0) return false;
+  
+  // Remove Pokemon from pool
+  const pokemon = pools[poolIndex].availablePokemons.splice(pokemonIndex, 1)[0];
+  savePokemonPools(pools);
+  
+  // Add Pokemon to student
+  const studentPokemons = getStudentPokemons();
+  const studentIndex = studentPokemons.findIndex(sp => sp.studentId === studentId);
+  
+  if (studentIndex >= 0) {
+    studentPokemons[studentIndex].pokemons.push(pokemon);
+  } else {
+    studentPokemons.push({
+      studentId,
+      pokemons: [pokemon],
+      coins: 0
+    });
+  }
+  
+  saveStudentPokemons(studentPokemons);
+  return true;
+};
+
+// Use a coin to spin the wheel
+export const useStudentCoin = (studentId: string): boolean => {
+  const studentPokemons = getStudentPokemons();
+  const studentIndex = studentPokemons.findIndex(sp => sp.studentId === studentId);
+  
+  if (studentIndex < 0 || studentPokemons[studentIndex].coins <= 0) {
+    return false;
+  }
+  
+  studentPokemons[studentIndex].coins -= 1;
+  saveStudentPokemons(studentPokemons);
+  return true;
+};
