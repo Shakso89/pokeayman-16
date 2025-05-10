@@ -127,11 +127,11 @@ const StudentBattlePage: React.FC = () => {
     
     if (diffHours > 24) {
       const diffDays = Math.floor(diffHours / 24);
-      return t("days-remaining", { count: diffDays });
+      return t("days-remaining").replace("{{count}}", diffDays.toString());
     } else if (diffHours > 0) {
-      return t("hours-remaining", { count: diffHours, minutes: diffMinutes });
+      return t("hours-remaining").replace("{{count}}", diffHours.toString()).replace("{{minutes}}", diffMinutes.toString());
     } else {
-      return t("minutes-remaining", { count: diffMinutes });
+      return t("minutes-remaining").replace("{{count}}", diffMinutes.toString());
     }
   };
   
@@ -341,9 +341,7 @@ const StudentBattlePage: React.FC = () => {
                               <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                                 <p className="font-medium text-green-800">{t("you-won-battle")}</p>
                                 <p className="text-sm text-green-700">
-                                  {t("reward-received", {
-                                    coins: (selectedBattle.baseReward || 0) + (selectedBattle.participants?.length || 0)
-                                  })}
+                                  {t("reward-received").replace("{{coins}}", ((selectedBattle.baseReward || 0) + (selectedBattle.participants?.length || 0)).toString())}
                                 </p>
                               </div>
                             )}
@@ -513,9 +511,7 @@ const StudentBattlePage: React.FC = () => {
                               {t("you-won-battle")}
                             </p>
                             <p className="text-sm text-gray-700">
-                              {t("reward-received", {
-                                coins: (battle.baseReward || 0) + (battle.participants?.length || 0)
-                              })}
+                              {t("reward-received").replace("{{coins}}", ((battle.baseReward || 0) + (battle.participants?.length || 0)).toString())}
                             </p>
                           </div>
                         ) : battle.winner ? (
