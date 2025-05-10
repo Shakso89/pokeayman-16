@@ -119,7 +119,7 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
   };
   return <div className="flex flex-col items-center">
       <div className="mb-4 relative w-48 h-48 flex items-center justify-center">
-        <img src="/pokeball.png" alt="Mystery Pokémon Ball" className="" />
+        <img alt="Mystery Pokémon Ball" className="" src="/lovable-uploads/4c78e665-5c3d-423d-b622-e43a286687a5.png" />
         {isOpening && <div className="absolute inset-0 flex items-center justify-center">
             <div className="w-16 h-16 border-t-4 border-purple-500 border-solid rounded-full animate-spin"></div>
           </div>}
