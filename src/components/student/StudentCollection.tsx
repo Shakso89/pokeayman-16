@@ -24,6 +24,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ pokemons }) => {
               </div>
             </div>
             <CardContent className="pt-10 pb-4 text-center">
+              {/* Pokemon name and info should not be translated */}
               <h3 className="font-bold text-lg">{pokemon.name}</h3>
               <p className="text-sm text-gray-500">{pokemon.type}</p>
               <p className="mt-1">

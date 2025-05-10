@@ -31,22 +31,22 @@ const PokemonWheelTab: React.FC<PokemonWheelTabProps> = ({
   return (
     <Card className="mx-auto max-w-xl shadow-lg">
       <CardHeader className="text-center bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-t-md">
-        <CardTitle className="text-2xl">Daily Pokémon Wheel</CardTitle>
+        <CardTitle className="text-2xl">{t("daily-pokemon-wheel") || "Daily Pokémon Wheel"}</CardTitle>
         <CardDescription className="text-white opacity-90">
-          Spend 1 coin to spin the wheel and win a Pokémon from today's selection!
+          {t("spend-coin-to-spin") || "Spend 1 coin to spin the wheel and win a Pokémon from today's selection!"}
         </CardDescription>
       </CardHeader>
       <CardContent className="p-6">
         {wheelPokemons.length === 0 ? (
           <div className="text-center p-8">
-            <p className="mb-4 text-lg text-gray-700">No available Pokémon</p>
+            <p className="mb-4 text-lg text-gray-700">{t("no-available-pokemon") || "No available Pokémon"}</p>
             <Button
               onClick={onRefreshWheel}
               className="mx-auto flex items-center gap-2"
               disabled={isLoadingWheel}
             >
               <RefreshCw className="h-4 w-4" />
-              {isLoadingWheel ? "Checking..." : "Check Availability"}
+              {isLoadingWheel ? (t("checking") || "Checking...") : (t("check-availability") || "Check Availability")}
             </Button>
           </div>
         ) : (

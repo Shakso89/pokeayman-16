@@ -12,7 +12,7 @@ import {
 import { Pokemon } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 
-// Import our new components
+// Import our components
 import StudentHeader from "@/components/student/StudentHeader";
 import StudentCollection from "@/components/student/StudentCollection";
 import PokemonWheelTab from "@/components/student/PokemonWheelTab";
@@ -93,9 +93,11 @@ const StudentDashboard: React.FC = () => {
     if (!schoolId) return;
     
     setIsLoadingWheel(true);
+    console.log("Loading wheel pokemon for school:", schoolId);
     
-    // Get daily wheel pokemons instead of random selection
+    // Get daily wheel pokemons
     const dailyWheelPokemons = getDailyWheelPokemons(schoolId);
+    console.log("Daily wheel pokemons:", dailyWheelPokemons);
     
     if (dailyWheelPokemons.length > 0) {
       setWheelPokemon(dailyWheelPokemons);
@@ -157,8 +159,8 @@ const StudentDashboard: React.FC = () => {
         
         <Tabs defaultValue="collection" value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="collection" className="text-lg">My Collection</TabsTrigger>
-            <TabsTrigger value="wheel" className="text-lg">Pokémon Wheel</TabsTrigger>
+            <TabsTrigger value="collection" className="text-lg">{t("my-collection") || "My Collection"}</TabsTrigger>
+            <TabsTrigger value="wheel" className="text-lg">{t("pokemon-wheel") || "Pokémon Wheel"}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="collection">

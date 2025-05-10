@@ -21,7 +21,10 @@ const PokemonWinModal: React.FC<PokemonWinModalProps> = ({
       <div className="relative bg-white rounded-xl overflow-hidden shadow-2xl max-w-md w-full animate-scale-in">
         <div className="relative p-6 text-center">
           <h2 className="text-2xl font-bold mb-3">{t("congratulations") || "Congratulations!"}</h2>
-          <p className="text-lg mb-6">{(t("you-won-pokemon") || "You won {name}!").replace("{name}", pokemon.name)}</p>
+          <p className="text-lg mb-6">
+            {/* Don't translate Pokemon name */}
+            {(t("you-won-pokemon") || "You won {name}!").replace("{name}", pokemon.name)}
+          </p>
           
           <div className="relative mb-6">
             <Sparkle className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 text-yellow-400 h-6 w-6 animate-pulse" />
@@ -39,7 +42,8 @@ const PokemonWinModal: React.FC<PokemonWinModalProps> = ({
           <div className="p-4 rounded-lg bg-gray-50 mb-4">
             <p className="mb-2">
               <span className="font-medium">
-                {(t("pokemon-type") || "Type: {type}").replace("{type}", pokemon.type)}
+                {/* Display Pokemon type directly without translation */}
+                Type: {pokemon.type}
               </span>
             </p>
             <p>

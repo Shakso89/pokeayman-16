@@ -69,7 +69,7 @@ const SchoolPoolDialog: React.FC<SchoolPoolDialogProps> = ({
             
             {schoolPokemons.length > 96 && (
               <div className="col-span-full text-center py-4 text-gray-500 text-sm bg-white/50 rounded-lg">
-                {t("and-more-pokemon", { count: schoolPokemons.length - 96 }) || 
+                {t("and-more-pokemon") || 
                   `And ${schoolPokemons.length - 96} more Pokémon...`
                 }
               </div>

@@ -6,6 +6,7 @@ import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import PokemonWinModal from "./PokemonWinModal";
 
 interface PokemonWheelProps {
   studentId: string;
@@ -101,48 +102,10 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
     <div className="flex flex-col items-center">
       {/* Pokemon Win Modal */}
       {showWinModal && wonPokemon && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 animate-fade-in">
-          <div className="relative bg-white rounded-xl overflow-hidden shadow-2xl max-w-md w-full animate-scale-in">
-            <div className="relative p-6 text-center">
-              <h2 className="text-2xl font-bold mb-3">{t("congratulations") || "Congratulations!"}</h2>
-              <p className="text-lg mb-6">
-                {(t("you-won-pokemon") || "You won {name}!").replace("{name}", wonPokemon.name)}
-              </p>
-              
-              <div className="mx-auto w-32 h-32 bg-white rounded-full p-2 border-4 border-white shadow-xl flex items-center justify-center">
-                <img 
-                  src={wonPokemon.image} 
-                  alt={wonPokemon.name} 
-                  className="w-full h-full object-contain animate-bounce"
-                />
-              </div>
-              
-              <div className="p-4 rounded-lg bg-gray-50 my-4">
-                <p className="mb-2">
-                  <span className="font-medium">
-                    {(t("pokemon-type") || "Type: {type}").replace("{type}", wonPokemon.type)}
-                  </span>
-                </p>
-                <p>
-                  <span className={`inline-block px-2 py-1 rounded-full text-xs text-white ${
-                    wonPokemon.rarity === 'legendary' ? 'bg-yellow-500' :
-                    wonPokemon.rarity === 'rare' ? 'bg-purple-500' :
-                    wonPokemon.rarity === 'uncommon' ? 'bg-blue-500' : 'bg-green-500'
-                  }`}>
-                    {wonPokemon.rarity}
-                  </span>
-                </p>
-              </div>
-              
-              <Button 
-                className="w-full"
-                onClick={() => setShowWinModal(false)}
-              >
-                {t("close") || "Close"}
-              </Button>
-            </div>
-          </div>
-        </div>
+        <PokemonWinModal
+          pokemon={wonPokemon}
+          onClose={() => setShowWinModal(false)}
+        />
       )}
       
       {/* Wheel */}
@@ -209,7 +172,7 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
       <div className="flex flex-col items-center gap-4 mt-4">
         <Button
           className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-full text-lg flex items-center gap-2 shadow-lg"
-          disabled={isSpinning || coins <= 0}
+          disabled={isSpinning || coins <= 0 || wheelPokemons.length === 0}
           onClick={handleSpin}
           size="lg"
         >
