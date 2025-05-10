@@ -56,7 +56,8 @@ const RankingPage: React.FC = () => {
         
         if (collection) {
           const pokemons = collection.pokemons || [];
-          const rarePokemons = pokemons.filter(p => p.rarity === 'rare' || p.rarity === 'epic');
+          // Fix: Change the filter condition to only check for 'rare', not 'epic'
+          const rarePokemons = pokemons.filter(p => p.rarity === 'rare');
           const legendaryPokemons = pokemons.filter(p => p.rarity === 'legendary');
           
           rankings.push({
