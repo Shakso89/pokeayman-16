@@ -114,7 +114,7 @@ const StudentDetailPage: React.FC = () => {
       }
       
       // Fallback to default pokemon
-      const defaultPokemon = [
+      const defaultPokemon: Pokemon[] = [
         {
           id: "pokemon-1",
           name: "Pikachu",
@@ -168,7 +168,7 @@ const StudentDetailPage: React.FC = () => {
       
       toast({
         title: t("success"),
-        description: t("coins-given-to-student", { count: coinAmount }),
+        description: t("coins-given-to-student", { count: coinAmount })
       });
       
       setIsGiveCoinDialogOpen(false);
@@ -210,7 +210,7 @@ const StudentDetailPage: React.FC = () => {
       
       toast({
         title: t("success"),
-        description: t("pokemon-given-to-student", { name: selectedPokemon.name }),
+        description: t("pokemon-given-to-student", { name: selectedPokemon.name })
       });
       
       setSelectedPokemon(null);
@@ -243,7 +243,7 @@ const StudentDetailPage: React.FC = () => {
         
         toast({
           title: t("success"),
-          description: t("pokemon-removed", { name: pokemon.name }),
+          description: t("pokemon-removed", { name: pokemon.name })
         });
       }
     } catch (error) {
