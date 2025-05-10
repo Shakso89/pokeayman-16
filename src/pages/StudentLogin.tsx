@@ -46,9 +46,9 @@ const StudentLogin: React.FC = () => {
       {/* Logo at the top */}
       <div className="flex justify-center pt-4 mb-4 relative z-10">
         <img 
-          src="/lovable-uploads/40c04be5-3d6e-4938-9a00-006177dbef3b.png" 
-          alt="PokéAyman Logo" 
-          className="h-24 w-auto cursor-pointer hover:scale-105 transition-transform"
+          src="/lovable-uploads/4cee623c-b015-438c-9904-90f97f0ea96a.png" 
+          alt="Student Logo"
+          className="h-32 w-auto cursor-pointer hover:scale-105 transition-transform"
           onClick={() => navigate("/")}
         />
       </div>

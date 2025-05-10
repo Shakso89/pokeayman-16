@@ -23,10 +23,14 @@ const Header: React.FC = () => {
   return (
     <div className="w-full bg-white/10 backdrop-blur-md py-4 px-6 flex justify-between items-center">
       <div 
-        className="text-white text-2xl font-bold cursor-pointer"
+        className="cursor-pointer flex items-center"
         onClick={() => navigate("/")}
       >
-        PokéAyman
+        <img 
+          src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" 
+          alt="PokéAyman" 
+          className="h-10 w-auto"
+        />
       </div>
       
       <div className="flex items-center gap-6">

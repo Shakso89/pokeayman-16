@@ -139,7 +139,7 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
       {/* Mystery Ball Image */}
       <div className="relative">
         <img
-          src="/pokeball.png"
+          src="/lovable-uploads/d1db8e93-1b2c-4079-8835-6bc51f236aed.png"
           alt="Mystery Pokémon Ball"
           className={`w-40 h-40 cursor-pointer ${isAnimating ? 'animate-bounce' : 'hover:scale-110 transition-transform'}`}
           onClick={clickToOpen ? handleOpenMysteryBall : undefined}
