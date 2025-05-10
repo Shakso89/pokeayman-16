@@ -101,15 +101,7 @@ const StudentDashboard: React.FC = () => {
   
   const handlePokemonWon = (pokemon: Pokemon) => {
     console.log("Pokemon won:", pokemon);
-    // Toast notification
-    if (pokemon && pokemon.id) {
-      toast({
-        title: t("congratulations"),
-        description: t("you-won-pokemon").replace("{name}", pokemon.name || "Pokemon"),
-      });
-    }
-    
-    // Refresh data
+    // Refresh data after pokemon is won
     loadStudentData();
     loadSchoolPokemonPool();
   };
