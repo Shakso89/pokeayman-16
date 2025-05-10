@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -15,8 +16,8 @@ import { getSchoolPokemonPool } from "@/utils/pokemonData";
 interface GivePokemonDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  schoolId?: string;  // Make schoolId optional
-  availablePokemons?: Pokemon[];  // Add availablePokemons as an optional prop
+  schoolId?: string;  
+  availablePokemons?: Pokemon[];  
   onGivePokemon: (pokemon: Pokemon) => void;
 }
 
@@ -24,7 +25,7 @@ const GivePokemonDialog: React.FC<GivePokemonDialogProps> = ({
   open, 
   onOpenChange, 
   schoolId,
-  availablePokemons: propAvailablePokemons, // Rename to avoid naming conflict
+  availablePokemons: propAvailablePokemons,
   onGivePokemon
 }) => {
   const { t } = useTranslation();
@@ -33,19 +34,22 @@ const GivePokemonDialog: React.FC<GivePokemonDialogProps> = ({
 
   useEffect(() => {
     if (open) {
+      // Clear selection when dialog opens
+      setSelectedPokemon(null);
+      
       // If availablePokemons is provided as a prop, use that
-      if (propAvailablePokemons) {
+      if (propAvailablePokemons && propAvailablePokemons.length > 0) {
         setAvailablePokemons(propAvailablePokemons);
       } 
       // Otherwise fetch from school pool if schoolId is provided
       else if (schoolId) {
-        // Get available pokemons from the school pool using the imported function
         try {
           const schoolPokemonPool = getSchoolPokemonPool(schoolId);
-          if (schoolPokemonPool) {
+          if (schoolPokemonPool && schoolPokemonPool.availablePokemons.length > 0) {
             setAvailablePokemons(schoolPokemonPool.availablePokemons);
           } else {
             setAvailablePokemons([]);
+            console.log("No Pokemon available in school pool");
           }
         } catch (error) {
           console.error("Error fetching school pokemon pool:", error);
@@ -71,7 +75,7 @@ const GivePokemonDialog: React.FC<GivePokemonDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
-      <DialogContent>
+      <DialogContent className="max-w-3xl">
         <DialogHeader>
           <DialogTitle>{t("give-pokemon-to-student")}</DialogTitle>
           <DialogDescription>
@@ -80,7 +84,7 @@ const GivePokemonDialog: React.FC<GivePokemonDialogProps> = ({
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 max-h-[400px] overflow-y-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-3 max-h-[400px] overflow-y-auto">
             {availablePokemons.map((pokemon) => (
               <div 
                 key={pokemon.id}

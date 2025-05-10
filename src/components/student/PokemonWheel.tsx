@@ -4,9 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Pokemon } from "@/types/pokemon";
-import { useStudentCoin, assignPokemonToStudent, getSchoolPokemonPool } from "@/utils/pokemonData";
+import { useStudentCoin, assignPokemonToStudent, getSchoolPokemonPool, removeCoinsFromStudent } from "@/utils/pokemonData";
 import { useTranslation } from "@/hooks/useTranslation";
-import { Sparkle, Star } from "lucide-react";
+import { Sparkle, Star, RefreshCw } from "lucide-react";
 
 interface PokemonWheelProps {
   studentId: string;
@@ -30,23 +30,80 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
   const [visiblePokemon, setVisiblePokemon] = useState<Pokemon[]>([]);
   const [showWinAnimation, setShowWinAnimation] = useState(false);
   const [wonPokemon, setWonPokemon] = useState<Pokemon | null>(null);
+  const [lastRefreshed, setLastRefreshed] = useState<string | null>(null);
+  const [canRefresh, setCanRefresh] = useState(true);
   const wheelRef = useRef<HTMLDivElement>(null);
   
-  // Limit the number of Pokemon displayed in the wheel for better UX
+  // Maximum number of Pokemon displayed in the wheel
   const MAX_WHEEL_POKEMON = 12;
   
+  // Helper function to get a random subset of Pokemon
+  const getRandomPokemonSubset = (pool: Pokemon[], count: number) => {
+    if (pool.length <= count) {
+      return [...pool];
+    }
+    
+    const shuffled = [...pool].sort(() => 0.5 - Math.random());
+    return shuffled.slice(0, count);
+  };
+  
+  // Check if a refresh is allowed (once per day)
+  const checkRefreshAllowed = () => {
+    const lastRefreshDate = localStorage.getItem(`wheelRefresh_${studentId}`);
+    
+    if (!lastRefreshDate) {
+      setCanRefresh(true);
+      return;
+    }
+    
+    const lastDate = new Date(lastRefreshDate);
+    const currentDate = new Date();
+    
+    // Check if it's a new day
+    const isSameDay = lastDate.getDate() === currentDate.getDate() && 
+                      lastDate.getMonth() === currentDate.getMonth() && 
+                      lastDate.getFullYear() === currentDate.getFullYear();
+    
+    setCanRefresh(!isSameDay);
+    setLastRefreshed(lastRefreshDate);
+  };
+  
+  // Load Pokemon wheel data
   useEffect(() => {
-    // Get the latest available Pokemon from the school pool
     const refreshPoolData = () => {
       if (classId) {
         const schoolPool = getSchoolPokemonPool(classId);
         if (schoolPool && schoolPool.availablePokemons.length > 0) {
-          // Randomly select a subset of Pokemon for the wheel if there are more than MAX_WHEEL_POKEMON
-          if (schoolPool.availablePokemons.length > MAX_WHEEL_POKEMON) {
-            const shuffled = [...schoolPool.availablePokemons].sort(() => 0.5 - Math.random());
-            setVisiblePokemon(shuffled.slice(0, MAX_WHEEL_POKEMON));
+          // Get stored wheel Pokemon for this student or create new random selection
+          const storedWheelPokemon = localStorage.getItem(`wheelPokemon_${studentId}`);
+          
+          if (storedWheelPokemon) {
+            try {
+              const parsedPokemon = JSON.parse(storedWheelPokemon);
+              // Validate that these Pokemon still exist in the pool
+              const validPokemon = parsedPokemon.filter((p: Pokemon) => 
+                schoolPool.availablePokemons.some(sp => sp.id === p.id)
+              );
+              
+              if (validPokemon.length > 0) {
+                setVisiblePokemon(validPokemon);
+              } else {
+                // If none are valid anymore, get new random selection
+                const randomSubset = getRandomPokemonSubset(schoolPool.availablePokemons, MAX_WHEEL_POKEMON);
+                setVisiblePokemon(randomSubset);
+                localStorage.setItem(`wheelPokemon_${studentId}`, JSON.stringify(randomSubset));
+              }
+            } catch (error) {
+              console.error("Error parsing stored wheel Pokemon:", error);
+              const randomSubset = getRandomPokemonSubset(schoolPool.availablePokemons, MAX_WHEEL_POKEMON);
+              setVisiblePokemon(randomSubset);
+              localStorage.setItem(`wheelPokemon_${studentId}`, JSON.stringify(randomSubset));
+            }
           } else {
-            setVisiblePokemon([...schoolPool.availablePokemons]);
+            // No stored wheel Pokemon, create new random selection
+            const randomSubset = getRandomPokemonSubset(schoolPool.availablePokemons, MAX_WHEEL_POKEMON);
+            setVisiblePokemon(randomSubset);
+            localStorage.setItem(`wheelPokemon_${studentId}`, JSON.stringify(randomSubset));
           }
         } else {
           setVisiblePokemon([]);
@@ -56,10 +113,13 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
 
     // Initial load
     refreshPoolData();
-  }, [classId, pokemonPool]);
+    checkRefreshAllowed();
+  }, [studentId, classId, pokemonPool]);
   
-  const wheelSegmentDegree = 360 / visiblePokemon.length;
+  // Calculate wheel segment degree
+  const wheelSegmentDegree = visiblePokemon.length > 0 ? 360 / visiblePokemon.length : 30;
   
+  // Handle spinning the wheel
   const handleSpin = () => {
     if (coins <= 0) {
       toast({
@@ -91,8 +151,6 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
     const winnerIndex = Math.floor(Math.random() * visiblePokemon.length);
     
     // Calculate rotation to land on winner
-    // The wheel spins clockwise, so we need to calculate the rotation
-    // to make the winner at the top position (270 degrees)
     const baseRotation = 3600; // Spin multiple times for effect
     const winnerPositionDegree = 270; // Top position
     const winnerRotation = winnerPositionDegree - (winnerIndex * wheelSegmentDegree);
@@ -125,6 +183,25 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
             });
           }, 500);
           
+          // Remove the won pokemon from the visible pokemon list
+          const updatedVisiblePokemon = visiblePokemon.filter(p => p.id !== wonPokemon.id);
+          
+          // If the wheel is now empty, get new pokemon
+          if (updatedVisiblePokemon.length === 0) {
+            // Get fresh pool data
+            const schoolPool = getSchoolPokemonPool(classId);
+            if (schoolPool && schoolPool.availablePokemons.length > 0) {
+              const randomSubset = getRandomPokemonSubset(schoolPool.availablePokemons, MAX_WHEEL_POKEMON);
+              setVisiblePokemon(randomSubset);
+              localStorage.setItem(`wheelPokemon_${studentId}`, JSON.stringify(randomSubset));
+            } else {
+              setVisiblePokemon([]);
+            }
+          } else {
+            setVisiblePokemon(updatedVisiblePokemon);
+            localStorage.setItem(`wheelPokemon_${studentId}`, JSON.stringify(updatedVisiblePokemon));
+          }
+          
           onPokemonWon(wonPokemon);
         } else {
           toast({
@@ -134,6 +211,66 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
         }
       }
     }, 3000);
+  };
+  
+  // Handle refreshing the wheel
+  const handleRefreshWheel = () => {
+    // Check if refreshing is allowed
+    if (!canRefresh) {
+      toast({
+        title: t("error"),
+        description: t("daily-refresh-limit")
+      });
+      return;
+    }
+    
+    // Use a coin for refreshing
+    if (coins < 1) {
+      toast({
+        title: t("error"),
+        description: t("not-enough-coins")
+      });
+      return;
+    }
+    
+    // Remove a coin
+    const coinRemoved = removeCoinsFromStudent(studentId, 1);
+    if (!coinRemoved) {
+      toast({
+        title: t("error"),
+        description: t("not-enough-coins")
+      });
+      return;
+    }
+    
+    // Get fresh pokemon from the pool
+    const schoolPool = getSchoolPokemonPool(classId);
+    if (schoolPool && schoolPool.availablePokemons.length > 0) {
+      const randomSubset = getRandomPokemonSubset(schoolPool.availablePokemons, MAX_WHEEL_POKEMON);
+      setVisiblePokemon(randomSubset);
+      
+      // Store the new selection and refresh timestamp
+      localStorage.setItem(`wheelPokemon_${studentId}`, JSON.stringify(randomSubset));
+      const now = new Date().toISOString();
+      localStorage.setItem(`wheelRefresh_${studentId}`, now);
+      
+      setLastRefreshed(now);
+      setCanRefresh(false);
+      
+      // Update UI
+      toast({
+        title: t("wheel-refreshed"),
+        description: t("new-pokemon-available")
+      });
+      
+      // Trigger the parent to update coins display
+      onPokemonWon({} as Pokemon);
+    } else {
+      toast({
+        title: t("error"),
+        description: t("no-pokemon-in-pool")
+      });
+    }
   };
   
   // Reset rotation after spinning for animation purposes
@@ -183,11 +320,22 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
     }
   };
   
-  if (pokemonPool.length === 0) {
+  // Show message when no Pokemon are available
+  if (visiblePokemon.length === 0) {
     return (
       <Card className="pokemon-card">
         <CardContent className="pt-6 text-center p-8">
-          <p>No Pokémon available in the wheel.</p>
+          <p>{t("no-available-pokemon")}</p>
+          {canRefresh && (
+            <Button
+              onClick={handleRefreshWheel}
+              className="mt-4"
+              disabled={coins < 1}
+            >
+              <RefreshCw className="mr-2 h-4 w-4" />
+              {t("refresh-wheel")} (1 {t("coin")})
+            </Button>
+          )}
         </CardContent>
       </Card>
     );
@@ -311,21 +459,36 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
         </div>
       </div>
       
-      <Button
-        className="pokemon-button text-lg px-8 py-6"
-        disabled={isSpinning || coins <= 0}
-        onClick={handleSpin}
-        size="lg"
-      >
-        {isSpinning ? t("spinning") : `${t("spin-wheel")} (1 ${t("coins")})`}
-      </Button>
-      <p className="mt-4 text-lg font-medium">{t("you-have")} {coins} {t("coins")}</p>
-      
-      {selectedPokemonIndex !== null && !isSpinning && !showWinAnimation && (
-        <div className="mt-4 animate-fade-in">
-          <p>{t("last-spin")}: <span className="font-bold">{visiblePokemon[selectedPokemonIndex]?.name}</span></p>
-        </div>
-      )}
+      <div className="flex flex-col items-center gap-2">
+        <Button
+          className="pokemon-button text-lg px-8 py-6"
+          disabled={isSpinning || coins <= 0}
+          onClick={handleSpin}
+          size="lg"
+        >
+          {isSpinning ? t("spinning") : `${t("spin-wheel")} (1 ${t("coin")})`}
+        </Button>
+        
+        {canRefresh && (
+          <Button
+            variant="outline"
+            onClick={handleRefreshWheel}
+            disabled={coins < 1 || isSpinning}
+            className="mt-2"
+          >
+            <RefreshCw className="mr-2 h-4 w-4" />
+            {t("refresh-wheel")} (1 {t("coin")})
+          </Button>
+        )}
+        
+        <p className="mt-4 text-lg font-medium">{t("you-have")} {coins} {t("coins")}</p>
+        
+        {selectedPokemonIndex !== null && !isSpinning && !showWinAnimation && (
+          <div className="mt-2 animate-fade-in">
+            <p>{t("last-spin")}: <span className="font-bold">{visiblePokemon[selectedPokemonIndex]?.name}</span></p>
+          </div>
+        )}
+      </div>
     </div>
   );
 };
