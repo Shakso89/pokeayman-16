@@ -9,7 +9,7 @@ const pokemonNames = [
   "Bulbasaur", "Ivysaur", "Venusaur", "Charmander", "Charmeleon", "Charizard", "Squirtle", "Wartortle", "Blastoise",
   "Caterpie", "Metapod", "Butterfree", "Weedle", "Kakuna", "Beedrill", "Pidgey", "Pidgeotto", "Pidgeot", "Rattata",
   "Raticate", "Spearow", "Fearow", "Ekans", "Arbok", "Pikachu", "Raichu", "Sandshrew", "Sandslash", "Nidoran", "Nidorina",
-  "Nidoqueen", "Nidoran", "Nidorino", "Nidoking", "Clefairy", "Clefable", "Vulpix", "Ninetales", "Jigglypuff", "Wigglytuff",
+  "Nidoqueen", "Nidorino", "Nidoking", "Clefairy", "Clefable", "Vulpix", "Ninetales", "Jigglypuff", "Wigglytuff",
   "Zubat", "Golbat", "Oddish", "Gloom", "Vileplume", "Paras", "Parasect", "Venonat", "Venomoth", "Diglett", "Dugtrio",
   "Meowth", "Persian", "Psyduck", "Golduck", "Mankey", "Primeape", "Growlithe", "Arcanine", "Poliwag", "Poliwhirl", "Poliwrath",
   "Abra", "Kadabra", "Alakazam", "Machop", "Machoke", "Machamp", "Bellsprout", "Weepinbell", "Victreebel", "Tentacool", "Tentacruel",
@@ -30,6 +30,22 @@ const pokemonNames = [
   "Smeargle", "Tyrogue", "Hitmontop", "Smoochum", "Elekid", "Magby", "Miltank", "Blissey", "Raikou", "Entei", "Suicune", "Larvitar",
   "Pupitar", "Tyranitar", "Lugia", "Ho-Oh", "Celebi"
 ];
+
+// Specific Pokémon for the ones shown in the image
+const specificPokemon = {
+  203: "Pineco",     // The #203 Ghost-type Pokémon in your image
+  205: "Dunsparce",  // The #205 Rock-type Pokémon in your image
+  207: "Gligar",     // The #207 Ice-type Pokémon in your image
+  209: "Snubbull",   // The #209 Ground-type Pokémon in your image
+  211: "Scizor",     // The #211 Psychic-type Pokémon in your image
+  213: "Heracross",  // The #213 Fighting/Ghost-type Pokémon in your image
+  215: "Teddiursa",  // The #215 Dark/Ghost-type Pokémon in your image
+  217: "Slugma",     // The #217 Fire-type Pokémon in your image
+  221: "Corsola",    // The #221 Ground/Steel-type Pokémon in your image
+  223: "Octillery",  // The #223 Water/Bug-type Pokémon in your image
+  225: "Delibird",   // The #225 Fighting-type Pokémon in your image
+  227: "Houndour"    // The #227 Grass/Normal-type Pokémon in your image
+};
 
 // Initialize a Pokemon pool for a school
 export const initializeSchoolPokemonPool = (schoolId: string) => {
@@ -58,17 +74,24 @@ export const initializeSchoolPokemonPool = (schoolId: string) => {
   const remainingCount = 200 - pokemons.length;
   for (let i = 1; i <= remainingCount; i++) {
     const index = pokemons.length + i;
+    const pokedexNumber = (index % 898) + 1;
     const rarity = getRarityForId(index);
     
-    // Generate a random index for the pokemon name array
-    const nameIndex = Math.floor(Math.random() * pokemonNames.length);
-    const pokemonName = pokemonNames[nameIndex];
+    // Use specific name for Pokémon that match the ones in the image
+    let pokemonName;
+    if (specificPokemon[pokedexNumber]) {
+      pokemonName = specificPokemon[pokedexNumber];
+    } else {
+      // Generate a random index for the pokemon name array
+      const nameIndex = Math.floor(Math.random() * pokemonNames.length);
+      pokemonName = pokemonNames[nameIndex];
+    }
     
     pokemons.push({
       id: `pokemon-${schoolId}-${index}`,
       name: pokemonName,
       type: getRandomType(),
-      image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${(index % 898) + 1}.png`,
+      image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokedexNumber}.png`,
       rarity
     });
   }
