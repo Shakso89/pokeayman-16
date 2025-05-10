@@ -1,6 +1,4 @@
-
-import React, { useState, useEffect } from "react";
-import { Card, CardContent } from "@/components/ui/card";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Pokemon } from "@/types/pokemon";
 import { Coins, Sparkle, CirclePlay } from "lucide-react";
@@ -83,7 +81,7 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
         setWonPokemon(pokemon);
         setShowWinAnimation(true);
         
-        // Notify parent component
+        // Notify parent component with just the pokemon object
         onPokemonWon(pokemon);
         
         toast({
