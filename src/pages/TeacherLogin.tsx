@@ -1,18 +1,15 @@
-
 import React from "react";
 import { LoginForm } from "@/components/LoginForm";
 import { useNavigate } from "react-router-dom";
 import { Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PokemonDecorations from "@/components/signup/PokemonDecorations";
-
 const TeacherLogin: React.FC = () => {
   const navigate = useNavigate();
-  
   const handleLoginSuccess = (username: string, password: string) => {
     // Check if this is the admin login
     const isAdmin = username === "Admin" && password === "AdminAyman";
-    
+
     // Store admin status if it's the admin
     if (isAdmin) {
       localStorage.setItem("isAdmin", "true");
@@ -20,28 +17,16 @@ const TeacherLogin: React.FC = () => {
       navigate("/admin-dashboard");
     }
   };
-  
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 relative overflow-hidden">
+  return <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 relative overflow-hidden">
       <div className="absolute top-4 left-4 z-10">
-        <Button 
-          variant="ghost" 
-          size="icon"
-          onClick={() => navigate("/")}
-          className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white"
-        >
+        <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white">
           <Home className="h-5 w-5" />
         </Button>
       </div>
       
       {/* Logo at the top */}
       <div className="flex justify-center pt-4 mb-4 relative z-10">
-        <img 
-          src="/lovable-uploads/463ff2eb-f43a-40df-9403-9f3de73005fd.png" 
-          alt="Teacher Logo"
-          className="h-32 w-auto cursor-pointer hover:scale-105 transition-transform"
-          onClick={() => navigate("/")}
-        />
+        
       </div>
       
       <div className="relative z-10">
@@ -50,8 +35,6 @@ const TeacherLogin: React.FC = () => {
       
       {/* Pokemon decorations */}
       <PokemonDecorations />
-    </div>
-  );
+    </div>;
 };
-
 export default TeacherLogin;
