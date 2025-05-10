@@ -148,15 +148,17 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
     setTimeout(() => {
       setIsAnimating(false);
       
-      // Determine what to show in the result modal
-      if (results.pokemon > 0) {
+      // Make sure we set the wonPokemon state properly if we have a pokemon result
+      if (results.pokemon > 0 && results.lastPokemon) {
+        setWonPokemon(results.lastPokemon);
         setResult("pokemon");
-        // Last Pokemon won will be shown
       } else if (results.coins > 0) {
         setResult("coins");
         setWonCoins(results.coinAmount);
       } else {
         setResult("nothing");
+        // Make sure to reset wonPokemon if there's no pokemon won
+        setWonPokemon(null);
       }
       
       // Show result modal
@@ -261,7 +263,8 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
         onClose={handleCloseResult} 
         result={{
           type: result || "nothing",
-          data: result === "pokemon" ? wonPokemon : result === "coins" ? wonCoins : undefined
+          data: result === "pokemon" ? wonPokemon : 
+                result === "coins" ? wonCoins : undefined
         }} 
         pokemon={wonPokemon} 
         coins={wonCoins} 
