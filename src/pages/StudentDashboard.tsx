@@ -217,7 +217,6 @@ const StudentDashboard: React.FC = () => {
                   <PokemonWheel 
                     studentId={studentId} 
                     classId={schoolId}
-                    pokemonPool={schoolPokemons}
                     coins={coins}
                     onPokemonWon={handlePokemonWon}
                   />

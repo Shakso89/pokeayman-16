@@ -1,9 +1,10 @@
+
 import React, { useState, useRef, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Pokemon } from "@/types/pokemon";
-import { useStudentCoin, assignPokemonToStudent, getSchoolPokemonPool } from "@/utils/pokemon";
+import { useStudentCoin, assignPokemonToStudent, getSchoolPokemonPool, removeCoinsFromStudent } from "@/utils/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Sparkle, Star, RefreshCw } from "lucide-react";
 
@@ -327,9 +328,6 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
         };
     }
   };
-  
-  // Import removeCoinsFromStudent function
-  const { removeCoinsFromStudent } = require('@/utils/pokemon');
   
   // Show message when no Pokemon are available
   if (visiblePokemon.length === 0) {
