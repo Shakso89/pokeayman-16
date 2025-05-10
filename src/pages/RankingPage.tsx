@@ -6,9 +6,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Medal, Trophy } from "lucide-react";
+import { Medal, Trophy, School, Users } from "lucide-react";
 import { getStudentPokemonCollection } from "@/utils/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
+import { Button } from "@/components/ui/button";
 
 interface RankingStudent {
   id: string;
@@ -22,10 +23,17 @@ interface RankingStudent {
   schoolId?: string;
 }
 
+interface SchoolInfo {
+  id: string;
+  name: string;
+}
+
 const RankingPage: React.FC = () => {
   const [students, setStudents] = useState<RankingStudent[]>([]);
   const [rankingType, setRankingType] = useState<"pokemon" | "rare" | "legendary" | "coins">("pokemon");
   const [scope, setScope] = useState<"class" | "school">("class");
+  const [schools, setSchools] = useState<SchoolInfo[]>([]);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
   const { t } = useTranslation();
   
   // Get user info
@@ -40,8 +48,17 @@ const RankingPage: React.FC = () => {
     localStorage.getItem("teacherUsername") || "";
 
   useEffect(() => {
+    // Load schools from localStorage
+    const storedSchools = JSON.parse(localStorage.getItem("schools") || "[]");
+    setSchools(storedSchools.map((school: any) => ({
+      id: school.id,
+      name: school.name
+    })));
+  }, []);
+
+  useEffect(() => {
     loadStudentRankings();
-  }, [scope, rankingType]);
+  }, [scope, rankingType, selectedSchoolId]);
 
   const loadStudentRankings = () => {
     try {
@@ -56,7 +73,6 @@ const RankingPage: React.FC = () => {
         
         if (collection) {
           const pokemons = collection.pokemons || [];
-          // Fix: Change the filter condition to only check for 'rare', not 'epic'
           const rarePokemons = pokemons.filter(p => p.rarity === 'rare');
           const legendaryPokemons = pokemons.filter(p => p.rarity === 'legendary');
           
@@ -91,8 +107,12 @@ const RankingPage: React.FC = () => {
       let filteredRankings = rankings;
       if (scope === "class" && classId) {
         filteredRankings = rankings.filter(student => student.classId === classId);
-      } else if (scope === "school" && schoolId) {
-        filteredRankings = rankings.filter(student => student.schoolId === schoolId);
+      } else if (scope === "school") {
+        if (selectedSchoolId) {
+          filteredRankings = rankings.filter(student => student.schoolId === selectedSchoolId);
+        } else if (schoolId) {
+          filteredRankings = rankings.filter(student => student.schoolId === schoolId);
+        }
       }
 
       // Sort rankings based on selected ranking type
@@ -119,10 +139,25 @@ const RankingPage: React.FC = () => {
     }
   };
 
+  // Reset selected school when changing to class scope
+  useEffect(() => {
+    if (scope === "class") {
+      setSelectedSchoolId(null);
+    }
+  }, [scope]);
+
   // Redirect if not logged in
   if (!isLoggedIn) {
     return <Navigate to="/" />;
   }
+
+  const handleSchoolSelect = (id: string) => {
+    setSelectedSchoolId(id);
+  };
+
+  const handleBackToSchools = () => {
+    setSelectedSchoolId(null);
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -154,80 +189,137 @@ const RankingPage: React.FC = () => {
           </Tabs>
         </div>
         
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex justify-between items-center">
-              <div>{t("top-10-students")}</div>
-              <Tabs defaultValue="pokemon" value={rankingType} onValueChange={(v) => setRankingType(v as "pokemon" | "rare" | "legendary" | "coins")}>
-                <TabsList>
-                  <TabsTrigger value="pokemon">{t("total-pokemon")}</TabsTrigger>
-                  <TabsTrigger value="rare">{t("rare-pokemon")}</TabsTrigger>
-                  <TabsTrigger value="legendary">{t("legendary-pokemon")}</TabsTrigger>
-                  <TabsTrigger value="coins">{t("coins")}</TabsTrigger>
-                </TabsList>
-              </Tabs>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead className="w-12">{t("rank")}</TableHead>
-                  <TableHead>{t("student")}</TableHead>
-                  <TableHead className="text-right">
-                    {rankingType === "pokemon" && t("pokemon-count")}
-                    {rankingType === "rare" && t("rare-pokemon")}
-                    {rankingType === "legendary" && t("legendary-pokemon")}
-                    {rankingType === "coins" && t("coins")}
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {students.map((student, index) => (
-                  <TableRow key={student.id} className={student.id === studentId ? "bg-purple-50" : ""}>
-                    <TableCell className="font-medium">
-                      <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full 
-                        ${index === 0 ? "bg-yellow-500 text-white" : 
-                          index === 1 ? "bg-gray-400 text-white" : 
-                          index === 2 ? "bg-amber-800 text-white" : 
-                          "bg-gray-100"}`}>
-                        {index + 1}
+        {scope === "school" && !selectedSchoolId ? (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <School className="mr-2 h-5 w-5" />
+                {t("select-school")}
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {schools.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  {t("no-schools-found")}
+                </div>
+              ) : (
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+                  {schools.map(school => (
+                    <Card 
+                      key={school.id} 
+                      className="cursor-pointer hover:shadow-md transition-shadow"
+                      onClick={() => handleSchoolSelect(school.id)}
+                    >
+                      <CardContent className="flex items-center gap-3 p-4">
+                        <div className="bg-purple-100 p-2 rounded-full">
+                          <School className="h-5 w-5 text-purple-500" />
+                        </div>
+                        <div>
+                          <h3 className="font-medium">{school.name}</h3>
+                          <p className="text-sm text-gray-500">{t("view-rankings")}</p>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  {scope === "school" && selectedSchoolId && (
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={handleBackToSchools}
+                      className="mr-2"
+                    >
+                      {t("back-to-schools")}
+                    </Button>
+                  )}
+                  <div>
+                    {scope === "class" ? t("top-10-students-class") : t("top-10-students-school")}
+                    {scope === "school" && selectedSchoolId && (
+                      <span className="ml-2 text-sm font-normal">
+                        {schools.find(s => s.id === selectedSchoolId)?.name}
                       </span>
-                    </TableCell>
-                    <TableCell className="flex items-center gap-2">
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage src={student.avatar} alt={student.displayName} />
-                        <AvatarFallback>
-                          {student.displayName?.substring(0, 2).toUpperCase() || "ST"}
-                        </AvatarFallback>
-                      </Avatar>
-                      {student.displayName}
-                      {student.id === studentId && (
-                        <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-0.5 rounded-full ml-2">
-                          {t("you")}
-                        </span>
-                      )}
-                    </TableCell>
-                    <TableCell className="text-right font-medium">
-                      {rankingType === "pokemon" && student.pokemonCount}
-                      {rankingType === "rare" && student.rareCount}
-                      {rankingType === "legendary" && student.legendaryCount}
-                      {rankingType === "coins" && student.coins}
-                    </TableCell>
-                  </TableRow>
-                ))}
-                
-                {students.length === 0 && (
+                    )}
+                  </div>
+                </div>
+                <Tabs defaultValue="pokemon" value={rankingType} onValueChange={(v) => setRankingType(v as "pokemon" | "rare" | "legendary" | "coins")}>
+                  <TabsList>
+                    <TabsTrigger value="pokemon">{t("total-pokemon")}</TabsTrigger>
+                    <TabsTrigger value="rare">{t("rare-pokemon")}</TabsTrigger>
+                    <TabsTrigger value="legendary">{t("legendary-pokemon")}</TabsTrigger>
+                    <TabsTrigger value="coins">{t("coins")}</TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
                   <TableRow>
-                    <TableCell colSpan={3} className="text-center py-8 text-gray-500">
-                      {t("no-students-found")}
-                    </TableCell>
+                    <TableHead className="w-12">{t("rank")}</TableHead>
+                    <TableHead>{t("student")}</TableHead>
+                    <TableHead className="text-right">
+                      {rankingType === "pokemon" && t("pokemon-count")}
+                      {rankingType === "rare" && t("rare-pokemon")}
+                      {rankingType === "legendary" && t("legendary-pokemon")}
+                      {rankingType === "coins" && t("coins")}
+                    </TableHead>
                   </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
+                </TableHeader>
+                <TableBody>
+                  {students.map((student, index) => (
+                    <TableRow key={student.id} className={student.id === studentId ? "bg-purple-50" : ""}>
+                      <TableCell className="font-medium">
+                        <span className={`inline-flex items-center justify-center w-8 h-8 rounded-full 
+                          ${index === 0 ? "bg-yellow-500 text-white" : 
+                            index === 1 ? "bg-gray-400 text-white" : 
+                            index === 2 ? "bg-amber-800 text-white" : 
+                            "bg-gray-100"}`}>
+                          {index + 1}
+                        </span>
+                      </TableCell>
+                      <TableCell className="flex items-center gap-2">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage src={student.avatar} alt={student.displayName} />
+                          <AvatarFallback>
+                            {student.displayName?.substring(0, 2).toUpperCase() || "ST"}
+                          </AvatarFallback>
+                        </Avatar>
+                        {student.displayName}
+                        {student.id === studentId && (
+                          <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2 py-0.5 rounded-full ml-2">
+                            {t("you")}
+                          </span>
+                        )}
+                      </TableCell>
+                      <TableCell className="text-right font-medium">
+                        {rankingType === "pokemon" && student.pokemonCount}
+                        {rankingType === "rare" && student.rareCount}
+                        {rankingType === "legendary" && student.legendaryCount}
+                        {rankingType === "coins" && student.coins}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  
+                  {students.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={3} className="text-center py-8 text-gray-500">
+                        {t("no-students-found")}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </CardContent>
+          </Card>
+        )}
       </div>
     </div>
   );
