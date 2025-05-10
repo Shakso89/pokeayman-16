@@ -20,7 +20,7 @@ export const AuthLayout = ({
       <Card className={cn("w-full max-w-md shadow-xl border-none backdrop-blur-md", className)}>
         <CardHeader>
           <div className="flex justify-center mb-4">
-            <img alt="TR Ayman Logo" className="h-32 w-auto z-10" src="/lovable-uploads/36c9c511-efbc-41ee-853c-b908072ac478.png" />
+            <img alt="TR Ayman Logo" className="h-32 w-auto z-10" src="/lovable-uploads/a5425bcb-d7d0-4434-81fc-e434f4eb0c42.png" />
           </div>
           <CardTitle className="text-2xl font-bold text-center">{title}</CardTitle>
           {description && <CardDescription className="text-center">{description}</CardDescription>}
