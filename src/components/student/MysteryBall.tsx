@@ -119,11 +119,11 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
 
   return (
     <div className="flex flex-col items-center">
-      <div className="mb-4 relative w-48 h-48 flex items-center justify-center">
+      <div className="mb-4 relative w-48 h-48 flex items-center justify-center cursor-pointer" onClick={() => openBall(dailyAttemptUsed ? false : true)}>
         <img
           alt="Mystery Pokémon Ball"
-          className=""
-          src="/lovable-uploads/4c78e665-5c3d-423d-b622-e43a286687a5.png"
+          className={isOpening ? "animate-bounce" : "hover:scale-110 transition-transform"}
+          src="/lovable-uploads/7bdef3d9-60b9-4475-86d9-adbc53bfe078.png"
         />
         {isOpening && (
           <div className="absolute inset-0 flex items-center justify-center">

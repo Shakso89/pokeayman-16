@@ -148,7 +148,24 @@ const StudentDashboard: React.FC = () => {
         userAvatar={avatar || undefined}
       />
       
-      <div className="container mx-auto py-8 px-4">
+      {/* Decorative Pokemon images */}
+      <div className="fixed top-20 right-5 z-0 opacity-40">
+        <img
+          src="/lovable-uploads/431ab8c1-ab7f-46cb-9baa-23f56a99d043.png"
+          alt="Ash with Pikachu"
+          className="w-40 h-auto"
+        />
+      </div>
+      
+      <div className="fixed bottom-10 left-5 z-0 opacity-40">
+        <img
+          src="/lovable-uploads/850bf892-0b85-435a-8bd6-9ba28ebc89aa.png"
+          alt="Pokemon starters"
+          className="w-40 h-auto"
+        />
+      </div>
+      
+      <div className="container mx-auto py-8 px-4 relative z-10">
         <StudentHeader 
           studentName={studentName}
           coins={coins}

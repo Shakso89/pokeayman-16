@@ -29,6 +29,7 @@ export {
   removeCoinsFromStudent,
   awardCoinsToStudent,
   assignPokemonToStudent,
+  assignRandomPokemonToStudent,
   useStudentCoin
 } from './studentPokemon';
 
