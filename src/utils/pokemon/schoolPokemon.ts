@@ -31,20 +31,20 @@ const pokemonNames = [
   "Pupitar", "Tyranitar", "Lugia", "Ho-Oh", "Celebi"
 ];
 
-// Specific Pokémon for the ones shown in the image
-const specificPokemon = {
-  203: "Pineco",     // The #203 Ghost-type Pokémon in your image
-  205: "Dunsparce",  // The #205 Rock-type Pokémon in your image
-  207: "Gligar",     // The #207 Ice-type Pokémon in your image
-  209: "Snubbull",   // The #209 Ground-type Pokémon in your image
-  211: "Scizor",     // The #211 Psychic-type Pokémon in your image
-  213: "Heracross",  // The #213 Fighting/Ghost-type Pokémon in your image
-  215: "Teddiursa",  // The #215 Dark/Ghost-type Pokémon in your image
-  217: "Slugma",     // The #217 Fire-type Pokémon in your image
-  221: "Corsola",    // The #221 Ground/Steel-type Pokémon in your image
-  223: "Octillery",  // The #223 Water/Bug-type Pokémon in your image
-  225: "Delibird",   // The #225 Fighting-type Pokémon in your image
-  227: "Houndour"    // The #227 Grass/Normal-type Pokémon in your image
+// Specific mapping for Pokémon shown in the image
+const specificPokemonMapping = {
+  305: "Lairon", // Dragon-type in the image
+  307: "Meditite", // Steel-type in the image
+  309: "Electrike", // Normal-type in the image
+  311: "Plusle", // Rock-type in the image
+  313: "Volbeat", // Bug-type in the image
+  325: "Spoink", // Fairy-type in the image
+  327: "Trapinch", // Electric-type in the image
+  329: "Vibrava", // Flying-type in the image
+  331: "Cacnea", // Psychic/Electric-type in the image
+  333: "Swablu", // Fire-type in the image
+  335: "Zangoose", // Fighting-type in the image
+  337: "Lunatone" // Ghost-type in the image
 };
 
 // Initialize a Pokemon pool for a school
@@ -79,11 +79,12 @@ export const initializeSchoolPokemonPool = (schoolId: string) => {
     
     // Use specific name for Pokémon that match the ones in the image
     let pokemonName;
-    if (specificPokemon[pokedexNumber]) {
-      pokemonName = specificPokemon[pokedexNumber];
+    if (specificPokemonMapping[pokedexNumber]) {
+      pokemonName = specificPokemonMapping[pokedexNumber];
     } else {
-      // Generate a random index for the pokemon name array
-      const nameIndex = Math.floor(Math.random() * pokemonNames.length);
+      // Use actual Pokémon names from our list based on Pokédex number when possible
+      // For simplicity, we'll just use the index to pick a name
+      const nameIndex = pokedexNumber % pokemonNames.length;
       pokemonName = pokemonNames[nameIndex];
     }
     
@@ -126,7 +127,6 @@ export const getSchoolPokemonPool = (schoolId: string): PokemonPool | null => {
   const pool = pools.find(p => p.schoolId === schoolId);
   
   // If there's no pool but we have a school ID, initialize it
-  // FIXED: Moving the initialization check outside to avoid recursion
   if (!pool && schoolId) {
     return initializeSchoolPokemonPool(schoolId);
   }
