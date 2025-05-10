@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Pokemon } from "@/types/pokemon";
-import { RefreshCw, Coins, Sparkle } from "lucide-react";
+import { RefreshCw, Coins, Sparkle, CirclePlay } from "lucide-react";
 import { 
   getSchoolPokemonPool, 
   assignPokemonToStudent, 
@@ -12,65 +12,35 @@ import {
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 
-const MAX_WHEEL_POKEMON = 12;
-
 interface PokemonWheelProps {
   studentId: string;
   classId: string;
   coins: number;
   onPokemonWon: (pokemon: Pokemon) => void;
+  wheelPokemons: Pokemon[];
 }
 
 const PokemonWheel: React.FC<PokemonWheelProps> = ({
   studentId,
   classId,
   coins,
-  onPokemonWon
+  onPokemonWon,
+  wheelPokemons
 }) => {
   const { t } = useTranslation();
   const [isSpinning, setIsSpinning] = useState(false);
   const [rotationDegree, setRotationDegree] = useState(0);
-  const [wheelPokemon, setWheelPokemon] = useState<Pokemon[]>([]);
   const [selectedPokemonIndex, setSelectedPokemonIndex] = useState<number | null>(null);
   const [showWinAnimation, setShowWinAnimation] = useState(false);
   const [wonPokemon, setWonPokemon] = useState<Pokemon | null>(null);
 
-  // Load wheel Pokémon from school pool
-  useEffect(() => {
-    loadWheelPokemon();
-  }, [classId, studentId]);
-
-  // Function to load random Pokémon for the wheel
-  const loadWheelPokemon = () => {
-    if (!classId) return;
-    
-    const schoolPool = getSchoolPokemonPool(classId);
-    if (!schoolPool || schoolPool.availablePokemons.length === 0) {
-      setWheelPokemon([]);
-      return;
-    }
-    
-    // Get random Pokémon from the school pool
-    const availablePokemon = [...schoolPool.availablePokemons];
-    const wheelSelection = [];
-    
-    // Select up to MAX_WHEEL_POKEMON random Pokémon
-    const selectionCount = Math.min(MAX_WHEEL_POKEMON, availablePokemon.length);
-    for (let i = 0; i < selectionCount; i++) {
-      const randomIndex = Math.floor(Math.random() * availablePokemon.length);
-      wheelSelection.push(availablePokemon.splice(randomIndex, 1)[0]);
-    }
-    
-    setWheelPokemon(wheelSelection);
-  };
-
   // Handle spinning the wheel
   const handleSpin = () => {
-    if (isSpinning || wheelPokemon.length === 0) return;
+    if (isSpinning || wheelPokemons.length === 0) return;
     if (coins < 1) {
       toast({
-        title: t("not-enough-coins"),
-        description: t("need-coins-to-spin"),
+        title: t("not-enough-coins") || "Not Enough Coins",
+        description: t("need-coins-to-spin") || "You need coins to spin the wheel",
       });
       return;
     }
@@ -79,8 +49,8 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
     const success = useStudentCoin(studentId);
     if (!success) {
       toast({
-        title: t("error"),
-        description: t("failed-to-use-coin"),
+        title: t("error") || "Error",
+        description: t("failed-to-use-coin") || "Failed to use coin",
       });
       return;
     }
@@ -90,10 +60,10 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
     setWonPokemon(null);
     
     // Randomly select a Pokémon
-    const winnerIndex = Math.floor(Math.random() * wheelPokemon.length);
+    const winnerIndex = Math.floor(Math.random() * wheelPokemons.length);
     
     // Calculate rotation to land on the winner
-    const segmentDegree = 360 / wheelPokemon.length;
+    const segmentDegree = 360 / wheelPokemons.length;
     const baseRotation = 1800; // Multiple spins for effect
     const winnerRotation = winnerIndex * segmentDegree;
     const targetRotation = baseRotation + winnerRotation;
@@ -106,7 +76,7 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
       setIsSpinning(false);
       
       // Assign the Pokémon to the student
-      const pokemon = wheelPokemon[winnerIndex];
+      const pokemon = wheelPokemons[winnerIndex];
       const assignSuccess = assignPokemonToStudent(classId, studentId, pokemon.id);
       
       if (assignSuccess) {
@@ -114,56 +84,20 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
         setWonPokemon(pokemon);
         setShowWinAnimation(true);
         
-        // Remove won Pokémon from wheel
-        const updatedWheelPokemon = wheelPokemon.filter(p => p.id !== pokemon.id);
-        setWheelPokemon(updatedWheelPokemon);
-        
         // Notify parent component
         onPokemonWon(pokemon);
         
         toast({
-          title: t("congratulations"),
-          description: t("you-won-pokemon").replace("{name}", pokemon.name),
+          title: t("congratulations") || "Congratulations!",
+          description: (t("you-won-pokemon") || "You won {name}!").replace("{name}", pokemon.name),
         });
       } else {
         toast({
-          title: t("error"),
-          description: t("failed-to-claim-pokemon"),
+          title: t("error") || "Error",
+          description: t("failed-to-claim-pokemon") || "Failed to claim Pokémon",
         });
       }
     }, 3000);
-  };
-
-  // Refresh the wheel with new Pokémon
-  const handleRefreshWheel = () => {
-    if (coins < 1) {
-      toast({
-        title: t("error"),
-        description: t("need-coins-to-refresh"),
-      });
-      return;
-    }
-    
-    // Use a coin to refresh
-    const success = useStudentCoin(studentId);
-    if (!success) {
-      toast({
-        title: t("error"),
-        description: t("failed-to-use-coin"),
-      });
-      return;
-    }
-    
-    // Load new Pokémon
-    loadWheelPokemon();
-    
-    // Notify parent to update coin display
-    onPokemonWon({} as Pokemon);
-    
-    toast({
-      title: t("wheel-refreshed"),
-      description: t("new-pokemon-available"),
-    });
   };
   
   // Close the win modal
@@ -172,25 +106,7 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
   };
 
   // Calculate wheel segment degree
-  const segmentDegree = wheelPokemon.length > 0 ? 360 / wheelPokemon.length : 30;
-  
-  // Show empty state when no Pokémon are available
-  if (wheelPokemon.length === 0) {
-    return (
-      <Card className="pokemon-card">
-        <CardContent className="pt-6 text-center p-8">
-          <p>{t("no-available-pokemon")}</p>
-          <Button
-            onClick={loadWheelPokemon}
-            className="mt-4"
-          >
-            <RefreshCw className="mr-2 h-4 w-4" />
-            {t("check-availability")}
-          </Button>
-        </CardContent>
-      </Card>
-    );
-  }
+  const segmentDegree = wheelPokemons.length > 0 ? 360 / wheelPokemons.length : 30;
   
   return (
     <div className="flex flex-col items-center">
@@ -199,8 +115,8 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
         <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 animate-fade-in">
           <div className="relative bg-white rounded-xl overflow-hidden shadow-2xl max-w-md w-full animate-scale-in">
             <div className="relative p-6 text-center">
-              <h2 className="text-2xl font-bold mb-3">{t("congratulations")}</h2>
-              <p className="text-lg mb-6">{t("you-won-pokemon").replace("{name}", wonPokemon.name)}</p>
+              <h2 className="text-2xl font-bold mb-3">{t("congratulations") || "Congratulations!"}</h2>
+              <p className="text-lg mb-6">{(t("you-won-pokemon") || "You won {name}!").replace("{name}", wonPokemon.name)}</p>
               
               <div className="relative mb-6">
                 <Sparkle className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 text-yellow-400 h-6 w-6 animate-pulse" />
@@ -218,7 +134,7 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
               <div className="p-4 rounded-lg bg-gray-50 mb-4">
                 <p className="mb-2">
                   <span className="font-medium">
-                    {t("pokemon-type").replace("{type}", wonPokemon.type)}
+                    {(t("pokemon-type") || "Type: {type}").replace("{type}", wonPokemon.type)}
                   </span>
                 </p>
                 <p>
@@ -236,7 +152,7 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
                 className="w-full"
                 onClick={closeWinModal}
               >
-                {t("close")}
+                {t("close") || "Close"}
               </Button>
             </div>
           </div>
@@ -244,10 +160,10 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
       )}
       
       {/* Wheel Animation */}
-      <div className="relative w-80 h-80 mb-6">
+      <div className="relative w-72 h-72 mb-6">
         {/* Pointer */}
         <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-          <div className="w-8 h-8 bg-red-500 rotate-45 transform origin-bottom shadow-lg"></div>
+          <div className="w-6 h-6 bg-red-500 rotate-45 transform origin-bottom shadow-lg"></div>
         </div>
         
         {/* Wheel background */}
@@ -261,7 +177,7 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
             transition: isSpinning ? 'transform 3s cubic-bezier(0.17, 0.67, 0.83, 0.67)' : 'none'
           }}
         >
-          {wheelPokemon.map((pokemon, index) => {
+          {wheelPokemons.map((pokemon, index) => {
             const startAngle = index * segmentDegree;
             const endAngle = (index + 1) * segmentDegree;
             
@@ -287,8 +203,8 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
                   style={{ transform: `rotate(${startAngle + segmentDegree / 2}deg)` }}
                 >
                   <div 
-                    className={`w-16 h-16 bg-white rounded-full overflow-hidden relative shadow-lg border-2 ${borderColor}`}
-                    style={{ transform: `translateX(120px) rotate(${-startAngle - segmentDegree / 2}deg)` }}
+                    className={`w-12 h-12 bg-white rounded-full overflow-hidden relative shadow-lg border-2 ${borderColor}`}
+                    style={{ transform: `translateX(100px) rotate(${-startAngle - segmentDegree / 2}deg)` }}
                   >
                     <img 
                       src={pokemon.image} 
@@ -304,31 +220,27 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
       </div>
       
       {/* Controls */}
-      <div className="flex flex-col items-center gap-2">
+      <div className="flex flex-col items-center gap-4 mt-4">
         <Button
-          className="pokemon-button text-lg px-8 py-6"
+          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-full text-lg flex items-center gap-2 shadow-lg"
           disabled={isSpinning || coins <= 0}
           onClick={handleSpin}
           size="lg"
         >
-          {isSpinning ? t("spinning") : `${t("spin-wheel")} (1 ${t("coin")})`}
+          <CirclePlay className="h-5 w-5" />
+          {isSpinning ? 
+            (t("spinning") || "Spinning...") : 
+            (t("spin-wheel") || "Spin Wheel") + ` (1 ${t("coin") || "Coin"})`
+          }
         </Button>
         
-        <Button
-          variant="outline"
-          onClick={handleRefreshWheel}
-          disabled={coins < 1 || isSpinning}
-          className="mt-2"
-        >
-          <RefreshCw className="mr-2 h-4 w-4" />
-          {t("refresh-wheel")} (1 {t("coin")})
-        </Button>
+        <p className="text-center text-sm text-gray-500">
+          {t("you-have") || "You have"} <span className="font-bold">{coins}</span> {coins === 1 ? (t("coin") || "coin") : (t("coins") || "coins")}
+        </p>
         
-        <p className="mt-4 text-lg font-medium">{t("you-have")} {coins} {t("coins")}</p>
-        
-        {selectedPokemonIndex !== null && !isSpinning && !showWinAnimation && wheelPokemon[selectedPokemonIndex] && (
+        {selectedPokemonIndex !== null && !isSpinning && !showWinAnimation && wheelPokemons[selectedPokemonIndex] && (
           <div className="mt-2 animate-fade-in">
-            <p>{t("last-spin")}: <span className="font-bold">{wheelPokemon[selectedPokemonIndex].name}</span></p>
+            <p>{t("last-spin") || "Last spin"}: <span className="font-bold">{wheelPokemons[selectedPokemonIndex].name}</span></p>
           </div>
         )}
       </div>
