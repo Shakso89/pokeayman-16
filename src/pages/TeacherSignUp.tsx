@@ -8,12 +8,12 @@ import { toast } from "@/hooks/use-toast";
 import { 
   Dialog,
   DialogContent,
-  DialogHeader,
-  DialogTitle,
   DialogDescription,
-  DialogFooter
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
 } from "@/components/ui/dialog";
-import { User, Mail, Lock, Contact, Upload, Image } from "lucide-react";
+import { User, Mail, Lock, Contact, Upload, Image, Home } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const TeacherSignUp: React.FC = () => {
@@ -180,221 +180,235 @@ const TeacherSignUp: React.FC = () => {
   };
   
   return (
-    <AuthLayout
-      title="Teacher Sign Up"
-      description="Create your account to manage your classes"
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Avatar selection */}
-        <div className="flex flex-col items-center justify-center mb-6">
-          <div className="mb-2 text-center">
-            <Label>Choose an Avatar</Label>
-          </div>
-          <Avatar className="h-24 w-24 mb-4 border-2 border-primary">
-            <AvatarImage src={avatarUrl} />
-            <AvatarFallback>
-              <User className="h-12 w-12 text-gray-400" />
-            </AvatarFallback>
-          </Avatar>
-          
-          <div className="flex flex-wrap gap-3 justify-center mb-4">
-            {defaultAvatars.map((avatar, index) => (
-              <button
-                key={index}
-                type="button"
-                className={`rounded-full p-1 ${
-                  avatarUrl === avatar ? 'ring-2 ring-primary' : 'hover:bg-gray-100'
-                }`}
-                onClick={() => handleSelectAvatar(avatar)}
-              >
-                <img src={avatar} alt={`Avatar ${index}`} className="w-10 h-10 rounded-full" />
-              </button>
-            ))}
-            
-            <button
-              type="button"
-              className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200"
-              onClick={handleUploadClick}
-            >
-              <Upload className="h-5 w-5 text-gray-600" />
-              <input 
-                type="file"
-                ref={fileInputRef}
-                className="hidden"
-                accept="image/*"
-                onChange={handleFileChange}
-              />
-            </button>
-          </div>
-        </div>
-        
-        {/* Username field */}
-        <div className="space-y-2">
-          <Label htmlFor="username">Username</Label>
-          <div className="relative">
-            <Input
-              id="username"
-              placeholder="Enter your username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              className="pl-10"
-              required
-            />
-            <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
-          </div>
-        </div>
-        
-        {/* Email field */}
-        <div className="space-y-2">
-          <Label htmlFor="email">Email</Label>
-          <div className="relative">
-            <Input
-              id="email"
-              type="email"
-              placeholder="Enter your email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="pl-10"
-              required
-            />
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
-          </div>
-        </div>
-        
-        {/* Password field */}
-        <div className="space-y-2">
-          <Label htmlFor="password">Password</Label>
-          <div className="relative">
-            <Input
-              id="password"
-              type="password"
-              placeholder="Enter your password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="pl-10"
-              required
-            />
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
-          </div>
-        </div>
-        
-        {/* Confirm Password field */}
-        <div className="space-y-2">
-          <Label htmlFor="confirmPassword">Confirm Password</Label>
-          <div className="relative">
-            <Input
-              id="confirmPassword"
-              type="password"
-              placeholder="Confirm your password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              className="pl-10"
-              required
-            />
-            <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
-          </div>
-        </div>
-        
-        {/* Activation Code field */}
-        <div className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label htmlFor="activationCode">Activation Code</Label>
-            <Button 
-              type="button" 
-              variant="link" 
-              size="sm" 
-              onClick={() => setContactDialogOpen(true)}
-              className="text-xs"
-            >
-              Need a code?
-            </Button>
-          </div>
-          <Input
-            id="activationCode"
-            placeholder="Enter your activation code"
-            value={activationCode}
-            onChange={(e) => setActivationCode(e.target.value)}
-            required
-          />
-          <p className="text-xs text-gray-500">
-            Use code starting with TRIAL for a 7-day trial
-          </p>
-        </div>
-        
-        {/* Submit button */}
-        <Button type="submit" className="w-full" disabled={isLoading}>
-          {isLoading ? "Creating Account..." : "Create Account"}
+    <div className="min-h-screen bg-cover bg-center" 
+         style={{ backgroundImage: "url('https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/4.png'), linear-gradient(to right, #ffc3a0 0%, #ffafbd 100%)" }}>
+      <div className="absolute top-4 left-4 flex items-center gap-2">
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={() => navigate("/")}
+          className="bg-white/50 backdrop-blur-sm hover:bg-white/70"
+        >
+          <Home className="h-5 w-5" />
         </Button>
-        
-        <div className="text-center text-sm mt-2">
-          <p>
-            Already have an account?{" "}
-            <button 
-              type="button" 
-              onClick={() => navigate("/teacher-login")}
-              className="text-blue-600 hover:underline"
-            >
-              Sign in
-            </button>
-          </p>
-        </div>
-      </form>
+      </div>
       
-      {/* Contact Dialog */}
-      <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Get Your Activation Code</DialogTitle>
-            <DialogDescription>
-              Contact us to get a trial, monthly, or annual activation code.
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="flex flex-col items-start">
-              <span className="font-medium mb-1">Facebook:</span>
-              <a 
-                href="https://www.facebook.com/ayman.soliman89/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-500 hover:underline flex items-center gap-2"
-              >
-                <div className="bg-blue-100 p-2 rounded-full">
-                  <Contact className="h-4 w-4 text-blue-500" />
-                </div>
-                ayman.soliman89
-              </a>
+      <AuthLayout
+        title="Teacher Sign Up"
+        description="Create your account to manage your classes"
+      >
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Avatar selection */}
+          <div className="flex flex-col items-center justify-center mb-6">
+            <div className="mb-2 text-center">
+              <Label>Choose an Avatar</Label>
             </div>
+            <Avatar className="h-24 w-24 mb-4 border-2 border-primary">
+              <AvatarImage src={avatarUrl} />
+              <AvatarFallback>
+                <User className="h-12 w-12 text-gray-400" />
+              </AvatarFallback>
+            </Avatar>
             
-            <div className="flex flex-col items-start">
-              <span className="font-medium mb-1">Phone / WhatsApp / Line:</span>
-              <a 
-                href="tel:+886900170038" 
-                className="text-blue-500 hover:underline flex items-center gap-2"
+            <div className="flex flex-wrap gap-3 justify-center mb-4">
+              {defaultAvatars.map((avatar, index) => (
+                <button
+                  key={index}
+                  type="button"
+                  className={`rounded-full p-1 ${
+                    avatarUrl === avatar ? 'ring-2 ring-primary' : 'hover:bg-gray-100'
+                  }`}
+                  onClick={() => handleSelectAvatar(avatar)}
+                >
+                  <img src={avatar} alt={`Avatar ${index}`} className="w-10 h-10 rounded-full" />
+                </button>
+              ))}
+              
+              <button
+                type="button"
+                className="flex items-center justify-center w-10 h-10 rounded-full bg-gray-100 hover:bg-gray-200"
+                onClick={handleUploadClick}
               >
-                <div className="bg-blue-100 p-2 rounded-full">
-                  <Contact className="h-4 w-4 text-blue-500" />
-                </div>
-                +886 900 170 038
-              </a>
-            </div>
-            
-            <div className="text-sm text-gray-500 mt-2">
-              <p>Available activation codes:</p>
-              <ul className="list-disc pl-5 mt-1">
-                <li>7-day trial (starts with "TRIAL")</li>
-                <li>Monthly subscription (starts with "MONTH")</li>
-                <li>Annual subscription (starts with "YEAR")</li>
-              </ul>
+                <Upload className="h-5 w-5 text-gray-600" />
+                <input 
+                  type="file"
+                  ref={fileInputRef}
+                  className="hidden"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                />
+              </button>
             </div>
           </div>
           
-          <DialogFooter>
-            <Button onClick={() => setContactDialogOpen(false)}>Close</Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-    </AuthLayout>
+          {/* Username field */}
+          <div className="space-y-2">
+            <Label htmlFor="username">Username</Label>
+            <div className="relative">
+              <Input
+                id="username"
+                placeholder="Enter your username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                className="pl-10"
+                required
+              />
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
+            </div>
+          </div>
+          
+          {/* Email field */}
+          <div className="space-y-2">
+            <Label htmlFor="email">Email</Label>
+            <div className="relative">
+              <Input
+                id="email"
+                type="email"
+                placeholder="Enter your email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="pl-10"
+                required
+              />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
+            </div>
+          </div>
+          
+          {/* Password field */}
+          <div className="space-y-2">
+            <Label htmlFor="password">Password</Label>
+            <div className="relative">
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="pl-10"
+                required
+              />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
+            </div>
+          </div>
+          
+          {/* Confirm Password field */}
+          <div className="space-y-2">
+            <Label htmlFor="confirmPassword">Confirm Password</Label>
+            <div className="relative">
+              <Input
+                id="confirmPassword"
+                type="password"
+                placeholder="Confirm your password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="pl-10"
+                required
+              />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 h-5 w-5" />
+            </div>
+          </div>
+          
+          {/* Activation Code field */}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label htmlFor="activationCode">Activation Code</Label>
+              <Button 
+                type="button" 
+                variant="link" 
+                size="sm" 
+                onClick={() => setContactDialogOpen(true)}
+                className="text-xs"
+              >
+                Need a code?
+              </Button>
+            </div>
+            <Input
+              id="activationCode"
+              placeholder="Enter your activation code"
+              value={activationCode}
+              onChange={(e) => setActivationCode(e.target.value)}
+              required
+            />
+            <p className="text-xs text-gray-500">
+              Use code starting with TRIAL for a 7-day trial
+            </p>
+          </div>
+          
+          {/* Submit button */}
+          <Button type="submit" className="w-full" disabled={isLoading}>
+            {isLoading ? "Creating Account..." : "Create Account"}
+          </Button>
+          
+          <div className="text-center text-sm mt-2">
+            <p>
+              Already have an account?{" "}
+              <button 
+                type="button" 
+                onClick={() => navigate("/teacher-login")}
+                className="text-blue-600 hover:underline"
+              >
+                Sign in
+              </button>
+            </p>
+          </div>
+        </form>
+        
+        {/* Contact Dialog */}
+        <Dialog open={contactDialogOpen} onOpenChange={setContactDialogOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Get Your Activation Code</DialogTitle>
+              <DialogDescription>
+                Contact us to get a trial, monthly, or annual activation code.
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="grid gap-4 py-4">
+              <div className="flex flex-col items-start">
+                <span className="font-medium mb-1">Facebook:</span>
+                <a 
+                  href="https://www.facebook.com/ayman.soliman89/" 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="text-blue-500 hover:underline flex items-center gap-2"
+                >
+                  <div className="bg-blue-100 p-2 rounded-full">
+                    <Contact className="h-4 w-4 text-blue-500" />
+                  </div>
+                  ayman.soliman89
+                </a>
+              </div>
+              
+              <div className="flex flex-col items-start">
+                <span className="font-medium mb-1">Phone / WhatsApp / Line:</span>
+                <a 
+                  href="tel:+886900170038" 
+                  className="text-blue-500 hover:underline flex items-center gap-2"
+                >
+                  <div className="bg-blue-100 p-2 rounded-full">
+                    <Contact className="h-4 w-4 text-blue-500" />
+                  </div>
+                  +886 900 170 038
+                </a>
+              </div>
+              
+              <div className="text-sm text-gray-500 mt-2">
+                <p>Available activation codes:</p>
+                <ul className="list-disc pl-5 mt-1">
+                  <li>7-day trial (starts with "TRIAL")</li>
+                  <li>Monthly subscription (starts with "MONTH")</li>
+                  <li>Annual subscription (starts with "YEAR")</li>
+                </ul>
+              </div>
+            </div>
+            
+            <DialogFooter>
+              <Button onClick={() => setContactDialogOpen(false)}>Close</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </AuthLayout>
+    </div>
   );
 };
 

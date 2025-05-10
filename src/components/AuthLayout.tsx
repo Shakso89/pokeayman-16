@@ -20,8 +20,7 @@ export const AuthLayout = ({
   className,
 }: AuthLayoutProps) => {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-cover bg-center bg-no-repeat p-4" 
-         style={{backgroundImage: "url('/lovable-uploads/df7b9259-e876-46a6-9b71-00aa60971cbf.png')"}}>
+    <div className="flex min-h-screen items-center justify-center p-4">
       <Card className={cn("w-full max-w-md shadow-xl border-none bg-white/90 backdrop-blur-sm", className)}>
         <CardHeader>
           <div className="flex justify-center mb-4 relative">

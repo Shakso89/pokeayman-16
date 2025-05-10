@@ -13,6 +13,8 @@ import {
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
 import LanguageSelector from "./LanguageSelector";
+import { Home } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +30,15 @@ const Header: React.FC = () => {
       </div>
       
       <div className="flex items-center gap-6">
+        <Button 
+          variant="ghost" 
+          size="icon"
+          onClick={() => navigate("/")}
+          className="text-white hover:bg-white/20"
+        >
+          <Home size={20} />
+        </Button>
+        
         <LanguageSelector className="text-white hover:bg-white/20" />
         
         {/* Navigation Menu */}
