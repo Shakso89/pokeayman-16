@@ -1,777 +1,593 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { ChevronLeft, Plus, Trophy, Clock, Search } from "lucide-react";
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
-import { ChevronLeft, Sword, Trophy, Users, School, Clock } from "lucide-react";
-import { Battle } from "@/types/pokemon";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { format } from "date-fns";
 import { useTranslation } from "@/hooks/useTranslation";
-import { awardCoinsToStudent } from "@/utils/pokemonData";
+import { Battle } from "@/types/pokemon";
 
-interface BattleProps {
+interface BattleModeProps {
   onBack: () => void;
 }
 
-const BattleMode: React.FC<BattleProps> = ({ onBack }) => {
+const BattleMode: React.FC<BattleModeProps> = ({ onBack }) => {
+  const [isCreateBattleOpen, setIsCreateBattleOpen] = useState(false);
   const [battles, setBattles] = useState<Battle[]>([]);
+  const [selectedBattle, setSelectedBattle] = useState<Battle | null>(null);
+  const [isViewBattleOpen, setIsViewBattleOpen] = useState(false);
   const [schools, setSchools] = useState<any[]>([]);
   const [classes, setClasses] = useState<any[]>([]);
   const [students, setStudents] = useState<any[]>([]);
-  const { t } = useTranslation();
-  
-  const [currentView, setCurrentView] = useState<"list" | "create" | "details">("list");
-  const [selectedBattle, setSelectedBattle] = useState<Battle | null>(null);
-  
-  const [newBattle, setNewBattle] = useState<Partial<Battle>>({
+  const [newBattle, setNewBattle] = useState({
     name: "",
     description: "",
     schoolId: "",
-    classId: undefined,
+    classId: "",
     baseReward: 10,
-    timeLimit: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(), // 24h from now
-    status: "pending",
-    participants: [],
-    answers: []
+    timeLimit: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0] // Tomorrow
   });
+  const [searchTerm, setSearchTerm] = useState("");
+  const { t } = useTranslation();
   
-  const teacherId = localStorage.getItem("teacherId") || "";
-
-  useEffect(() => {
-    loadBattles();
-    loadSchools();
-  }, []);
+  const teacherId = localStorage.getItem("teacherId");
   
   useEffect(() => {
-    if (newBattle.schoolId) {
-      loadClasses(newBattle.schoolId);
-    }
-  }, [newBattle.schoolId]);
-  
-  useEffect(() => {
-    if (newBattle.classId) {
-      loadStudents(newBattle.classId);
-    }
-  }, [newBattle.classId]);
-
-  const loadBattles = () => {
+    // Load saved battles
     const savedBattles = localStorage.getItem("battles");
-    const parsedBattles = savedBattles ? JSON.parse(savedBattles) : [];
-    // Filter by teacher
-    const teacherBattles = parsedBattles.filter((battle: Battle) => battle.createdBy === teacherId);
-    setBattles(teacherBattles);
-  };
-  
-  const loadSchools = () => {
+    if (savedBattles) {
+      const parsedBattles = JSON.parse(savedBattles);
+      // Filter battles created by this teacher
+      const teacherBattles = parsedBattles.filter((battle: Battle) => battle.createdBy === teacherId);
+      setBattles(teacherBattles);
+    }
+    
+    // Load schools created by this teacher
     const savedSchools = localStorage.getItem("schools");
-    const parsedSchools = savedSchools ? JSON.parse(savedSchools) : [];
-    const teacherSchools = parsedSchools.filter((school: any) => school.teacherId === teacherId);
-    setSchools(teacherSchools);
-  };
-  
-  const loadClasses = (schoolId: string) => {
+    if (savedSchools) {
+      const parsedSchools = JSON.parse(savedSchools);
+      const teacherSchools = parsedSchools.filter((school: any) => school.teacherId === teacherId);
+      setSchools(teacherSchools);
+    }
+    
+    // Load classes
     const savedClasses = localStorage.getItem("classes");
-    const parsedClasses = savedClasses ? JSON.parse(savedClasses) : [];
-    const schoolClasses = parsedClasses.filter((cls: any) => 
-      cls.schoolId === schoolId && cls.teacherId === teacherId
-    );
-    setClasses(schoolClasses);
-  };
+    if (savedClasses) {
+      const parsedClasses = JSON.parse(savedClasses);
+      const teacherClasses = parsedClasses.filter((c: any) => c.teacherId === teacherId);
+      setClasses(teacherClasses);
+    }
+    
+    // Load students
+    const savedStudents = localStorage.getItem("students");
+    if (savedStudents) {
+      setStudents(JSON.parse(savedStudents));
+    }
+  }, [teacherId]);
   
-  const loadStudents = (classId: string) => {
-    const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
-    const classStudents = allStudents.filter((student: any) => student.classId === classId);
-    setStudents(classStudents);
-  };
-
   const handleCreateBattle = () => {
-    if (!newBattle.name || !newBattle.description || !newBattle.schoolId) {
+    // Validate form
+    if (!newBattle.name || !newBattle.description || !newBattle.schoolId || !newBattle.timeLimit) {
       toast({
         title: t("error"),
         description: t("fill-required-fields"),
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
-
+    
+    // Create battle object
     const battle: Battle = {
       id: `battle-${Date.now()}`,
-      name: newBattle.name!,
-      description: newBattle.description!,
-      createdBy: teacherId,
-      schoolId: newBattle.schoolId!,
-      classId: newBattle.classId,
-      status: "pending",
-      baseReward: newBattle.baseReward || 10,
-      timeLimit: newBattle.timeLimit!,
+      name: newBattle.name,
+      description: newBattle.description,
+      createdBy: teacherId || "",
+      schoolId: newBattle.schoolId,
+      classId: newBattle.classId || undefined,
+      status: "pending" as "pending" | "active" | "completed",
       participants: [],
+      baseReward: newBattle.baseReward,
+      timeLimit: new Date(newBattle.timeLimit).toISOString(),
       answers: []
     };
-
-    // Save to localStorage
+    
+    // Save battle
     const savedBattles = localStorage.getItem("battles");
-    const parsedBattles = savedBattles ? JSON.parse(savedBattles) : [];
-    parsedBattles.push(battle);
-    localStorage.setItem("battles", JSON.stringify(parsedBattles));
-
-    // Update state
+    let allBattles: Battle[] = [];
+    if (savedBattles) {
+      allBattles = JSON.parse(savedBattles);
+    }
+    allBattles.push(battle);
+    localStorage.setItem("battles", JSON.stringify(allBattles));
+    
+    // Update local state
     setBattles([...battles, battle]);
+    
+    // Reset form and close dialog
     setNewBattle({
       name: "",
       description: "",
       schoolId: "",
-      classId: undefined,
+      classId: "",
       baseReward: 10,
-      timeLimit: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString(),
-      status: "pending",
-      participants: [],
-      answers: []
+      timeLimit: new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().split("T")[0]
     });
-    setCurrentView("list");
+    setIsCreateBattleOpen(false);
     
+    // Show success message
     toast({
       title: t("success"),
       description: t("battle-created"),
     });
   };
-
-  const handleStartBattle = (battle: Battle) => {
-    const updatedBattles = battles.map(b => 
-      b.id === battle.id ? { ...b, status: "active" } : b
-    );
+  
+  const handleStartBattle = (battleId: string) => {
+    // Find battle
+    const updatedBattles = battles.map(b => {
+      if (b.id === battleId) {
+        return { ...b, status: "active" as "pending" | "active" | "completed" };
+      }
+      return b;
+    });
     
+    // Update storage
+    localStorage.setItem("battles", JSON.stringify(updatedBattles));
+    
+    // Update state
     setBattles(updatedBattles);
     
-    // Update in localStorage
-    const savedBattles = localStorage.getItem("battles");
-    const parsedBattles = savedBattles ? JSON.parse(savedBattles) : [];
-    const updatedSavedBattles = parsedBattles.map((b: Battle) =>
-      b.id === battle.id ? { ...b, status: "active" } : b
-    );
-    localStorage.setItem("battles", JSON.stringify(updatedSavedBattles));
-    
+    // Show success message
     toast({
-      title: t("battle-started"),
-      description: t("battle-started-description"),
+      description: t("battle-started"),
     });
   };
   
-  const handleCompleteBattle = (battle: Battle) => {
-    const updatedBattles = battles.map(b => 
-      b.id === battle.id ? { ...b, status: "completed" } : b
-    );
+  const handleCompleteBattle = (battleId: string) => {
+    // Find battle
+    const updatedBattles = battles.map(b => {
+      if (b.id === battleId) {
+        return { ...b, status: "completed" as "pending" | "active" | "completed" };
+      }
+      return b;
+    });
     
+    // Update storage
+    localStorage.setItem("battles", JSON.stringify(updatedBattles));
+    
+    // Update state
     setBattles(updatedBattles);
     
-    // Update in localStorage
-    const savedBattles = localStorage.getItem("battles");
-    const parsedBattles = savedBattles ? JSON.parse(savedBattles) : [];
-    const updatedSavedBattles = parsedBattles.map((b: Battle) =>
-      b.id === battle.id ? { ...b, status: "completed" } : b
-    );
-    localStorage.setItem("battles", JSON.stringify(updatedSavedBattles));
-    
+    // Show success message
     toast({
-      title: t("battle-completed"),
-      description: t("battle-completed-description"),
+      description: t("battle-completed"),
     });
   };
   
-  const handleDeleteBattle = (battleId: string) => {
-    const updatedBattles = battles.filter(battle => battle.id !== battleId);
-    setBattles(updatedBattles);
+  const handleSelectWinner = (battle: Battle, answerId: number) => {
+    const selectedAnswer = battle.answers[answerId];
     
-    // Update in localStorage
-    const savedBattles = localStorage.getItem("battles");
-    const parsedBattles = savedBattles ? JSON.parse(savedBattles) : [];
-    const updatedSavedBattles = parsedBattles.filter((battle: Battle) => battle.id !== battleId);
-    localStorage.setItem("battles", JSON.stringify(updatedSavedBattles));
+    // Create winner object
+    const winner = {
+      studentId: selectedAnswer.studentId,
+      studentName: selectedAnswer.studentName,
+      submissionTime: selectedAnswer.submissionTime,
+      submission: selectedAnswer.submission
+    };
     
-    toast({
-      title: t("battle-deleted"),
-      description: t("battle-deleted-description"),
+    // Update battle
+    const updatedBattles = battles.map(b => {
+      if (b.id === battle.id) {
+        return { 
+          ...b, 
+          winner,
+          status: "completed" as "pending" | "active" | "completed"
+        };
+      }
+      return b;
     });
-  };
-  
-  const handleSelectWinner = (battleId: string, answer: any) => {
-    if (!answer) return;
     
-    // Calculate total prize
-    const battle = battles.find(b => b.id === battleId);
-    if (!battle) return;
+    // Determine prize amount
+    const prize = battle.baseReward + battle.participants.length;
     
-    const baseReward = battle.baseReward || 10;
-    const participantBonus = battle.participants?.length || 0;
-    const totalReward = baseReward + participantBonus;
+    // Award prize to winner
+    const awardCoinsToStudent = (studentId: string, amount: number) => {
+      const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
+      const studentIndex = studentPokemons.findIndex((sp: any) => sp.studentId === studentId);
+      
+      if (studentIndex >= 0) {
+        studentPokemons[studentIndex].coins += amount;
+      } else {
+        studentPokemons.push({
+          studentId,
+          pokemons: [],
+          coins: amount
+        });
+      }
+      
+      localStorage.setItem("studentPokemons", JSON.stringify(studentPokemons));
+    };
     
-    // Award coins to winner
-    awardCoinsToStudent(answer.studentId, totalReward);
+    awardCoinsToStudent(selectedAnswer.studentId, prize);
     
-    // Update battle with winner
-    const updatedBattles = battles.map(b => 
-      b.id === battleId ? { 
-        ...b, 
-        status: "completed",
-        winner: {
-          studentId: answer.studentId,
-          studentName: answer.studentName,
-          submissionTime: answer.submissionTime,
-          submission: answer.submission
-        }
-      } : b
-    );
+    // Update storage
+    localStorage.setItem("battles", JSON.stringify(updatedBattles));
     
+    // Update state
     setBattles(updatedBattles);
+    setSelectedBattle(updatedBattles.find(b => b.id === battle.id) || null);
     
-    // Update in localStorage
-    const savedBattles = localStorage.getItem("battles");
-    const parsedBattles = savedBattles ? JSON.parse(savedBattles) : [];
-    const updatedSavedBattles = parsedBattles.map((b: Battle) =>
-      b.id === battleId ? { 
-        ...b, 
-        status: "completed",
-        winner: {
-          studentId: answer.studentId,
-          studentName: answer.studentName,
-          submissionTime: answer.submissionTime,
-          submission: answer.submission
-        }
-      } : b
-    );
-    localStorage.setItem("battles", JSON.stringify(updatedSavedBattles));
-    
+    // Show success message
     toast({
       title: t("winner-selected"),
-      description: t("winner-selected-description", { name: answer.studentName, coins: totalReward }),
+      description: `${selectedAnswer.studentName} - ${prize} ${t("coins-awarded")}`,
     });
-    
-    // Refresh the battle details
-    setSelectedBattle(updatedBattles.find(b => b.id === battleId) || null);
-  };
-  
-  const getStatusBadge = (status: string) => {
-    switch(status) {
-      case "pending":
-        return <span className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium">{t("pending")}</span>;
-      case "active":
-        return <span className="px-2 py-1 rounded-full bg-green-100 text-green-800 text-xs font-medium">{t("active")}</span>;
-      case "completed":
-        return <span className="px-2 py-1 rounded-full bg-blue-100 text-blue-800 text-xs font-medium">{t("completed")}</span>;
-      default:
-        return null;
-    }
   };
   
   const getSchoolName = (schoolId: string) => {
     const school = schools.find(s => s.id === schoolId);
-    return school ? school.name : t("unknown-school");
+    return school ? school.name : "Unknown School";
   };
   
-  const getClassName = (classId: string) => {
+  const getClassName = (classId?: string) => {
+    if (!classId) return t("school-wide");
     const cls = classes.find(c => c.id === classId);
-    return cls ? cls.name : t("unknown-class");
+    return cls ? cls.name : "Unknown Class";
   };
   
-  const formatDateTime = (dateString: string) => {
-    try {
-      return format(new Date(dateString), "PPpp");
-    } catch (error) {
-      return dateString;
-    }
-  };
+  const filteredBattles = battles.filter(battle => 
+    battle.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getSchoolName(battle.schoolId).toLowerCase().includes(searchTerm.toLowerCase()) ||
+    getClassName(battle.classId).toLowerCase().includes(searchTerm.toLowerCase())
+  );
   
-  const isExpired = (timeLimit: string) => {
-    return new Date(timeLimit).getTime() < Date.now();
-  };
-
-  if (currentView === "list") {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={onBack}>
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              {t("back-to-dashboard")}
-            </Button>
-            <h2 className="text-2xl font-bold">{t("battle-mode")}</h2>
-          </div>
-          <Button onClick={() => setCurrentView("create")}>
-            <Sword className="h-4 w-4 mr-1" />
-            {t("create-new-battle")}
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center">
+          <Button variant="outline" onClick={onBack} className="mr-4">
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            {t("back-to-dashboard")}
           </Button>
+          <h2 className="text-2xl font-bold">{t("battle-mode")}</h2>
         </div>
-        
-        {battles.length > 0 ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {battles.map(battle => (
-              <Card key={battle.id} className="hover:shadow-md transition-shadow">
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between items-start">
-                    <CardTitle className="flex items-center gap-2">
-                      <Sword className="h-5 w-5 text-red-500" />
+        <Button onClick={() => setIsCreateBattleOpen(true)} className="flex items-center gap-2">
+          <Plus className="h-4 w-4" />
+          {t("create-battle")}
+        </Button>
+      </div>
+      
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          placeholder={t("search-battles")}
+          className="pl-10"
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+        />
+      </div>
+      
+      {filteredBattles.length === 0 ? (
+        <Card>
+          <CardContent className="p-6 text-center text-muted-foreground">
+            {searchTerm ? t("no-matches-found") : t("no-battles-yet")}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {filteredBattles.map(battle => (
+            <Card key={battle.id} className="hover:shadow-md transition-shadow pokemon-card">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle className="flex items-center gap-1">
+                      {battle.status === "active" && <span className="bg-green-500 h-2 w-2 rounded-full" />}
+                      {battle.status === "completed" && <Trophy className="h-4 w-4 text-yellow-500" />}
                       {battle.name}
                     </CardTitle>
-                    {getStatusBadge(battle.status)}
+                    <CardDescription className="mt-1">
+                      {getSchoolName(battle.schoolId)} - {getClassName(battle.classId)}
+                    </CardDescription>
                   </div>
-                  <div className="flex flex-col text-sm text-gray-500 mt-1">
-                    <div className="flex items-center">
-                      <School className="h-4 w-4 mr-1" />
-                      <span>{getSchoolName(battle.schoolId)}</span>
-                    </div>
-                    {battle.classId && (
-                      <div className="flex items-center">
-                        <Users className="h-4 w-4 mr-1" />
-                        <span>{getClassName(battle.classId)}</span>
-                      </div>
-                    )}
-                    <div className="flex items-center">
-                      <Clock className="h-4 w-4 mr-1" />
-                      <span className={isExpired(battle.timeLimit) ? "text-red-500" : ""}>
-                        {t("ends-at")}: {formatDateTime(battle.timeLimit)}
-                      </span>
-                    </div>
+                  <div className="px-2 py-1 rounded text-xs bg-gray-100 flex items-center gap-1">
+                    <Clock className="h-3 w-3" />
+                    {new Date(battle.timeLimit).toLocaleDateString()}
                   </div>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-sm mb-4">{battle.description}</p>
-                  <div className="flex flex-wrap gap-2">
-                    {battle.status === "pending" && (
-                      <>
-                        <Button 
-                          size="sm" 
-                          onClick={() => handleStartBattle(battle)}
-                        >
-                          {t("start-battle")}
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => handleDeleteBattle(battle.id)}
-                        >
-                          {t("delete")}
-                        </Button>
-                      </>
-                    )}
-                    
-                    {battle.status === "active" && (
-                      <>
-                        <Button 
-                          size="sm"
-                          onClick={() => {
-                            setSelectedBattle(battle);
-                            setCurrentView("details");
-                          }}
-                        >
-                          {t("view-answers")}
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline"
-                          onClick={() => handleCompleteBattle(battle)}
-                        >
-                          {t("complete-battle")}
-                        </Button>
-                      </>
-                    )}
-                    
-                    {battle.status === "completed" && (
-                      <>
-                        <Button 
-                          size="sm"
-                          variant="outline"
-                          onClick={() => {
-                            setSelectedBattle(battle);
-                            setCurrentView("details");
-                          }}
-                        >
-                          {t("view-details")}
-                        </Button>
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          onClick={() => handleDeleteBattle(battle.id)}
-                        >
-                          {t("delete")}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        ) : (
-          <Card className="border-dashed p-8">
-            <div className="text-center">
-              <Sword className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-medium mb-2">{t("no-battles-created")}</h3>
-              <p className="text-gray-500 mb-6">{t("create-first-battle-prompt")}</p>
-              <Button onClick={() => setCurrentView("create")}>
-                <Sword className="h-4 w-4 mr-1" />
-                {t("create-first-battle")}
-              </Button>
-            </div>
-          </Card>
-        )}
-      </div>
-    );
-  }
-  
-  if (currentView === "create") {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center">
-          <Button variant="outline" size="sm" onClick={() => setCurrentView("list")}>
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            {t("back-to-battles")}
-          </Button>
-          <h2 className="text-2xl font-bold ml-4">{t("create-new-battle")}</h2>
-        </div>
-        
-        <Card>
-          <CardContent className="pt-6">
-            <form className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="battleName">{t("battle-name")}</Label>
-                <Input 
-                  id="battleName" 
-                  placeholder={t("enter-battle-name")} 
-                  value={newBattle.name}
-                  onChange={(e) => setNewBattle({...newBattle, name: e.target.value})}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="battleDescription">{t("description")}</Label>
-                <Input 
-                  id="battleDescription" 
-                  placeholder={t("enter-battle-description")} 
-                  value={newBattle.description}
-                  onChange={(e) => setNewBattle({...newBattle, description: e.target.value})}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="school">{t("school")}</Label>
-                <Select 
-                  value={newBattle.schoolId} 
-                  onValueChange={(value) => {
-                    setNewBattle({...newBattle, schoolId: value, classId: undefined});
-                  }}
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder={t("select-school")} />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {schools.map(school => (
-                      <SelectItem key={school.id} value={school.id}>
-                        {school.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="space-y-2">
-                <Label>{t("scope")}</Label>
-                <RadioGroup 
-                  value={newBattle.classId === undefined ? "school" : "class"}
-                  onValueChange={(value) => {
-                    if (value === "school") {
-                      setNewBattle({...newBattle, classId: undefined});
-                    }
-                  }}
-                >
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="school" id="school" />
-                    <Label htmlFor="school">{t("entire-school")}</Label>
-                  </div>
-                  <div className="flex items-center space-x-2">
-                    <RadioGroupItem value="class" id="class" />
-                    <Label htmlFor="class">{t("specific-class")}</Label>
-                  </div>
-                </RadioGroup>
-              </div>
-              
-              {newBattle.schoolId && newBattle.classId !== undefined && (
-                <div className="space-y-2">
-                  <Label htmlFor="class">{t("class")}</Label>
-                  <Select 
-                    value={newBattle.classId} 
-                    onValueChange={(value) => setNewBattle({...newBattle, classId: value})}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder={t("select-class")} />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {classes.map(cls => (
-                        <SelectItem key={cls.id} value={cls.id}>
-                          {cls.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
                 </div>
-              )}
-              
-              <div className="space-y-2">
-                <Label htmlFor="baseReward">{t("base-reward-coins")}</Label>
-                <Input 
-                  id="baseReward" 
-                  type="number"
-                  min="1"
-                  value={newBattle.baseReward}
-                  onChange={(e) => setNewBattle({...newBattle, baseReward: parseInt(e.target.value)})}
-                />
-                <p className="text-sm text-gray-500">{t("base-reward-description")}</p>
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="timeLimit">{t("time-limit")}</Label>
-                <Input 
-                  id="timeLimit" 
-                  type="datetime-local"
-                  value={new Date(newBattle.timeLimit!).toISOString().slice(0, 16)}
-                  onChange={(e) => setNewBattle({...newBattle, timeLimit: new Date(e.target.value).toISOString()})}
-                />
-              </div>
-              
-              <div className="flex justify-end space-x-2">
-                <Button 
-                  type="button" 
-                  variant="outline" 
-                  onClick={() => setCurrentView("list")}
-                >
-                  {t("cancel")}
-                </Button>
-                <Button 
-                  type="button" 
-                  onClick={handleCreateBattle}
-                >
-                  {t("create-battle")}
-                </Button>
-              </div>
-            </form>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-  
-  if (currentView === "details" && selectedBattle) {
-    return (
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center">
-            <Button variant="outline" size="sm" onClick={() => {
-              setSelectedBattle(null);
-              setCurrentView("list");
-            }}>
-              <ChevronLeft className="h-4 w-4 mr-1" />
-              {t("back-to-battles")}
-            </Button>
-            <h2 className="text-2xl font-bold ml-4">{selectedBattle.name}</h2>
-          </div>
-          <div className="flex items-center gap-2">
-            {getStatusBadge(selectedBattle.status)}
-            {isExpired(selectedBattle.timeLimit) && (
-              <span className="px-2 py-1 rounded-full bg-red-100 text-red-800 text-xs font-medium">
-                {t("expired")}
-              </span>
-            )}
-          </div>
-        </div>
-        
-        <Card>
-          <CardHeader>
-            <CardTitle>{t("battle-details")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <dt className="text-sm font-medium text-gray-500">{t("description")}</dt>
-                <dd className="mt-1">{selectedBattle.description}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">{t("school")}</dt>
-                <dd className="mt-1">{getSchoolName(selectedBattle.schoolId)}</dd>
-              </div>
-              {selectedBattle.classId && (
-                <div>
-                  <dt className="text-sm font-medium text-gray-500">{t("class")}</dt>
-                  <dd className="mt-1">{getClassName(selectedBattle.classId)}</dd>
-                </div>
-              )}
-              <div>
-                <dt className="text-sm font-medium text-gray-500">{t("time-limit")}</dt>
-                <dd className="mt-1">{formatDateTime(selectedBattle.timeLimit)}</dd>
-              </div>
-              <div>
-                <dt className="text-sm font-medium text-gray-500">{t("reward")}</dt>
-                <dd className="mt-1">
-                  {t("reward-details", {
-                    base: selectedBattle.baseReward,
-                    participants: selectedBattle.participants?.length || 0,
-                    total: (selectedBattle.baseReward || 0) + (selectedBattle.participants?.length || 0)
-                  })}
-                </dd>
-              </div>
-              {selectedBattle.winner && (
-                <div className="col-span-full">
-                  <dt className="text-sm font-medium text-gray-500">{t("winner")}</dt>
-                  <dd className="mt-1 flex items-center gap-2">
-                    <Trophy className="h-5 w-5 text-yellow-500" />
-                    <span className="font-bold">{selectedBattle.winner.studentName}</span>
-                    <span className="text-sm text-gray-500">
-                      {formatDateTime(selectedBattle.winner.submissionTime)}
-                    </span>
-                  </dd>
-                </div>
-              )}
-            </dl>
-          </CardContent>
-        </Card>
-        
-        {/* Answers */}
-        <Tabs defaultValue="answers">
-          <TabsList>
-            <TabsTrigger value="answers">{t("answers")}</TabsTrigger>
-            <TabsTrigger value="participants">{t("participants")}</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="answers" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("submitted-answers")}</CardTitle>
-                <CardDescription>
-                  {selectedBattle.answers.length > 0 
-                    ? t("total-answers", { count: selectedBattle.answers.length })
-                    : t("no-answers-yet")}
-                </CardDescription>
               </CardHeader>
               <CardContent>
-                {selectedBattle.answers.length > 0 ? (
-                  <div className="space-y-4">
-                    {selectedBattle.answers.map((answer, index) => (
-                      <div key={index} className={`p-4 border rounded-lg ${
-                        selectedBattle.winner?.studentId === answer.studentId 
-                          ? "border-yellow-400 bg-yellow-50" 
-                          : ""
-                      }`}>
-                        <div className="flex items-center justify-between mb-3">
-                          <div className="flex items-center gap-2">
-                            <Avatar>
-                              <AvatarFallback>
-                                {answer.studentName.substring(0, 2).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div>
-                              <p className="font-medium">{answer.studentName}</p>
-                              <p className="text-xs text-gray-500">{formatDateTime(answer.submissionTime)}</p>
-                            </div>
+                <p className="text-sm line-clamp-2">{battle.description}</p>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="text-sm text-muted-foreground">
+                    {battle.participants.length} {t("participants")}
+                  </span>
+                  <span className="text-sm font-medium">
+                    {battle.baseReward} + {battle.participants.length} {t("coins")}
+                  </span>
+                </div>
+              </CardContent>
+              <CardFooter className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  className="flex-1"
+                  onClick={() => {
+                    setSelectedBattle(battle);
+                    setIsViewBattleOpen(true);
+                  }}
+                >
+                  {t("details")}
+                </Button>
+                
+                {battle.status === "pending" && (
+                  <Button 
+                    className="flex-1"
+                    onClick={() => handleStartBattle(battle.id)}
+                  >
+                    {t("start")}
+                  </Button>
+                )}
+                
+                {battle.status === "active" && (
+                  <Button 
+                    className="flex-1"
+                    onClick={() => handleCompleteBattle(battle.id)}
+                  >
+                    {t("complete")}
+                  </Button>
+                )}
+              </CardFooter>
+            </Card>
+          ))}
+        </div>
+      )}
+      
+      {/* Create Battle Dialog */}
+      <Dialog open={isCreateBattleOpen} onOpenChange={setIsCreateBattleOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("create-new-battle")}</DialogTitle>
+            <DialogDescription>
+              {t("create-battle-description")}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-2">
+            <div className="space-y-2">
+              <Label htmlFor="battleName">{t("battle-name")}</Label>
+              <Input
+                id="battleName"
+                value={newBattle.name}
+                onChange={(e) => setNewBattle({...newBattle, name: e.target.value})}
+                placeholder={t("enter-battle-name")}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="battleDescription">{t("battle-description")}</Label>
+              <Textarea
+                id="battleDescription"
+                value={newBattle.description}
+                onChange={(e) => setNewBattle({...newBattle, description: e.target.value})}
+                placeholder={t("enter-battle-description")}
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="schoolSelect">{t("select-school")}</Label>
+              <Select 
+                value={newBattle.schoolId} 
+                onValueChange={(value) => {
+                  setNewBattle({...newBattle, schoolId: value, classId: ""});
+                }}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t("select-school")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {schools.map((school) => (
+                    <SelectItem key={school.id} value={school.id}>
+                      {school.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="classSelect">{t("select-class")}</Label>
+              <Select 
+                value={newBattle.classId} 
+                onValueChange={(value) => setNewBattle({...newBattle, classId: value})}
+                disabled={!newBattle.schoolId}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={t("select-class-optional")} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">{t("school-wide")}</SelectItem>
+                  {classes
+                    .filter(c => c.schoolId === newBattle.schoolId)
+                    .map((cls) => (
+                      <SelectItem key={cls.id} value={cls.id}>
+                        {cls.name}
+                      </SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="baseReward">{t("base-reward")} ({t("coins")})</Label>
+              <Input
+                id="baseReward"
+                type="number"
+                value={newBattle.baseReward}
+                onChange={(e) => setNewBattle({...newBattle, baseReward: parseInt(e.target.value) || 0})}
+                min="1"
+              />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="timeLimit">{t("time-limit")}</Label>
+              <Input
+                id="timeLimit"
+                type="date"
+                value={newBattle.timeLimit}
+                onChange={(e) => setNewBattle({...newBattle, timeLimit: e.target.value})}
+                min={new Date().toISOString().split("T")[0]}
+              />
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateBattleOpen(false)}>
+              {t("cancel")}
+            </Button>
+            <Button onClick={handleCreateBattle}>
+              {t("create-battle")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* View Battle Details Dialog */}
+      <Dialog open={isViewBattleOpen} onOpenChange={setIsViewBattleOpen}>
+        <DialogContent className="max-w-3xl">
+          {selectedBattle && (
+            <>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {selectedBattle.status === "active" && <span className="bg-green-500 h-3 w-3 rounded-full" />}
+                  {selectedBattle.status === "completed" && <Trophy className="h-5 w-5 text-yellow-500" />}
+                  {selectedBattle.name}
+                </DialogTitle>
+                <DialogDescription>
+                  {getSchoolName(selectedBattle.schoolId)} - {getClassName(selectedBattle.classId)}
+                </DialogDescription>
+              </DialogHeader>
+              
+              <div className="grid gap-4">
+                <div>
+                  <h3 className="font-semibold mb-1">{t("description")}</h3>
+                  <p className="text-sm text-gray-700">{selectedBattle.description}</p>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="font-semibold mb-1">{t("status")}</h3>
+                    <div className="flex items-center gap-2">
+                      <div className={`w-2 h-2 rounded-full ${
+                        selectedBattle.status === "pending" ? "bg-yellow-500" : 
+                        selectedBattle.status === "active" ? "bg-green-500" : "bg-blue-500"
+                      }`} />
+                      <span className="capitalize">{selectedBattle.status}</span>
+                    </div>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-semibold mb-1">{t("time-limit")}</h3>
+                    <p>{new Date(selectedBattle.timeLimit).toLocaleString()}</p>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <h3 className="font-semibold mb-1">{t("participants")}</h3>
+                    <p>{selectedBattle.participants.length}</p>
+                  </div>
+                  
+                  <div>
+                    <h3 className="font-semibold mb-1">{t("total-prize")}</h3>
+                    <p>{selectedBattle.baseReward + selectedBattle.participants.length} {t("coins")}</p>
+                  </div>
+                </div>
+                
+                {selectedBattle.winner && (
+                  <div className="border rounded p-3 bg-yellow-50">
+                    <h3 className="font-semibold mb-1 flex items-center gap-2">
+                      <Trophy className="h-4 w-4 text-yellow-500" />
+                      {t("winner")}
+                    </h3>
+                    <p className="font-medium">{selectedBattle.winner.studentName}</p>
+                    <p className="text-sm text-gray-500">
+                      {t("submitted-at")} {new Date(selectedBattle.winner.submissionTime).toLocaleString()}
+                    </p>
+                    <div className="mt-2">
+                      {selectedBattle.winner.submission.type === "photo" ? (
+                        <img 
+                          src={selectedBattle.winner.submission.content} 
+                          alt="Winning submission" 
+                          className="max-h-32 rounded border" 
+                        />
+                      ) : (
+                        <audio 
+                          src={selectedBattle.winner.submission.content} 
+                          controls 
+                          className="w-full" 
+                        />
+                      )}
+                    </div>
+                  </div>
+                )}
+                
+                <div>
+                  <h3 className="font-semibold mb-2">{t("answers-received")} ({selectedBattle.answers.length})</h3>
+                  
+                  {selectedBattle.answers.length === 0 ? (
+                    <p className="text-center text-gray-500 py-4">
+                      {t("no-answers-yet")}
+                    </p>
+                  ) : (
+                    <div className="space-y-3 max-h-96 overflow-y-auto pr-2">
+                      {selectedBattle.answers.map((answer, index) => (
+                        <div key={index} className="border rounded p-3 hover:bg-gray-50">
+                          <div className="flex justify-between items-center">
+                            <p className="font-medium">{answer.studentName}</p>
+                            <p className="text-sm text-gray-500">
+                              {new Date(answer.submissionTime).toLocaleString()}
+                            </p>
                           </div>
                           
-                          {selectedBattle.status === "active" && (
+                          <div className="mt-2">
+                            {answer.submission.type === "photo" ? (
+                              <img 
+                                src={answer.submission.content} 
+                                alt={`Answer from ${answer.studentName}`} 
+                                className="max-h-32 rounded border" 
+                              />
+                            ) : (
+                              <audio 
+                                src={answer.submission.content} 
+                                controls 
+                                className="w-full" 
+                              />
+                            )}
+                          </div>
+                          
+                          {selectedBattle.status === "completed" && !selectedBattle.winner && (
                             <Button 
-                              size="sm" 
-                              onClick={() => handleSelectWinner(selectedBattle.id, answer)}
+                              className="mt-2 w-full"
+                              onClick={() => handleSelectWinner(selectedBattle, index)}
                             >
-                              <Trophy className="h-4 w-4 mr-1" />
                               {t("select-as-winner")}
                             </Button>
                           )}
-                          
-                          {selectedBattle.winner?.studentId === answer.studentId && (
-                            <span className="px-2 py-1 rounded-full bg-yellow-100 text-yellow-800 text-xs font-medium flex items-center">
-                              <Trophy className="h-4 w-4 mr-1" />
-                              {t("winner")}
-                            </span>
-                          )}
                         </div>
-                        
-                        <div className="mt-2">
-                          {answer.submission.type === "photo" ? (
-                            <img 
-                              src={answer.submission.content} 
-                              alt="Answer" 
-                              className="max-w-full max-h-40 object-contain rounded"
-                            />
-                          ) : (
-                            <audio 
-                              controls 
-                              src={answer.submission.content}
-                              className="w-full"
-                            />
-                          )}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>{t("waiting-for-answers")}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="participants" className="mt-4">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("participants")}</CardTitle>
-                <CardDescription>
-                  {selectedBattle.participants?.length 
-                    ? t("total-participants", { count: selectedBattle.participants.length })
-                    : t("no-participants-yet")}
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                {selectedBattle.participants?.length > 0 ? (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {selectedBattle.participants.map((participant: string, index) => {
-                      const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
-                      const student = allStudents.find((s: any) => s.id === participant);
-                      
-                      if (!student) return null;
-                      
-                      return (
-                        <div key={index} className="flex items-center gap-3 p-3 border rounded-lg">
-                          <Avatar>
-                            <AvatarImage src={student.avatar} />
-                            <AvatarFallback>
-                              {(student.displayName || student.name)?.substring(0, 2).toUpperCase() || "NA"}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <p className="font-medium">{student.displayName || student.name}</p>
-                            <p className="text-xs text-gray-500">{student.username}</p>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center py-8 text-gray-500">
-                    <p>{t("waiting-for-participants")}</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
-      </div>
-    );
-  }
-
-  return null;
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </>
+          )}
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
 };
 
 export default BattleMode;

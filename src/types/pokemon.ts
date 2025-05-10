@@ -105,6 +105,8 @@ export interface FriendRequest {
   senderId: string;
   senderType: "teacher" | "student";
   senderName: string;
+  senderDisplayName?: string;
+  senderAvatar?: string;
   receiverId: string;
   receiverType: "teacher" | "student";
   status: "pending" | "accepted" | "rejected";
