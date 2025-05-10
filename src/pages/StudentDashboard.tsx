@@ -28,7 +28,7 @@ const StudentDashboard: React.FC = () => {
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
   const [coins, setCoins] = useState(0);
   const [schoolPokemons, setSchoolPokemons] = useState<Pokemon[]>([]);
-  const [activeTab, setActiveTab] = useState("collection");
+  const [activeTab, setActiveTab] = useState("my-pokemons");
   const [activeBattles, setActiveBattles] = useState<any[]>([]);
   const [avatar, setAvatar] = useState<string | null>(null);
   const [showSchoolPool, setShowSchoolPool] = useState(false);
@@ -157,17 +157,18 @@ const StudentDashboard: React.FC = () => {
           </div>
           
           <Tabs 
-            defaultValue="collection" 
+            defaultValue="my-pokemons" 
             className="w-full mt-8"
             value={activeTab}
             onValueChange={setActiveTab}
           >
-            <TabsList className="grid w-full grid-cols-2 mb-8">
-              <TabsTrigger value="collection">My Collection</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 mb-8">
+              <TabsTrigger value="my-pokemons">My Pokémons</TabsTrigger>
               <TabsTrigger value="mystery-ball">Mystery Ball</TabsTrigger>
+              <TabsTrigger value="school-pool">School Pool</TabsTrigger>
             </TabsList>
             
-            <TabsContent value="collection" className="mt-4">
+            <TabsContent value="my-pokemons" className="mt-4">
               <StudentCollection pokemons={studentPokemons} />
             </TabsContent>
             
@@ -183,11 +184,48 @@ const StudentDashboard: React.FC = () => {
                 onRefreshPool={handleRefreshPool}
               />
             </TabsContent>
+            
+            <TabsContent value="school-pool" className="mt-4">
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-2xl font-bold mb-4 text-center">School Pokémon Pool</h2>
+                <p className="text-center mb-6 text-gray-600">Available Pokémon in your school pool: {schoolPokemons.length}</p>
+                
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4 max-h-[500px] overflow-y-auto p-4 bg-gray-50 rounded-lg">
+                  {schoolPokemons.map(pokemon => (
+                    <div 
+                      key={pokemon.id} 
+                      className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow"
+                    >
+                      <img 
+                        src={pokemon.image} 
+                        alt={pokemon.name} 
+                        className="w-full h-24 object-contain mx-auto" 
+                      />
+                      <div className="mt-2 text-center">
+                        <p className="font-medium text-sm">{pokemon.name}</p>
+                        <p className="text-xs text-gray-500">{pokemon.type}</p>
+                        <span className={`inline-block px-2 py-0.5 mt-1 rounded-full text-xs text-white ${
+                          pokemon.rarity === 'legendary' ? 'bg-yellow-500' :
+                          pokemon.rarity === 'rare' ? 'bg-purple-500' :
+                          pokemon.rarity === 'uncommon' ? 'bg-blue-500' : 'bg-green-500'
+                        }`}>
+                          {pokemon.rarity}
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                  
+                  {schoolPokemons.length === 0 && (
+                    <div className="col-span-full text-center py-12 text-gray-500">
+                      No Pokémon available in the school pool.
+                    </div>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
           </Tabs>
         </div>
       </div>
-      
-      <SchoolPoolDialog open={showSchoolPool} onOpenChange={setShowSchoolPool} schoolPokemons={schoolPokemons} />
     </div>
   );
 };

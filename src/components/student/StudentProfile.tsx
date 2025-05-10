@@ -3,7 +3,7 @@ import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Coins, Award } from "lucide-react";
+import { Coins } from "lucide-react";
 import { Student } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -13,7 +13,6 @@ interface StudentProfileProps {
   pokemonCount: number;
   battlesCount: number;
   onGiveCoins: () => void;
-  onGivePokemon?: () => void;  // Added this prop with optional marker
 }
 
 const StudentProfile: React.FC<StudentProfileProps> = ({
@@ -22,7 +21,6 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
   pokemonCount,
   battlesCount,
   onGiveCoins,
-  onGivePokemon,
 }) => {
   const { t } = useTranslation();
   
@@ -61,13 +59,6 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
               <Coins className="h-4 w-4 mr-2" />
               {t("give-coins")}
             </Button>
-            
-            {onGivePokemon && (
-              <Button variant="outline" className="w-full flex items-center" onClick={onGivePokemon}>
-                <Award className="h-4 w-4 mr-2" />
-                {t("give-pokemon")}
-              </Button>
-            )}
           </div>
         </div>
       </CardContent>

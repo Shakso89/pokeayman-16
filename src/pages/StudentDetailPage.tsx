@@ -15,7 +15,6 @@ import StudentProfile from "@/components/student/StudentProfile";
 import PokemonList from "@/components/student/PokemonList";
 import BattleHistory from "@/components/student/BattleHistory";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
-import GivePokemonDialog from "@/components/dialogs/GivePokemonDialog";
 
 const StudentDetailPage: React.FC = () => {
   const { studentId } = useParams<{ studentId: string }>();
@@ -30,8 +29,6 @@ const StudentDetailPage: React.FC = () => {
   
   // Dialog states
   const [isGiveCoinDialogOpen, setIsGiveCoinDialogOpen] = useState<boolean>(false);
-  const [isGivePokemonDialogOpen, setIsGivePokemonDialogOpen] = useState<boolean>(false);
-  const [availablePokemons, setAvailablePokemons] = useState<Pokemon[]>([]);
   
   useEffect(() => {
     if (studentId) {
@@ -102,48 +99,6 @@ const StudentDetailPage: React.FC = () => {
     }
   };
   
-  const loadAvailablePokemons = () => {
-    try {
-      // Get school pokemon pool if student has schoolId
-      if (student?.schoolId) {
-        const pokemonPools = JSON.parse(localStorage.getItem("pokemonPools") || "[]");
-        const schoolPool = pokemonPools.find((p: any) => p.schoolId === student.schoolId);
-        if (schoolPool) {
-          setAvailablePokemons(schoolPool.availablePokemons || []);
-          return;
-        }
-      }
-      
-      // Fallback to default pokemon
-      const defaultPokemon: Pokemon[] = [
-        {
-          id: "pokemon-1",
-          name: "Pikachu",
-          image: "/placeholder.svg",
-          type: "Electric",
-          rarity: "common"
-        },
-        {
-          id: "pokemon-2",
-          name: "Charmander",
-          image: "/placeholder.svg",
-          type: "Fire",
-          rarity: "common"
-        },
-        {
-          id: "pokemon-3",
-          name: "Squirtle",
-          image: "/placeholder.svg",
-          type: "Water",
-          rarity: "common"
-        }
-      ];
-      setAvailablePokemons(defaultPokemon);
-    } catch (error) {
-      console.error("Error loading available pokemon:", error);
-    }
-  };
-  
   const handleGiveCoins = (coinAmount: number) => {
     if (!student) return;
     
@@ -183,48 +138,6 @@ const StudentDetailPage: React.FC = () => {
     }
   };
   
-  const handleGivePokemon = (selectedPokemon: Pokemon) => {
-    if (!student) return;
-    
-    try {
-      // Update studentPokemons in localStorage
-      const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
-      const studentIndex = studentPokemons.findIndex((p: any) => p.studentId === student.id);
-      
-      if (studentIndex !== -1) {
-        studentPokemons[studentIndex].pokemons = [
-          ...(studentPokemons[studentIndex].pokemons || []),
-          selectedPokemon
-        ];
-        setPokemons(studentPokemons[studentIndex].pokemons);
-      } else {
-        // Create new entry
-        studentPokemons.push({
-          studentId: student.id,
-          pokemons: [selectedPokemon],
-          coins: 0
-        });
-        setPokemons([selectedPokemon]);
-      }
-      
-      localStorage.setItem("studentPokemons", JSON.stringify(studentPokemons));
-      
-      toast({
-        title: t("success"),
-        description: t("pokemon-given-to-student")
-      });
-      
-      setIsGivePokemonDialogOpen(false);
-    } catch (error) {
-      console.error("Error giving pokemon:", error);
-      toast({
-        title: t("error"),
-        description: t("error-giving-pokemon"),
-        variant: "destructive",
-      });
-    }
-  };
-  
   const handleRemovePokemon = (pokemon: Pokemon) => {
     if (!student) return;
     
@@ -254,11 +167,6 @@ const StudentDetailPage: React.FC = () => {
         variant: "destructive",
       });
     }
-  };
-  
-  const handleOpenGivePokemon = () => {
-    loadAvailablePokemons();
-    setIsGivePokemonDialogOpen(true);
   };
 
   if (isLoading || !student) {
@@ -299,7 +207,6 @@ const StudentDetailPage: React.FC = () => {
             pokemonCount={pokemons.length}
             battlesCount={battles.length}
             onGiveCoins={() => setIsGiveCoinDialogOpen(true)}
-            onGivePokemon={handleOpenGivePokemon}
           />
           
           <div className="col-span-1 lg:col-span-3">
@@ -342,13 +249,6 @@ const StudentDetailPage: React.FC = () => {
         open={isGiveCoinDialogOpen}
         onOpenChange={setIsGiveCoinDialogOpen}
         onGiveCoins={handleGiveCoins}
-      />
-      
-      <GivePokemonDialog
-        open={isGivePokemonDialogOpen}
-        onOpenChange={setIsGivePokemonDialogOpen}
-        availablePokemons={availablePokemons}
-        onGivePokemon={handleGivePokemon}
       />
     </div>
   );

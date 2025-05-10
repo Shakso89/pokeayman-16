@@ -1,10 +1,11 @@
 
-import React, { useState } from "react";
+// Adding the clickToOpen property to the component to enable direct clicking on the image
+
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { useToast } from "@/hooks/use-toast";
 import { Pokemon } from "@/types/pokemon";
-import { Package } from "lucide-react";
-import { useStudentCoin, assignRandomPokemonToStudent } from "@/utils/pokemon/studentPokemon";
+import { useToast } from "@/hooks/use-toast";
+import { assignRandomPokemonToStudent, useStudentCoin } from "@/utils/pokemonData";
 import MysteryBallResult from "./MysteryBallResult";
 
 interface MysteryBallProps {
@@ -16,12 +17,8 @@ interface MysteryBallProps {
   onCoinsWon: (amount: number) => void;
   dailyAttemptUsed: boolean;
   setDailyAttemptUsed: (used: boolean) => void;
+  clickToOpen?: boolean; // New prop to enable clicking directly on the image
 }
-
-type BallResult = {
-  type: "pokemon" | "coins" | "nothing";
-  data?: Pokemon | number;
-};
 
 const MysteryBall: React.FC<MysteryBallProps> = ({
   studentId,
@@ -31,138 +28,151 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
   onPokemonWon,
   onCoinsWon,
   dailyAttemptUsed,
-  setDailyAttemptUsed
+  setDailyAttemptUsed,
+  clickToOpen = false, // Default to false for backward compatibility
 }) => {
-  const { toast } = useToast();
-  const [isOpening, setIsOpening] = useState(false);
-  const [result, setResult] = useState<BallResult | null>(null);
+  const [isAnimating, setIsAnimating] = useState(false);
+  const [result, setResult] = useState<"pokemon" | "coins" | null>(null);
+  const [wonPokemon, setWonPokemon] = useState<Pokemon | null>(null);
+  const [wonCoins, setWonCoins] = useState<number>(0);
   const [showResult, setShowResult] = useState(false);
+  const { toast } = useToast();
+  
+  // Free daily chance
+  const [usedFreeChance, setUsedFreeChance] = useState(dailyAttemptUsed);
 
-  const determineResult = (): BallResult => {
-    // Determine the result: Pokemon (30%), Coins (40%), or Nothing (30%)
-    const roll = Math.random() * 100;
-    if (roll < 30 && schoolPokemons.length > 0) {
-      // Pokemon result - 30% chance
-      const randomIndex = Math.floor(Math.random() * schoolPokemons.length);
-      const pokemon = schoolPokemons[randomIndex];
-      return {
-        type: "pokemon",
-        data: pokemon
-      };
-    } else if (roll < 70) {
-      // Coin result - 40% chance
-      const coinAmount = Math.floor(Math.random() * 5) + 1; // 1-5 coins
-      return {
-        type: "coins",
-        data: coinAmount
-      };
-    } else {
-      // Nothing result - 30% chance
-      return {
-        type: "nothing"
-      };
-    }
-  };
+  useEffect(() => {
+    setUsedFreeChance(dailyAttemptUsed);
+  }, [dailyAttemptUsed]);
 
-  const openBall = async (useFreeDailyAttempt: boolean) => {
-    if (!useFreeDailyAttempt && coins < 2) {
+  const handleOpenMysteryBall = () => {
+    // Check if there are any Pokémon available
+    if (schoolPokemons.length === 0) {
       toast({
-        title: "Not enough coins",
-        description: "You need 2 coins to open the mystery ball"
+        title: "No Pokémon Available",
+        description: "There are no Pokémon available in the school pool.",
+        variant: "destructive",
       });
       return;
     }
-    setIsOpening(true);
 
-    // If not using free attempt, spend 2 coins
-    if (!useFreeDailyAttempt) {
-      const success = useStudentCoin(studentId, 2);
+    // Check if the student has a free chance or enough coins
+    const isFreeChance = !usedFreeChance;
+    const hasCoins = coins >= 1;
+
+    if (!isFreeChance && !hasCoins) {
+      toast({
+        title: "Not Enough Coins",
+        description: "You need 1 coin to open the mystery ball.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Spend coins if not using free chance
+    if (!isFreeChance) {
+      const success = useStudentCoin(studentId, 1);
       if (!success) {
         toast({
           title: "Error",
-          description: "Failed to use coins"
+          description: "Failed to use a coin. Please try again.",
+          variant: "destructive",
         });
-        setIsOpening(false);
         return;
       }
     } else {
-      // Mark daily attempt as used
-      localStorage.setItem(`mysteryBall_dailyAttempt_${studentId}`, new Date().toDateString());
+      // Mark free chance as used
+      setUsedFreeChance(true);
       setDailyAttemptUsed(true);
+      localStorage.setItem(`mysteryBall_dailyAttempt_${studentId}`, new Date().toDateString());
     }
 
-    // Simulate opening animation
+    // Start animation
+    setIsAnimating(true);
+
+    // Determine result (70% chance for Pokémon, 30% for coins)
+    const isWinningPokemon = Math.random() < 0.7;
+
     setTimeout(() => {
-      const ballResult = determineResult();
-      setResult(ballResult);
-
-      // Process the result
-      if (ballResult.type === "pokemon" && ballResult.data) {
-        const pokemon = ballResult.data as Pokemon;
+      if (isWinningPokemon && schoolPokemons.length > 0) {
+        // Get a random Pokémon index
+        const randomIndex = Math.floor(Math.random() * schoolPokemons.length);
+        const pokemon = schoolPokemons[randomIndex];
+        
+        // Assign the Pokémon to the student
         const success = assignRandomPokemonToStudent(schoolId, studentId, pokemon.id);
+        
         if (success) {
+          setResult("pokemon");
+          setWonPokemon(pokemon);
+          // Call the parent component's callback
           onPokemonWon(pokemon);
+        } else {
+          // Fallback to coins if Pokémon assignment fails
+          handleCoinReward();
         }
-      } else if (ballResult.type === "coins" && ballResult.data) {
-        const amount = ballResult.data as number;
-        onCoinsWon(amount);
+      } else {
+        handleCoinReward();
       }
+      
+      setIsAnimating(false);
       setShowResult(true);
-      setIsOpening(false);
-    }, 1500);
+    }, 2000);
+  };
+  
+  const handleCoinReward = () => {
+    // Award between 1-5 coins
+    const coinAmount = Math.floor(Math.random() * 5) + 1;
+    setResult("coins");
+    setWonCoins(coinAmount);
+    // Call the parent component's callback
+    onCoinsWon(coinAmount);
   };
 
-  const handleBallClick = () => {
-    // When the ball image is clicked, use the free daily attempt if available, otherwise use coins
-    openBall(dailyAttemptUsed ? false : true);
-  };
-
-  const closeResult = () => {
+  const handleCloseResult = () => {
     setShowResult(false);
     setResult(null);
+    setWonPokemon(null);
+    setWonCoins(0);
   };
 
   return (
     <div className="flex flex-col items-center">
-      <div 
-        className="mb-4 relative w-48 h-48 flex items-center justify-center cursor-pointer" 
-        onClick={handleBallClick}
-        title={dailyAttemptUsed ? "Click to open for 2 coins" : "Click to use your free daily attempt"}
-      >
+      {/* Mystery Ball Image */}
+      <div className="relative">
         <img
+          src="/pokeball.png"
           alt="Mystery Pokémon Ball"
-          className={isOpening ? "animate-bounce" : "hover:scale-110 transition-transform"}
-          src="/lovable-uploads/7bdef3d9-60b9-4475-86d9-adbc53bfe078.png"
+          className={`w-40 h-40 cursor-pointer ${isAnimating ? 'animate-bounce' : 'hover:scale-110 transition-transform'}`}
+          onClick={clickToOpen ? handleOpenMysteryBall : undefined}
+          style={{ filter: isAnimating ? 'brightness(1.2)' : 'none' }}
         />
-        {isOpening && (
-          <div className="absolute inset-0 flex items-center justify-center">
-            <div className="w-16 h-16 border-t-4 border-purple-500 border-solid rounded-full animate-spin"></div>
+        {usedFreeChance && (
+          <div className="absolute -top-2 -right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full">
+            1 coin
           </div>
         )}
       </div>
-      
-      <div className="flex gap-3 mt-2">
-        {!dailyAttemptUsed && (
-          <Button
-            onClick={() => openBall(true)}
-            disabled={isOpening}
-            className="bg-gradient-to-r from-purple-600 to-indigo-700 hover:from-purple-700 hover:to-indigo-800"
-          >
-            Open Free Daily
-          </Button>
-        )}
-        
+
+      {/* Button below the ball (only show if clickToOpen is false) */}
+      {!clickToOpen && (
         <Button
-          onClick={() => openBall(false)}
-          disabled={isOpening || coins < 2}
-          className="flex items-center gap-2 bg-gradient-to-r from-amber-500 to-amber-700 hover:from-amber-600 hover:to-amber-800"
+          onClick={handleOpenMysteryBall}
+          disabled={isAnimating || (usedFreeChance && coins < 1)}
+          className="mt-4 bg-blue-500 hover:bg-blue-600"
         >
-          <Package className="h-4 w-4" />
-          Open for 2 coins
+          {isAnimating ? "Opening..." : usedFreeChance ? `Open (1 coin)` : "Open (Free)"}
         </Button>
-      </div>
+      )}
       
-      {showResult && result && <MysteryBallResult result={result} onClose={closeResult} />}
+      {/* Result Modal */}
+      <MysteryBallResult 
+        isOpen={showResult} 
+        onClose={handleCloseResult}
+        result={result}
+        pokemon={wonPokemon}
+        coins={wonCoins}
+      />
     </div>
   );
 };

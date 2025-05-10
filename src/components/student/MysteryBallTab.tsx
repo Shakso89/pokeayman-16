@@ -73,6 +73,7 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
               onCoinsWon={onCoinsWon}
               dailyAttemptUsed={dailyAttemptUsed}
               setDailyAttemptUsed={setDailyAttemptUsed}
+              clickToOpen={true}
             />
             
             <div className="mt-6 text-center">
