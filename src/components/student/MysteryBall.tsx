@@ -1,11 +1,9 @@
 
-// Adding the clickToOpen property to the component to enable direct clicking on the image
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Pokemon } from "@/types/pokemon";
 import { useToast } from "@/hooks/use-toast";
-import { assignRandomPokemonToStudent, useStudentCoin } from "@/utils/pokemonData";
+import { assignRandomPokemonToStudent, useStudentCoin } from "@/utils/pokemon";
 import MysteryBallResult from "./MysteryBallResult";
 
 interface MysteryBallProps {
@@ -169,7 +167,10 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
       <MysteryBallResult 
         isOpen={showResult} 
         onClose={handleCloseResult}
-        result={result}
+        result={{
+          type: result || "nothing",
+          data: result === "pokemon" ? wonPokemon : result === "coins" ? wonCoins : undefined
+        }}
         pokemon={wonPokemon}
         coins={wonCoins}
       />

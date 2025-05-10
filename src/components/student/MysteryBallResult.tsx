@@ -13,14 +13,17 @@ import { Pokemon } from "@/types/pokemon";
 import confetti from "canvas-confetti";
 
 interface MysteryBallResultProps {
+  isOpen: boolean;
+  onClose: () => void;
   result: {
     type: "pokemon" | "coins" | "nothing";
     data?: Pokemon | number;
   };
-  onClose: () => void;
+  pokemon: Pokemon | null;
+  coins: number;
 }
 
-const MysteryBallResult: React.FC<MysteryBallResultProps> = ({ result, onClose }) => {
+const MysteryBallResult: React.FC<MysteryBallResultProps> = ({ isOpen, onClose, result, pokemon, coins }) => {
   useEffect(() => {
     // Trigger confetti for pokemon or coins
     if (result.type === "pokemon" || result.type === "coins") {
@@ -30,7 +33,7 @@ const MysteryBallResult: React.FC<MysteryBallResultProps> = ({ result, onClose }
         origin: { y: 0.6 }
       });
     }
-  }, [result]);
+  }, [result.type]);
 
   const renderContent = () => {
     switch (result.type) {
@@ -93,8 +96,10 @@ const MysteryBallResult: React.FC<MysteryBallResultProps> = ({ result, onClose }
     }
   };
 
+  if (!isOpen) return null;
+  
   return (
-    <Dialog open={true} onOpenChange={() => onClose()}>
+    <Dialog open={isOpen} onOpenChange={() => onClose()}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle className="text-center">
