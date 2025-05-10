@@ -1,13 +1,15 @@
+
 import React, { useState } from "react";
-import { Button } from "@/components/ui/button";
 import { Pokemon } from "@/types/pokemon";
-import { Coins, Sparkle, CirclePlay } from "lucide-react";
 import { 
   assignPokemonToStudent, 
   useStudentCoin 
 } from "@/utils/pokemon";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
+import PokemonWinModal from "./PokemonWinModal";
+import PokemonWheelAnimation from "./PokemonWheelAnimation";
+import PokemonWheelControls from "./PokemonWheelControls";
 
 interface PokemonWheelProps {
   studentId: string;
@@ -101,146 +103,33 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
   const closeWinModal = () => {
     setShowWinAnimation(false);
   };
-
-  // Calculate wheel segment degree
-  const segmentDegree = wheelPokemons.length > 0 ? 360 / wheelPokemons.length : 30;
   
   return (
     <div className="flex flex-col items-center">
       {/* Pokemon Win Modal */}
       {showWinAnimation && wonPokemon && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 animate-fade-in">
-          <div className="relative bg-white rounded-xl overflow-hidden shadow-2xl max-w-md w-full animate-scale-in">
-            <div className="relative p-6 text-center">
-              <h2 className="text-2xl font-bold mb-3">{t("congratulations") || "Congratulations!"}</h2>
-              <p className="text-lg mb-6">{(t("you-won-pokemon") || "You won {name}!").replace("{name}", wonPokemon.name)}</p>
-              
-              <div className="relative mb-6">
-                <Sparkle className="absolute top-0 left-0 -translate-x-1/2 -translate-y-1/2 text-yellow-400 h-6 w-6 animate-pulse" />
-                <Sparkle className="absolute top-0 right-0 translate-x-1/2 -translate-y-1/2 text-yellow-400 h-8 w-8 animate-pulse" />
-                
-                <div className="mx-auto w-32 h-32 bg-white rounded-full p-2 border-4 border-white shadow-xl flex items-center justify-center">
-                  <img 
-                    src={wonPokemon.image} 
-                    alt={wonPokemon.name} 
-                    className="w-full h-full object-contain animate-bounce"
-                  />
-                </div>
-              </div>
-              
-              <div className="p-4 rounded-lg bg-gray-50 mb-4">
-                <p className="mb-2">
-                  <span className="font-medium">
-                    {(t("pokemon-type") || "Type: {type}").replace("{type}", wonPokemon.type)}
-                  </span>
-                </p>
-                <p>
-                  <span className={`inline-block px-2 py-1 rounded-full text-xs text-white ${
-                    wonPokemon.rarity === 'legendary' ? 'bg-yellow-500' :
-                    wonPokemon.rarity === 'rare' ? 'bg-purple-500' :
-                    wonPokemon.rarity === 'uncommon' ? 'bg-blue-500' : 'bg-green-500'
-                  }`}>
-                    {wonPokemon.rarity}
-                  </span>
-                </p>
-              </div>
-              
-              <Button 
-                className="w-full"
-                onClick={closeWinModal}
-              >
-                {t("close") || "Close"}
-              </Button>
-            </div>
-          </div>
-        </div>
+        <PokemonWinModal 
+          pokemon={wonPokemon}
+          onClose={closeWinModal}
+        />
       )}
       
       {/* Wheel Animation */}
-      <div className="relative w-72 h-72 mb-8">
-        {/* Pointer */}
-        <div className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 z-10">
-          <div className="w-6 h-6 bg-red-500 rotate-45 transform origin-bottom shadow-lg"></div>
-        </div>
-        
-        {/* Wheel background */}
-        <div className="absolute w-full h-full rounded-full bg-gradient-to-br from-gray-200 to-gray-300 shadow-inner"></div>
-        
-        {/* Wheel */}
-        <div 
-          className="w-full h-full rounded-full relative overflow-hidden shadow-xl border-8 border-gray-700"
-          style={{ 
-            transform: `rotate(${rotationDegree}deg)`,
-            transition: isSpinning ? 'transform 3s cubic-bezier(0.17, 0.67, 0.83, 0.67)' : 'none'
-          }}
-        >
-          {wheelPokemons.map((pokemon, index) => {
-            const startAngle = index * segmentDegree;
-            const endAngle = (index + 1) * segmentDegree;
-            
-            // Determine colors based on rarity
-            const bgColor = pokemon.rarity === 'legendary' ? 'bg-yellow-500' :
-                           pokemon.rarity === 'rare' ? 'bg-purple-500' :
-                           pokemon.rarity === 'uncommon' ? 'bg-blue-500' : 'bg-green-500';
-            
-            const borderColor = pokemon.rarity === 'legendary' ? 'border-yellow-600' :
-                               pokemon.rarity === 'rare' ? 'border-purple-600' :
-                               pokemon.rarity === 'uncommon' ? 'border-blue-600' : 'border-green-600';
-            
-            return (
-              <div 
-                key={pokemon.id}
-                className={`absolute w-full h-full ${bgColor} ${borderColor}`}
-                style={{
-                  clipPath: `polygon(50% 50%, ${50 + 50 * Math.cos(startAngle * Math.PI / 180)}% ${50 + 50 * Math.sin(startAngle * Math.PI / 180)}%, ${50 + 50 * Math.cos(endAngle * Math.PI / 180)}% ${50 + 50 * Math.sin(endAngle * Math.PI / 180)}%)`
-                }}
-              >
-                <div 
-                  className="absolute w-full h-full flex items-center justify-center"
-                  style={{ transform: `rotate(${startAngle + segmentDegree / 2}deg)` }}
-                >
-                  <div 
-                    className={`w-12 h-12 bg-white rounded-full overflow-hidden relative shadow-lg border-2 ${borderColor}`}
-                    style={{ transform: `translateX(100px) rotate(${-startAngle - segmentDegree / 2}deg)` }}
-                  >
-                    <img 
-                      src={pokemon.image} 
-                      alt={pokemon.name}
-                      className="w-full h-full object-contain p-1"
-                    />
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <PokemonWheelAnimation
+        pokemons={wheelPokemons}
+        rotationDegree={rotationDegree}
+        isSpinning={isSpinning}
+      />
       
-      {/* Spin Button */}
-      <div className="flex flex-col items-center gap-4 mt-4">
-        <Button
-          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-full text-lg flex items-center gap-2 shadow-lg"
-          disabled={isSpinning || coins <= 0}
-          onClick={handleSpin}
-          size="lg"
-        >
-          <CirclePlay className="h-5 w-5" />
-          {isSpinning ? 
-            (t("spinning") || "Spinning...") : 
-            (t("spin-wheel") || "Spin Wheel") + ` (1 ${t("coin") || "Coin"})`
-          }
-        </Button>
-        
-        <p className="text-center text-sm text-gray-500">
-          {t("you-have") || "You have"} <span className="font-bold">{coins}</span> {coins === 1 ? (t("coin") || "coin") : (t("coins") || "coins")}
-        </p>
-        
-        {selectedPokemonIndex !== null && !isSpinning && !showWinAnimation && wheelPokemons[selectedPokemonIndex] && (
-          <div className="mt-2 animate-fade-in">
-            <p>{t("last-spin") || "Last spin"}: <span className="font-bold">{wheelPokemons[selectedPokemonIndex].name}</span></p>
-          </div>
-        )}
-      </div>
+      {/* Spin Button and Controls */}
+      <PokemonWheelControls
+        isSpinning={isSpinning}
+        coins={coins}
+        onSpin={handleSpin}
+        selectedPokemonIndex={selectedPokemonIndex}
+        wheelPokemons={wheelPokemons}
+        showWinAnimation={showWinAnimation}
+      />
     </div>
   );
 };
