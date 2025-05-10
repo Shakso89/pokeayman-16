@@ -3,12 +3,15 @@ import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { PlusCircle } from "lucide-react";
 import { Pokemon } from "@/types/pokemon";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface StudentCollectionProps {
   pokemons: Pokemon[];
 }
 
 const StudentCollection: React.FC<StudentCollectionProps> = ({ pokemons }) => {
+  const { t } = useTranslation();
+  
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
       {pokemons.length > 0 ? (
@@ -43,8 +46,8 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ pokemons }) => {
         <Card className="col-span-full border-dashed">
           <CardContent className="p-8 text-center">
             <PlusCircle className="w-12 h-12 mx-auto mb-4 text-gray-400" />
-            <h3 className="text-lg font-medium mb-2">No Pokémon Yet</h3>
-            <p className="text-gray-500">Use the Pokémon Wheel to get your first Pokémon!</p>
+            <h3 className="text-lg font-medium mb-2">{t("no-pokemon-yet")}</h3>
+            <p className="text-gray-500">{t("use-pokemon-wheel")}</p>
           </CardContent>
         </Card>
       )}

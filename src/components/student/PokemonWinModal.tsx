@@ -20,10 +20,10 @@ const PokemonWinModal: React.FC<PokemonWinModalProps> = ({
     <div className="fixed inset-0 flex items-center justify-center z-50 bg-black bg-opacity-50 animate-fade-in">
       <div className="relative bg-white rounded-xl overflow-hidden shadow-2xl max-w-md w-full animate-scale-in">
         <div className="relative p-6 text-center">
-          <h2 className="text-2xl font-bold mb-3">{t("congratulations") || "Congratulations!"}</h2>
+          <h2 className="text-2xl font-bold mb-3">{t("congratulations")}</h2>
           <p className="text-lg mb-6">
             {/* Don't translate Pokemon name */}
-            {(t("you-won-pokemon") || "You won {name}!").replace("{name}", pokemon.name)}
+            {t("you-won-pokemon").replace("{name}", pokemon.name)}
           </p>
           
           <div className="relative mb-6">
@@ -61,7 +61,7 @@ const PokemonWinModal: React.FC<PokemonWinModalProps> = ({
             className="w-full"
             onClick={onClose}
           >
-            {t("close") || "Close"}
+            {t("close")}
           </Button>
         </div>
       </div>

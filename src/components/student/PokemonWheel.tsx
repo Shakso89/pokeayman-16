@@ -1,12 +1,13 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Pokemon } from "@/types/pokemon";
 import { assignPokemonToStudent, useStudentCoin } from "@/utils/pokemon";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
-import { RefreshCw } from "lucide-react";
+import { CirclePlay } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PokemonWinModal from "./PokemonWinModal";
+import PokemonWheelControls from "./PokemonWheelControls";
 
 interface PokemonWheelProps {
   studentId: string;
@@ -35,8 +36,8 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
     if (isSpinning || wheelPokemons.length === 0) return;
     if (coins < 1) {
       toast({
-        title: t("not-enough-coins") || "Not Enough Coins",
-        description: t("need-coins-to-spin") || "You need at least 1 coin to spin the wheel",
+        title: t("not-enough-coins"),
+        description: t("need-coins-to-spin"),
       });
       return;
     }
@@ -45,8 +46,8 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
     const success = useStudentCoin(studentId);
     if (!success) {
       toast({
-        title: t("error") || "Error",
-        description: t("failed-to-use-coin") || "Failed to use coin",
+        title: t("error"),
+        description: t("failed-to-use-coin"),
       });
       return;
     }
@@ -83,13 +84,13 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
         onPokemonWon(pokemon);
         
         toast({
-          title: t("congratulations") || "Congratulations!",
-          description: (t("you-won-pokemon") || "You won {name}!").replace("{name}", pokemon.name),
+          title: t("congratulations"),
+          description: t("you-won-pokemon").replace("{name}", pokemon.name),
         });
       } else {
         toast({
-          title: t("error") || "Error",
-          description: t("failed-to-claim-pokemon") || "Failed to claim Pokémon",
+          title: t("error"),
+          description: t("failed-to-claim-pokemon"),
         });
       }
     }, 3000);
@@ -169,29 +170,14 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
       </div>
       
       {/* Controls */}
-      <div className="flex flex-col items-center gap-4 mt-4">
-        <Button
-          className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-bold py-3 px-8 rounded-full text-lg flex items-center gap-2 shadow-lg"
-          disabled={isSpinning || coins <= 0 || wheelPokemons.length === 0}
-          onClick={handleSpin}
-          size="lg"
-        >
-          {isSpinning ? 
-            (t("spinning") || "Spinning...") : 
-            (t("spin-wheel") || "Spin Wheel") + ` (1 ${t("coin") || "Coin"})`
-          }
-        </Button>
-        
-        <p className="text-center text-sm text-gray-500">
-          {t("you-have") || "You have"} <span className="font-bold">{coins}</span> {coins === 1 ? (t("coin") || "coin") : (t("coins") || "coins")}
-        </p>
-        
-        {selectedPokemonIndex !== null && !isSpinning && !showWinModal && wheelPokemons[selectedPokemonIndex] && (
-          <div className="mt-2 animate-fade-in">
-            <p>{t("last-spin") || "Last spin"}: <span className="font-bold">{wheelPokemons[selectedPokemonIndex].name}</span></p>
-          </div>
-        )}
-      </div>
+      <PokemonWheelControls
+        isSpinning={isSpinning}
+        coins={coins}
+        onSpin={handleSpin}
+        selectedPokemonIndex={selectedPokemonIndex}
+        wheelPokemons={wheelPokemons}
+        showWinAnimation={showWinModal}
+      />
     </div>
   );
 };
