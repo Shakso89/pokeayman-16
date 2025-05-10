@@ -69,15 +69,26 @@ export const awardCoinsToStudent = (studentId: string, amount: number): void => 
 
 // Assign Pokemon to a student
 export const assignPokemonToStudent = (schoolId: string, studentId: string, pokemonId: string): boolean => {
+  if (!schoolId || !studentId || !pokemonId) {
+    console.error("Missing required parameters:", { schoolId, studentId, pokemonId });
+    return false;
+  }
+
   // Get all the pools
   const pools = getPokemonPools();
   const poolIndex = pools.findIndex(p => p.schoolId === schoolId);
   
-  if (poolIndex < 0) return false;
+  if (poolIndex < 0) {
+    console.error("School pool not found for:", schoolId);
+    return false;
+  }
   
   // Find the Pokemon in the school pool
   const pokemonIndex = pools[poolIndex].availablePokemons.findIndex(p => p.id === pokemonId);
-  if (pokemonIndex < 0) return false;
+  if (pokemonIndex < 0) {
+    console.error("Pokemon not found in school pool:", pokemonId);
+    return false;
+  }
   
   // Remove Pokemon from pool
   const pokemon = pools[poolIndex].availablePokemons.splice(pokemonIndex, 1)[0];
@@ -98,6 +109,7 @@ export const assignPokemonToStudent = (schoolId: string, studentId: string, poke
   }
   
   saveStudentPokemons(studentPokemons);
+  console.log("Pokemon assigned successfully:", pokemon.name, "to student:", studentId);
   return true;
 };
 

@@ -3,14 +3,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { toast } from "@/hooks/use-toast";
 import { Pokemon } from "@/types/pokemon";
-import { useStudentCoin, assignPokemonToStudent, getSchoolPokemonPool, removeCoinsFromStudent } from "@/utils/pokemon";
+import { useStudentCoin, assignPokemonToStudent, getSchoolPokemonPool } from "@/utils/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Sparkle, Star, RefreshCw } from "lucide-react";
 
 interface PokemonWheelProps {
   studentId: string;
   classId: string;
-  pokemonPool: Pokemon[];
   coins: number;
   onPokemonWon: (pokemon: Pokemon) => void;
 }
@@ -18,7 +17,6 @@ interface PokemonWheelProps {
 const PokemonWheel: React.FC<PokemonWheelProps> = ({ 
   studentId, 
   classId,
-  pokemonPool, 
   coins,
   onPokemonWon
 }) => {
@@ -69,9 +67,13 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
   
   // Load Pokemon wheel data
   useEffect(() => {
+    console.log("Loading Pokemon wheel data for student:", studentId, "class:", classId);
+    
     const refreshPoolData = () => {
       if (classId) {
         const schoolPool = getSchoolPokemonPool(classId);
+        console.log("School pool:", schoolPool);
+        
         if (schoolPool && schoolPool.availablePokemons.length > 0) {
           // Get stored wheel Pokemon for this student or create new random selection
           const storedWheelPokemon = localStorage.getItem(`wheelPokemon_${studentId}`);
@@ -85,35 +87,42 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
               );
               
               if (validPokemon.length > 0) {
+                console.log("Using stored Pokemon for wheel:", validPokemon.length);
                 setVisiblePokemon(validPokemon);
               } else {
                 // If none are valid anymore, get new random selection
                 const randomSubset = getRandomPokemonSubset(schoolPool.availablePokemons, MAX_WHEEL_POKEMON);
+                console.log("No valid stored Pokemon. Created new selection:", randomSubset.length);
                 setVisiblePokemon(randomSubset);
                 localStorage.setItem(`wheelPokemon_${studentId}`, JSON.stringify(randomSubset));
               }
             } catch (error) {
               console.error("Error parsing stored wheel Pokemon:", error);
               const randomSubset = getRandomPokemonSubset(schoolPool.availablePokemons, MAX_WHEEL_POKEMON);
+              console.log("Error with stored Pokemon. Created new selection:", randomSubset.length);
               setVisiblePokemon(randomSubset);
               localStorage.setItem(`wheelPokemon_${studentId}`, JSON.stringify(randomSubset));
             }
           } else {
             // No stored wheel Pokemon, create new random selection
             const randomSubset = getRandomPokemonSubset(schoolPool.availablePokemons, MAX_WHEEL_POKEMON);
+            console.log("No stored Pokemon. Created new selection:", randomSubset.length);
             setVisiblePokemon(randomSubset);
             localStorage.setItem(`wheelPokemon_${studentId}`, JSON.stringify(randomSubset));
           }
         } else {
+          console.log("No Pokemon in school pool or pool is empty");
           setVisiblePokemon([]);
         }
+      } else {
+        console.log("No class ID provided");
       }
     };
 
     // Initial load
     refreshPoolData();
     checkRefreshAllowed();
-  }, [studentId, classId, pokemonPool]);
+  }, [studentId, classId]);
   
   // Calculate wheel segment degree
   const wheelSegmentDegree = visiblePokemon.length > 0 ? 360 / visiblePokemon.length : 30;
@@ -318,6 +327,9 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
         };
     }
   };
+  
+  // Import removeCoinsFromStudent function
+  const { removeCoinsFromStudent } = require('@/utils/pokemon');
   
   // Show message when no Pokemon are available
   if (visiblePokemon.length === 0) {

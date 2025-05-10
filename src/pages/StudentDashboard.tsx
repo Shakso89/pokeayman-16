@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +10,7 @@ import {
   getStudentPokemonCollection, 
   getSchoolPokemonPool,
   initializeSchoolPokemonPool
-} from "@/utils/pokemonData";
+} from "@/utils/pokemon";
 import { Pokemon, StudentPokemon } from "@/types/pokemon";
 import PokemonWheel from "@/components/student/PokemonWheel";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -33,6 +34,8 @@ const StudentDashboard: React.FC = () => {
   const [avatar, setAvatar] = useState<string | null>(null);
   
   useEffect(() => {
+    console.log("StudentDashboard loaded with:", { studentId, classId, schoolId });
+    
     if (studentId) {
       loadStudentData();
       loadActiveBattles();
@@ -44,8 +47,10 @@ const StudentDashboard: React.FC = () => {
   }, [studentId, schoolId]);
   
   const loadStudentData = () => {
+    console.log("Loading student data for:", studentId);
     // Load Pokemon collection and coins
     const collection = getStudentPokemonCollection(studentId);
+    console.log("Student collection:", collection);
     if (collection) {
       setStudentPokemons(collection.pokemons);
       setCoins(collection.coins);
@@ -63,8 +68,10 @@ const StudentDashboard: React.FC = () => {
   };
   
   const loadSchoolPokemonPool = () => {
+    console.log("Loading school pokemon pool for:", schoolId);
     // Initialize the school pool if it doesn't exist
     const pool = initializeSchoolPokemonPool(schoolId);
+    console.log("School pokemon pool:", pool);
     if (pool) {
       setSchoolPokemons(pool.availablePokemons);
     } else {
@@ -93,6 +100,7 @@ const StudentDashboard: React.FC = () => {
   };
   
   const handlePokemonWon = (pokemon: Pokemon) => {
+    console.log("Pokemon won:", pokemon);
     // Toast notification
     if (pokemon && pokemon.id) {
       toast({

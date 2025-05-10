@@ -39,27 +39,32 @@ export const initializeSchoolPokemonPool = (schoolId: string) => {
     });
   }
 
+  // Create new pool or update existing one
+  const newPool = {
+    schoolId,
+    availablePokemons: pokemons
+  };
+  
   // Check if school pool already exists in the pools array
   const existingPoolIndex = existingPools.findIndex(p => p.schoolId === schoolId);
   
   if (existingPoolIndex >= 0) {
     // Update existing pool
-    existingPools[existingPoolIndex].availablePokemons = pokemons;
+    existingPools[existingPoolIndex] = newPool;
   } else {
     // Add new pool
-    existingPools.push({
-      schoolId,
-      availablePokemons: pokemons
-    });
+    existingPools.push(newPool);
   }
   
   savePokemonPools(existingPools);
   
-  return existingPoolIndex >= 0 ? existingPools[existingPoolIndex] : existingPools[existingPools.length - 1];
+  return newPool;
 };
 
 // Get school Pokemon pool
 export const getSchoolPokemonPool = (schoolId: string): PokemonPool | null => {
+  if (!schoolId) return null;
+  
   const pools = getPokemonPools();
   const pool = pools.find(p => p.schoolId === schoolId);
   
