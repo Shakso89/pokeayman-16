@@ -42,8 +42,8 @@ export interface Student {
   avatar?: string;
   password?: string;
   teacherId: string;
-  classId: string;
-  schoolId: string;
+  classId?: string;
+  schoolId?: string;
 }
 
 export interface Battle {

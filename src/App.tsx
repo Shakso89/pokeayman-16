@@ -14,6 +14,7 @@ import { Toaster } from "./components/ui/toaster";
 import MessagesPage from "./pages/Messages";
 import StudentBattlePage from "./pages/StudentBattlePage";
 import ReportsPage from "./pages/ReportsPage";
+import StudentDetailPage from "./pages/StudentDetailPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
@@ -57,6 +58,11 @@ function App() {
         <Route path="/teacher/reports" element={
           <ProtectedRoute>
             <ReportsPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/teacher/student/:studentId" element={
+          <ProtectedRoute>
+            <StudentDetailPage />
           </ProtectedRoute>
         } />
         <Route path="/contact" element={<Contact />} />

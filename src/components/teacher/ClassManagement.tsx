@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { 
@@ -27,7 +28,7 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { ChevronLeft, Plus, School, Users, Edit, Trash2, Eye } from "lucide-react";
+import { ChevronLeft, Plus, School, Users, Edit, Trash2, Eye, Search, UserPlus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Class, Student } from "@/types/pokemon";
@@ -39,6 +40,7 @@ interface ClassManagementProps {
 }
 
 const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, teacherId }) => {
+  const navigate = useNavigate();
   const [classes, setClasses] = useState<Class[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [schoolName, setSchoolName] = useState("");
@@ -54,6 +56,10 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
   const [showStudentPokemon, setShowStudentPokemon] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [studentPokemon, setStudentPokemon] = useState<any[]>([]);
+  const [searchUsername, setSearchUsername] = useState("");
+  const [isSearchingStudent, setIsSearchingStudent] = useState(false);
+  const [searchResults, setSearchResults] = useState<Student[]>([]);
+  const [isAddByUsernameOpen, setIsAddByUsernameOpen] = useState(false);
 
   const { t } = useTranslation();
 
@@ -72,9 +78,12 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
       setSchoolName(school.name);
     }
     
-    // Load all students for this teacher
+    // Load all students
     const savedStudents = localStorage.getItem("students");
     const parsedStudents = savedStudents ? JSON.parse(savedStudents) : [];
+    setAllStudents(parsedStudents);
+    
+    // Load all students for this teacher
     const teacherStudents = parsedStudents.filter((student: Student) => student.teacherId === teacherId);
     setAllStudents(teacherStudents);
   }, [schoolId, teacherId]);
@@ -187,9 +196,22 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
     if (studentToAdd) {
       setStudents([...students, studentToAdd]);
       setAvailableStudents(availableStudents.filter(s => s.id !== studentId));
+    } else {
+      // If student doesn't exist in allStudents, we need to fetch them from localStorage
+      const savedStudents = localStorage.getItem("students");
+      const parsedStudents = savedStudents ? JSON.parse(savedStudents) : [];
+      const foundStudent = parsedStudents.find((s: Student) => s.id === studentId);
+      
+      if (foundStudent) {
+        setStudents([...students, foundStudent]);
+        setAllStudents([...allStudents, foundStudent]);
+      }
     }
     
     setIsStudentDialogOpen(false);
+    setIsAddByUsernameOpen(false);
+    setSearchUsername("");
+    setSearchResults([]);
     
     toast({
       title: t("success"),
@@ -244,7 +266,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
     const pokemonData = localStorage.getItem("studentPokemons");
     if (pokemonData) {
       const pokemons = JSON.parse(pokemonData);
-      const studentPokemons = pokemons.find((p: any) => p.studentId === student.id)?.pokemon || [];
+      const studentPokemons = pokemons.find((p: any) => p.studentId === student.id)?.pokemons || [];
       setStudentPokemon(studentPokemons);
     } else {
       setStudentPokemon([]);
@@ -253,8 +275,44 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
     setShowStudentPokemon(true);
   };
 
+  const handleSearchStudents = () => {
+    if (!searchUsername.trim()) return;
+    
+    setIsSearchingStudent(true);
+    
+    try {
+      const savedStudents = localStorage.getItem("students");
+      const parsedStudents = savedStudents ? JSON.parse(savedStudents) : [];
+      
+      // Search by username (case insensitive)
+      const results = parsedStudents.filter((student: Student) => 
+        student.username.toLowerCase().includes(searchUsername.toLowerCase())
+      );
+      
+      // Filter out students already in this class
+      const filteredResults = selectedClass ? 
+        results.filter((student: Student) => !selectedClass.students.includes(student.id)) : 
+        results;
+      
+      setSearchResults(filteredResults);
+    } catch (error) {
+      console.error("Error searching students:", error);
+      toast({
+        title: t("error"),
+        description: t("error-searching-students"),
+        variant: "destructive",
+      });
+    } finally {
+      setIsSearchingStudent(false);
+    }
+  };
+
   const handleBackToClasses = () => {
     setSelectedClass(null);
+  };
+
+  const handleViewStudentDetail = (studentId: string) => {
+    navigate(`/teacher/student/${studentId}`);
   };
 
   return (
@@ -290,10 +348,16 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
         )}
         
         {selectedClass && (
-          <Button onClick={handleOpenStudentDialog} disabled={availableStudents.length === 0}>
-            <Plus className="h-4 w-4 mr-1" />
-            {t("add-student")}
-          </Button>
+          <div className="flex gap-2">
+            <Button onClick={() => setIsAddByUsernameOpen(true)}>
+              <UserPlus className="h-4 w-4 mr-1" />
+              {t("add-by-username")}
+            </Button>
+            <Button onClick={handleOpenStudentDialog} disabled={availableStudents.length === 0}>
+              <Plus className="h-4 w-4 mr-1" />
+              {t("add-student")}
+            </Button>
+          </div>
         )}
       </div>
       
@@ -364,10 +428,26 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
                 <TableBody>
                   {students.map((student) => (
                     <TableRow key={student.id}>
-                      <TableCell>{student.displayName}</TableCell>
+                      <TableCell>
+                        <span 
+                          className="cursor-pointer hover:text-blue-600 hover:underline"
+                          onClick={() => handleViewStudentDetail(student.id)}
+                        >
+                          {student.displayName}
+                        </span>
+                      </TableCell>
                       <TableCell>{student.username}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleViewStudentDetail(student.id)}
+                            className="h-8"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            {t("manage")}
+                          </Button>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -397,13 +477,21 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
                 <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                 <h3 className="text-lg font-medium mb-2">{t("no-students-yet")}</h3>
                 <p className="text-gray-500 mb-6">{t("add-students-to-class-description")}</p>
-                <Button 
-                  onClick={handleOpenStudentDialog}
-                  disabled={availableStudents.length === 0}
-                >
-                  <Plus className="h-4 w-4 mr-1" />
-                  {availableStudents.length > 0 ? t("add-student") : t("no-available-students")}
-                </Button>
+                <div className="flex flex-col sm:flex-row justify-center gap-3">
+                  <Button 
+                    onClick={() => setIsAddByUsernameOpen(true)}
+                  >
+                    <UserPlus className="h-4 w-4 mr-1" />
+                    {t("add-by-username")}
+                  </Button>
+                  <Button 
+                    onClick={handleOpenStudentDialog}
+                    disabled={availableStudents.length === 0}
+                  >
+                    <Plus className="h-4 w-4 mr-1" />
+                    {availableStudents.length > 0 ? t("add-student") : t("no-available-students")}
+                  </Button>
+                </div>
               </div>
             )}
           </CardContent>
@@ -482,6 +570,52 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
             ) : (
               <p className="text-center py-6">{t("no-available-students")}</p>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add Student by Username Dialog */}
+      <Dialog open={isAddByUsernameOpen} onOpenChange={setIsAddByUsernameOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("add-student-by-username")}</DialogTitle>
+            <DialogDescription>
+              {t("search-student-by-username")}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="flex gap-2">
+              <Input
+                value={searchUsername}
+                onChange={(e) => setSearchUsername(e.target.value)}
+                placeholder={t("enter-username")}
+              />
+              <Button 
+                onClick={handleSearchStudents}
+                disabled={isSearchingStudent || !searchUsername.trim()}
+              >
+                <Search className="h-4 w-4" />
+              </Button>
+            </div>
+            
+            {searchResults.length > 0 ? (
+              <div className="max-h-[300px] overflow-y-auto space-y-2">
+                {searchResults.map(student => (
+                  <div key={student.id} className="border rounded-md p-3 flex justify-between items-center">
+                    <div>
+                      <p className="font-medium">{student.displayName}</p>
+                      <p className="text-sm text-gray-500">@{student.username}</p>
+                    </div>
+                    <Button size="sm" onClick={() => handleAddStudentToClass(student.id)}>
+                      {t("add")}
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            ) : searchUsername.trim() && !isSearchingStudent ? (
+              <p className="text-center py-4 text-gray-500">{t("no-students-found")}</p>
+            ) : null}
           </div>
         </DialogContent>
       </Dialog>
