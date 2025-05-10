@@ -51,8 +51,7 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
     if (coins <= 0) {
       toast({
         title: t("error"),
-        description: t("not-enough-coins"),
-        variant: "destructive"
+        description: t("not-enough-coins")
       });
       return;
     }
@@ -66,8 +65,7 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
     if (!success) {
       toast({
         title: t("error"),
-        description: t("not-enough-coins"),
-        variant: "destructive"
+        description: t("not-enough-coins")
       });
       return;
     }
@@ -113,8 +111,7 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
             setTimeout(() => {
               toast({
                 title: t("congratulations"),
-                description: t("you-won-pokemon", { name: actualPokemon.name }),
-                variant: "default"
+                description: t("you-won-pokemon").replace("{name}", actualPokemon.name)
               });
             }, 500);
             
@@ -122,8 +119,7 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
           } else {
             toast({
               title: t("error"),
-              description: "Failed to claim Pokémon.",
-              variant: "destructive"
+              description: "Failed to claim Pokémon."
             });
           }
         }
@@ -198,7 +194,7 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
             
             <div className="relative p-6 text-center">
               <h2 className="text-2xl font-bold mb-3">{t("congratulations")}</h2>
-              <p className="text-lg mb-6">{t("you-won-pokemon", { name: wonPokemon.name })}</p>
+              <p className="text-lg mb-6">{t("you-won-pokemon").replace("{name}", wonPokemon.name)}</p>
               
               <div className="relative mb-6">
                 {/* Sparkle animations around the Pokemon */}
@@ -231,12 +227,12 @@ const PokemonWheel: React.FC<PokemonWheelProps> = ({
               <div className="p-4 rounded-lg bg-gray-50 mb-4">
                 <p className="mb-2">
                   <span className={`font-medium ${getRarityStyles(wonPokemon.rarity).text}`}>
-                    {t("pokemon-type", { type: wonPokemon.type })}
+                    {t("pokemon-type").replace("{type}", wonPokemon.type)}
                   </span>
                 </p>
                 <p>
                   <span className={`inline-block px-2 py-1 rounded-full text-xs text-white ${getRarityStyles(wonPokemon.rarity).background}`}>
-                    {t("pokemon-rarity", { rarity: wonPokemon.rarity })}
+                    {t("pokemon-rarity").replace("{rarity}", wonPokemon.rarity)}
                   </span>
                 </p>
               </div>

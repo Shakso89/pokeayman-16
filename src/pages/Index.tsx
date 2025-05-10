@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PokemonOrbit from "@/components/PokemonOrbit";
-import LanguageSelector from "@/components/LanguageSelector";
 import { useTranslation } from "@/hooks/useTranslation";
 
 const Index: React.FC = () => {
@@ -34,11 +33,6 @@ const Index: React.FC = () => {
           <p className="text-xl text-white/90 max-w-2xl mx-auto">
             {t('platform-description')}
           </p>
-        </div>
-        
-        {/* Language selector */}
-        <div className="absolute top-4 right-4">
-          <LanguageSelector className="text-white hover:bg-white/20" />
         </div>
         
         {/* Pokemon orbit animation - centered and larger */}

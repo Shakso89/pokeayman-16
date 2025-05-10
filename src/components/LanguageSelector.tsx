@@ -13,7 +13,7 @@ interface LanguageSelectorProps {
 }
 
 export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onChange, className }) => {
-  const { language, setLanguage } = useTranslation();
+  const { language, setLanguage, t } = useTranslation();
 
   const handleLanguageChange = (lang: Language) => {
     setLanguage(lang);
@@ -25,8 +25,9 @@ export const LanguageSelector: React.FC<LanguageSelectorProps> = ({ onChange, cl
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="ghost" size="icon" className={className}>
-          <Globe className="h-5 w-5" />
+        <Button variant="ghost" size="sm" className={className}>
+          <Globe className="h-4 w-4 mr-2" />
+          {language === "en" ? "English" : "中文"}
           <span className="sr-only">Toggle language</span>
         </Button>
       </DropdownMenuTrigger>
