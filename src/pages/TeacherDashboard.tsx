@@ -4,7 +4,7 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { NavBar } from "@/components/NavBar";
-import { Users, Sword, UserPlus, Shield, School, MessageSquare, BarChart } from "lucide-react";
+import { Users, Sword, UserPlus, Shield, School, MessageSquare, BarChart, ChevronLeft } from "lucide-react";
 import ClassManagement from "@/components/teacher/ClassManagement";
 import BattleMode from "@/components/teacher/BattleMode";
 import SchoolCollaboration from "@/components/teacher/SchoolCollaboration";

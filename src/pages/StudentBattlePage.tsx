@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Navigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -443,7 +442,7 @@ const StudentBattlePage: React.FC = () => {
                     </CardHeader>
                     <CardContent>
                       {hasSubmittedAnswer(battle) ? (
-                        <Badge variant="success" className="mb-2">
+                        <Badge variant="default" className="mb-2">
                           {t("answer-submitted")}
                         </Badge>
                       ) : (
