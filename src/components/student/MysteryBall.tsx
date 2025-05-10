@@ -94,15 +94,31 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
         // Get a random Pokémon index
         const randomIndex = Math.floor(Math.random() * schoolPokemons.length);
         const pokemon = schoolPokemons[randomIndex];
+        
+        // Check that we have valid IDs before proceeding
+        if (!schoolId) {
+          console.error("Missing school ID for Pokemon assignment");
+          handleCoinReward(); // Fall back to coin reward
+          return;
+        }
+
+        console.log("Attempting to assign Pokemon with:", {
+          schoolId,
+          studentId,
+          pokemonId: pokemon.id,
+          pokemonName: pokemon.name
+        });
 
         // Assign the Pokémon to the student
         const success = assignRandomPokemonToStudent(schoolId, studentId, pokemon.id);
         if (success) {
+          console.log("Successfully assigned Pokemon:", pokemon.name);
           setResult("pokemon");
           setWonPokemon(pokemon);
           // Call the parent component's callback
           onPokemonWon(pokemon);
         } else {
+          console.error("Failed to assign Pokemon:", pokemon.name);
           // Fallback to coins if Pokémon assignment fails
           handleCoinReward();
         }
@@ -136,7 +152,6 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
         <img src="/lovable-uploads/d1db8e93-1b2c-4079-8835-6bc51f236aed.png" alt="Mystery Pokémon Ball" className={`w-40 h-40 cursor-pointer ${isAnimating ? 'animate-bounce' : 'hover:scale-110 transition-transform'}`} onClick={clickToOpen ? handleOpenMysteryBall : undefined} style={{
         filter: isAnimating ? 'brightness(1.2)' : 'none'
       }} />
-        {usedFreeChance}
       </div>
 
       {/* Button below the ball (only show if clickToOpen is false) */}

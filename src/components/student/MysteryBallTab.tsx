@@ -31,6 +31,14 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
     const today = new Date().toDateString();
     return lastAttemptDate === today;
   });
+  
+  console.log("MysteryBallTab render with props:", {
+    studentId,
+    schoolId,
+    coinsAvailable: coins,
+    pokemonsAvailable: schoolPokemons.length
+  });
+  
   return <Card className="mx-auto max-w-xl shadow-lg">
       <CardHeader className="text-center bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-t-md">
         <CardTitle className="text-2xl">Mystery Pokémon Ball</CardTitle>
@@ -44,7 +52,16 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
               {isLoading ? "Checking..." : "Check Availability"}
             </Button>
           </div> : <div className="flex flex-col items-center">
-            <MysteryBall studentId={studentId} schoolId={schoolId} coins={coins} schoolPokemons={schoolPokemons} onPokemonWon={onPokemonWon} onCoinsWon={onCoinsWon} dailyAttemptUsed={dailyAttemptUsed} setDailyAttemptUsed={setDailyAttemptUsed} />
+            <MysteryBall 
+              studentId={studentId} 
+              schoolId={schoolId} 
+              coins={coins} 
+              schoolPokemons={schoolPokemons} 
+              onPokemonWon={onPokemonWon} 
+              onCoinsWon={onCoinsWon} 
+              dailyAttemptUsed={dailyAttemptUsed} 
+              setDailyAttemptUsed={setDailyAttemptUsed} 
+            />
             
             <div className="mt-6 text-center">
               <p className="mb-2 text-sm font-medium">Mystery ball contains:</p>
