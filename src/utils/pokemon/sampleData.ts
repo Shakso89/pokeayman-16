@@ -1,4 +1,3 @@
-
 import { Pokemon } from "@/types/pokemon";
 
 // Expanded Pokemon data with up to 600 entries
@@ -511,10 +510,10 @@ export const samplePokemons: Pokemon[] = [
   },
   {
     id: "73",
-    name: "Lugia",
-    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/249.png",
-    type: "Psychic/Flying",
-    rarity: "legendary"
+    name: "Geodude",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/74.png",
+    type: "Rock/Ground",
+    rarity: "common"
   },
   {
     id: "74",
@@ -525,10 +524,10 @@ export const samplePokemons: Pokemon[] = [
   },
   {
     id: "75",
-    name: "Celebi",
-    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/251.png",
-    type: "Psychic/Grass",
-    rarity: "legendary"
+    name: "Golem",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/76.png",
+    type: "Rock/Ground",
+    rarity: "rare"
   },
   {
     id: "76",
@@ -539,8 +538,8 @@ export const samplePokemons: Pokemon[] = [
   },
   {
     id: "77",
-    name: "Torchic",
-    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/255.png",
+    name: "Ponyta",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/77.png",
     type: "Fire",
     rarity: "common"
   },
@@ -553,10 +552,10 @@ export const samplePokemons: Pokemon[] = [
   },
   {
     id: "79",
-    name: "Rayquaza",
-    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/384.png",
-    type: "Dragon/Flying",
-    rarity: "legendary"
+    name: "Slowbro",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/80.png",
+    type: "Water/Psychic",
+    rarity: "uncommon"
   },
   {
     id: "80",
@@ -564,5 +563,148 @@ export const samplePokemons: Pokemon[] = [
     image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/448.png",
     type: "Fighting/Steel",
     rarity: "rare"
+  },
+  {
+    id: "81",
+    name: "Magneton",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/82.png",
+    type: "Electric/Steel",
+    rarity: "uncommon"
+  },
+  {
+    id: "82",
+    name: "Clefairy",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/35.png",
+    type: "Fairy",
+    rarity: "uncommon"
+  },
+  {
+    id: "83",
+    name: "Farfetch'd",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/83.png",
+    type: "Normal/Flying",
+    rarity: "uncommon"
+  },
+  {
+    id: "84",
+    name: "Doduo",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/84.png",
+    type: "Normal/Flying",
+    rarity: "common"
+  },
+  {
+    id: "85",
+    name: "Seel",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/86.png",
+    type: "Water",
+    rarity: "common"
+  },
+  {
+    id: "86",
+    name: "Grimer",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/88.png",
+    type: "Poison",
+    rarity: "common"
+  },
+  {
+    id: "87",
+    name: "Muk",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/89.png",
+    type: "Poison",
+    rarity: "uncommon"
+  },
+  {
+    id: "88",
+    name: "Shellder",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/90.png",
+    type: "Water",
+    rarity: "common"
+  },
+  {
+    id: "89",
+    name: "Shelgon",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/372.png",
+    type: "Dragon",
+    rarity: "common"
+  },
+  {
+    id: "90",
+    name: "Gastly",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/92.png",
+    type: "Ghost/Poison",
+    rarity: "uncommon"
+  },
+  {
+    id: "91",
+    name: "Rotom",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/479.png",
+    type: "Electric/Ghost",
+    rarity: "common"
+  },
+  {
+    id: "92",
+    name: "Drowzee",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/96.png",
+    type: "Psychic",
+    rarity: "common"
+  },
+  {
+    id: "93",
+    name: "Haunter",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/93.png",
+    type: "Ghost/Poison",
+    rarity: "uncommon"
+  },
+  {
+    id: "94",
+    name: "Krabby",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/98.png",
+    type: "Water",
+    rarity: "common"
+  },
+  {
+    id: "95",
+    name: "Drowzee",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/96.png",
+    type: "Psychic",
+    rarity: "common"
+  },
+  {
+    id: "96",
+    name: "Kingler",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/99.png",
+    type: "Water",
+    rarity: "uncommon"
+  },
+  {
+    id: "97",
+    name: "Parasect",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/47.png",
+    type: "Bug/Grass",
+    rarity: "common"
+  },
+  {
+    id: "98",
+    name: "Voltorb",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/100.png",
+    type: "Electric",
+    rarity: "common"
+  },
+  {
+    id: "99",
+    name: "Electrode",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/101.png",
+    type: "Electric",
+    rarity: "uncommon"
+  },
+  {
+    id: "100",
+    name: "Exeggcute",
+    image: "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/102.png",
+    type: "Grass/Psychic",
+    rarity: "common"
   }
 ];
+
+// If more Pokemon entries are needed, continue adding them below
+// This is a subset of the original data for brevity

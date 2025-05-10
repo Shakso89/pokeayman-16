@@ -5,6 +5,8 @@ import { Pokemon } from "@/types/pokemon";
 import { useToast } from "@/hooks/use-toast";
 import { assignRandomPokemonToStudent, useStudentCoin } from "@/utils/pokemon";
 import MysteryBallResult from "./MysteryBallResult";
+import { useIsMobile } from "@/hooks/use-mobile";
+
 interface MysteryBallProps {
   studentId: string;
   schoolId: string;
@@ -14,8 +16,8 @@ interface MysteryBallProps {
   onCoinsWon: (amount: number) => void;
   dailyAttemptUsed: boolean;
   setDailyAttemptUsed: (used: boolean) => void;
-  clickToOpen?: boolean; // New prop to enable clicking directly on the image
 }
+
 const MysteryBall: React.FC<MysteryBallProps> = ({
   studentId,
   schoolId,
@@ -24,23 +26,23 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
   onPokemonWon,
   onCoinsWon,
   dailyAttemptUsed,
-  setDailyAttemptUsed,
-  clickToOpen = false // Default to false for backward compatibility
+  setDailyAttemptUsed
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
   const [result, setResult] = useState<"pokemon" | "coins" | "nothing" | null>(null);
   const [wonPokemon, setWonPokemon] = useState<Pokemon | null>(null);
   const [wonCoins, setWonCoins] = useState<number>(0);
   const [showResult, setShowResult] = useState(false);
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
+  const isMobile = useIsMobile();
 
   // Free daily chance
   const [usedFreeChance, setUsedFreeChance] = useState(dailyAttemptUsed);
+  
   useEffect(() => {
     setUsedFreeChance(dailyAttemptUsed);
   }, [dailyAttemptUsed]);
+  
   const handleOpenMysteryBall = () => {
     // Check if there are any Pokémon available
     if (schoolPokemons.length === 0) {
@@ -132,6 +134,7 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
       setShowResult(true);
     }, 2000);
   };
+  
   const handleCoinReward = () => {
     // Award between 1-5 coins
     const coinAmount = Math.floor(Math.random() * 5) + 1;
@@ -140,30 +143,51 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
     // Call the parent component's callback
     onCoinsWon(coinAmount);
   };
+  
   const handleCloseResult = () => {
     setShowResult(false);
     setResult(null);
     setWonPokemon(null);
     setWonCoins(0);
   };
-  return <div className="flex flex-col items-center">
-      {/* Mystery Ball Image */}
+  
+  return (
+    <div className="flex flex-col items-center">
+      {/* Mystery Ball Image - clickable on mobile */}
       <div className="relative">
-        <img src="/lovable-uploads/d1db8e93-1b2c-4079-8835-6bc51f236aed.png" alt="Mystery Pokémon Ball" className={`w-40 h-40 cursor-pointer ${isAnimating ? 'animate-bounce' : 'hover:scale-110 transition-transform'}`} onClick={clickToOpen ? handleOpenMysteryBall : undefined} style={{
-        filter: isAnimating ? 'brightness(1.2)' : 'none'
-      }} />
+        <img 
+          src="/lovable-uploads/d1db8e93-1b2c-4079-8835-6bc51f236aed.png" 
+          alt="Mystery Pokémon Ball" 
+          className={`w-40 h-40 ${isMobile ? 'cursor-pointer' : ''} ${isAnimating ? 'animate-bounce' : 'hover:scale-110 transition-transform'}`} 
+          onClick={isMobile ? handleOpenMysteryBall : undefined}
+          style={{ filter: isAnimating ? 'brightness(1.2)' : 'none' }}
+        />
       </div>
 
-      {/* Button below the ball (only show if clickToOpen is false) */}
-      {!clickToOpen && <Button onClick={handleOpenMysteryBall} disabled={isAnimating || usedFreeChance && coins < 2} className="mt-4 bg-blue-500 hover:bg-blue-600">
+      {/* Button below the ball (only show if not on mobile) */}
+      {!isMobile && (
+        <Button 
+          onClick={handleOpenMysteryBall} 
+          disabled={isAnimating || (usedFreeChance && coins < 2)} 
+          className="mt-4 bg-blue-500 hover:bg-blue-600"
+        >
           {isAnimating ? "Opening..." : usedFreeChance ? `Open (2 coins)` : "Open (Free)"}
-        </Button>}
+        </Button>
+      )}
       
       {/* Result Modal */}
-      <MysteryBallResult isOpen={showResult} onClose={handleCloseResult} result={{
-      type: result || "nothing",
-      data: result === "pokemon" ? wonPokemon : result === "coins" ? wonCoins : undefined
-    }} pokemon={wonPokemon} coins={wonCoins} />
-    </div>;
+      <MysteryBallResult 
+        isOpen={showResult} 
+        onClose={handleCloseResult} 
+        result={{
+          type: result || "nothing",
+          data: result === "pokemon" ? wonPokemon : result === "coins" ? wonCoins : undefined
+        }} 
+        pokemon={wonPokemon} 
+        coins={wonCoins} 
+      />
+    </div>
+  );
 };
+
 export default MysteryBall;
