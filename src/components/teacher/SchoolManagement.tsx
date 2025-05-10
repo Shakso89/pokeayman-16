@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,7 +7,7 @@ import { toast } from "@/hooks/use-toast";
 import { ChevronLeft, Plus, Edit, Trash2, School as SchoolIcon, Eye } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { initializeSchoolPokemonPool } from "@/utils/pokemonData";
+import { initializeSchoolPokemonPool } from "@/utils/pokemon";
 
 interface SchoolManagementProps {
   onBack: () => void;

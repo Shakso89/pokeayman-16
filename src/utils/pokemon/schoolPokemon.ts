@@ -12,7 +12,7 @@ export const initializeSchoolPokemonPool = (schoolId: string) => {
     return existingPool;
   }
 
-  // Create a pool of exactly 300 unique Pokemons
+  // Create a pool of exactly 200 unique Pokemons
   const pokemons: Pokemon[] = [];
   const existingPools = getPokemonPools();
 
@@ -25,8 +25,8 @@ export const initializeSchoolPokemonPool = (schoolId: string) => {
     pokemons.push(pokemon);
   }
 
-  // Then generate the remaining pokemons to reach exactly 300
-  const remainingCount = 300 - pokemons.length;
+  // Then generate the remaining pokemons to reach exactly 200
+  const remainingCount = 200 - pokemons.length;
   for (let i = 1; i <= remainingCount; i++) {
     const index = pokemons.length + i;
     const rarity = getRarityForId(index);
@@ -83,6 +83,45 @@ export const getRandomPokemonFromPool = (schoolId: string): Pokemon | null => {
   
   const randomIndex = Math.floor(Math.random() * pool.availablePokemons.length);
   return pool.availablePokemons[randomIndex];
+};
+
+// Get daily wheel pokemons for a specific school
+export const getDailyWheelPokemons = (schoolId: string): Pokemon[] => {
+  if (!schoolId) return [];
+  
+  const pool = getSchoolPokemonPool(schoolId);
+  if (!pool || pool.availablePokemons.length === 0) return [];
+  
+  // Use current date as seed for consistent daily selection
+  const today = new Date();
+  const dateSeed = `${today.getFullYear()}-${today.getMonth()+1}-${today.getDate()}`;
+  
+  // Generate a pseudo-random seed based on schoolId and date
+  let seed = 0;
+  for (let i = 0; i < dateSeed.length; i++) {
+    seed += dateSeed.charCodeAt(i);
+  }
+  for (let i = 0; i < schoolId.length; i++) {
+    seed += schoolId.charCodeAt(i);
+  }
+  
+  // Select up to 12 different pokemons using the seed
+  const availablePokemons = [...pool.availablePokemons];
+  const wheelPokemons: Pokemon[] = [];
+  const MAX_WHEEL_POKEMONS = 12;
+  
+  // Select minimum between available pokemons and 12
+  const count = Math.min(MAX_WHEEL_POKEMONS, availablePokemons.length);
+  
+  for (let i = 0; i < count; i++) {
+    // Use a deterministic algorithm to select pokemons
+    const pseudoRandomIndex = (seed + i * 7919) % availablePokemons.length;
+    wheelPokemons.push(availablePokemons.splice(pseudoRandomIndex, 1)[0]);
+    // Update seed for next selection to ensure different indices
+    seed = (seed * 9973 + 7919) % 99991;
+  }
+  
+  return wheelPokemons;
 };
 
 // For backward compatibility

@@ -3,14 +3,15 @@ import { Navigate, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { NavBar } from "@/components/NavBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Sword, Award, Coins, PlusCircle, MessageSquare, School, RotateCw } from "lucide-react";
+import { Sword, Award, Coins, PlusCircle, MessageSquare, School, RotateCw, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { 
   getStudentPokemonCollection, 
   getSchoolPokemonPool,
-  initializeSchoolPokemonPool
+  initializeSchoolPokemonPool,
+  getDailyWheelPokemons
 } from "@/utils/pokemon";
-import { Pokemon, StudentPokemon } from "@/types/pokemon";
+import { Pokemon } from "@/types/pokemon";
 import PokemonWheel from "@/components/student/PokemonWheel";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
@@ -92,26 +93,12 @@ const StudentDashboard: React.FC = () => {
     if (!schoolId) return;
     
     setIsLoadingWheel(true);
-    const pool = getSchoolPokemonPool(schoolId);
     
-    if (pool && pool.availablePokemons.length > 0) {
-      // Get random Pokémon from the school pool (up to 12)
-      const availablePokemon = [...pool.availablePokemons];
-      const wheelSelection = [];
-      
-      // Select up to 12 random Pokémon
-      const MAX_WHEEL_POKEMON = 12;
-      const selectionCount = Math.min(MAX_WHEEL_POKEMON, availablePokemon.length);
-      
-      if (selectionCount > 0) {
-        for (let i = 0; i < selectionCount; i++) {
-          const randomIndex = Math.floor(Math.random() * availablePokemon.length);
-          wheelSelection.push(availablePokemon.splice(randomIndex, 1)[0]);
-        }
-        setWheelPokemon(wheelSelection);
-      } else {
-        setWheelPokemon([]);
-      }
+    // Get daily wheel pokemons instead of random selection
+    const dailyWheelPokemons = getDailyWheelPokemons(schoolId);
+    
+    if (dailyWheelPokemons.length > 0) {
+      setWheelPokemon(dailyWheelPokemons);
     } else {
       setWheelPokemon([]);
     }
@@ -251,9 +238,9 @@ const StudentDashboard: React.FC = () => {
           <TabsContent value="wheel">
             <Card className="mx-auto max-w-xl shadow-lg">
               <CardHeader className="text-center bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-t-md">
-                <CardTitle className="text-2xl">Pokémon Wheel</CardTitle>
+                <CardTitle className="text-2xl">Daily Pokémon Wheel</CardTitle>
                 <CardDescription className="text-white opacity-90">
-                  Spend 1 coin to spin the wheel and win a Pokémon!
+                  Spend 1 coin to spin the wheel and win a Pokémon from today's selection!
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-6">
@@ -265,7 +252,7 @@ const StudentDashboard: React.FC = () => {
                       className="mx-auto flex items-center gap-2"
                       disabled={isLoadingWheel}
                     >
-                      <RotateCw className="h-4 w-4" />
+                      <RefreshCw className="h-4 w-4" />
                       {isLoadingWheel ? "Checking..." : "Check Availability"}
                     </Button>
                   </div>
@@ -273,7 +260,7 @@ const StudentDashboard: React.FC = () => {
                   <div className="flex justify-center">
                     <PokemonWheel 
                       studentId={studentId} 
-                      classId={classId}
+                      schoolId={schoolId}
                       coins={coins}
                       onPokemonWon={handlePokemonWon}
                       wheelPokemons={wheelPokemon}
