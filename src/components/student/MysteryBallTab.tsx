@@ -1,7 +1,8 @@
+
 import React, { useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { RefreshCw, Package, Gift } from "lucide-react";
+import { RefreshCw, Package, Gift, X, Dice6 } from "lucide-react";
 import { Pokemon } from "@/types/pokemon";
 import MysteryBall from "@/components/student/MysteryBall";
 interface MysteryBallTabProps {
@@ -33,7 +34,7 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
   return <Card className="mx-auto max-w-xl shadow-lg">
       <CardHeader className="text-center bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-t-md">
         <CardTitle className="text-2xl">Mystery Pokémon Ball</CardTitle>
-        
+        <CardDescription className="text-white opacity-90">2 coins per try, first attempt is free daily</CardDescription>
       </CardHeader>
       <CardContent className="p-6">
         {schoolPokemons.length === 0 ? <div className="text-center p-8">
@@ -47,14 +48,18 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
             
             <div className="mt-6 text-center">
               <p className="mb-2 text-sm font-medium">Mystery ball contains:</p>
-              <div className="flex justify-center gap-4 mt-3">
+              <div className="flex flex-wrap justify-center gap-3 mt-3">
                 <div className="flex items-center gap-1 bg-purple-100 rounded-full px-3 py-1">
-                  <Gift className="h-4 w-4 text-purple-500" />
+                  <Dice6 className="h-4 w-4 text-purple-500" />
                   <span className="text-xs">Random Pokémon</span>
                 </div>
                 <div className="flex items-center gap-1 bg-amber-100 rounded-full px-3 py-1">
                   <Package className="h-4 w-4 text-amber-500" />
-                  <span className="text-xs">Bonus Coins</span>
+                  <span className="text-xs">Bonus Coins (1-5)</span>
+                </div>
+                <div className="flex items-center gap-1 bg-red-100 rounded-full px-3 py-1">
+                  <X className="h-4 w-4 text-red-500" />
+                  <span className="text-xs">Nothing Found!</span>
                 </div>
               </div>
             </div>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Pokemon } from "@/types/pokemon";
@@ -27,7 +28,7 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
   clickToOpen = false // Default to false for backward compatibility
 }) => {
   const [isAnimating, setIsAnimating] = useState(false);
-  const [result, setResult] = useState<"pokemon" | "coins" | null>(null);
+  const [result, setResult] = useState<"pokemon" | "coins" | "nothing" | null>(null);
   const [wonPokemon, setWonPokemon] = useState<Pokemon | null>(null);
   const [wonCoins, setWonCoins] = useState<number>(0);
   const [showResult, setShowResult] = useState(false);
@@ -53,11 +54,13 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
 
     // Check if the student has a free chance or enough coins
     const isFreeChance = !usedFreeChance;
-    const hasCoins = coins >= 1;
+    const requiredCoins = 2; // Updated: Now costs 2 coins instead of 1
+    const hasCoins = coins >= requiredCoins;
+    
     if (!isFreeChance && !hasCoins) {
       toast({
         title: "Not Enough Coins",
-        description: "You need 1 coin to open the mystery ball.",
+        description: `You need ${requiredCoins} coins to open the mystery ball.`,
         variant: "destructive"
       });
       return;
@@ -65,11 +68,11 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
 
     // Spend coins if not using free chance
     if (!isFreeChance) {
-      const success = useStudentCoin(studentId, 1);
+      const success = useStudentCoin(studentId, requiredCoins);
       if (!success) {
         toast({
           title: "Error",
-          description: "Failed to use a coin. Please try again.",
+          description: "Failed to use coins. Please try again.",
           variant: "destructive"
         });
         return;
@@ -84,10 +87,10 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
     // Start animation
     setIsAnimating(true);
 
-    // Determine result (70% chance for Pokémon, 30% for coins)
-    const isWinningPokemon = Math.random() < 0.7;
+    // Determine result (60% chance for Pokémon, 30% for coins, 10% for nothing)
+    const random = Math.random();
     setTimeout(() => {
-      if (isWinningPokemon && schoolPokemons.length > 0) {
+      if (random < 0.6 && schoolPokemons.length > 0) {
         // Get a random Pokémon index
         const randomIndex = Math.floor(Math.random() * schoolPokemons.length);
         const pokemon = schoolPokemons[randomIndex];
@@ -103,8 +106,11 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
           // Fallback to coins if Pokémon assignment fails
           handleCoinReward();
         }
-      } else {
+      } else if (random < 0.9) {
         handleCoinReward();
+      } else {
+        // Nothing found - 10% chance
+        setResult("nothing");
       }
       setIsAnimating(false);
       setShowResult(true);
@@ -134,8 +140,8 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
       </div>
 
       {/* Button below the ball (only show if clickToOpen is false) */}
-      {!clickToOpen && <Button onClick={handleOpenMysteryBall} disabled={isAnimating || usedFreeChance && coins < 1} className="mt-4 bg-blue-500 hover:bg-blue-600">
-          {isAnimating ? "Opening..." : usedFreeChance ? `Open (1 coin)` : "Open (Free)"}
+      {!clickToOpen && <Button onClick={handleOpenMysteryBall} disabled={isAnimating || usedFreeChance && coins < 2} className="mt-4 bg-blue-500 hover:bg-blue-600">
+          {isAnimating ? "Opening..." : usedFreeChance ? `Open (2 coins)` : "Open (Free)"}
         </Button>}
       
       {/* Result Modal */}
