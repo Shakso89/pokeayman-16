@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -173,12 +174,14 @@ const TeacherDashboard: React.FC = () => {
                     {t("manage-classes")}
                   </CardTitle>
                   <CardDescription>
-                    {t("manage-classes-desc")}
+                    {isAdmin ? t("manage-schools-classes") : t("manage-classes-desc")}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-500">
-                    {t("manage-classes-details")}
+                    {isAdmin 
+                      ? t("admin-manage-classes-details") 
+                      : t("manage-classes-details")}
                   </p>
                 </CardContent>
                 <CardFooter>

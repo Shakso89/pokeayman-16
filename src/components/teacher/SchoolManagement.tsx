@@ -25,19 +25,38 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
   const [showStudentPokemon, setShowStudentPokemon] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [studentPokemon, setStudentPokemon] = useState<any[]>([]);
+  const [isAdminUser, setIsAdminUser] = useState(false);
   
   const { t } = useTranslation();
 
   useEffect(() => {
-    // Load schools
+    // Check if current user is admin
+    const username = localStorage.getItem("teacherUsername") || "";
+    setIsAdminUser(username === "Admin");
+    
+    // Load all schools for admin, only teacher's schools for others
     const savedSchools = localStorage.getItem("schools");
     const parsedSchools = savedSchools ? JSON.parse(savedSchools) : [];
-    // Filter schools by teacher ID
-    const teacherSchools = parsedSchools.filter((school: School) => school.teacherId === teacherId);
-    setSchools(teacherSchools);
+    
+    // Admin sees all schools, teachers see only their schools
+    const visibleSchools = isAdminUser 
+      ? parsedSchools 
+      : parsedSchools.filter((school: School) => school.teacherId === teacherId);
+    
+    setSchools(visibleSchools);
   }, [teacherId]);
 
   const handleAddSchool = () => {
+    // Only admin can create schools
+    if (!isAdminUser) {
+      toast({
+        title: t("error"),
+        description: t("only-admin-can-create-schools"),
+        variant: "destructive",
+      });
+      return;
+    }
+
     if (!newSchool.name.trim()) {
       toast({
         title: t("error"),
@@ -47,7 +66,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
       return;
     }
 
-    // Check for duplicate school name from this teacher
+    // Check for duplicate school name
     const duplicateSchool = schools.find(school => 
       school.name.toLowerCase() === newSchool.name.trim().toLowerCase()
     );
@@ -65,7 +84,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
     const newSchoolData: School = {
       id: schoolId,
       name: newSchool.name,
-      teacherId,
+      teacherId, // Set current teacher as creator
       createdAt: new Date().toISOString(),
     };
 
@@ -89,6 +108,17 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
   };
 
   const handleUpdateSchool = (schoolId: string, newName: string) => {
+    // Only admin can update schools
+    if (!isAdminUser) {
+      toast({
+        title: t("error"),
+        description: t("only-admin-can-update-schools"),
+        variant: "destructive",
+      });
+      setEditingSchoolId(null);
+      return;
+    }
+
     if (!newName.trim()) {
       toast({
         title: t("error"),
@@ -98,7 +128,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
       return;
     }
 
-    // Check for duplicate school name from this teacher (excluding the current school being edited)
+    // Check for duplicate school name
     const duplicateSchool = schools.find(school => 
       school.name.toLowerCase() === newName.trim().toLowerCase() && school.id !== schoolId
     );
@@ -133,6 +163,16 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
   };
 
   const handleDeleteSchool = (schoolId: string) => {
+    // Only admin can delete schools
+    if (!isAdminUser) {
+      toast({
+        title: t("error"),
+        description: t("only-admin-can-delete-schools"),
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Check if school has classes
     const savedClasses = localStorage.getItem("classes");
     const parsedClasses = savedClasses ? JSON.parse(savedClasses) : [];
@@ -176,7 +216,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
         const pokemonData = localStorage.getItem("studentPokemons");
         if (pokemonData) {
           const pokemons = JSON.parse(pokemonData);
-          const studentPokemons = pokemons.find((p: any) => p.studentId === studentId)?.pokemon || [];
+          const studentPokemons = pokemons.find((p: any) => p.studentId === studentId)?.pokemons || [];
           setStudentPokemon(studentPokemons);
         } else {
           setStudentPokemon([]);
@@ -199,24 +239,26 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
         </div>
       </div>
       
-      <Card className="pokemon-card">
-        <CardHeader>
-          <CardTitle>{t("add-new-school")}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="flex gap-2">
-            <Input
-              placeholder={t("school-name")}
-              value={newSchool.name}
-              onChange={(e) => setNewSchool({ name: e.target.value })}
-            />
-            <Button onClick={handleAddSchool}>
-              <Plus className="h-4 w-4 mr-1" />
-              {t("add-school")}
-            </Button>
-          </div>
-        </CardContent>
-      </Card>
+      {isAdminUser && (
+        <Card className="pokemon-card">
+          <CardHeader>
+            <CardTitle>{t("add-new-school")}</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-2">
+              <Input
+                placeholder={t("school-name")}
+                value={newSchool.name}
+                onChange={(e) => setNewSchool({ name: e.target.value })}
+              />
+              <Button onClick={handleAddSchool}>
+                <Plus className="h-4 w-4 mr-1" />
+                {t("add-school")}
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {schools.map((school) => (
@@ -244,24 +286,26 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
                       <SchoolIcon className="h-5 w-5 text-blue-500" />
                       {school.name}
                     </CardTitle>
-                    <div className="flex gap-1">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setEditingSchoolId(school.id)}
-                        className="h-8 w-8 p-0"
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleDeleteSchool(school.id)}
-                        className="text-red-500 h-8 w-8 p-0"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    {isAdminUser && (
+                      <div className="flex gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setEditingSchoolId(school.id)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => handleDeleteSchool(school.id)}
+                          className="text-red-500 h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -283,7 +327,17 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
             <CardContent className="p-8 text-center">
               <SchoolIcon className="h-12 w-12 mx-auto mb-4 text-gray-400" />
               <h3 className="text-lg font-medium mb-2">{t("no-schools-yet")}</h3>
-              <p className="text-gray-500 mb-6">{t("create-first-school-description")}</p>
+              <p className="text-gray-500 mb-6">
+                {isAdminUser 
+                  ? t("create-first-school-description")
+                  : t("no-schools-assigned")}
+              </p>
+              {isAdminUser && (
+                <Button onClick={() => setNewSchool({ name: "" })}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  {t("create-first-school")}
+                </Button>
+              )}
             </CardContent>
           </Card>
         )}

@@ -28,10 +28,11 @@ import {
   DialogTitle
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
-import { ChevronLeft, Plus, School, Users, Edit, Trash2, Eye, Search, UserPlus } from "lucide-react";
+import { ChevronLeft, Plus, School, Users, Edit, Trash2, Eye, Search, UserPlus, Lock } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Class, Student } from "@/types/pokemon";
+import { Badge } from "@/components/ui/badge";
 
 interface ClassManagementProps {
   onBack: () => void;
@@ -60,10 +61,16 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
   const [isSearchingStudent, setIsSearchingStudent] = useState(false);
   const [searchResults, setSearchResults] = useState<Student[]>([]);
   const [isAddByUsernameOpen, setIsAddByUsernameOpen] = useState(false);
+  const [isClassCreator, setIsClassCreator] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
 
   const { t } = useTranslation();
 
   useEffect(() => {
+    // Check if current user is admin
+    const username = localStorage.getItem("teacherUsername") || "";
+    setIsAdminUser(username === "Admin");
+    
     // Load classes for this school
     const savedClasses = localStorage.getItem("classes");
     const parsedClasses = savedClasses ? JSON.parse(savedClasses) : [];
@@ -104,7 +111,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
       name: newClass.name,
       description: newClass.description,
       schoolId,
-      teacherId,
+      teacherId, // This teacher becomes the creator/owner
       students: [],
       createdAt: new Date().toISOString(),
     };
@@ -127,6 +134,21 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
   };
 
   const handleDeleteClass = (classId: string) => {
+    // Get the class to check if current teacher is the creator
+    const classToDelete = classes.find(cls => cls.id === classId);
+    
+    if (!classToDelete) return;
+    
+    // Only the creator or admin can delete the class
+    if (classToDelete.teacherId !== teacherId && !isAdminUser) {
+      toast({
+        title: t("error"),
+        description: t("only-class-creator-can-delete"),
+        variant: "destructive",
+      });
+      return;
+    }
+
     // Delete class from localStorage
     const savedClasses = localStorage.getItem("classes");
     const parsedClasses = savedClasses ? JSON.parse(savedClasses) : [];
@@ -145,6 +167,9 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
   const handleSelectClass = (cls: Class) => {
     setSelectedClass(cls);
     
+    // Check if current teacher is the class creator
+    setIsClassCreator(cls.teacherId === teacherId || isAdminUser);
+    
     // Load students in this class
     const savedStudents = localStorage.getItem("students");
     const parsedStudents = savedStudents ? JSON.parse(savedStudents) : [];
@@ -161,11 +186,21 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
   };
 
   const handleOpenStudentDialog = () => {
+    // Only the class creator can add students
+    if (!isClassCreator) {
+      toast({
+        title: t("error"),
+        description: t("only-class-creator-can-add-students"),
+        variant: "destructive",
+      });
+      return;
+    }
+    
     setIsStudentDialogOpen(true);
   };
 
   const handleAddStudentToClass = (studentId: string) => {
-    if (!selectedClass) return;
+    if (!selectedClass || !isClassCreator) return;
     
     // Add student to class in localStorage
     const savedClasses = localStorage.getItem("classes");
@@ -197,7 +232,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
       setStudents([...students, studentToAdd]);
       setAvailableStudents(availableStudents.filter(s => s.id !== studentId));
     } else {
-      // If student doesn't exist in allStudents, we need to fetch them from localStorage
+      // If student doesn't exist in allStudents, fetch from localStorage
       const savedStudents = localStorage.getItem("students");
       const parsedStudents = savedStudents ? JSON.parse(savedStudents) : [];
       const foundStudent = parsedStudents.find((s: Student) => s.id === studentId);
@@ -221,6 +256,16 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
 
   const handleRemoveStudentFromClass = (studentId: string) => {
     if (!selectedClass) return;
+    
+    // Only the class creator can remove students
+    if (!isClassCreator) {
+      toast({
+        title: t("error"),
+        description: t("only-class-creator-can-remove-students"),
+        variant: "destructive",
+      });
+      return;
+    }
     
     // Remove student from class in localStorage
     const savedClasses = localStorage.getItem("classes");
@@ -276,6 +321,16 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
   };
 
   const handleSearchStudents = () => {
+    // Only the class creator can add students
+    if (!isClassCreator) {
+      toast({
+        title: t("error"),
+        description: t("only-class-creator-can-add-students"),
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (!searchUsername.trim()) return;
     
     setIsSearchingStudent(true);
@@ -315,6 +370,20 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
     navigate(`/teacher/student/${studentId}`);
   };
 
+  const openAddByUsernameDialog = () => {
+    // Only the class creator can add students
+    if (!isClassCreator) {
+      toast({
+        title: t("error"),
+        description: t("only-class-creator-can-add-students"),
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    setIsAddByUsernameOpen(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -330,6 +399,12 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
                 {selectedClass.name}
+                {!isClassCreator && (
+                  <Badge variant="outline" className="ml-2 gap-1">
+                    <Lock className="h-3 w-3" />
+                    {t("view-only")}
+                  </Badge>
+                )}
               </div>
             ) : (
               <>
@@ -347,9 +422,9 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
           </Button>
         )}
         
-        {selectedClass && (
+        {selectedClass && isClassCreator && (
           <div className="flex gap-2">
-            <Button onClick={() => setIsAddByUsernameOpen(true)}>
+            <Button onClick={openAddByUsernameDialog}>
               <UserPlus className="h-4 w-4 mr-1" />
               {t("add-by-username")}
             </Button>
@@ -363,38 +438,51 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
       
       {!selectedClass ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {classes.map((cls) => (
-            <Card key={cls.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle>{cls.name}</CardTitle>
-                {cls.description && (
-                  <CardDescription>{cls.description}</CardDescription>
-                )}
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-gray-500 flex items-center">
-                  <Users className="h-4 w-4 mr-1" />
-                  {cls.students?.length || 0} {t("students")}
-                </p>
-              </CardContent>
-              <CardFooter className="flex justify-between">
-                <Button 
-                  variant="default" 
-                  onClick={() => handleSelectClass(cls)}
-                >
-                  {t("manage")}
-                </Button>
-                <Button 
-                  variant="ghost" 
-                  size="sm"
-                  onClick={() => handleDeleteClass(cls.id)}
-                  className="text-red-500"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </CardFooter>
-            </Card>
-          ))}
+          {classes.map((cls) => {
+            const isCreator = cls.teacherId === teacherId || isAdminUser;
+            return (
+              <Card key={cls.id} className="hover:shadow-lg transition-shadow">
+                <CardHeader>
+                  <div className="flex justify-between items-start">
+                    <CardTitle>{cls.name}</CardTitle>
+                    {!isCreator && (
+                      <Badge variant="outline" className="gap-1">
+                        <Lock className="h-3 w-3" />
+                        {t("view-only")}
+                      </Badge>
+                    )}
+                  </div>
+                  {cls.description && (
+                    <CardDescription>{cls.description}</CardDescription>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  <p className="text-sm text-gray-500 flex items-center">
+                    <Users className="h-4 w-4 mr-1" />
+                    {cls.students?.length || 0} {t("students")}
+                  </p>
+                </CardContent>
+                <CardFooter className="flex justify-between">
+                  <Button 
+                    variant="default" 
+                    onClick={() => handleSelectClass(cls)}
+                  >
+                    {isCreator ? t("manage") : t("view")}
+                  </Button>
+                  {isCreator && (
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={() => handleDeleteClass(cls.id)}
+                      className="text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
+                </CardFooter>
+              </Card>
+            );
+          })}
           
           {classes.length === 0 && (
             <Card className="col-span-full border-dashed">
@@ -457,15 +545,17 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
                             <Eye className="h-4 w-4 mr-1" />
                             {t("view-pokemon")}
                           </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleRemoveStudentFromClass(student.id)}
-                            className="text-red-500 h-8"
-                          >
-                            <Trash2 className="h-4 w-4 mr-1" />
-                            {t("remove")}
-                          </Button>
+                          {isClassCreator && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleRemoveStudentFromClass(student.id)}
+                              className="text-red-500 h-8"
+                            >
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              {t("remove")}
+                            </Button>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -477,21 +567,21 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
                 <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
                 <h3 className="text-lg font-medium mb-2">{t("no-students-yet")}</h3>
                 <p className="text-gray-500 mb-6">{t("add-students-to-class-description")}</p>
-                <div className="flex flex-col sm:flex-row justify-center gap-3">
-                  <Button 
-                    onClick={() => setIsAddByUsernameOpen(true)}
-                  >
-                    <UserPlus className="h-4 w-4 mr-1" />
-                    {t("add-by-username")}
-                  </Button>
-                  <Button 
-                    onClick={handleOpenStudentDialog}
-                    disabled={availableStudents.length === 0}
-                  >
-                    <Plus className="h-4 w-4 mr-1" />
-                    {availableStudents.length > 0 ? t("add-student") : t("no-available-students")}
-                  </Button>
-                </div>
+                {isClassCreator && (
+                  <div className="flex flex-col sm:flex-row justify-center gap-3">
+                    <Button onClick={openAddByUsernameDialog}>
+                      <UserPlus className="h-4 w-4 mr-1" />
+                      {t("add-by-username")}
+                    </Button>
+                    <Button 
+                      onClick={handleOpenStudentDialog}
+                      disabled={availableStudents.length === 0}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      {availableStudents.length > 0 ? t("add-student") : t("no-available-students")}
+                    </Button>
+                  </div>
+                )}
               </div>
             )}
           </CardContent>
