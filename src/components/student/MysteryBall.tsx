@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Pokemon } from "@/types/pokemon";
@@ -6,7 +5,7 @@ import { useToast } from "@/hooks/use-toast";
 import { assignRandomPokemonToStudent, useStudentCoin } from "@/utils/pokemon";
 import MysteryBallResult from "./MysteryBallResult";
 import { CheckCircle, CircleX, PlusCircle, MinusCircle } from "lucide-react";
-import { useMobile } from "@/hooks/use-mobile"; 
+import { useIsMobile } from "@/hooks/use-mobile"; 
 
 interface MysteryBallProps {
   studentId: string;
@@ -36,7 +35,7 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
   const [showResult, setShowResult] = useState(false);
   const [multipleCount, setMultipleCount] = useState(1);
   const { toast } = useToast();
-  const isMobile = useMobile();
+  const isMobile = useIsMobile();
 
   // Free daily chance
   const [usedFreeChance, setUsedFreeChance] = useState(dailyAttemptUsed);
