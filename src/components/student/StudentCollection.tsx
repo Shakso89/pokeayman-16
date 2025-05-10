@@ -38,20 +38,17 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ pokemons }) => {
                 <div className="text-center">
                   <h3 className="font-bold text-lg">{pokemon.name}</h3>
                   <div className="flex justify-center gap-2 mt-2">
-                    {pokemon.types.map((type, idx) => (
-                      <span 
-                        key={idx}
-                        className="px-2 py-1 text-xs rounded-full text-white"
-                        style={{ 
-                          backgroundColor: getPokemonTypeColor(type)
-                        }}
-                      >
-                        {type}
-                      </span>
-                    ))}
+                    <span 
+                      className="px-2 py-1 text-xs rounded-full text-white"
+                      style={{ 
+                        backgroundColor: getPokemonTypeColor(pokemon.type)
+                      }}
+                    >
+                      {pokemon.type}
+                    </span>
                   </div>
                   <p className="mt-2 text-sm">
-                    {t('level')}: {pokemon.level || 1}
+                    {t('level')}: {1}
                   </p>
                 </div>
               </CardContent>
