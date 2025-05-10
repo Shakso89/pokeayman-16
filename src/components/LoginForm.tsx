@@ -8,6 +8,7 @@ import { AuthLayout } from "./AuthLayout";
 import { toast } from "@/hooks/use-toast";
 import { User } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { setActivationStatus } from "@/utils/activationService";
 
 interface LoginFormProps {
   type: "teacher" | "student";
@@ -44,11 +45,20 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess }) =>
           // Store the teacher's username for admin access check
           localStorage.setItem("teacherUsername", username);
           
-          // If it's Admin account, set isAdmin flag
+          // If it's Admin account, set isAdmin flag and activate account
           if (username === "Admin") {
             localStorage.setItem("isAdmin", "true");
+            setActivationStatus(true); // Admin is always activated
           } else {
             localStorage.removeItem("isAdmin");
+            
+            // Set activation status - in a real app, this would be fetched from a database
+            // For demo purposes, we'll set it to false for new sign-ups
+            if (teacher && teacher.activated) {
+              setActivationStatus(true);
+            } else {
+              setActivationStatus(false);
+            }
           }
           
           // If it's a registered teacher (not Admin), store their ID

@@ -14,22 +14,51 @@ import { Toaster } from "./components/ui/toaster";
 import MessagesPage from "./pages/Messages";
 import StudentBattlePage from "./pages/StudentBattlePage";
 import ReportsPage from "./pages/ReportsPage";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Index />} />
-        <Route path="/student-dashboard" element={<StudentDashboard />} />
-        <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
+        <Route path="/student-dashboard" element={
+          <ProtectedRoute>
+            <StudentDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/teacher-dashboard" element={
+          <ProtectedRoute>
+            <TeacherDashboard />
+          </ProtectedRoute>
+        } />
         <Route path="/teacher-login" element={<TeacherLogin />} />
         <Route path="/student-login" element={<StudentLogin />} />
         <Route path="/teacher-signup" element={<TeacherSignUp />} />
-        <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        <Route path="/teacher/messages" element={<MessagesPage />} />
-        <Route path="/student/messages" element={<MessagesPage />} />
-        <Route path="/student/battles" element={<StudentBattlePage />} />
-        <Route path="/teacher/reports" element={<ReportsPage />} />
+        <Route path="/admin-dashboard" element={
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/teacher/messages" element={
+          <ProtectedRoute>
+            <MessagesPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/student/messages" element={
+          <ProtectedRoute>
+            <MessagesPage />
+          </ProtectedRoute>
+        } />
+        <Route path="/student/battles" element={
+          <ProtectedRoute>
+            <StudentBattlePage />
+          </ProtectedRoute>
+        } />
+        <Route path="/teacher/reports" element={
+          <ProtectedRoute>
+            <ReportsPage />
+          </ProtectedRoute>
+        } />
         <Route path="/contact" element={<Contact />} />
         <Route path="*" element={<NotFound />} />
       </Routes>

@@ -6,7 +6,6 @@ import { LogOut, Settings, MessageSquare, User } from "lucide-react";
 import LanguageSelector from "./LanguageSelector";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -40,6 +39,14 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName, userAvatar }
   };
   
   const isAdmin = localStorage.getItem("teacherUsername") === "Admin";
+  
+  const handleOpenSettings = () => {
+    setIsSettingsOpen(true);
+  };
+  
+  const handleCloseSettings = () => {
+    setIsSettingsOpen(false);
+  };
   
   return (
     <div className="bg-white border-b shadow-sm">
@@ -86,7 +93,7 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName, userAvatar }
                 </div>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
+              <DropdownMenuItem onClick={handleOpenSettings}>
                 <Settings className="mr-2 h-4 w-4" />
                 <span>{t("settings")}</span>
               </DropdownMenuItem>
@@ -106,11 +113,13 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName, userAvatar }
         </div>
       </div>
       
-      <UserSettingsModal 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
-        userType={userType} 
-      />
+      {isSettingsOpen && (
+        <UserSettingsModal 
+          isOpen={isSettingsOpen} 
+          onClose={handleCloseSettings} 
+          userType={userType} 
+        />
+      )}
     </div>
   );
 };
