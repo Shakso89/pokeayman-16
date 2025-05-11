@@ -8,8 +8,9 @@ import { toast } from "@/hooks/use-toast";
 import { NavBar } from "@/components/NavBar";
 import { UploadPhotos } from "@/components/profile/UploadPhotos";
 import { useTranslation } from "@/hooks/useTranslation";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, MessageSquare, UserPlus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FriendRequest } from "@/types/pokemon";
 
 interface StudentData {
   id: string;
@@ -28,9 +29,18 @@ const StudentDetailPage: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [friendRequestSent, setFriendRequestSent] = useState<boolean>(false);
+  const [friendRequestPending, setFriendRequestPending] = useState<boolean>(false);
+  const [alreadyFriends, setAlreadyFriends] = useState<boolean>(false);
 
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const userType = localStorage.getItem("userType");
+  const currentUserId = userType === "teacher" ? 
+    localStorage.getItem("teacherId") : 
+    localStorage.getItem("studentId");
+  const userName = userType === "teacher" ?
+    localStorage.getItem("teacherDisplayName") || localStorage.getItem("teacherUsername") :
+    localStorage.getItem("studentName");
   
   // Use the ID from either parameter
   const actualStudentId = studentId || id;
@@ -38,6 +48,7 @@ const StudentDetailPage: React.FC = () => {
   useEffect(() => {
     if (actualStudentId) {
       loadStudentData(actualStudentId);
+      checkFriendshipStatus(actualStudentId);
     }
   }, [actualStudentId]);
   
@@ -58,23 +69,47 @@ const StudentDetailPage: React.FC = () => {
     }
   };
 
-  if (!isLoggedIn) {
-    return <Navigate to={userType === "teacher" ? "/teacher-login" : "/student-login"} />;
-  }
-  
-  if (!student) {
-    return (
-      <div className="min-h-screen bg-gray-100">
-        <NavBar 
-          userType={userType as "teacher" | "student"} 
-          userName={userType === "teacher" ? localStorage.getItem("teacherDisplayName") || "Teacher" : localStorage.getItem("studentName") || ""}
-        />
-        <div className="container mx-auto py-8 px-4 text-center">
-          <p>{t("loading")}...</p>
-        </div>
-      </div>
+  const checkFriendshipStatus = (targetId: string) => {
+    if (!currentUserId) return;
+    
+    const friendRequests: FriendRequest[] = JSON.parse(localStorage.getItem("friendRequests") || "[]");
+    
+    // Check if there's already a request sent
+    const existingSentRequest = friendRequests.find(request => 
+      request.senderId === currentUserId && 
+      request.receiverId === targetId
     );
-  }
+    
+    if (existingSentRequest) {
+      if (existingSentRequest.status === "pending") {
+        setFriendRequestSent(true);
+      } else if (existingSentRequest.status === "accepted") {
+        setAlreadyFriends(true);
+      }
+    }
+    
+    // Check if there's a pending request received
+    const existingReceivedRequest = friendRequests.find(request => 
+      request.senderId === targetId && 
+      request.receiverId === currentUserId &&
+      request.status === "pending"
+    );
+    
+    if (existingReceivedRequest) {
+      setFriendRequestPending(true);
+    }
+    
+    // Check if they're already friends (request accepted in either direction)
+    const existingFriendship = friendRequests.find(request => 
+      ((request.senderId === currentUserId && request.receiverId === targetId) ||
+       (request.senderId === targetId && request.receiverId === currentUserId)) &&
+      request.status === "accepted"
+    );
+    
+    if (existingFriendship) {
+      setAlreadyFriends(true);
+    }
+  };
 
   const handleAvatarUpdate = (newAvatar: string) => {
     // Update student data in localStorage
@@ -100,6 +135,82 @@ const StudentDetailPage: React.FC = () => {
   const isOwnProfile = userType === "student" && 
     localStorage.getItem("studentId") === actualStudentId;
   const canEdit = userType === "teacher" || isOwnProfile;
+
+  const handleSendMessage = () => {
+    if (!student) return;
+    
+    // Navigate to messages page
+    navigate(userType === "teacher" ? "/teacher/messages" : "/student/messages");
+    
+    // Store the selected contact in localStorage for the messages page to use
+    localStorage.setItem("selectedContactId", student.id);
+    localStorage.setItem("selectedContactType", "student");
+  };
+
+  const handleFriendRequest = () => {
+    if (!student || !currentUserId || !userName) return;
+    
+    const newRequest: FriendRequest = {
+      id: `fr-${Date.now()}`,
+      senderId: currentUserId,
+      senderType: userType as "teacher" | "student",
+      senderName: userName,
+      receiverId: student.id,
+      receiverType: "student",
+      status: "pending",
+      createdAt: new Date().toISOString()
+    };
+    
+    // Add to localStorage
+    const allRequests: FriendRequest[] = JSON.parse(localStorage.getItem("friendRequests") || "[]");
+    allRequests.push(newRequest);
+    localStorage.setItem("friendRequests", JSON.stringify(allRequests));
+    
+    setFriendRequestSent(true);
+    
+    toast({
+      description: t("friend-request-sent"),
+    });
+  };
+
+  const handleAcceptFriendRequest = () => {
+    if (!student || !currentUserId) return;
+    
+    const allRequests: FriendRequest[] = JSON.parse(localStorage.getItem("friendRequests") || "[]");
+    const updatedRequests = allRequests.map(request => {
+      if (request.senderId === student.id && request.receiverId === currentUserId && request.status === "pending") {
+        return { ...request, status: "accepted" };
+      }
+      return request;
+    });
+    
+    localStorage.setItem("friendRequests", JSON.stringify(updatedRequests));
+    
+    setFriendRequestPending(false);
+    setAlreadyFriends(true);
+    
+    toast({
+      description: t("friend-request-accepted"),
+    });
+  };
+
+  if (!isLoggedIn) {
+    return <Navigate to={userType === "teacher" ? "/teacher-login" : "/student-login"} />;
+  }
+  
+  if (!student) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <NavBar 
+          userType={userType as "teacher" | "student"} 
+          userName={userType === "teacher" ? localStorage.getItem("teacherDisplayName") || "Teacher" : localStorage.getItem("studentName") || ""}
+        />
+        <div className="container mx-auto py-8 px-4 text-center">
+          <p>{t("loading")}...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -155,6 +266,57 @@ const StudentDetailPage: React.FC = () => {
                   <p className="text-sm font-medium text-gray-500">{t("class")}:</p>
                   <p>{student.classId || t("no-class-assigned")}</p>
                 </div>
+                
+                {/* Social actions - only show if not own profile */}
+                {!isOwnProfile && (
+                  <div className="mt-4 space-y-2">
+                    <Button 
+                      className="w-full"
+                      onClick={handleSendMessage}
+                    >
+                      <MessageSquare className="h-4 w-4 mr-2" />
+                      {t("send-message")}
+                    </Button>
+                    
+                    {alreadyFriends ? (
+                      <Button 
+                        className="w-full"
+                        variant="outline"
+                        disabled
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        {t("already-friends")}
+                      </Button>
+                    ) : friendRequestSent ? (
+                      <Button 
+                        className="w-full"
+                        variant="outline"
+                        disabled
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        {t("friend-request-sent")}
+                      </Button>
+                    ) : friendRequestPending ? (
+                      <Button 
+                        className="w-full"
+                        variant="secondary"
+                        onClick={handleAcceptFriendRequest}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        {t("accept-friend-request")}
+                      </Button>
+                    ) : (
+                      <Button 
+                        className="w-full"
+                        variant="outline"
+                        onClick={handleFriendRequest}
+                      >
+                        <UserPlus className="h-4 w-4 mr-2" />
+                        {t("add-friend")}
+                      </Button>
+                    )}
+                  </div>
+                )}
               </div>
             </CardContent>
           </Card>

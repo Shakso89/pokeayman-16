@@ -48,6 +48,47 @@ const MessagesPage: React.FC = () => {
     
     loadContacts();
     loadFriends();
+    
+    // Check if we have a selected contact from profile view
+    const selectedContactId = localStorage.getItem("selectedContactId");
+    const selectedContactType = localStorage.getItem("selectedContactType");
+    
+    if (selectedContactId && selectedContactType) {
+      // Find the contact from our contacts list
+      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+      const students = JSON.parse(localStorage.getItem("students") || "[]");
+      
+      let selectedUser = null;
+      if (selectedContactType === "teacher") {
+        selectedUser = teachers.find((t: any) => t.id === selectedContactId);
+        if (selectedUser) {
+          selectedUser = {
+            id: selectedUser.id,
+            name: selectedUser.displayName || selectedUser.username,
+            avatar: selectedUser.avatar,
+            type: "teacher"
+          };
+        }
+      } else {
+        selectedUser = students.find((s: any) => s.id === selectedContactId);
+        if (selectedUser) {
+          selectedUser = {
+            id: selectedUser.id,
+            name: selectedUser.displayName || selectedUser.name,
+            avatar: selectedUser.avatar,
+            type: "student"
+          };
+        }
+      }
+      
+      if (selectedUser) {
+        setSelectedContact(selectedUser);
+      }
+      
+      // Clear the selected contact info from localStorage
+      localStorage.removeItem("selectedContactId");
+      localStorage.removeItem("selectedContactType");
+    }
   }, [isLoggedIn, userId, userType, navigate]);
   
   useEffect(() => {

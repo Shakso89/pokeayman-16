@@ -3,10 +3,11 @@ import React, { useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Coins, Camera } from "lucide-react";
+import { Coins, Camera, MessageSquare, UserPlus } from "lucide-react";
 import { Student } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "sonner";
+import { useNavigate } from "react-router-dom";
 
 interface StudentProfileProps {
   student: Student;
@@ -28,8 +29,10 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
   onGiveCoins,
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const userType = localStorage.getItem("userType");
   const currentStudentId = localStorage.getItem("studentId");
+  const currentUserId = userType === "teacher" ? localStorage.getItem("teacherId") : currentStudentId;
   const isOwnProfile = currentStudentId === student.id;
   
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -82,6 +85,19 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
     
     reader.readAsDataURL(file);
   };
+
+  const handleViewProfile = () => {
+    navigate(`/teacher/student/${student.id}`);
+  };
+
+  const handleSendMessage = () => {
+    // Navigate to messages page with this student selected
+    navigate(userType === "teacher" ? "/teacher/messages" : "/student/messages");
+    
+    // Store the selected contact in localStorage for the messages page to use
+    localStorage.setItem("selectedContactId", student.id);
+    localStorage.setItem("selectedContactType", "student");
+  };
   
   return (
     <Card className="col-span-1 pokemon-card">
@@ -93,7 +109,10 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
           {/* Profile avatar with edit icon */}
           <div className="flex justify-center mb-4">
             <div className="relative">
-              <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md">
+              <div 
+                className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md cursor-pointer"
+                onClick={handleViewProfile}
+              >
                 {student.avatar ? (
                   <img 
                     src={student.avatar} 
@@ -132,7 +151,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
           
           <div>
             <p className="text-sm font-medium text-gray-500">{t("display-name")}:</p>
-            <p>{student.displayName}</p>
+            <p className="cursor-pointer" onClick={handleViewProfile}>{student.displayName}</p>
           </div>
           
           <div>
@@ -167,6 +186,27 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
               <Button className="w-full flex items-center" onClick={onGiveCoins}>
                 <Coins className="h-4 w-4 mr-2" />
                 {t("give-coins")}
+              </Button>
+            </div>
+          )}
+          
+          {!isOwnProfile && (
+            <div className="flex flex-col gap-2">
+              <Button 
+                variant="secondary" 
+                className="w-full flex items-center" 
+                onClick={handleSendMessage}
+              >
+                <MessageSquare className="h-4 w-4 mr-2" />
+                {t("send-message")}
+              </Button>
+              <Button 
+                variant="outline" 
+                className="w-full flex items-center"
+                onClick={handleViewProfile}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                {t("view-profile")}
               </Button>
             </div>
           )}
