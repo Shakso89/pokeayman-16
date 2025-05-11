@@ -10,6 +10,8 @@ import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { useStudentCoin, assignRandomPokemonToStudent } from "@/utils/pokemon";
 import MysteryBallResult from "./MysteryBallResult";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import MysteryBallHistory from "./MysteryBallHistory";
 
 interface MysteryBallTabProps {
   schoolPokemons: Pokemon[];
@@ -131,6 +133,9 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
           
           // Call the callback
           onPokemonWon(pokemon);
+          
+          // Save to history
+          saveToHistory("pokemon", pokemon);
         } else {
           // Fallback to coins
           const coinAmount = Math.floor(Math.random() * 5) + 1;
@@ -139,6 +144,9 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
           
           // Call the callback
           onCoinsWon(coinAmount);
+          
+          // Save to history
+          saveToHistory("coins", undefined, coinAmount);
         }
       } else if (random < 0.9) {
         // Award coins
@@ -152,11 +160,17 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
         
         // Call the callback
         onCoinsWon(coinAmount);
+        
+        // Save to history
+        saveToHistory("coins", undefined, coinAmount);
       } else {
         // Nothing
         nothingWon++;
         results.push({ type: "nothing" });
         setCurrentResult({ type: "nothing" });
+        
+        // Save to history
+        saveToHistory("nothing");
       }
       
       remainingOpens--;
@@ -185,12 +199,36 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
     setCurrentResult(null);
   };
   
-  console.log("MysteryBallTab render with props:", {
-    studentId,
-    schoolId,
-    coinsAvailable: coins,
-    pokemonsAvailable: schoolPokemons.length
-  });
+  // Save history to localStorage
+  const saveToHistory = (resultType: "pokemon" | "coins" | "nothing", pokemon?: Pokemon, coinsAmount?: number) => {
+    try {
+      const historyItem = {
+        id: `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+        studentId,
+        date: new Date().toISOString(),
+        type: resultType,
+        pokemonData: pokemon ? {
+          id: pokemon.id,
+          name: pokemon.name,
+          image: pokemon.image,
+          type: pokemon.type,
+          rarity: pokemon.rarity
+        } : undefined,
+        coinsAmount
+      };
+
+      // Get existing history or create new array
+      const existingHistory = JSON.parse(localStorage.getItem(`mysteryBallHistory_${studentId}`) || "[]");
+      
+      // Add new item to history
+      existingHistory.push(historyItem);
+      
+      // Save to localStorage
+      localStorage.setItem(`mysteryBallHistory_${studentId}`, JSON.stringify(existingHistory));
+    } catch (error) {
+      console.error("Error saving to history:", error);
+    }
+  };
   
   return (
     <Card className="mx-auto max-w-xl shadow-lg">
@@ -208,80 +246,93 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
             </Button>
           </div>
         ) : (
-          <div className="flex flex-col items-center">
-            <MysteryBall 
-              studentId={studentId} 
-              schoolId={schoolId} 
-              coins={coins} 
-              schoolPokemons={schoolPokemons} 
-              onPokemonWon={onPokemonWon} 
-              onCoinsWon={onCoinsWon} 
-              dailyAttemptUsed={dailyAttemptUsed} 
-              setDailyAttemptUsed={setDailyAttemptUsed}
-            />
+          <Tabs defaultValue="play">
+            <TabsList className="grid w-full grid-cols-2 mb-4">
+              <TabsTrigger value="play">Play</TabsTrigger>
+              <TabsTrigger value="history">History</TabsTrigger>
+            </TabsList>
             
-            {!isMobile && (
-              <div className="w-full mt-8 p-4 bg-gray-50 rounded-lg">
-                <h3 className="text-lg font-medium mb-3 text-center">Open Multiple Balls</h3>
+            <TabsContent value="play" className="mt-2">
+              <div className="flex flex-col items-center">
+                <MysteryBall 
+                  studentId={studentId} 
+                  schoolId={schoolId} 
+                  coins={coins} 
+                  schoolPokemons={schoolPokemons} 
+                  onPokemonWon={onPokemonWon} 
+                  onCoinsWon={onCoinsWon} 
+                  dailyAttemptUsed={dailyAttemptUsed} 
+                  setDailyAttemptUsed={setDailyAttemptUsed}
+                />
                 
-                <div className="flex flex-col items-center space-y-4">
-                  <div className="w-full flex items-center gap-4">
-                    <span className="text-sm font-medium">Count:</span>
-                    <Slider
-                      value={[multipleCount]}
-                      min={1}
-                      max={getMaxPossibleOpens()}
-                      step={1}
-                      onValueChange={(value) => setMultipleCount(value[0])}
-                      className="flex-1"
-                      disabled={isProcessing}
-                    />
-                    <span className="text-sm font-medium w-6 text-center">{multipleCount}</span>
+                {!isMobile && (
+                  <div className="w-full mt-8 p-4 bg-gray-50 rounded-lg">
+                    <h3 className="text-lg font-medium mb-3 text-center">Open Multiple Balls</h3>
+                    
+                    <div className="flex flex-col items-center space-y-4">
+                      <div className="w-full flex items-center gap-4">
+                        <span className="text-sm font-medium">Count:</span>
+                        <Slider
+                          value={[multipleCount]}
+                          min={1}
+                          max={getMaxPossibleOpens()}
+                          step={1}
+                          onValueChange={(value) => setMultipleCount(value[0])}
+                          className="flex-1"
+                          disabled={isProcessing}
+                        />
+                        <span className="text-sm font-medium w-6 text-center">{multipleCount}</span>
+                      </div>
+                      
+                      <p className="text-sm text-gray-500">
+                        Cost: {multipleCount > 0 && !dailyAttemptUsed ? (multipleCount - 1) * 2 : multipleCount * 2} coins
+                      </p>
+                      
+                      <Button 
+                        onClick={handleOpenMultiple} 
+                        disabled={isProcessing || (coins < 2 && dailyAttemptUsed)} 
+                        className="w-full"
+                      >
+                        {isProcessing ? "Opening..." : `Open ${multipleCount} Balls`}
+                      </Button>
+                    </div>
                   </div>
-                  
-                  <p className="text-sm text-gray-500">
-                    Cost: {multipleCount > 0 && !dailyAttemptUsed ? (multipleCount - 1) * 2 : multipleCount * 2} coins
-                  </p>
-                  
-                  <Button 
-                    onClick={handleOpenMultiple} 
-                    disabled={isProcessing || (coins < 2 && dailyAttemptUsed)} 
-                    className="w-full"
-                  >
-                    {isProcessing ? "Opening..." : `Open ${multipleCount} Balls`}
-                  </Button>
+                )}
+                
+                <div className="mt-6 text-center">
+                  <p className="mb-2 text-sm font-medium">Mystery ball contains:</p>
+                  <div className="flex flex-wrap justify-center gap-3 mt-3">
+                    <div className="flex items-center gap-1 bg-purple-100 rounded-full px-3 py-1">
+                      <Dice6 className="h-4 w-4 text-purple-500" />
+                      <span className="text-xs">Random Pokémon</span>
+                    </div>
+                    <div className="flex items-center gap-1 bg-amber-100 rounded-full px-3 py-1">
+                      <Package className="h-4 w-4 text-amber-500" />
+                      <span className="text-xs">Bonus Coins (1-5)</span>
+                    </div>
+                    <div className="flex items-center gap-1 bg-red-100 rounded-full px-3 py-1">
+                      <X className="h-4 w-4 text-red-500" />
+                      <span className="text-xs">Nothing Found!</span>
+                    </div>
+                  </div>
                 </div>
               </div>
-            )}
+            </TabsContent>
             
-            <div className="mt-6 text-center">
-              <p className="mb-2 text-sm font-medium">Mystery ball contains:</p>
-              <div className="flex flex-wrap justify-center gap-3 mt-3">
-                <div className="flex items-center gap-1 bg-purple-100 rounded-full px-3 py-1">
-                  <Dice6 className="h-4 w-4 text-purple-500" />
-                  <span className="text-xs">Random Pokémon</span>
-                </div>
-                <div className="flex items-center gap-1 bg-amber-100 rounded-full px-3 py-1">
-                  <Package className="h-4 w-4 text-amber-500" />
-                  <span className="text-xs">Bonus Coins (1-5)</span>
-                </div>
-                <div className="flex items-center gap-1 bg-red-100 rounded-full px-3 py-1">
-                  <X className="h-4 w-4 text-red-500" />
-                  <span className="text-xs">Nothing Found!</span>
-                </div>
-              </div>
-            </div>
-            
-            {/* Result Modal for multiple opens */}
-            <MysteryBallResult
-              isOpen={showResult}
-              onClose={handleCloseResult}
-              result={currentResult || { type: "nothing" }}
-              pokemon={wonPokemon}
-              coins={wonCoins}
-            />
-          </div>
+            <TabsContent value="history" className="mt-2">
+              <MysteryBallHistory studentId={studentId} />
+            </TabsContent>
+          </Tabs>
         )}
+        
+        {/* Result Modal for multiple opens */}
+        <MysteryBallResult
+          isOpen={showResult}
+          onClose={handleCloseResult}
+          result={currentResult || { type: "nothing" }}
+          pokemon={wonPokemon}
+          coins={wonCoins}
+        />
       </CardContent>
     </Card>
   );

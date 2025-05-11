@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { assignRandomPokemonToStudent, useStudentCoin } from "@/utils/pokemon";
 import MysteryBallResult from "./MysteryBallResult";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { v4 as uuidv4 } from "uuid";
 
 interface MysteryBallProps {
   studentId: string;
@@ -42,6 +43,37 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
   useEffect(() => {
     setUsedFreeChance(dailyAttemptUsed);
   }, [dailyAttemptUsed]);
+
+  // Save history to localStorage
+  const saveToHistory = (resultType: "pokemon" | "coins" | "nothing", pokemon?: Pokemon, coinsAmount?: number) => {
+    try {
+      const historyItem = {
+        id: uuidv4(),
+        studentId,
+        date: new Date().toISOString(),
+        type: resultType,
+        pokemonData: pokemon ? {
+          id: pokemon.id,
+          name: pokemon.name,
+          image: pokemon.image,
+          type: pokemon.type,
+          rarity: pokemon.rarity
+        } : undefined,
+        coinsAmount
+      };
+
+      // Get existing history or create new array
+      const existingHistory = JSON.parse(localStorage.getItem(`mysteryBallHistory_${studentId}`) || "[]");
+      
+      // Add new item to history
+      existingHistory.push(historyItem);
+      
+      // Save to localStorage
+      localStorage.setItem(`mysteryBallHistory_${studentId}`, JSON.stringify(existingHistory));
+    } catch (error) {
+      console.error("Error saving to history:", error);
+    }
+  };
   
   const handleOpenMysteryBall = () => {
     // Check if there are any Pokémon available
@@ -119,6 +151,9 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
           setWonPokemon(pokemon);
           // Call the parent component's callback
           onPokemonWon(pokemon);
+          
+          // Save to history
+          saveToHistory("pokemon", pokemon);
         } else {
           console.error("Failed to assign Pokemon:", pokemon.name);
           // Fallback to coins if Pokémon assignment fails
@@ -129,6 +164,7 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
       } else {
         // Nothing found - 10% chance
         setResult("nothing");
+        saveToHistory("nothing");
       }
       setIsAnimating(false);
       setShowResult(true);
@@ -142,6 +178,9 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
     setWonCoins(coinAmount);
     // Call the parent component's callback
     onCoinsWon(coinAmount);
+    
+    // Save to history
+    saveToHistory("coins", undefined, coinAmount);
   };
   
   const handleCloseResult = () => {

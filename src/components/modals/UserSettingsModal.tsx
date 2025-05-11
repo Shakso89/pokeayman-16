@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Camera } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 interface UserSettingsModalProps {
   isOpen: boolean;
@@ -73,10 +73,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
         localStorage.setItem("teachers", JSON.stringify(teachers));
         localStorage.setItem("teacherDisplayName", displayName);
         
-        toast({
-          title: t("settings-saved"),
-          description: t("settings-saved-description"),
-        });
+        toast(t("settings-saved"));
       }
     } else {
       const students = JSON.parse(localStorage.getItem("students") || "[]");
@@ -91,10 +88,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
         localStorage.setItem("students", JSON.stringify(students));
         localStorage.setItem("studentName", displayName);
         
-        toast({
-          title: t("settings-saved"),
-          description: t("settings-saved-description"),
-        });
+        toast(t("settings-saved"));
       }
     }
     
