@@ -4,7 +4,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkSubmission } from "@/types/homework";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Check, X, Coins, User, Volume, Image, Play } from "lucide-react";
+import { Check, X, Coins, User, FileAudio, FileImage, Play, Image, Headphones } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface HomeworkSubmissionItemProps {
@@ -48,7 +48,7 @@ export const HomeworkSubmissionItem: React.FC<HomeworkSubmissionItemProps> = ({
 
   return (
     <>
-      <div className="flex items-center justify-between bg-white p-2 rounded-md border">
+      <div className="flex items-center justify-between bg-white p-2 rounded-md border mb-2">
         <div className="flex items-center space-x-2">
           <Avatar className="h-8 w-8 cursor-pointer" onClick={() => onNavigateToProfile(submission.studentId)}>
             <AvatarFallback>{submission.studentName.substring(0, 2).toUpperCase()}</AvatarFallback>
@@ -61,35 +61,17 @@ export const HomeworkSubmissionItem: React.FC<HomeworkSubmissionItemProps> = ({
           </div>
         </div>
         
-        <div className="flex items-center space-x-1">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-blue-500"
-            onClick={() => setViewContent(true)}
-          >
-            {t("view")}
-          </Button>
-          
-          {isImage && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-blue-500"
-              onClick={() => setShowImage(!showImage)}
-            >
-              <Image className="h-4 w-4" />
-            </Button>
-          )}
-          
+        <div className="flex items-center space-x-2">
+          {/* Content Type Indicators with Action Buttons */}
           {isAudio && (
-            <Button
-              variant="ghost"
+            <Button 
+              variant="outline"
               size="sm"
-              className="text-blue-500"
+              className="bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100"
               onClick={handlePlayAudio}
             >
-              <Play className="h-4 w-4" />
+              {playingAudio ? "Pause" : "Play"} 
+              <Headphones className="ml-1 h-4 w-4" />
               <audio 
                 ref={audioRef}
                 src={submission.content} 
@@ -98,6 +80,26 @@ export const HomeworkSubmissionItem: React.FC<HomeworkSubmissionItemProps> = ({
               />
             </Button>
           )}
+          
+          {isImage && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
+              onClick={() => setShowImage(!showImage)}
+            >
+              View <FileImage className="ml-1 h-4 w-4" />
+            </Button>
+          )}
+          
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            className="text-blue-500"
+            onClick={() => setViewContent(true)}
+          >
+            {t("view")}
+          </Button>
           
           {submission.status === "pending" && onApprove && onReject && (
             <>
@@ -142,7 +144,7 @@ export const HomeworkSubmissionItem: React.FC<HomeworkSubmissionItemProps> = ({
 
       {/* Quick image preview */}
       {showImage && isImage && (
-        <div className="mt-2 p-2 border rounded-md bg-white">
+        <div className="mt-2 p-2 border rounded-md bg-white mb-4">
           <div className="flex justify-between items-center mb-2">
             <p className="text-sm font-medium">{t("submission-preview")}</p>
             <Button 
@@ -157,6 +159,43 @@ export const HomeworkSubmissionItem: React.FC<HomeworkSubmissionItemProps> = ({
             src={submission.content} 
             alt={`${submission.studentName}'s submission`}
             className="max-h-48 max-w-full rounded-md"
+          />
+          <div className="mt-2 flex justify-end">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setViewContent(true)}
+            >
+              {t("view-full")}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* Audio Player (when playing but not showing dialog) */}
+      {playingAudio && isAudio && !viewContent && (
+        <div className="mt-2 p-2 border rounded-md bg-white mb-4">
+          <div className="flex justify-between items-center mb-2">
+            <p className="text-sm font-medium">{t("audio-submission")}</p>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => {
+                if (audioRef.current) {
+                  audioRef.current.pause();
+                }
+                setPlayingAudio(false);
+              }}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <audio 
+            controls
+            src={submission.content}
+            className="w-full"
+            controlsList="nodownload"
+            onPause={() => setPlayingAudio(false)}
           />
           <div className="mt-2 flex justify-end">
             <Button 
