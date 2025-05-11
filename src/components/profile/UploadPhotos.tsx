@@ -64,6 +64,7 @@ const UploadPhotos: React.FC<UploadPhotosProps> = ({
     // Check file size
     const sizeMB = file.size / (1024 * 1024);
     if (sizeMB > MAX_SIZE_MB) {
+      // Fix: Change from toast(t("message"), {...}) to toast(t("message"))
       toast(t("photo-too-large", { size: MAX_SIZE_MB }));
       return;
     }
@@ -78,6 +79,7 @@ const UploadPhotos: React.FC<UploadPhotosProps> = ({
         if (userPhotosIndex !== -1) {
           // User already has photos
           if (allPhotos[userPhotosIndex].photos.length >= MAX_PHOTOS) {
+            // Fix: Change from toast(t("message"), {...}) to toast(t("message"))
             toast(t("max-photos-reached", { count: MAX_PHOTOS }));
             return;
           }
