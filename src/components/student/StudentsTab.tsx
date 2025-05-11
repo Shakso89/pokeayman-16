@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -7,28 +8,29 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { ArrowDownAZ, ArrowUpAZ } from "lucide-react";
+
 interface StudentsTabProps {
   classId: string;
 }
+
 interface StudentWithPokemon extends Student {
   pokemonCount: number;
   coins: number;
 }
+
 const StudentsTab: React.FC<StudentsTabProps> = ({
   classId
 }) => {
-  const {
-    t
-  } = useTranslation();
-  const {
-    toast
-  } = useToast();
+  const { t } = useTranslation();
+  const { toast } = useToast();
   const [students, setStudents] = useState<StudentWithPokemon[]>([]);
   const navigate = useNavigate();
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+
   useEffect(() => {
     loadStudents();
   }, [classId]);
+
   const loadStudents = () => {
     try {
       // Get all students from localStorage
@@ -147,6 +149,7 @@ const StudentsTab: React.FC<StudentsTabProps> = ({
       setStudents([]);
     }
   };
+
   const sortStudents = (studentsArray: StudentWithPokemon[]) => {
     const sorted = [...studentsArray].sort((a, b) => {
       if (sortOrder === "desc") {
@@ -157,15 +160,18 @@ const StudentsTab: React.FC<StudentsTabProps> = ({
     });
     setStudents(sorted);
   };
+
   const toggleSortOrder = () => {
     const newOrder = sortOrder === "desc" ? "asc" : "desc";
     setSortOrder(newOrder);
     sortStudents(students);
   };
+
   const handleStudentClick = (studentId: string) => {
     // Navigate to the student profile page
     navigate(`/student/profile/${studentId}`);
   };
+
   if (students.length === 0) {
     return <div className="flex flex-col items-center justify-center py-16 px-4">
         <div className="bg-gray-50 rounded-full p-6 mb-4">
@@ -179,8 +185,59 @@ const StudentsTab: React.FC<StudentsTabProps> = ({
         <p className="text-lg font-medium text-gray-500">{t("no-students-found")}</p>
       </div>;
   }
+
   return <Card>
-      
+      <CardContent className="pt-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="text-lg font-medium">{t("class-students")}</h3>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={toggleSortOrder}
+            className="flex items-center gap-1"
+          >
+            {sortOrder === "desc" ? (
+              <>
+                <ArrowDownAZ className="h-4 w-4" />
+                {t("sort-desc")}
+              </>
+            ) : (
+              <>
+                <ArrowUpAZ className="h-4 w-4" />
+                {t("sort-asc")}
+              </>
+            )}
+          </Button>
+        </div>
+
+        <div className="space-y-3">
+          {students.map(student => (
+            <div 
+              key={student.id}
+              onClick={() => handleStudentClick(student.id)}
+              className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+            >
+              <Avatar className="h-10 w-10">
+                <AvatarImage src={student.avatar} />
+                <AvatarFallback>
+                  {student.displayName?.substring(0, 2).toUpperCase() || "ST"}
+                </AvatarFallback>
+              </Avatar>
+
+              <div className="ml-3 flex-1">
+                <p className="font-medium">{student.displayName}</p>
+                <p className="text-sm text-gray-500">@{student.username}</p>
+              </div>
+
+              <div className="text-right">
+                <p className="font-semibold">{student.pokemonCount} {t("pokemon")}</p>
+                <p className="text-sm text-gray-500">{student.coins} {t("coins")}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </CardContent>
     </Card>;
 };
+
 export default StudentsTab;

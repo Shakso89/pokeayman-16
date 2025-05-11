@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -85,7 +86,10 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
                   
                   <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
                     <TabsList className="grid w-full grid-cols-3 mb-6">
-                      
+                      <TabsTrigger value="students" className="flex items-center gap-2">
+                        <Users className="h-4 w-4" />
+                        {t("students")}
+                      </TabsTrigger>
                       <TabsTrigger value="homework" className="flex items-center gap-2">
                         <Book className="h-4 w-4" />
                         {t("homework")}
