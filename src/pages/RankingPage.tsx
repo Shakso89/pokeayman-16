@@ -356,28 +356,30 @@ const RankingPage: React.FC = () => {
               </div>
             </CardHeader>
             <CardContent>
-              <TabsContent value="school">
-                {renderStudentList(students, `${t("top")} 20 - ${t("school-ranking")}`)}
-              </TabsContent>
-              
-              <TabsContent value="class">
-                {classes.length > 0 ? (
-                  <div className="space-y-6">
-                    {classes.map(cls => (
-                      <div key={cls.id}>
-                        <h3 className="font-medium text-lg mb-3 px-2 py-1 bg-gray-50 rounded-md">
-                          {cls.name}
-                        </h3>
-                        {renderStudentList(classStudents[cls.id] || [], `${t("top")} 10 - ${cls.name}`)}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center py-12">
-                    <p className="text-xl text-gray-500">{t("no-classes")}</p>
-                  </div>
-                )}
-              </TabsContent>
+              <Tabs value={currentTab}>
+                <TabsContent value="school">
+                  {renderStudentList(students, `${t("top")} 20 - ${t("school-ranking")}`)}
+                </TabsContent>
+                
+                <TabsContent value="class">
+                  {classes.length > 0 ? (
+                    <div className="space-y-6">
+                      {classes.map(cls => (
+                        <div key={cls.id}>
+                          <h3 className="font-medium text-lg mb-3 px-2 py-1 bg-gray-50 rounded-md">
+                            {cls.name}
+                          </h3>
+                          {renderStudentList(classStudents[cls.id] || [], `${t("top")} 10 - ${cls.name}`)}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-center py-12">
+                      <p className="text-xl text-gray-500">{t("no-classes")}</p>
+                    </div>
+                  )}
+                </TabsContent>
+              </Tabs>
             </CardContent>
           </Card>
         )}
