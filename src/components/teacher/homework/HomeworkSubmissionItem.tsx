@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkSubmission } from "@/types/homework";
 import { StudentInfoBadge } from "./submission-components/StudentInfoBadge";
@@ -7,6 +7,7 @@ import { SubmissionActionButtons } from "./submission-components/SubmissionActio
 import { AudioPlayer } from "./submission-components/AudioPlayer";
 import { ImagePreview } from "./submission-components/ImagePreview";
 import { SubmissionContentDialog } from "./submission-components/SubmissionContentDialog";
+import { useNavigate } from "react-router-dom";
 
 interface HomeworkSubmissionItemProps {
   submission: HomeworkSubmission;
@@ -26,24 +27,50 @@ export const HomeworkSubmissionItem: React.FC<HomeworkSubmissionItemProps> = ({
   const [viewContent, setViewContent] = useState(false);
   const [showImage, setShowImage] = useState(false);
   const [playingAudio, setPlayingAudio] = useState(false);
+  const [studentCoins, setStudentCoins] = useState(0);
+  const navigate = useNavigate();
   
   // Check if the content is a data URL
   const isDataUrl = submission.content?.startsWith('data:');
   const isImage = isDataUrl && submission.content?.startsWith('data:image/');
   const isAudio = isDataUrl && submission.content?.startsWith('data:audio/');
 
+  // Fetch student coins when the component loads
+  useEffect(() => {
+    const fetchStudentCoins = () => {
+      try {
+        // Get student Pokemon data which includes coins
+        const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
+        const studentData = studentPokemons.find((p: any) => p.studentId === submission.studentId);
+        if (studentData) {
+          setStudentCoins(studentData.coins || 0);
+        }
+      } catch (error) {
+        console.error("Error fetching student coins:", error);
+      }
+    };
+
+    fetchStudentCoins();
+  }, [submission.studentId]);
+
+  const handleStudentClick = () => {
+    navigate(`/teacher/student/${submission.studentId}`);
+  };
+
   return (
     <>
-      <div className="flex items-center justify-between bg-white p-2 rounded-md border mb-2">
+      <div className="flex flex-col bg-white p-3 rounded-md border mb-3">
         {/* Student information */}
-        <StudentInfoBadge 
-          student={{
-            id: submission.studentId,
-            name: submission.studentName
-          }}
-          submissionDate={submission.submittedAt}
-          onNavigateToProfile={onNavigateToProfile}
-        />
+        <div className="flex items-center justify-between mb-2">
+          <StudentInfoBadge 
+            student={{
+              id: submission.studentId,
+              name: submission.studentName
+            }}
+            submissionDate={submission.submittedAt}
+            onNavigateToProfile={handleStudentClick}
+          />
+        </div>
         
         {/* Action buttons */}
         <SubmissionActionButtons 
@@ -58,6 +85,7 @@ export const HomeworkSubmissionItem: React.FC<HomeworkSubmissionItemProps> = ({
           onReject={onReject}
           onAwardCoins={onAwardCoins}
           onNavigateToProfile={onNavigateToProfile}
+          studentCoins={studentCoins}
         />
       </div>
 
@@ -92,4 +120,3 @@ export const HomeworkSubmissionItem: React.FC<HomeworkSubmissionItemProps> = ({
     </>
   );
 };
-
