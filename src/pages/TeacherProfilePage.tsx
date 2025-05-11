@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -246,10 +245,18 @@ const TeacherProfilePage: React.FC = () => {
                   </CardHeader>
                   <CardContent>
                     <UploadPhotos 
-                      userId={teacher.id} 
-                      userType="teacher" 
-                      isOwnProfile={isOwnProfile}
-                      onPhotoClick={(url) => setSelectedPhoto(url)}
+                      avatarImage={teacher.avatar || null}
+                      onSave={(avatarImage) => {
+                        // Update teacher avatar in localStorage
+                        const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+                        const teacherIndex = teachers.findIndex((t: any) => t.id === teacher.id);
+                        if (teacherIndex !== -1) {
+                          teachers[teacherIndex].avatar = avatarImage;
+                          localStorage.setItem("teachers", JSON.stringify(teachers));
+                          // Update local state
+                          setTeacher({...teacher, avatar: avatarImage});
+                        }
+                      }}
                     />
                   </CardContent>
                 </Card>

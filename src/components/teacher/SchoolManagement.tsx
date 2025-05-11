@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -41,26 +42,37 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
     const savedSchools = localStorage.getItem("schools");
     let parsedSchools = savedSchools ? JSON.parse(savedSchools) : [];
     
-    // Initialize predefined schools if they don't exist
-    if (parsedSchools.length === 0 && isAdminUser) {
-      const initialSchools = PREDEFINED_SCHOOLS.map((name, index) => {
-        const schoolId = `school-${Date.now()}-${index}`;
-        const newSchool: School = {
-          id: schoolId,
-          name,
-          teacherId, // Set admin as creator
-          createdAt: new Date().toISOString(),
-        };
-        
-        // Initialize Pokemon pool for the new school
-        initializeSchoolPokemonPool(schoolId);
-        
-        return newSchool;
-      });
+    // Initialize predefined schools if they don't exist or reset them to predefined values
+    if (isAdminUser) {
+      // First check if we should reset the schools
+      const shouldReset = parsedSchools.length === 0 || 
+        parsedSchools.some((school: School) => !PREDEFINED_SCHOOLS.includes(school.name)) ||
+        PREDEFINED_SCHOOLS.some(name => !parsedSchools.find((school: School) => school.name === name));
       
-      // Save predefined schools
-      localStorage.setItem("schools", JSON.stringify(initialSchools));
-      parsedSchools = initialSchools;
+      if (shouldReset) {
+        // Remove all existing schools
+        localStorage.removeItem("schools");
+        
+        // Create the predefined schools
+        const initialSchools = PREDEFINED_SCHOOLS.map((name, index) => {
+          const schoolId = `school-${Date.now()}-${index}`;
+          const newSchool: School = {
+            id: schoolId,
+            name,
+            teacherId, // Set admin as creator
+            createdAt: new Date().toISOString(),
+          };
+          
+          // Initialize Pokemon pool for the new school
+          initializeSchoolPokemonPool(schoolId);
+          
+          return newSchool;
+        });
+        
+        // Save predefined schools
+        localStorage.setItem("schools", JSON.stringify(initialSchools));
+        parsedSchools = initialSchools;
+      }
     }
     
     // Admin sees all schools, teachers see only their schools
