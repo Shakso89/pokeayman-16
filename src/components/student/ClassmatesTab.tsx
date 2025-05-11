@@ -1,5 +1,6 @@
 
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Student } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -12,6 +13,7 @@ interface ClassmatesTabProps {
 const ClassmatesTab: React.FC<ClassmatesTabProps> = ({ classId }) => {
   const { t } = useTranslation();
   const [classmates, setClassmates] = useState<Student[]>([]);
+  const navigate = useNavigate();
   
   useEffect(() => {
     loadClassmates();
@@ -28,6 +30,18 @@ const ClassmatesTab: React.FC<ClassmatesTabProps> = ({ classId }) => {
     );
     
     setClassmates(classStudents);
+  };
+  
+  const handleStudentClick = (studentId: string) => {
+    const userType = localStorage.getItem("userType");
+    
+    if (userType === "teacher") {
+      navigate(`/teacher/student/${studentId}`);
+    } else {
+      // For student users, we might want different behavior
+      // For now, still navigate to the student detail page
+      navigate(`/teacher/student/${studentId}`);
+    }
   };
   
   if (classmates.length === 0) {
@@ -55,7 +69,8 @@ const ClassmatesTab: React.FC<ClassmatesTabProps> = ({ classId }) => {
           {classmates.map(student => (
             <div
               key={student.id}
-              className="flex flex-col items-center p-4 bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow"
+              className="flex flex-col items-center p-4 bg-white rounded-lg shadow-sm border hover:shadow-md transition-shadow cursor-pointer"
+              onClick={() => handleStudentClick(student.id)}
             >
               <Avatar className="h-16 w-16 mb-3">
                 <AvatarImage src={student.avatar} alt={student.displayName} />
