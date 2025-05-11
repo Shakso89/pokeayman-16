@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -24,6 +23,7 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ studentId, studentName, class
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [classes, setClasses] = useState<{[id: string]: string}>({});
+  const [viewSubmission, setViewSubmission] = useState<HomeworkSubmission | null>(null);
   
   // Audio recording states
   const [isRecording, setIsRecording] = useState(false);
@@ -214,6 +214,14 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ studentId, studentName, class
     }
   };
   
+  // Show submission preview
+  const openSubmissionPreview = (homeworkId: string) => {
+    const submission = submissions.find(sub => sub.homeworkId === homeworkId);
+    if (submission) {
+      setViewSubmission(submission);
+    }
+  };
+  
   // Check if student has submitted for a homework
   const hasSubmitted = (homeworkId: string) => {
     return submissions.some(sub => sub.homeworkId === homeworkId);
@@ -290,7 +298,7 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ studentId, studentName, class
                   </CardContent>
                   <CardFooter>
                     {submitted ? (
-                      <div className="w-full">
+                      <div className="w-full space-y-2">
                         <div className={`text-sm px-3 py-2 rounded-md w-full text-center ${
                           status === "approved" 
                             ? "bg-green-100 text-green-800" 
@@ -304,6 +312,14 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ studentId, studentName, class
                             ? t("submission-rejected")
                             : t("submission-pending")}
                         </div>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="w-full"
+                          onClick={() => openSubmissionPreview(homework.id)}
+                        >
+                          {t("view-submission")}
+                        </Button>
                       </div>
                     ) : (
                       <Button 
@@ -329,6 +345,64 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ studentId, studentName, class
           </div>
         )}
       </CardContent>
+      
+      {/* View Submission Dialog */}
+      <Dialog open={!!viewSubmission} onOpenChange={(open) => {
+        if (!open) setViewSubmission(null);
+      }}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("your-submission")}</DialogTitle>
+          </DialogHeader>
+          
+          <div className="space-y-4 py-4">
+            {viewSubmission && (
+              <>
+                {viewSubmission.type === "image" && viewSubmission.content.startsWith('data:image/') && (
+                  <div className="flex justify-center">
+                    <img 
+                      src={viewSubmission.content} 
+                      alt="Your submission" 
+                      className="max-h-80 rounded-md"
+                    />
+                  </div>
+                )}
+                
+                {viewSubmission.type === "audio" && viewSubmission.content.startsWith('data:audio/') && (
+                  <div className="flex justify-center">
+                    <audio 
+                      src={viewSubmission.content} 
+                      controls 
+                      className="w-full"
+                    />
+                  </div>
+                )}
+                
+                {viewSubmission.type === "text" && (
+                  <div className="bg-gray-50 p-4 rounded-md">
+                    <p>{viewSubmission.content}</p>
+                  </div>
+                )}
+                
+                {viewSubmission.status !== "pending" && (
+                  <div className="mt-4">
+                    <p className="font-medium text-sm">{t("teacher-feedback")}:</p>
+                    <p className="text-sm bg-gray-50 p-3 rounded-md mt-1">
+                      {viewSubmission.feedback || t("no-feedback-provided")}
+                    </p>
+                  </div>
+                )}
+              </>
+            )}
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setViewSubmission(null)}>
+              {t("close")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
       
       {/* Submit Homework Dialog */}
       <Dialog open={isSubmitOpen} onOpenChange={(open) => {
