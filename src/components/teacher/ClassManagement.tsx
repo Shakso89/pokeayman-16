@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, Plus, Users, Trash, FileText, Coins, Download, Check, X, UserPlus } from "lucide-react";
+import { ChevronLeft, Plus, Users, Trash, FileText, Coins, Download, Check, X, UserPlus, User, PokemonIcon } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,7 +13,8 @@ import { useNavigate } from "react-router-dom";
 import { HomeworkAssignment, HomeworkSubmission } from "@/types/homework";
 import CreateHomeworkDialog from "./CreateHomeworkDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
-import { awardCoinsToStudent } from "@/utils/pokemon";
+import { awardCoinsToStudent, removeCoinsFromStudent, removePokemonFromStudent } from "@/utils/pokemon";
+import StudentManageDialog from "@/components/dialogs/StudentManageDialog";
 
 interface ClassManagementProps {
   onBack: () => void;
@@ -52,6 +53,9 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
   const [selectedTab, setSelectedTab] = useState<string>("students");
   const [isGiveCoinsOpen, setIsGiveCoinsOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<{id: string, name: string} | null>(null);
+  
+  // Add student management state
+  const [isManageStudentOpen, setIsManageStudentOpen] = useState(false);
   
   // Add student to class state
   const [isAddStudentDialogOpen, setIsAddStudentDialogOpen] = useState(false);
@@ -196,6 +200,11 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
   const handleAwardCoins = (studentId: string, studentName: string) => {
     setSelectedStudent({id: studentId, name: studentName});
     setIsGiveCoinsOpen(true);
+  };
+
+  const handleManageStudent = (studentId: string, studentName: string) => {
+    setSelectedStudent({id: studentId, name: studentName});
+    setIsManageStudentOpen(true);
   };
 
   const handleGiveCoins = (amount: number) => {
@@ -472,15 +481,26 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
                           </TableCell>
                           <TableCell>{student.coins}</TableCell>
                           <TableCell className="text-right">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="text-amber-500"
-                              onClick={() => handleAwardCoins(student.id, student.displayName)}
-                            >
-                              <Coins className="h-4 w-4 mr-1" />
-                              {t("award-coins")}
-                            </Button>
+                            <div className="flex justify-end gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="text-amber-500"
+                                onClick={() => handleAwardCoins(student.id, student.displayName)}
+                              >
+                                <Coins className="h-4 w-4 mr-1" />
+                                {t("award-coins")}
+                              </Button>
+                              
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleManageStudent(student.id, student.displayName)}
+                              >
+                                <User className="h-4 w-4 mr-1" />
+                                {t("manage")}
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -719,6 +739,17 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
         onOpenChange={setIsGiveCoinsOpen}
         onGiveCoins={handleGiveCoins}
       />
+      
+      {/* Student Manage Dialog */}
+      {selectedStudent && (
+        <StudentManageDialog
+          open={isManageStudentOpen}
+          onOpenChange={setIsManageStudentOpen}
+          studentId={selectedStudent.id}
+          studentName={selectedStudent.name}
+          onRemoveFromClass={() => handleRemoveStudentFromClass(selectedStudent.id)}
+        />
+      )}
     </div>
   );
 };

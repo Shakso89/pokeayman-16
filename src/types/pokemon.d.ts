@@ -1,3 +1,4 @@
+
 export interface Student {
   id: string;
   name: string;
@@ -80,4 +81,23 @@ export interface FriendRequest {
   createdAt: string;
   senderAvatar?: string;
   senderDisplayName?: string;
+}
+
+export interface Pokemon {
+  id: string;
+  name: string;
+  image?: string;
+  type: string;
+  rarity: "common" | "uncommon" | "rare" | "legendary";
+}
+
+export interface StudentPokemon {
+  studentId: string;
+  pokemons: Pokemon[];
+  coins: number;
+}
+
+export interface PokemonPool {
+  schoolId: string;
+  availablePokemons: Pokemon[];
 }
