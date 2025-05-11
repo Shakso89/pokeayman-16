@@ -1,16 +1,16 @@
 
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, FileText, Image, Mic, Check, X, Download, Coins } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { ChevronLeft } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
-import { HomeworkAssignment, HomeworkSubmission } from "@/types/homework";
-import { awardCoinsToStudent } from "@/utils/pokemon";
+import { HomeworkAssignment } from "@/types/homework";
 import CreateHomeworkDialog from "./CreateHomeworkDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
-import { useNavigate } from "react-router-dom";
+import ActiveHomeworkTab from "./homework/ActiveHomeworkTab";
+import ArchivedHomeworkTab from "./homework/ArchivedHomeworkTab";
 
 interface HomeworkManagementProps {
   onBack: () => void;
@@ -20,12 +20,11 @@ interface HomeworkManagementProps {
 const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacherId }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
-  const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
   const [isCreateHomeworkOpen, setIsCreateHomeworkOpen] = useState(false);
   const [homeworkAssignments, setHomeworkAssignments] = useState<HomeworkAssignment[]>([]);
-  const [homeworkSubmissions, setHomeworkSubmissions] = useState<HomeworkSubmission[]>([]);
+  const [homeworkSubmissions, setHomeworkSubmissions] = useState<any[]>([]);
   const [classes, setClasses] = useState<Array<{ id: string; name: string }>>([]);
   const [isGiveCoinsOpen, setIsGiveCoinsOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<{id: string, name: string} | null>(null);
@@ -61,75 +60,6 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
     setHomeworkAssignments([...homeworkAssignments, homework]);
   };
 
-  const handleApproveSubmission = (submission: HomeworkSubmission) => {
-    // Find the homework to get the reward amount
-    const homework = homeworkAssignments.find(hw => hw.id === submission.homeworkId);
-    if (!homework) return;
-    
-    // Update submission status
-    const updatedSubmissions = homeworkSubmissions.map(sub => {
-      if (sub.id === submission.id) {
-        return { ...sub, status: "approved" as const };
-      }
-      return sub;
-    });
-    
-    // Save updated submissions
-    localStorage.setItem("homeworkSubmissions", JSON.stringify(updatedSubmissions));
-    setHomeworkSubmissions(updatedSubmissions);
-    
-    // Award coins to student
-    awardCoinsToStudent(submission.studentId, homework.coinReward);
-    
-    toast({
-      title: t("success"),
-      description: `${t("submission-approved")} ${homework.coinReward} ${t("coins-awarded")}`,
-    });
-  };
-
-  const handleRejectSubmission = (submission: HomeworkSubmission) => {
-    // Update submission status
-    const updatedSubmissions = homeworkSubmissions.map(sub => {
-      if (sub.id === submission.id) {
-        return { ...sub, status: "rejected" as const };
-      }
-      return sub;
-    });
-    
-    // Save updated submissions
-    localStorage.setItem("homeworkSubmissions", JSON.stringify(updatedSubmissions));
-    setHomeworkSubmissions(updatedSubmissions);
-    
-    toast({
-      title: t("submission-rejected"),
-      description: t("no-coins-awarded"),
-    });
-  };
-  
-  const handleDeleteHomework = (homeworkId: string) => {
-    // Remove homework assignment
-    const filteredAssignments = homeworkAssignments.filter(hw => hw.id !== homeworkId);
-    localStorage.setItem("homeworkAssignments", JSON.stringify(filteredAssignments));
-    
-    // Remove associated submissions
-    const filteredSubmissions = homeworkSubmissions.filter(sub => sub.homeworkId !== homeworkId);
-    localStorage.setItem("homeworkSubmissions", JSON.stringify(filteredSubmissions));
-    
-    // Update state
-    setHomeworkAssignments(filteredAssignments);
-    setHomeworkSubmissions(filteredSubmissions);
-    
-    toast({
-      title: t("homework-deleted"),
-      description: t("homework-submissions-deleted"),
-    });
-  };
-
-  const handleAwardCoins = (studentId: string, studentName: string) => {
-    setSelectedStudent({id: studentId, name: studentName});
-    setIsGiveCoinsOpen(true);
-  };
-
   const handleGiveCoins = (amount: number) => {
     if (!selectedStudent) return;
     
@@ -145,10 +75,6 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
       description: `${amount} ${t("coins-awarded-to")} ${selectedStudent.name}`,
     });
   };
-
-  const navigateToStudentProfile = (studentId: string) => {
-    navigate(`/teacher/student/${studentId}`);
-  };
   
   const handleCreateHomework = (classId: string, className: string) => {
     setSelectedClassId(classId);
@@ -160,27 +86,6 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
   const now = new Date();
   const activeHomework = homeworkAssignments.filter(hw => new Date(hw.expiresAt) > now);
   const archivedHomework = homeworkAssignments.filter(hw => new Date(hw.expiresAt) <= now);
-  
-  // Get class name by ID
-  const getClassName = (classId: string) => {
-    const cls = classes.find(c => c.id === classId);
-    return cls ? cls.name : t("unknown-class");
-  };
-
-  // Get submissions for a specific homework
-  const getSubmissionsForHomework = (homeworkId: string) => {
-    return homeworkSubmissions.filter(sub => sub.homeworkId === homeworkId);
-  };
-
-  // Get icon for homework type
-  const getHomeworkTypeIcon = (type: string) => {
-    switch (type) {
-      case "text": return <FileText className="h-5 w-5 text-blue-500" />;
-      case "image": return <Image className="h-5 w-5 text-green-500" />;
-      case "audio": return <Mic className="h-5 w-5 text-purple-500" />;
-      default: return <FileText className="h-5 w-5" />;
-    }
-  };
 
   return (
     <div>
@@ -212,95 +117,33 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {activeHomework.map(homework => {
-                const submissions = getSubmissionsForHomework(homework.id);
-                return (
-                  <Card key={homework.id} className="overflow-hidden">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          {getHomeworkTypeIcon(homework.type)}
-                          <CardTitle className="ml-2">{homework.title}</CardTitle>
-                        </div>
-                        <div className="px-2 py-1 rounded bg-blue-100 text-blue-800 text-xs font-medium">
-                          {getClassName(homework.classId)}
-                        </div>
-                      </div>
-                      <CardDescription className="mt-2">
-                        {new Date(homework.createdAt).toLocaleDateString()} - {t("expires-in")} {Math.ceil((new Date(homework.expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60))} {t("hours")}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm mb-3">{homework.description}</p>
-                      <div className="bg-gray-50 p-3 rounded-md">
-                        <p className="text-sm font-medium mb-2">{t("submissions")}: {submissions.length}</p>
-                        {submissions.length > 0 ? (
-                          <div className="space-y-2 max-h-64 overflow-auto">
-                            {submissions.map(submission => (
-                              <div key={submission.id} className="bg-white p-2 rounded border flex justify-between items-center">
-                                <div>
-                                  <p className="font-medium cursor-pointer hover:underline" 
-                                     onClick={() => navigateToStudentProfile(submission.studentId)}>
-                                    {submission.studentName}
-                                  </p>
-                                  <p className="text-xs text-gray-500">{new Date(submission.submittedAt).toLocaleString()}</p>
-                                </div>
-                                {submission.status === "pending" ? (
-                                  <div className="flex space-x-1">
-                                    <Button size="sm" variant="outline" onClick={() => window.open(submission.content, '_blank')}>
-                                      <Download className="h-4 w-4" />
-                                    </Button>
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline" 
-                                      className="text-amber-500"
-                                      onClick={() => handleAwardCoins(submission.studentId, submission.studentName)}
-                                    >
-                                      <Coins className="h-4 w-4" />
-                                    </Button>
-                                    <Button size="sm" variant="outline" className="text-red-500" onClick={() => handleRejectSubmission(submission)}>
-                                      <X className="h-4 w-4" />
-                                    </Button>
-                                    <Button size="sm" variant="outline" className="text-green-500" onClick={() => handleApproveSubmission(submission)}>
-                                      <Check className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                ) : (
-                                  <div className="flex items-center space-x-2">
-                                    <span className={`px-2 py-1 rounded text-xs ${submission.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                      {submission.status === 'approved' ? t("approved") : t("rejected")}
-                                    </span>
-                                    <Button 
-                                      size="sm" 
-                                      variant="outline" 
-                                      className="text-amber-500"
-                                      onClick={() => handleAwardCoins(submission.studentId, submission.studentName)}
-                                    >
-                                      <Coins className="h-4 w-4" />
-                                    </Button>
-                                  </div>
-                                )}
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-sm text-gray-500">{t("no-submissions-yet")}</p>
-                        )}
-                      </div>
-                    </CardContent>
-                    <CardFooter className="flex justify-between">
-                      <div className="text-sm">
-                        <span className="font-medium">{t("reward")}:</span> {homework.coinReward} {t("coins")}
-                      </div>
-                      <Button variant="outline" className="text-red-500" onClick={() => handleDeleteHomework(homework.id)}>
-                        {t("delete")}
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                );
-              })}
-            </div>
+            <ActiveHomeworkTab 
+              homeworks={activeHomework} 
+              submissions={homeworkSubmissions} 
+              classes={classes}
+              onAwardCoins={(studentId, studentName) => {
+                setSelectedStudent({id: studentId, name: studentName});
+                setIsGiveCoinsOpen(true);
+              }}
+              onDeleteHomework={(homeworkId) => {
+                // Remove homework assignment
+                const filteredAssignments = homeworkAssignments.filter(hw => hw.id !== homeworkId);
+                localStorage.setItem("homeworkAssignments", JSON.stringify(filteredAssignments));
+                
+                // Remove associated submissions
+                const filteredSubmissions = homeworkSubmissions.filter(sub => sub.homeworkId !== homeworkId);
+                localStorage.setItem("homeworkSubmissions", JSON.stringify(filteredSubmissions));
+                
+                // Update state
+                setHomeworkAssignments(filteredAssignments);
+                setHomeworkSubmissions(filteredSubmissions);
+                
+                toast({
+                  title: t("homework-deleted"),
+                  description: t("homework-submissions-deleted"),
+                });
+              }}
+            />
           )}
         </TabsContent>
         
@@ -312,40 +155,29 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
               </CardContent>
             </Card>
           ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {archivedHomework.map(homework => {
-                const submissions = getSubmissionsForHomework(homework.id);
-                const approvedSubmissions = submissions.filter(sub => sub.status === "approved");
+            <ArchivedHomeworkTab 
+              homeworks={archivedHomework} 
+              submissions={homeworkSubmissions} 
+              classes={classes}
+              onDeleteHomework={(homeworkId) => {
+                // Remove homework assignment
+                const filteredAssignments = homeworkAssignments.filter(hw => hw.id !== homeworkId);
+                localStorage.setItem("homeworkAssignments", JSON.stringify(filteredAssignments));
                 
-                return (
-                  <Card key={homework.id} className="bg-gray-50">
-                    <CardHeader className="pb-3">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center">
-                          {getHomeworkTypeIcon(homework.type)}
-                          <CardTitle className="ml-2 text-gray-600">{homework.title}</CardTitle>
-                        </div>
-                        <div className="px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs font-medium">
-                          {getClassName(homework.classId)}
-                        </div>
-                      </div>
-                      <CardDescription className="mt-2">
-                        {t("expired")}: {new Date(homework.expiresAt).toLocaleDateString()}
-                      </CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                      <p className="text-sm text-gray-600 mb-3">{t("submissions")}: {submissions.length}</p>
-                      <p className="text-sm text-gray-600">{t("approved")}: {approvedSubmissions.length}</p>
-                    </CardContent>
-                    <CardFooter>
-                      <Button variant="outline" onClick={() => handleDeleteHomework(homework.id)}>
-                        {t("delete-permanently")}
-                      </Button>
-                    </CardFooter>
-                  </Card>
-                );
-              })}
-            </div>
+                // Remove associated submissions
+                const filteredSubmissions = homeworkSubmissions.filter(sub => sub.homeworkId !== homeworkId);
+                localStorage.setItem("homeworkSubmissions", JSON.stringify(filteredSubmissions));
+                
+                // Update state
+                setHomeworkAssignments(filteredAssignments);
+                setHomeworkSubmissions(filteredSubmissions);
+                
+                toast({
+                  title: t("homework-deleted"),
+                  description: t("homework-submissions-deleted"),
+                });
+              }}
+            />
           )}
         </TabsContent>
       </Tabs>
@@ -367,5 +199,8 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
     </div>
   );
 };
+
+// Add this import at the top
+import { awardCoinsToStudent } from "@/utils/pokemon";
 
 export default HomeworkManagement;
