@@ -1,3 +1,4 @@
+
 // Main entry point to aggregate and export all Pokemon utils
 
 // Export from types.ts
@@ -34,38 +35,6 @@ export {
 
 // Export sample Pokemon data
 export { samplePokemons } from './sampleData';
-
-// Function to award coins to a student
-export const awardCoinsToStudent = (studentId: string, amount: number) => {
-  try {
-    // Get all student Pokemon data
-    const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
-    
-    // Find this student
-    const studentPokemonIndex = studentPokemons.findIndex((sp: any) => sp.studentId === studentId);
-    
-    if (studentPokemonIndex !== -1) {
-      // Student already has a Pokemon collection, update coins
-      const currentCoins = studentPokemons[studentPokemonIndex].coins || 0;
-      studentPokemons[studentPokemonIndex].coins = currentCoins + amount;
-    } else {
-      // Student doesn't have a Pokemon collection yet, create one
-      studentPokemons.push({
-        studentId,
-        pokemons: [],
-        coins: amount
-      });
-    }
-    
-    // Save updated data
-    localStorage.setItem("studentPokemons", JSON.stringify(studentPokemons));
-    
-    return true;
-  } catch (error) {
-    console.error("Error awarding coins:", error);
-    return false;
-  }
-};
 
 // Check if a class exists to prevent duplication
 export const classExists = (classData: any) => {
