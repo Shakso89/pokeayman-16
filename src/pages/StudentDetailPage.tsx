@@ -1,11 +1,12 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, Award } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { ChevronLeft, Award, Image, Trophy } from "lucide-react";
+import { toast } from "sonner";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Pokemon, Student } from "@/types/pokemon";
 
@@ -29,6 +30,8 @@ const StudentDetailPage: React.FC = () => {
   const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
   const [spentCoins, setSpentCoins] = useState<number>(0);
   const [ranking, setRanking] = useState<number | null>(null);
+  const [classRanking, setClassRanking] = useState<{ rank: number; total: number } | null>(null);
+  const [schoolRanking, setSchoolRanking] = useState<{ rank: number; total: number } | null>(null);
   
   // Dialog states
   const [isGiveCoinDialogOpen, setIsGiveCoinDialogOpen] = useState<boolean>(false);
@@ -100,12 +103,14 @@ const StudentDetailPage: React.FC = () => {
   
   const calculateRanking = (id: string) => {
     try {
-      // Get the student's school
+      // Get the student's data
       const students = JSON.parse(localStorage.getItem("students") || "[]");
       const student = students.find((s: Student) => s.id === id);
       
       if (!student || !student.schoolId) {
         setRanking(null);
+        setClassRanking(null);
+        setSchoolRanking(null);
         return;
       }
       
@@ -121,7 +126,7 @@ const StudentDetailPage: React.FC = () => {
         return { ...s, pokemonCount: count };
       });
       
-      // Sort by Pokemon count
+      // Sort by Pokemon count (descending)
       const sortedStudents = studentsWithPokemonCount.sort((a: any, b: any) => 
         b.pokemonCount - a.pokemonCount
       );
@@ -130,9 +135,22 @@ const StudentDetailPage: React.FC = () => {
       const position = sortedStudents.findIndex((s: any) => s.id === id) + 1;
       setRanking(position);
       
+      // Calculate class ranking
+      if (student.classId) {
+        const classStudents = studentsWithPokemonCount.filter((s: any) => s.classId === student.classId);
+        const sortedClassStudents = classStudents.sort((a: any, b: any) => b.pokemonCount - a.pokemonCount);
+        const classPosition = sortedClassStudents.findIndex((s: any) => s.id === id) + 1;
+        setClassRanking({ rank: classPosition, total: classStudents.length });
+      }
+      
+      // Calculate school ranking
+      setSchoolRanking({ rank: position, total: schoolStudents.length });
+      
     } catch (error) {
       console.error("Error calculating ranking:", error);
       setRanking(null);
+      setClassRanking(null);
+      setSchoolRanking(null);
     }
   };
   
@@ -159,19 +177,12 @@ const StudentDetailPage: React.FC = () => {
       
       localStorage.setItem("studentPokemons", JSON.stringify(studentPokemons));
       
-      toast({
-        title: t("success"),
-        description: t("coins-given-to-student")
-      });
+      toast(t("coins-given-to-student"));
       
       setIsGiveCoinDialogOpen(false);
     } catch (error) {
       console.error("Error giving coins:", error);
-      toast({
-        title: t("error"),
-        description: t("error-giving-coins"),
-        variant: "destructive",
-      });
+      toast(t("error-giving-coins"));
     }
   };
   
@@ -191,18 +202,11 @@ const StudentDetailPage: React.FC = () => {
         
         localStorage.setItem("studentPokemons", JSON.stringify(studentPokemons));
         
-        toast({
-          title: t("success"),
-          description: t("pokemon-removed")
-        });
+        toast(t("pokemon-removed"));
       }
     } catch (error) {
       console.error("Error removing pokemon:", error);
-      toast({
-        title: t("error"),
-        description: t("error-removing-pokemon"),
-        variant: "destructive",
-      });
+      toast(t("error-removing-pokemon"));
     }
   };
   
@@ -225,7 +229,8 @@ const StudentDetailPage: React.FC = () => {
         userName={userType === "teacher" 
           ? localStorage.getItem("teacherDisplayName") || localStorage.getItem("teacherUsername")
           : localStorage.getItem("studentName")
-        } 
+        }
+        userAvatar={student.avatar} 
       />
       
       <div className="container mx-auto py-8 px-4">
@@ -262,19 +267,26 @@ const StudentDetailPage: React.FC = () => {
                   <Award className="h-4 w-4 mr-2" />
                   {t("pokemon")}
                 </TabsTrigger>
-                <TabsTrigger value="photos">
+                <TabsTrigger value="photos" className="flex items-center">
+                  <Image className="h-4 w-4 mr-2" />
                   {t("photos")}
+                </TabsTrigger>
+                <TabsTrigger value="ranking" className="flex items-center">
+                  <Trophy className="h-4 w-4 mr-2" />
+                  {t("ranking")}
                 </TabsTrigger>
               </TabsList>
               
               <TabsContent value="pokemon">
                 <Card>
-                  <PokemonList 
-                    pokemons={pokemons} 
-                    onRemovePokemon={handleRemovePokemon}
-                    onPokemonClick={handlePokemonClick}
-                    isTeacherView={userType === "teacher"}
-                  />
+                  <CardContent className="p-6">
+                    <PokemonList 
+                      pokemons={pokemons} 
+                      onRemovePokemon={userType === "teacher" ? handleRemovePokemon : undefined}
+                      onPokemonClick={handlePokemonClick}
+                      isTeacherView={userType === "teacher"}
+                    />
+                  </CardContent>
                 </Card>
               </TabsContent>
               
@@ -286,6 +298,75 @@ const StudentDetailPage: React.FC = () => {
                     isOwnProfile={isOwnProfile}
                     onPhotoClick={(url) => setSelectedPhoto(url)}
                   />
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="ranking">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("student-ranking")}</CardTitle>
+                  </CardHeader>
+                  <CardContent className="p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {/* Class Ranking */}
+                      <Card className="border shadow-sm">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-lg">{t("class-ranking")}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {classRanking ? (
+                            <div className="flex flex-col items-center py-6">
+                              <div className="text-6xl font-bold text-amber-500 mb-2">#{classRanking.rank}</div>
+                              <p className="text-gray-500">{t("out-of-total", { total: classRanking.total })}</p>
+                              <p className="mt-4 text-center text-sm text-gray-600">
+                                {classRanking.rank === 1 
+                                  ? t("ranking-first-class") 
+                                  : classRanking.rank <= 3 
+                                  ? t("ranking-top-class")
+                                  : t("ranking-good-class")}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="flex justify-center py-6 text-gray-500">
+                              {t("no-class-assigned")}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                      
+                      {/* School Ranking */}
+                      <Card className="border shadow-sm">
+                        <CardHeader className="pb-2">
+                          <CardTitle className="text-lg">{t("school-ranking")}</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                          {schoolRanking ? (
+                            <div className="flex flex-col items-center py-6">
+                              <div className="text-6xl font-bold text-blue-500 mb-2">#{schoolRanking.rank}</div>
+                              <p className="text-gray-500">{t("out-of-total", { total: schoolRanking.total })}</p>
+                              <p className="mt-4 text-center text-sm text-gray-600">
+                                {schoolRanking.rank === 1 
+                                  ? t("ranking-first-school") 
+                                  : schoolRanking.rank <= 5 
+                                  ? t("ranking-top-school")
+                                  : t("ranking-good-school")}
+                              </p>
+                            </div>
+                          ) : (
+                            <div className="flex justify-center py-6 text-gray-500">
+                              {t("no-school-assigned")}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </div>
+                    
+                    <div className="mt-6">
+                      <p className="text-sm text-gray-500 text-center">
+                        {t("ranking-explanation")}
+                      </p>
+                    </div>
+                  </CardContent>
                 </Card>
               </TabsContent>
             </Tabs>

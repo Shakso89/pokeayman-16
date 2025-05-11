@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -7,152 +6,178 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { FriendRequest } from "@/types/pokemon";
-import { useTranslation } from "@/hooks/useTranslation";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { toast } from "sonner";
+import { useTranslation } from "@/hooks/useTranslation";
+
+interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  read: boolean;
+  date: string;
+  link?: string;
+}
 
 const NotificationBadge: React.FC = () => {
   const { t } = useTranslation();
-  const [pendingRequests, setPendingRequests] = useState<FriendRequest[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   
-  const userType = localStorage.getItem("userType");
-  const userId = userType === "teacher" ? 
-    localStorage.getItem("teacherId") : 
-    localStorage.getItem("studentId");
-  
+  // Load notifications from localStorage
   useEffect(() => {
-    loadPendingRequests();
-    
-    // Refresh every 30 seconds
-    const interval = setInterval(loadPendingRequests, 30000);
-    return () => clearInterval(interval);
-  }, []);
-  
-  const loadPendingRequests = () => {
-    if (!userId) return;
-    
-    const allRequests: FriendRequest[] = JSON.parse(localStorage.getItem("friendRequests") || "[]");
-    const pending = allRequests.filter(request => 
-      request.status === "pending" && 
-      request.receiverId === userId
-    );
-    
-    // Get sender details
-    const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-    const students = JSON.parse(localStorage.getItem("students") || "[]");
-    
-    const requestsWithDetails = pending.map(request => {
-      // Find the sender
-      let senderDetails;
-      if (request.senderType === "teacher") {
-        senderDetails = teachers.find((t: any) => t.id === request.senderId);
-      } else {
-        senderDetails = students.find((s: any) => s.id === request.senderId);
+    const storedNotifications = localStorage.getItem("notifications");
+    if (storedNotifications) {
+      try {
+        setNotifications(JSON.parse(storedNotifications));
+      } catch (error) {
+        console.error("Error parsing notifications:", error);
+        setNotifications([]);
       }
-      
-      return {
-        ...request,
-        senderAvatar: senderDetails?.avatar,
-        senderDisplayName: senderDetails?.displayName || request.senderName
-      };
+    } else {
+      // Demo notifications for testing
+      const demoNotifications = [
+        {
+          id: "1",
+          title: t("new-pokemon-available"),
+          message: t("new-pokemon-message"),
+          read: false,
+          date: new Date().toISOString(),
+        },
+        {
+          id: "2",
+          title: t("welcome"),
+          message: t("welcome-message"),
+          read: true,
+          date: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+        },
+      ];
+      setNotifications(demoNotifications);
+      localStorage.setItem("notifications", JSON.stringify(demoNotifications));
+    }
+  }, [t]);
+  
+  const unreadCount = notifications.filter(n => !n.read).length;
+  
+  const handleNotificationClick = (notification: Notification) => {
+    // Mark as read
+    const updatedNotifications = notifications.map(n => 
+      n.id === notification.id ? { ...n, read: true } : n
+    );
+    
+    setNotifications(updatedNotifications);
+    localStorage.setItem("notifications", JSON.stringify(updatedNotifications));
+    
+    // If has link, navigate
+    if (notification.link) {
+      window.location.href = notification.link;
+    } else {
+      // Otherwise show dialog
+      setSelectedNotification(notification);
+      setIsDialogOpen(true);
+    }
+  };
+  
+  const clearAllNotifications = () => {
+    setNotifications([]);
+    localStorage.setItem("notifications", JSON.stringify([]));
+    toast(t("notifications-cleared"));
+  };
+  
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString(undefined, { 
+      year: 'numeric', 
+      month: 'short', 
+      day: 'numeric' 
     });
-    
-    setPendingRequests(requestsWithDetails);
-  };
-  
-  const handleAcceptRequest = (requestId: string) => {
-    const allRequests: FriendRequest[] = JSON.parse(localStorage.getItem("friendRequests") || "[]");
-    const updatedRequests = allRequests.map(request => 
-      request.id === requestId ? { ...request, status: "accepted" } : request
-    );
-    
-    localStorage.setItem("friendRequests", JSON.stringify(updatedRequests));
-    
-    // Refresh the pending requests
-    loadPendingRequests();
-    
-    // Show a success toast
-    toast(t("friend-request-accepted"));
-  };
-  
-  const handleRejectRequest = (requestId: string) => {
-    const allRequests: FriendRequest[] = JSON.parse(localStorage.getItem("friendRequests") || "[]");
-    const updatedRequests = allRequests.map(request => 
-      request.id === requestId ? { ...request, status: "rejected" } : request
-    );
-    
-    localStorage.setItem("friendRequests", JSON.stringify(updatedRequests));
-    
-    // Refresh the pending requests
-    loadPendingRequests();
-    
-    // Show a toast
-    toast(t("friend-request-rejected"));
   };
   
   return (
-    <Popover>
-      <PopoverTrigger asChild>
-        <Button variant="ghost" size="icon" className="relative">
-          <Bell size={20} />
-          {pendingRequests.length > 0 && (
-            <span className="absolute top-0 right-0 w-4 h-4 bg-red-500 rounded-full text-xs text-white flex items-center justify-center">
-              {pendingRequests.length}
-            </span>
-          )}
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent className="w-80 p-0">
-        <div className="p-4 border-b">
-          <h4 className="font-medium">{t("notifications")}</h4>
-          <p className="text-sm text-gray-500">
-            {pendingRequests.length > 0 
-              ? t("friend-requests-pending", { count: pendingRequests.length }) 
-              : t("no-notifications")}
-          </p>
-        </div>
-        <div className="max-h-96 overflow-y-auto">
-          {pendingRequests.length > 0 ? (
-            pendingRequests.map((request) => (
-              <div key={request.id} className="flex items-center justify-between p-3 border-b">
-                <div className="flex items-center gap-3">
-                  <Avatar>
-                    <AvatarImage src={request.senderAvatar} />
-                    <AvatarFallback>
-                      {request.senderDisplayName?.substring(0, 2).toUpperCase() || "NA"}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <p className="font-medium">{request.senderDisplayName}</p>
-                    <p className="text-xs text-gray-500">{t("sent-friend-request")}</p>
+    <>
+      <Popover>
+        <PopoverTrigger asChild>
+          <Button variant="ghost" size="icon" className="relative">
+            <Bell size={20} />
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
+                {unreadCount}
+              </span>
+            )}
+          </Button>
+        </PopoverTrigger>
+        <PopoverContent className="w-80 p-0" align="end">
+          <div className="flex items-center justify-between p-4 border-b">
+            <h3 className="font-medium">{t("notifications")}</h3>
+            {notifications.length > 0 && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={clearAllNotifications}
+                className="text-xs"
+              >
+                {t("clear-all")}
+              </Button>
+            )}
+          </div>
+          <div className="max-h-80 overflow-y-auto">
+            {notifications.length > 0 ? (
+              <div>
+                {notifications.map((notification) => (
+                  <div
+                    key={notification.id}
+                    className={`p-4 border-b last:border-0 cursor-pointer hover:bg-gray-50 transition-colors ${
+                      !notification.read ? "bg-blue-50" : ""
+                    }`}
+                    onClick={() => handleNotificationClick(notification)}
+                  >
+                    <div className="flex justify-between">
+                      <h4 className="font-medium">{notification.title}</h4>
+                      {!notification.read && (
+                        <span className="w-2 h-2 bg-blue-500 rounded-full" />
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-500 line-clamp-2 mt-1">
+                      {notification.message}
+                    </p>
+                    <p className="text-xs text-gray-400 mt-1">
+                      {formatDate(notification.date)}
+                    </p>
                   </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    onClick={() => handleAcceptRequest(request.id)}
-                  >
-                    {t("accept")}
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleRejectRequest(request.id)}
-                  >
-                    {t("reject")}
-                  </Button>
-                </div>
+                ))}
               </div>
-            ))
-          ) : (
-            <div className="p-4 text-center text-gray-500">
-              <p>{t("no-pending-requests")}</p>
-            </div>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
+            ) : (
+              <div className="p-8 text-center text-gray-500">
+                {t("no-notifications")}
+              </div>
+            )}
+          </div>
+        </PopoverContent>
+      </Popover>
+      
+      {/* Notification Detail Dialog */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {selectedNotification?.title}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="pt-2">
+            <p>{selectedNotification?.message}</p>
+            <p className="text-xs text-gray-400 mt-4">
+              {selectedNotification ? formatDate(selectedNotification.date) : ""}
+            </p>
+          </div>
+        </DialogContent>
+      </Dialog>
+    </>
   );
 };
 
