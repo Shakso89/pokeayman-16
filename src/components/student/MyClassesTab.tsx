@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronRight, Users, Book, Trophy } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import HomeworkTab from "./HomeworkTab";
-import ClassmatesTab from "./ClassmatesTab";
+import StudentsTab from "./StudentsTab";
 import ClassRankingTab from "./ClassRankingTab";
 
 interface MyClassesTabProps {
@@ -19,7 +19,7 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({ studentId, studentName, cla
   const { t } = useTranslation();
   const [classes, setClasses] = useState<Array<{ id: string; name: string; description?: string }>>([]);
   const [selectedClass, setSelectedClass] = useState<{ id: string; name: string; description?: string } | null>(null);
-  const [activeSubTab, setActiveSubTab] = useState("classmates");
+  const [activeSubTab, setActiveSubTab] = useState("students");
   
   useEffect(() => {
     loadClasses();
@@ -94,9 +94,9 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({ studentId, studentName, cla
                   
                   <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
                     <TabsList className="grid w-full grid-cols-3 mb-6">
-                      <TabsTrigger value="classmates" className="flex items-center gap-2">
+                      <TabsTrigger value="students" className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
-                        {t("classmates")}
+                        {t("students")}
                       </TabsTrigger>
                       <TabsTrigger value="homework" className="flex items-center gap-2">
                         <Book className="h-4 w-4" />
@@ -108,8 +108,8 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({ studentId, studentName, cla
                       </TabsTrigger>
                     </TabsList>
                     
-                    <TabsContent value="classmates">
-                      <ClassmatesTab classId={selectedClass.id} />
+                    <TabsContent value="students">
+                      <StudentsTab classId={selectedClass.id} />
                     </TabsContent>
                     
                     <TabsContent value="homework">
