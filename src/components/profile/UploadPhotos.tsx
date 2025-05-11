@@ -20,7 +20,7 @@ function getBase64(file: File): Promise<string> {
   });
 }
 
-export const UploadPhotos: React.FC<UploadPhotosProps> = ({ avatarImage, onSave, readOnly }) => {
+export const UploadPhotos: React.FC<UploadPhotosProps> = ({ avatarImage, onSave, readOnly = false }) => {
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(avatarImage || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -112,57 +112,68 @@ export const UploadPhotos: React.FC<UploadPhotosProps> = ({ avatarImage, onSave,
     }
   };
 
+  // Determine the size of the avatar based on readOnly status
+  const avatarSize = readOnly ? "h-40 w-40" : "h-32 w-32";
+
   return (
     <div className="flex flex-col items-center gap-4">
-      <Avatar className="h-32 w-32">
+      <Avatar className={avatarSize}>
         <AvatarImage src={preview || undefined} />
         <AvatarFallback>
           <Upload className="h-8 w-8 text-gray-400" />
         </AvatarFallback>
       </Avatar>
       
-      {!readOnly && (
-        <div className="flex gap-2">
-          <Button 
-            variant="outline" 
-            size="sm" 
-            className="relative"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={isUploading}
-          >
-            <Upload className="h-4 w-4 mr-1" />
-            Select Image
-            <input 
-              type="file" 
-              className="hidden" 
-              ref={fileInputRef}
-              onChange={handleFileChange} 
-              accept="image/*"
-            />
-          </Button>
-          
-          {preview && (
+      {!readOnly ? (
+        <>
+          <div className="flex gap-2">
             <Button 
-              variant="ghost" 
-              size="sm"
-              onClick={handleClear}
+              variant="outline" 
+              size="sm" 
+              className="relative"
+              onClick={() => fileInputRef.current?.click()}
               disabled={isUploading}
             >
-              <X className="h-4 w-4 mr-1" />
-              Clear
+              <Upload className="h-4 w-4 mr-1" />
+              Select Image
+              <input 
+                type="file" 
+                className="hidden" 
+                ref={fileInputRef}
+                onChange={handleFileChange} 
+                accept="image/*"
+              />
+            </Button>
+            
+            {preview && (
+              <Button 
+                variant="ghost" 
+                size="sm"
+                onClick={handleClear}
+                disabled={isUploading}
+              >
+                <X className="h-4 w-4 mr-1" />
+                Clear
+              </Button>
+            )}
+          </div>
+          
+          {selectedFile && (
+            <Button 
+              onClick={handleUpload} 
+              disabled={isUploading}
+              className="w-full"
+            >
+              {isUploading ? "Uploading..." : "Upload Profile Picture"}
             </Button>
           )}
-        </div>
-      )}
-      
-      {selectedFile && !readOnly && (
-        <Button 
-          onClick={handleUpload} 
-          disabled={isUploading}
-          className="w-full"
-        >
-          {isUploading ? "Uploading..." : "Upload Profile Picture"}
-        </Button>
+        </>
+      ) : (
+        preview && (
+          <div className="text-center text-sm text-gray-500">
+            Profile picture
+          </div>
+        )
       )}
     </div>
   );
