@@ -1,22 +1,15 @@
 
 import React from "react";
-import { CardContent } from "@/components/ui/card";
 import { useTranslation } from "@/hooks/useTranslation";
 
-interface BattleHistoryProps {
-  battles: any[];
-  studentId: string;
-}
-
-const BattleHistory: React.FC<BattleHistoryProps> = () => {
+// This is a placeholder component since we're removing battle functionality
+const BattleHistory: React.FC = () => {
   const { t } = useTranslation();
   
   return (
-    <CardContent className="p-6">
-      <div className="text-center py-8">
-        <p className="text-gray-500">{t("battle-mode-removed")}</p>
-      </div>
-    </CardContent>
+    <div className="p-6">
+      <p className="text-center text-gray-500">{t("no-battles")}</p>
+    </div>
   );
 };
 

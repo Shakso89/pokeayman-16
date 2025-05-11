@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, MessageSquare, User, Home, Medal } from "lucide-react";
+import { LogOut, Settings, MessageSquare, User, Home, Medal, Search } from "lucide-react";
 import LanguageSelector from "./LanguageSelector";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -14,6 +14,8 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import UserSettingsModal from "./modals/UserSettingsModal";
+import NotificationBadge from "./NotificationBadge";
+import SearchBar from "./SearchBar";
 
 interface NavBarProps {
   userType: "teacher" | "student";
@@ -62,7 +64,12 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName, userAvatar }
           </h1>
         </div>
         
-        <div className="flex items-center gap-4">
+        {/* Added Search Bar */}
+        <div className="hidden md:flex flex-1 mx-4">
+          <SearchBar />
+        </div>
+        
+        <div className="flex items-center gap-2">
           <Button 
             variant="ghost" 
             size="icon"
@@ -74,14 +81,16 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName, userAvatar }
           
           <LanguageSelector />
           
-          {/* Changed from ghost icon button to a regular button with the ranking variant */}
+          {/* Added Notification Badge */}
+          <NotificationBadge />
+          
           <Button 
             variant="ranking" 
             onClick={() => navigate(`/${userType === "teacher" ? "teacher" : "student"}/rankings`)}
             className="flex items-center gap-2"
           >
             <Medal size={20} />
-            {t("rankings")}
+            <span className="hidden md:inline">{t("rankings")}</span>
           </Button>
 
           <Button 
@@ -90,7 +99,7 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName, userAvatar }
             className="flex items-center gap-2"
           >
             <MessageSquare size={20} />
-            {t("messages")}
+            <span className="hidden md:inline">{t("messages")}</span>
           </Button>
 
           <DropdownMenu>
@@ -130,6 +139,11 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName, userAvatar }
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
+      </div>
+      
+      {/* Mobile Search Bar */}
+      <div className="md:hidden px-4 py-2">
+        <SearchBar />
       </div>
       
       {isSettingsOpen && (

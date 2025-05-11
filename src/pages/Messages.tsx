@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Send, Camera, Mic, UserPlus } from "lucide-react";
+import { Send, Camera, Mic, UserPlus, Users, MessageSquare } from "lucide-react";
 import { Message, FriendRequest } from "@/types/pokemon";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -26,8 +25,10 @@ const MessagesPage: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
   
+  const [activeTab, setActiveTab] = useState<"messages" | "friends">("messages");
   const [messages, setMessages] = useState<Message[]>([]);
   const [contacts, setContacts] = useState<any[]>([]);
+  const [friends, setFriends] = useState<any[]>([]);
   const [selectedContact, setSelectedContact] = useState<any | null>(null);
   const [newMessage, setNewMessage] = useState("");
   const [isAddFriendOpen, setIsAddFriendOpen] = useState(false);
@@ -46,6 +47,7 @@ const MessagesPage: React.FC = () => {
     }
     
     loadContacts();
+    loadFriends();
   }, [isLoggedIn, userId, userType, navigate]);
   
   useEffect(() => {
@@ -102,6 +104,52 @@ const MessagesPage: React.FC = () => {
     }).filter(contact => contact !== null);
     
     setContacts(contactDetails);
+  };
+  
+  const loadFriends = () => {
+    if (!userId) return;
+    
+    // Load friends from accepted requests
+    const friendRequests: FriendRequest[] = JSON.parse(localStorage.getItem("friendRequests") || "[]");
+    const acceptedRequests = friendRequests.filter(request => 
+      request.status === "accepted" && 
+      (request.senderId === userId || request.receiverId === userId)
+    );
+    
+    // Get the other person's ID for each friendship
+    const friendIds = acceptedRequests.map(request => 
+      request.senderId === userId ? request.receiverId : request.senderId
+    );
+    
+    const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+    const students = JSON.parse(localStorage.getItem("students") || "[]");
+    
+    // Get friend details
+    const friendDetails = friendIds.map(friendId => {
+      const teacher = teachers.find((t: any) => t.id === friendId);
+      if (teacher) {
+        return {
+          id: teacher.id,
+          name: teacher.displayName || teacher.username,
+          avatar: teacher.avatar,
+          type: "teacher"
+        };
+      }
+      
+      const student = students.find((s: any) => s.id === friendId);
+      if (student) {
+        return {
+          id: student.id,
+          name: student.displayName || student.name,
+          avatar: student.avatar,
+          type: "student"
+        };
+      }
+      
+      return null;
+    }).filter(friend => friend !== null);
+    
+    setFriends(friendDetails);
   };
   
   const loadMessages = () => {
@@ -260,6 +308,19 @@ const MessagesPage: React.FC = () => {
     setMediaContent(null);
   };
   
+  const handleViewProfile = (contact: any) => {
+    if (contact.type === "teacher") {
+      navigate(`/teacher/profile/${contact.id}`);
+    } else {
+      navigate(`/teacher/student/${contact.id}`);
+    }
+  };
+  
+  const handleSelectContact = (contact: any) => {
+    setSelectedContact(contact);
+    setActiveTab("messages");
+  };
+  
   if (!isLoggedIn) {
     return null;
   }
@@ -286,35 +347,95 @@ const MessagesPage: React.FC = () => {
                 </Button>
               </div>
               
-              <div className="h-[calc(100vh-250px)] overflow-y-auto">
-                {contacts.length > 0 ? (
-                  contacts.map((contact) => (
-                    <div 
-                      key={contact.id}
-                      className={`flex items-center gap-3 p-3 hover:bg-gray-100 cursor-pointer ${
-                        selectedContact?.id === contact.id ? "bg-gray-100" : ""
-                      }`}
-                      onClick={() => setSelectedContact(contact)}
-                    >
-                      <Avatar>
-                        <AvatarImage src={contact.avatar} />
-                        <AvatarFallback>
-                          {contact.name?.substring(0, 2).toUpperCase() || "NA"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{contact.name}</p>
-                        <p className="text-xs text-gray-500">{contact.type}</p>
+              <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as "messages" | "friends")}>
+                <div className="px-4 py-2">
+                  <TabsList className="w-full">
+                    <TabsTrigger value="messages" className="flex-1">
+                      <MessageSquare className="h-4 w-4 mr-1" />
+                      {t("chats")}
+                    </TabsTrigger>
+                    <TabsTrigger value="friends" className="flex-1">
+                      <Users className="h-4 w-4 mr-1" />
+                      {t("friends")}
+                    </TabsTrigger>
+                  </TabsList>
+                </div>
+                
+                <div className="h-[calc(100vh-250px)] overflow-y-auto">
+                  {activeTab === "messages" ? (
+                    contacts.length > 0 ? (
+                      contacts.map((contact) => (
+                        <div 
+                          key={contact.id}
+                          className={`flex items-center gap-3 p-3 hover:bg-gray-100 cursor-pointer ${
+                            selectedContact?.id === contact.id ? "bg-gray-100" : ""
+                          }`}
+                          onClick={() => setSelectedContact(contact)}
+                        >
+                          <Avatar>
+                            <AvatarImage src={contact.avatar} />
+                            <AvatarFallback>
+                              {contact.name?.substring(0, 2).toUpperCase() || "NA"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{contact.name}</p>
+                            <p className="text-xs text-gray-500">{contact.type}</p>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-gray-500">
+                        <p>{t("no-messages")}</p>
+                        <p className="text-sm mt-2">{t("start-conversation")}</p>
                       </div>
-                    </div>
-                  ))
-                ) : (
-                  <div className="p-4 text-center text-gray-500">
-                    <p>{t("no-contacts")}</p>
-                    <p className="text-sm mt-2">{t("add-friends-to-message")}</p>
-                  </div>
-                )}
-              </div>
+                    )
+                  ) : (
+                    friends.length > 0 ? (
+                      friends.map((friend) => (
+                        <div 
+                          key={friend.id}
+                          className="flex items-center justify-between p-3 hover:bg-gray-100 border-b"
+                        >
+                          <div className="flex items-center gap-3">
+                            <Avatar>
+                              <AvatarImage src={friend.avatar} />
+                              <AvatarFallback>
+                                {friend.name?.substring(0, 2).toUpperCase() || "NA"}
+                              </AvatarFallback>
+                            </Avatar>
+                            <div>
+                              <p className="font-medium">{friend.name}</p>
+                              <p className="text-xs text-gray-500">{friend.type}</p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              size="sm" 
+                              variant="secondary"
+                              onClick={() => handleSelectContact(friend)}
+                            >
+                              <MessageSquare className="h-4 w-4" />
+                            </Button>
+                            <Button 
+                              size="sm" 
+                              variant="outline"
+                              onClick={() => handleViewProfile(friend)}
+                            >
+                              {t("profile")}
+                            </Button>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="p-4 text-center text-gray-500">
+                        <p>{t("no-friends")}</p>
+                        <p className="text-sm mt-2">{t("add-friends")}</p>
+                      </div>
+                    )
+                  )}
+                </div>
+              </Tabs>
             </div>
             
             {/* Messages */}
@@ -322,17 +443,26 @@ const MessagesPage: React.FC = () => {
               {selectedContact ? (
                 <>
                   <div className="p-4 border-b">
-                    <div className="flex items-center gap-3">
-                      <Avatar>
-                        <AvatarImage src={selectedContact.avatar} />
-                        <AvatarFallback>
-                          {selectedContact.name?.substring(0, 2).toUpperCase() || "NA"}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{selectedContact.name}</p>
-                        <p className="text-xs text-gray-500">{selectedContact.type}</p>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <Avatar>
+                          <AvatarImage src={selectedContact.avatar} />
+                          <AvatarFallback>
+                            {selectedContact.name?.substring(0, 2).toUpperCase() || "NA"}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{selectedContact.name}</p>
+                          <p className="text-xs text-gray-500">{selectedContact.type}</p>
+                        </div>
                       </div>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleViewProfile(selectedContact)}
+                      >
+                        {t("view-profile")}
+                      </Button>
                     </div>
                   </div>
                   
@@ -465,7 +595,10 @@ const MessagesPage: React.FC = () => {
       <AddFriendDialog 
         isOpen={isAddFriendOpen}
         onClose={() => setIsAddFriendOpen(false)}
-        onFriendAdded={loadContacts}
+        onFriendAdded={() => {
+          loadContacts();
+          loadFriends();
+        }}
       />
     </div>
   );
