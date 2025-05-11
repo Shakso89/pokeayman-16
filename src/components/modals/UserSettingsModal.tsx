@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Camera } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "sonner";
 
 interface UserSettingsModalProps {
@@ -26,6 +27,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   onClose,
   userType,
 }) => {
+  const { t } = useTranslation();
   const [avatar, setAvatar] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [userId, setUserId] = useState("");
@@ -71,7 +73,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
         localStorage.setItem("teachers", JSON.stringify(teachers));
         localStorage.setItem("teacherDisplayName", displayName);
         
-        toast("Settings saved successfully");
+        toast(t("settings-saved"));
       }
     } else {
       const students = JSON.parse(localStorage.getItem("students") || "[]");
@@ -86,7 +88,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
         localStorage.setItem("students", JSON.stringify(students));
         localStorage.setItem("studentName", displayName);
         
-        toast("Settings saved successfully");
+        toast(t("settings-saved"));
       }
     }
     
@@ -108,9 +110,9 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
-          <DialogTitle>User Settings</DialogTitle>
+          <DialogTitle>{t("user-settings")}</DialogTitle>
           <DialogDescription>
-            Update your profile information
+            {t("user-settings-description")}
           </DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
@@ -138,7 +140,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
             </div>
           </div>
           <div className="space-y-2">
-            <Label htmlFor="displayName">Display Name</Label>
+            <Label htmlFor="displayName">{t("display-name")}</Label>
             <Input
               id="displayName"
               value={displayName}
@@ -148,9 +150,9 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose}>
-            Cancel
+            {t("cancel")}
           </Button>
-          <Button onClick={handleSave}>Save Changes</Button>
+          <Button onClick={handleSave}>{t("save-changes")}</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -18,11 +18,6 @@ import StudentDetailPage from "./pages/StudentDetailPage";
 import TeacherProfilePage from "./pages/TeacherProfilePage";
 import RankingPage from "./pages/RankingPage";
 import ProtectedRoute from "./components/ProtectedRoute";
-import StudentsManagement from "./pages/admin/StudentsManagement";
-import TeachersManagement from "./pages/admin/TeachersManagement";
-import SchoolsManagement from "./pages/admin/SchoolsManagement";
-import ClassesManagement from "./pages/admin/ClassesManagement";
-import ClassDetailPage from "./pages/admin/ClassDetailPage";
 
 function App() {
   return (
@@ -42,44 +37,11 @@ function App() {
         <Route path="/teacher-login" element={<TeacherLogin />} />
         <Route path="/student-login" element={<StudentLogin />} />
         <Route path="/teacher-signup" element={<TeacherSignUp />} />
-        
-        {/* Admin routes */}
         <Route path="/admin-dashboard" element={
           <ProtectedRoute>
             <AdminDashboard />
           </ProtectedRoute>
         } />
-        <Route path="/admin-dashboard/teachers" element={
-          <ProtectedRoute>
-            <TeachersManagement />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin-dashboard/students" element={
-          <ProtectedRoute>
-            <StudentsManagement />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin-dashboard/schools" element={
-          <ProtectedRoute>
-            <SchoolsManagement />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin-dashboard/classes" element={
-          <ProtectedRoute>
-            <ClassesManagement />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin-dashboard/classes/:classId" element={
-          <ProtectedRoute>
-            <ClassDetailPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/admin-dashboard/settings" element={
-          <ProtectedRoute>
-            <AdminDashboard />
-          </ProtectedRoute>
-        } />
-        
         <Route path="/teacher/messages" element={
           <ProtectedRoute>
             <MessagesPage />

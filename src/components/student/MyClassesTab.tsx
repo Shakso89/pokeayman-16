@@ -8,19 +8,19 @@ import { useTranslation } from "@/hooks/useTranslation";
 import HomeworkTab from "./HomeworkTab";
 import StudentsTab from "./StudentsTab";
 import ClassRankingTab from "./ClassRankingTab";
-
 interface MyClassesTabProps {
   studentId: string;
   studentName: string;
   classId: string;
 }
-
 const MyClassesTab: React.FC<MyClassesTabProps> = ({
   studentId,
   studentName,
   classId
 }) => {
-  const { t } = useTranslation();
+  const {
+    t
+  } = useTranslation();
   const [classes, setClasses] = useState<Array<{
     id: string;
     name: string;
@@ -32,11 +32,9 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
     description?: string;
   } | null>(null);
   const [activeSubTab, setActiveSubTab] = useState("students");
-
   useEffect(() => {
     loadClasses();
   }, [classId]);
-
   const loadClasses = () => {
     // In a real app, we would fetch from an API
     // For this demo, we'll use localStorage
@@ -52,7 +50,6 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
       setSelectedClass(studentClasses[0]);
     }
   };
-
   return <div>
       <h2 className="text-2xl font-bold mb-6 text-center">{t("my-classes")}</h2>
       
@@ -125,5 +122,4 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
         </div>}
     </div>;
 };
-
 export default MyClassesTab;

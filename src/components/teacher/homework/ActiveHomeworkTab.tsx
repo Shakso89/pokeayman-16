@@ -1,16 +1,14 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkAssignment, HomeworkSubmission } from "@/types/homework";
 import { HomeworkCard } from "./HomeworkCard";
-import { awardCoinsToStudent } from "@/utils/pokemon";
-import { useToast } from "@/hooks/use-toast";
 
 interface ActiveHomeworkTabProps {
   homeworks: HomeworkAssignment[];
   submissions: HomeworkSubmission[];
-  classes: { id: string, name: string }[];
+  classes: Array<{ id: string; name: string }>;
   onAwardCoins: (studentId: string, studentName: string) => void;
   onDeleteHomework: (homeworkId: string) => void;
 }
@@ -22,68 +20,58 @@ const ActiveHomeworkTab: React.FC<ActiveHomeworkTabProps> = ({
   onAwardCoins,
   onDeleteHomework
 }) => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
-  const { toast } = useToast();
+  const { t } = useTranslation();
   
-  // Handle submission approval
-  const handleApproveSubmission = (submission: HomeworkSubmission) => {
-    // Find the homework
-    const homework = homeworks.find(hw => hw.id === submission.homeworkId);
-    if (!homework) return;
-    
-    // Update submission status
-    const allSubmissions = JSON.parse(localStorage.getItem("homeworkSubmissions") || "[]");
-    const submissionIndex = allSubmissions.findIndex((sub: HomeworkSubmission) => sub.id === submission.id);
-    
-    if (submissionIndex !== -1) {
-      allSubmissions[submissionIndex].status = "approved";
-      localStorage.setItem("homeworkSubmissions", JSON.stringify(allSubmissions));
-      
-      // Award coins to student
-      awardCoinsToStudent(submission.studentId, homework.coinReward);
-      
-      toast({
-        title: t("submission-approved"),
-        description: `${t("coins-awarded")}: ${homework.coinReward}`,
-      });
-    }
-  };
-  
-  // Handle submission rejection
-  const handleRejectSubmission = (submission: HomeworkSubmission) => {
-    // Update submission status
-    const allSubmissions = JSON.parse(localStorage.getItem("homeworkSubmissions") || "[]");
-    const submissionIndex = allSubmissions.findIndex((sub: HomeworkSubmission) => sub.id === submission.id);
-    
-    if (submissionIndex !== -1) {
-      allSubmissions[submissionIndex].status = "rejected";
-      localStorage.setItem("homeworkSubmissions", JSON.stringify(allSubmissions));
-      
-      toast({
-        title: t("submission-rejected"),
-      });
-    }
-  };
-  
-  // Navigate to student profile
-  const handleNavigateToStudentProfile = (studentId: string) => {
-    navigate(`/student/profile/${studentId}`);
-  };
-  
-  // Get submissions for a homework
+  // Helper functions
   const getSubmissionsForHomework = (homeworkId: string) => {
     return submissions.filter(sub => sub.homeworkId === homeworkId);
   };
   
-  // Get class name for a homework
   const getClassName = (classId: string) => {
-    const foundClass = classes.find(c => c.id === classId);
-    return foundClass?.name || t("unknown-class");
+    const cls = classes.find(c => c.id === classId);
+    return cls ? cls.name : t("unknown-class");
+  };
+
+  const handleApproveSubmission = (submission: HomeworkSubmission) => {
+    // Find the homework to get the reward amount
+    const homework = homeworks.find(hw => hw.id === submission.homeworkId);
+    if (!homework) return;
+    
+    // Update submission status
+    const updatedSubmissions = submissions.map(sub => {
+      if (sub.id === submission.id) {
+        return { ...sub, status: "approved" as const };
+      }
+      return sub;
+    });
+    
+    // Save updated submissions
+    localStorage.setItem("homeworkSubmissions", JSON.stringify(updatedSubmissions));
+    
+    // Award coins to student
+    awardCoinsToStudent(submission.studentId, homework.coinReward);
+  };
+
+  const handleRejectSubmission = (submission: HomeworkSubmission) => {
+    // Update submission status
+    const updatedSubmissions = submissions.map(sub => {
+      if (sub.id === submission.id) {
+        return { ...sub, status: "rejected" as const };
+      }
+      return sub;
+    });
+    
+    // Save updated submissions
+    localStorage.setItem("homeworkSubmissions", JSON.stringify(updatedSubmissions));
+  };
+
+  const navigateToStudentProfile = (studentId: string) => {
+    navigate(`/teacher/student/${studentId}`);
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
       {homeworks.map(homework => (
         <HomeworkCard
           key={homework.id}
@@ -94,12 +82,15 @@ const ActiveHomeworkTab: React.FC<ActiveHomeworkTabProps> = ({
           onRejectSubmission={handleRejectSubmission}
           onAwardCoins={onAwardCoins}
           onDeleteHomework={onDeleteHomework}
-          onNavigateToStudentProfile={handleNavigateToStudentProfile}
+          onNavigateToStudentProfile={navigateToStudentProfile}
           isActive={true}
         />
       ))}
     </div>
   );
 };
+
+// Add this import at the top
+import { awardCoinsToStudent } from "@/utils/pokemon";
 
 export default ActiveHomeworkTab;

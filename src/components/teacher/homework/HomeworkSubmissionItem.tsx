@@ -1,11 +1,9 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkSubmission } from "@/types/homework";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Check, X, Coins, User } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Check, X, Download, Coins } from "lucide-react";
 
 interface HomeworkSubmissionItemProps {
   submission: HomeworkSubmission;
@@ -23,118 +21,74 @@ export const HomeworkSubmissionItem: React.FC<HomeworkSubmissionItemProps> = ({
   onNavigateToProfile
 }) => {
   const { t } = useTranslation();
-  const [viewContent, setViewContent] = useState(false);
-  
-  // Check if the content is a data URL
-  const isDataUrl = submission.content?.startsWith('data:');
-  const isImage = isDataUrl && submission.content?.startsWith('data:image/');
-  const isAudio = isDataUrl && submission.content?.startsWith('data:audio/');
 
   return (
-    <>
-      <div className="flex items-center justify-between bg-white p-2 rounded-md border">
-        <div className="flex items-center space-x-2">
-          <Avatar className="h-8 w-8 cursor-pointer" onClick={() => onNavigateToProfile(submission.studentId)}>
-            <AvatarFallback>{submission.studentName.substring(0, 2).toUpperCase()}</AvatarFallback>
-          </Avatar>
-          <div>
-            <p className="font-medium text-sm">{submission.studentName}</p>
-            <p className="text-xs text-gray-500">
-              {new Date(submission.submittedAt).toLocaleDateString()} {new Date(submission.submittedAt).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex items-center space-x-1">
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            className="text-blue-500"
-            onClick={() => setViewContent(true)}
-          >
-            {t("view")}
+    <div className="bg-white p-2 rounded border flex justify-between items-center">
+      <div>
+        <p 
+          className="font-medium cursor-pointer hover:underline" 
+          onClick={() => onNavigateToProfile(submission.studentId)}
+        >
+          {submission.studentName}
+        </p>
+        <p className="text-xs text-gray-500">
+          {new Date(submission.submittedAt).toLocaleString()}
+        </p>
+      </div>
+      
+      {submission.status === "pending" ? (
+        <div className="flex space-x-1">
+          <Button size="sm" variant="outline" onClick={() => window.open(submission.content, '_blank')}>
+            <Download className="h-4 w-4" />
           </Button>
-          
-          {submission.status === "pending" && onApprove && onReject && (
-            <>
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-green-500"
-                onClick={() => onApprove(submission)}
-              >
-                <Check className="h-4 w-4" />
-              </Button>
-              
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="text-red-500"
-                onClick={() => onReject(submission)}
-              >
-                <X className="h-4 w-4" />
-              </Button>
-            </>
-          )}
-          
           <Button 
-            variant="ghost" 
             size="sm" 
+            variant="outline" 
             className="text-amber-500"
             onClick={() => onAwardCoins(submission.studentId, submission.studentName)}
           >
             <Coins className="h-4 w-4" />
           </Button>
-          
+          {onReject && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="text-red-500" 
+              onClick={() => onReject(submission)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          )}
+          {onApprove && (
+            <Button 
+              size="sm" 
+              variant="outline" 
+              className="text-green-500" 
+              onClick={() => onApprove(submission)}
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
+      ) : (
+        <div className="flex items-center space-x-2">
+          <span className={`px-2 py-1 rounded text-xs ${
+            submission.status === 'approved' 
+              ? 'bg-green-100 text-green-800' 
+              : 'bg-red-100 text-red-800'
+          }`}>
+            {submission.status === 'approved' ? t("approved") : t("rejected")}
+          </span>
           <Button 
-            variant="ghost" 
             size="sm" 
-            onClick={() => onNavigateToProfile(submission.studentId)}
+            variant="outline" 
+            className="text-amber-500"
+            onClick={() => onAwardCoins(submission.studentId, submission.studentName)}
           >
-            <User className="h-4 w-4" />
+            <Coins className="h-4 w-4" />
           </Button>
         </div>
-      </div>
-
-      {/* Content Preview Dialog */}
-      <Dialog open={viewContent} onOpenChange={setViewContent}>
-        <DialogContent className="max-w-xl">
-          <DialogHeader>
-            <DialogTitle>{t("student-submission")}: {submission.studentName}</DialogTitle>
-          </DialogHeader>
-          
-          <div className="py-4">
-            {isImage ? (
-              <div className="flex justify-center">
-                <img 
-                  src={submission.content} 
-                  alt={`${submission.studentName}'s submission`}
-                  className="max-h-96 max-w-full rounded-md"
-                />
-              </div>
-            ) : isAudio ? (
-              <div className="flex justify-center">
-                <audio 
-                  src={submission.content} 
-                  controls 
-                  className="w-full"
-                />
-              </div>
-            ) : (
-              <div className="bg-gray-50 p-4 rounded-md">
-                {submission.content}
-              </div>
-            )}
-            
-            {submission.feedback && (
-              <div className="mt-4">
-                <p className="font-medium text-sm">{t("teacher-feedback")}:</p>
-                <p className="text-sm bg-gray-50 p-3 rounded-md mt-1">{submission.feedback}</p>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+      )}
+    </div>
   );
 };

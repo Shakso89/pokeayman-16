@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Pokemon } from "@/types/pokemon";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface PokemonDetailDialogProps {
   pokemon: Pokemon | null;
@@ -21,6 +22,8 @@ const PokemonDetailDialog: React.FC<PokemonDetailDialogProps> = ({
   isOpen, 
   onClose 
 }) => {
+  const { t } = useTranslation();
+  
   if (!pokemon) return null;
   
   return (
@@ -54,13 +57,13 @@ const PokemonDetailDialog: React.FC<PokemonDetailDialogProps> = ({
               </span>
             </div>
             
-            <p className="text-sm text-gray-600 mt-2">No description available</p>
+            <p className="text-sm text-gray-600 mt-2">{t("no-description")}</p>
           </div>
         </div>
         
         <DialogFooter>
           <Button onClick={onClose}>
-            Close
+            {t("close")}
           </Button>
         </DialogFooter>
       </DialogContent>

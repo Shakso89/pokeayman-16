@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "@/hooks/useTranslation";
+import LanguageSelector from "./LanguageSelector";
 import { Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -41,6 +42,8 @@ const Header: React.FC = () => {
         >
           <Home size={20} />
         </Button>
+        
+        <LanguageSelector className="text-white hover:bg-white/20" />
         
         {/* Navigation Menu */}
         <NavigationMenu>
