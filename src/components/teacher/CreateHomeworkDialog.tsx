@@ -55,6 +55,15 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
       return;
     }
 
+    if (!classId) {
+      toast({
+        title: t("error"),
+        description: t("select-class"),
+        variant: "destructive",
+      });
+      return;
+    }
+
     const now = new Date();
     const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48 hours from now
     
@@ -74,6 +83,8 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
     const homeworkAssignments = JSON.parse(localStorage.getItem("homeworkAssignments") || "[]");
     homeworkAssignments.push(newHomework);
     localStorage.setItem("homeworkAssignments", JSON.stringify(homeworkAssignments));
+    
+    console.log("Created homework for class:", classId, "Homework:", newHomework);
     
     // Call the callback
     onHomeworkCreated(newHomework);

@@ -29,15 +29,20 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ studentId, studentName, class
   }, [classId]);
   
   const loadHomeworkData = () => {
+    console.log("Loading homework for class:", classId);
+    
     // Get all homework assignments
     const allHomeworks = JSON.parse(localStorage.getItem("homeworkAssignments") || "[]");
     
     // Filter for homework assigned to student's class that hasn't expired
     const now = new Date();
-    const activeHomeworks = allHomeworks.filter((hw: HomeworkAssignment) => 
-      hw.classId === classId && new Date(hw.expiresAt) > now
-    );
+    const activeHomeworks = allHomeworks.filter((hw: HomeworkAssignment) => {
+      const isForClass = hw.classId === classId;
+      const isActive = new Date(hw.expiresAt) > now;
+      return isForClass && isActive;
+    });
     
+    console.log("Found active homeworks:", activeHomeworks.length);
     setHomeworks(activeHomeworks);
     
     // Get all submissions
