@@ -54,6 +54,24 @@ const ClassmatesTab: React.FC<ClassmatesTabProps> = ({ classId }) => {
             teacherId: "teacher-1",
             createdAt: new Date().toISOString(),
             avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jane"
+          },
+          {
+            id: "student-3",
+            username: "mike_johnson",
+            displayName: "Mike Johnson",
+            classId: classId,
+            teacherId: "teacher-1",
+            createdAt: new Date().toISOString(),
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Mike"
+          },
+          {
+            id: "student-4",
+            username: "lisa_brown",
+            displayName: "Lisa Brown",
+            classId: classId,
+            teacherId: "teacher-1",
+            createdAt: new Date().toISOString(),
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Lisa"
           }
         ];
         

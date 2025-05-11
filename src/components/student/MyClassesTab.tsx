@@ -35,6 +35,7 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({ studentId, studentName, cla
       cls.id === classId || cls.students?.includes(studentId)
     );
     
+    console.log("Found classes for student:", studentClasses);
     setClasses(studentClasses);
     
     // Auto-select the first class if none is selected

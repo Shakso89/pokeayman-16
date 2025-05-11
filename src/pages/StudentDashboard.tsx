@@ -15,6 +15,7 @@ import StudentCollection from "@/components/student/StudentCollection";
 import MysteryBallTab from "@/components/student/MysteryBallTab";
 import SchoolPoolDialog from "@/components/student/SchoolPoolDialog";
 import MyClassesTab from "@/components/student/MyClassesTab";
+
 const StudentDashboard: React.FC = () => {
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const userType = localStorage.getItem("userType");
@@ -22,12 +23,8 @@ const StudentDashboard: React.FC = () => {
   const studentId = localStorage.getItem("studentId") || "";
   const classId = localStorage.getItem("studentClassId") || "";
   const schoolId = localStorage.getItem("studentSchoolId") || "";
-  const {
-    t
-  } = useTranslation();
-  const {
-    toast
-  } = useToast();
+  const { t } = useTranslation();
+  const { toast } = useToast();
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
   const [coins, setCoins] = useState(0);
   const [schoolPokemons, setSchoolPokemons] = useState<Pokemon[]>([]);
@@ -36,6 +33,7 @@ const StudentDashboard: React.FC = () => {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [showSchoolPool, setShowSchoolPool] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
     console.log("StudentDashboard loaded with:", {
       studentId,
@@ -54,6 +52,7 @@ const StudentDashboard: React.FC = () => {
       localStorage.setItem("studentSchoolId", "default-school-1");
     }
   }, [studentId, schoolId]);
+
   const loadStudentData = () => {
     console.log("Loading student data for:", studentId);
     // Load Pokemon collection and coins
@@ -74,6 +73,7 @@ const StudentDashboard: React.FC = () => {
       setAvatar(student.avatar);
     }
   };
+
   const loadSchoolPokemonPool = () => {
     const currentSchoolId = schoolId || localStorage.getItem("studentSchoolId") || "default-school-1";
     console.log("Loading school pokemon pool for:", currentSchoolId);
@@ -86,6 +86,7 @@ const StudentDashboard: React.FC = () => {
       setSchoolPokemons([]);
     }
   };
+
   const loadActiveBattles = () => {
     if (!studentId || !classId || !schoolId) return;
     const savedBattles = localStorage.getItem("battles");
@@ -139,10 +140,13 @@ const StudentDashboard: React.FC = () => {
 
   // Get the current school ID (either from state or localStorage)
   const currentSchoolId = schoolId || localStorage.getItem("studentSchoolId") || "default-school-1";
+  
   if (!isLoggedIn || userType !== "student") {
     return <Navigate to="/student-login" />;
   }
-  return <div className="min-h-screen bg-gray-100">
+
+  return (
+    <div className="min-h-screen bg-gray-100">
       <NavBar userType="student" userName={studentName} userAvatar={avatar || undefined} />
       
       <div className="container mx-auto py-8 px-4">
@@ -151,16 +155,19 @@ const StudentDashboard: React.FC = () => {
         {/* Rankings button */}
         <div className="flex justify-end mt-4">
           <Link to="/student/rankings">
-            
+            <Button variant="outline" className="flex items-center gap-2">
+              <Trophy className="h-4 w-4" />
+              {t("rankings")}
+            </Button>
           </Link>
         </div>
         
         <div className="mt-6 relative">
           <Tabs defaultValue="my-pokemons" className="w-full mt-8" value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4 mb-8">
-              <TabsTrigger value="my-pokemons">My Pokémons</TabsTrigger>
-              <TabsTrigger value="mystery-ball">Mystery Ball</TabsTrigger>
-              <TabsTrigger value="school-pool">School Pool</TabsTrigger>
+              <TabsTrigger value="my-pokemons">{t("my-pokemons")}</TabsTrigger>
+              <TabsTrigger value="mystery-ball">{t("mystery-ball")}</TabsTrigger>
+              <TabsTrigger value="school-pool">{t("school-pool")}</TabsTrigger>
               <TabsTrigger value="my-classes" className="flex items-center gap-2">
                 <Users className="h-4 w-4" />
                 {t("my-classes")}
@@ -172,16 +179,26 @@ const StudentDashboard: React.FC = () => {
             </TabsContent>
             
             <TabsContent value="mystery-ball" className="mt-4">
-              <MysteryBallTab schoolPokemons={schoolPokemons} studentId={studentId} schoolId={currentSchoolId} coins={coins} isLoading={isLoading} onPokemonWon={handlePokemonWon} onCoinsWon={handleCoinsWon} onRefreshPool={handleRefreshPool} />
+              <MysteryBallTab 
+                schoolPokemons={schoolPokemons} 
+                studentId={studentId} 
+                schoolId={currentSchoolId} 
+                coins={coins} 
+                isLoading={isLoading} 
+                onPokemonWon={handlePokemonWon} 
+                onCoinsWon={handleCoinsWon} 
+                onRefreshPool={handleRefreshPool} 
+              />
             </TabsContent>
             
             <TabsContent value="school-pool" className="mt-4">
               <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-2xl font-bold mb-4 text-center">School Pokémon Pool</h2>
-                <p className="text-center mb-6 text-gray-600">Available Pokémon in your school pool: {schoolPokemons.length}</p>
+                <h2 className="text-2xl font-bold mb-4 text-center">{t("school-pokemon-pool")}</h2>
+                <p className="text-center mb-6 text-gray-600">{t("available-pokemon")}: {schoolPokemons.length}</p>
                 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4 max-h-[500px] overflow-y-auto p-4 bg-gray-50 rounded-lg">
-                  {schoolPokemons.map(pokemon => <div key={pokemon.id} className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
+                  {schoolPokemons.map(pokemon => (
+                    <div key={pokemon.id} className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
                       <img src={pokemon.image} alt={pokemon.name} className="w-full h-24 object-contain mx-auto" />
                       <div className="mt-2 text-center">
                         <p className="font-medium text-sm">{pokemon.name}</p>
@@ -190,11 +207,14 @@ const StudentDashboard: React.FC = () => {
                           {pokemon.rarity}
                         </span>
                       </div>
-                    </div>)}
+                    </div>
+                  ))}
                   
-                  {schoolPokemons.length === 0 && <div className="col-span-full text-center py-12 text-gray-500">
-                      No Pokémon available in the school pool.
-                    </div>}
+                  {schoolPokemons.length === 0 && (
+                    <div className="col-span-full text-center py-12 text-gray-500">
+                      {t("no-pokemon-available")}
+                    </div>
+                  )}
                 </div>
               </div>
             </TabsContent>
@@ -208,6 +228,8 @@ const StudentDashboard: React.FC = () => {
       
       {/* School Pool Dialog */}
       <SchoolPoolDialog open={showSchoolPool} onOpenChange={setShowSchoolPool} schoolPokemons={schoolPokemons} />
-    </div>;
+    </div>
+  );
 };
+
 export default StudentDashboard;
