@@ -72,7 +72,7 @@ export const SubmissionActionButtons: React.FC<SubmissionActionButtonsProps> = (
           variant="outline"
           size="sm"
           className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
-          onClick={() => setShowImage(!showImage)}
+          onClick={() => setShowImage(true)}
         >
           View <FileImage className="ml-1 h-4 w-4" />
         </Button>
