@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -38,9 +37,8 @@ const ClassmatesTab: React.FC<ClassmatesTabProps> = ({ classId }) => {
     if (userType === "teacher") {
       navigate(`/teacher/student/${studentId}`);
     } else {
-      // For student users, we might want different behavior
-      // For now, still navigate to the student detail page
-      navigate(`/teacher/student/${studentId}`);
+      // For student users, navigate to the student profile page
+      navigate(`/student/profile/${studentId}`);
     }
   };
   

@@ -62,6 +62,11 @@ function App() {
             <StudentDetailPage />
           </ProtectedRoute>
         } />
+        <Route path="/student/profile/:studentId" element={
+          <ProtectedRoute>
+            <StudentDetailPage />
+          </ProtectedRoute>
+        } />
         <Route path="/teacher/profile/:teacherId" element={
           <ProtectedRoute>
             <TeacherProfilePage />

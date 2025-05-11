@@ -27,7 +27,7 @@ interface ProfileFormData {
 }
 
 const StudentDetailPage: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { id, studentId } = useParams<{ id?: string, studentId?: string }>();
   const [student, setStudent] = useState<StudentData | null>(null);
   const [showEditForm, setShowEditForm] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
@@ -36,20 +36,37 @@ const StudentDetailPage: React.FC = () => {
 
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const userType = localStorage.getItem("userType");
+  
+  // Use the ID from either parameter
+  const actualStudentId = studentId || id;
 
   useEffect(() => {
-    if (id) {
+    if (actualStudentId) {
       const studentsData = localStorage.getItem("students");
       if (studentsData) {
         const students = JSON.parse(studentsData);
-        const foundStudent = students.find((s: StudentData) => s.id === id);
+        const foundStudent = students.find((s: StudentData) => s.id === actualStudentId);
         setStudent(foundStudent);
       }
     }
-  }, [id]);
+  }, [actualStudentId]);
 
-  if (!isLoggedIn || userType !== "teacher" || !student) {
-    return <Navigate to="/teacher-login" />;
+  if (!isLoggedIn) {
+    return <Navigate to={userType === "teacher" ? "/teacher-login" : "/student-login"} />;
+  }
+  
+  if (!student) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <NavBar 
+          userType={userType as "teacher" | "student"} 
+          userName={userType === "teacher" ? "Teacher" : localStorage.getItem("studentName") || ""}
+        />
+        <div className="container mx-auto py-8 px-4 text-center">
+          <p>{t("student-not-found")}</p>
+        </div>
+      </div>
+    );
   }
 
   const handleUpdateProfile = async (values: ProfileFormData) => {
@@ -120,9 +137,14 @@ const StudentDetailPage: React.FC = () => {
     }
   };
 
+  const canEdit = userType === "teacher";
+
   return (
     <div className="min-h-screen bg-gray-100">
-      <NavBar userType="teacher" userName="Teacher" />
+      <NavBar 
+        userType={userType as "teacher" | "student"}
+        userName={userType === "teacher" ? "Teacher" : localStorage.getItem("studentName") || ""}
+      />
       
       <div className="container mx-auto py-8 px-4">
         <Card className="mb-6 border-none shadow-lg pokemon-gradient-bg text-white">
@@ -140,26 +162,30 @@ const StudentDetailPage: React.FC = () => {
           <CardHeader>
             <CardTitle className="flex justify-between items-center">
               {t("profile-information")}
-              {!showEditForm ? (
+              {canEdit && !showEditForm ? (
                 <Button size="sm" onClick={() => setShowEditForm(true)}>
                   <Edit className="h-4 w-4 mr-2" />
                   {t("edit-profile")}
                 </Button>
-              ) : (
+              ) : canEdit && showEditForm ? (
                 <Button size="sm" variant="ghost" onClick={() => setShowEditForm(false)}>
                   <XCircle className="h-4 w-4 mr-2" />
                   {t("cancel")}
                 </Button>
-              )}
+              ) : null}
             </CardTitle>
-            <CardDescription>{t("view-edit-student-info")}</CardDescription>
+            <CardDescription>{userType === "teacher" ? t("view-edit-student-info") : t("view-student-info")}</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-6">
             <div className="flex justify-center">
-              <UploadPhotos avatarImage={student.avatar || null} onSave={handleAvatarUpdate} />
+              <UploadPhotos 
+                avatarImage={student.avatar || null} 
+                onSave={handleAvatarUpdate} 
+                readOnly={userType !== "teacher"}
+              />
             </div>
             
-            {showEditForm ? (
+            {canEdit && showEditForm ? (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="displayName">{t("display-name")}</Label>
