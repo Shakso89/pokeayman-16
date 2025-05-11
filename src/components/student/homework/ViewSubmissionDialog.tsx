@@ -41,12 +41,26 @@ export const ViewSubmissionDialog: React.FC<ViewSubmissionDialogProps> = ({
               )}
               
               {submission.type === "audio" && submission.content.startsWith('data:audio/') && (
-                <div className="flex justify-center">
+                <div className="flex flex-col space-y-4">
                   <audio 
                     src={submission.content} 
                     controls 
                     className="w-full"
+                    controlsList="nodownload"
                   />
+                  <Button 
+                    variant="outline" 
+                    onClick={() => {
+                      const a = document.createElement('a');
+                      a.href = submission.content;
+                      a.download = "my_audio_submission.mp3";
+                      document.body.appendChild(a);
+                      a.click();
+                      document.body.removeChild(a);
+                    }}
+                  >
+                    {t("download-audio")}
+                  </Button>
                 </div>
               )}
               

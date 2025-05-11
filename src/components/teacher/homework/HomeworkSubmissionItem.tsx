@@ -4,7 +4,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkSubmission } from "@/types/homework";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Check, X, Coins, User } from "lucide-react";
+import { Check, X, Coins, User, Volume } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface HomeworkSubmissionItemProps {
@@ -93,6 +93,17 @@ export const HomeworkSubmissionItem: React.FC<HomeworkSubmissionItemProps> = ({
           >
             <User className="h-4 w-4" />
           </Button>
+          
+          {isAudio && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-blue-500"
+              onClick={() => setViewContent(true)}
+            >
+              <Volume className="h-4 w-4" />
+            </Button>
+          )}
         </div>
       </div>
 
@@ -113,12 +124,27 @@ export const HomeworkSubmissionItem: React.FC<HomeworkSubmissionItemProps> = ({
                 />
               </div>
             ) : isAudio ? (
-              <div className="flex justify-center">
+              <div className="flex flex-col items-center space-y-4">
                 <audio 
                   src={submission.content} 
                   controls 
                   className="w-full"
+                  controlsList="nodownload"
                 />
+                <Button 
+                  variant="outline"
+                  className="flex items-center gap-2"
+                  onClick={() => {
+                    const a = document.createElement('a');
+                    a.href = submission.content;
+                    a.download = `${submission.studentName}_audio_submission.mp3`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                  }}
+                >
+                  {t("download-audio")}
+                </Button>
               </div>
             ) : (
               <div className="bg-gray-50 p-4 rounded-md">
@@ -138,3 +164,4 @@ export const HomeworkSubmissionItem: React.FC<HomeworkSubmissionItemProps> = ({
     </>
   );
 };
+

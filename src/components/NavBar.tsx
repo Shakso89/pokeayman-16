@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import UserSettingsModal from "./modals/UserSettingsModal";
 import NotificationBadge from "./NotificationBadge";
 import SearchBar from "./SearchBar";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface NavBarProps {
   userType: "teacher" | "student";
@@ -21,6 +22,7 @@ export const NavBar: React.FC<NavBarProps> = ({
   userAvatar
 }) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleLogout = () => {
@@ -140,14 +142,3 @@ export const NavBar: React.FC<NavBarProps> = ({
   );
 };
 
-function t(key: string): string {
-  // Simple translation function for this component
-  const translations: Record<string, string> = {
-    "view-profile": "View Profile",
-    "settings": "Settings",
-    "admin-dashboard": "Admin Dashboard",
-    "logout": "Logout"
-  };
-  
-  return translations[key] || key;
-}
