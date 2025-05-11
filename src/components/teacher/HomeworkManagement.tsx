@@ -29,6 +29,8 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
   const [classes, setClasses] = useState<Array<{ id: string; name: string }>>([]);
   const [isGiveCoinsOpen, setIsGiveCoinsOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<{id: string, name: string} | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string>("");
+  const [selectedClassName, setSelectedClassName] = useState<string>("");
   
   // Load data
   useEffect(() => {
@@ -147,6 +149,12 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
   const navigateToStudentProfile = (studentId: string) => {
     navigate(`/teacher/student/${studentId}`);
   };
+  
+  const handleCreateHomework = (classId: string, className: string) => {
+    setSelectedClassId(classId);
+    setSelectedClassName(className);
+    setIsCreateHomeworkOpen(true);
+  };
 
   // Filter homework based on expiration
   const now = new Date();
@@ -182,7 +190,7 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
           {t("back")}
         </Button>
         <h2 className="text-2xl font-bold flex-1">{t("homework-management")}</h2>
-        <Button onClick={() => setIsCreateHomeworkOpen(true)}>
+        <Button onClick={() => handleCreateHomework(classes[0]?.id || "", classes[0]?.name || "")}>
           {t("create-homework")}
         </Button>
       </div>
@@ -198,7 +206,7 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
             <Card>
               <CardContent className="pt-6 text-center">
                 <p>{t("no-active-homework")}</p>
-                <Button onClick={() => setIsCreateHomeworkOpen(true)} className="mt-4">
+                <Button onClick={() => handleCreateHomework(classes[0]?.id || "", classes[0]?.name || "")} className="mt-4">
                   {t("create-homework")}
                 </Button>
               </CardContent>
@@ -347,7 +355,8 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
         onOpenChange={setIsCreateHomeworkOpen}
         onHomeworkCreated={handleHomeworkCreated}
         teacherId={teacherId}
-        classes={classes}
+        classId={selectedClassId}
+        className={selectedClassName}
       />
 
       <GiveCoinsDialog
