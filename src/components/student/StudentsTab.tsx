@@ -7,7 +7,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { SortAscending, SortDescending } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ } from "lucide-react";
 
 interface StudentsTabProps {
   classId: string;
@@ -201,12 +201,12 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId }) => {
           <Button variant="outline" onClick={toggleSortOrder} className="flex items-center gap-2">
             {sortOrder === "desc" ? (
               <>
-                <SortDescending className="h-4 w-4" />
+                <ArrowDownAZ className="h-4 w-4" />
                 {t("sort-by-pokemon-desc")}
               </>
             ) : (
               <>
-                <SortAscending className="h-4 w-4" />
+                <ArrowUpAZ className="h-4 w-4" />
                 {t("sort-by-pokemon-asc")}
               </>
             )}
