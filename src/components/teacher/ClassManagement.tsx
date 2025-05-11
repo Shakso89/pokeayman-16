@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, Plus, Users, Trash, FileText, Coins, Download, Check, X, UserPlus, User, PokemonIcon } from "lucide-react";
+import { ChevronLeft, Plus, Users, Trash, FileText, Coins, Download, Check, X, UserPlus, User } from "lucide-react";
+import { PokemonIcon } from "@/components/icons/PokemonIcon";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -386,6 +387,39 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
   
   const MicIcon = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>;
   
+  const handleRemoveStudentFromClass = (studentId: string) => {
+    if (!selectedClass) return;
+    
+    // Update class by removing student
+    const updatedClasses = classes.map(cls => {
+      if (cls.id === selectedClass.id) {
+        return {
+          ...cls,
+          students: cls.students.filter(id => id !== studentId)
+        };
+      }
+      return cls;
+    });
+    
+    // Save to localStorage
+    localStorage.setItem("classes", JSON.stringify(updatedClasses));
+    
+    // Update state
+    setClasses(updatedClasses);
+    setSelectedClass({
+      ...selectedClass,
+      students: selectedClass.students.filter(id => id !== studentId)
+    });
+    
+    // Refresh student data
+    loadStudentsData();
+    
+    toast({
+      title: "Student removed",
+      description: "Student has been removed from the class",
+    });
+  };
+
   return (
     <div>
       <div className="flex items-center mb-6">
