@@ -14,34 +14,17 @@ import { Label } from "@/components/ui/label";
 import StudentManageDialog from "../dialogs/StudentManageDialog";
 import { Class as ClassType, Student as StudentType } from "@/types/pokemon";
 
-interface Teacher {
-  id: string;
-  username: string;
-  displayName: string;
-  avatar?: string;
-}
-
-interface Student {
-  id: string;
-  username: string;
-  displayName: string;
-  classId?: string;
-  avatar?: string;
-}
-
-interface Class {
-  id: string;
-  name: string;
-  teacherId: string;
-  createdAt: string;
+interface ClassManagementProps {
+  onBack?: () => void;
   schoolId?: string;
+  teacherId?: string;
 }
 
-const ClassManagement: React.FC = () => {
+const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId: propSchoolId, teacherId: propTeacherId }) => {
   const { classId } = useParams<{ classId: string }>();
-  const [schoolId, setSchoolId] = useState<string | undefined>("");
-  const [teacher, setTeacher] = useState<Teacher | null>(null);
-  const [students, setStudents] = useState<Student[]>([]);
+  const [schoolId, setSchoolId] = useState<string | undefined>(propSchoolId || "");
+  const [teacher, setTeacher] = useState<any | null>(null);
+  const [students, setStudents] = useState<StudentType[]>([]);
   const [newStudentUsername, setNewStudentUsername] = useState("");
   const [isAddingStudent, setIsAddingStudent] = useState(false);
   const [isManageStudentDialogOpen, setIsManageStudentDialogOpen] = useState(false);
@@ -50,7 +33,7 @@ const ClassManagement: React.FC = () => {
   const { toast } = useToast();
   const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
   const [editedClassName, setEditedClassName] = useState("");
-  const [currentClass, setCurrentClass] = useState<Class | null>(null);
+  const [currentClass, setCurrentClass] = useState<ClassType | null>(null);
 
   useEffect(() => {
     if (classId) {
@@ -61,7 +44,7 @@ const ClassManagement: React.FC = () => {
   const loadClass = () => {
     try {
       const classes = JSON.parse(localStorage.getItem("classes") || "[]");
-      const foundClass = classes.find((cls: Class) => cls.id === classId);
+      const foundClass = classes.find((cls: ClassType) => cls.id === classId);
       if (foundClass) {
         setCurrentClass(foundClass);
         setEditedClassName(foundClass.name);
@@ -88,7 +71,7 @@ const ClassManagement: React.FC = () => {
   const loadTeacher = (teacherId: string) => {
     try {
       const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-      const foundTeacher = teachers.find((t: Teacher) => t.id === teacherId);
+      const foundTeacher = teachers.find((t: any) => t.id === teacherId);
       if (foundTeacher) {
         setTeacher(foundTeacher);
       }
@@ -100,7 +83,7 @@ const ClassManagement: React.FC = () => {
   const loadStudents = () => {
     try {
       const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
-      const classStudents = allStudents.filter((student: Student) => student.classId === classId);
+      const classStudents = allStudents.filter((student: StudentType) => student.classId === classId);
       setStudents(classStudents);
     } catch (error) {
       console.error("Error loading students:", error);
@@ -122,7 +105,7 @@ const ClassManagement: React.FC = () => {
       const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
 
       // Check if the username already exists
-      const usernameExists = allStudents.some((student: Student) => student.username === newStudentUsername);
+      const usernameExists = allStudents.some((student: StudentType) => student.username === newStudentUsername);
       if (usernameExists) {
         toast({
           variant: "destructive",
@@ -133,7 +116,7 @@ const ClassManagement: React.FC = () => {
       }
 
       // Create a new student object
-      const newStudent: Student = {
+      const newStudent: StudentType = {
         id: `student-${Date.now()}`,
         username: newStudentUsername,
         displayName: newStudentUsername,

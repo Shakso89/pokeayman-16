@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,7 +11,6 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { useTranslation } from "@/hooks/useTranslation";
 
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -25,7 +23,6 @@ const TeacherDashboard: React.FC = () => {
   });
   const [teacherData, setTeacherData] = useState<any>(null);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
-  const { t } = useTranslation();
   
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const userType = localStorage.getItem("userType");
@@ -48,8 +45,8 @@ const TeacherDashboard: React.FC = () => {
     // Validate student data
     if (!studentData.username || !studentData.password || !studentData.displayName) {
       toast({
-        title: t("error"),
-        description: t("fill-all-fields"),
+        title: "Error",
+        description: "Please fill all fields",
         variant: "destructive",
       });
       return;
@@ -64,7 +61,7 @@ const TeacherDashboard: React.FC = () => {
     // Check if username is already taken
     if (students.some((s: any) => s.username === studentData.username)) {
       toast({
-        title: t("error"),
+        title: "Error",
         description: "This username is already in use",
         variant: "destructive",
       });
@@ -109,8 +106,8 @@ const TeacherDashboard: React.FC = () => {
     
     // Show success message
     toast({
-      title: t("success"),
-      description: t("student-added"),
+      title: "Success",
+      description: "Student added successfully",
     });
     
     // Reset form and close dialog
@@ -263,9 +260,9 @@ const TeacherDashboard: React.FC = () => {
             <div className="flex items-center mb-6">
               <Button variant="outline" onClick={() => setCurrentView("main")} className="mr-4">
                 <ChevronLeft className="h-4 w-4 mr-1" />
-                {t("back-to-dashboard")}
+                Back to Dashboard
               </Button>
-              <h2 className="text-2xl font-bold">{t("school-collaboration")}</h2>
+              <h2 className="text-2xl font-bold">School Collaboration</h2>
             </div>
             
             <SchoolCollaboration 
@@ -280,51 +277,51 @@ const TeacherDashboard: React.FC = () => {
       <Dialog open={isAddStudentOpen} onOpenChange={setIsAddStudentOpen}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>{t("create-student")}</DialogTitle>
+            <DialogTitle>Create Student</DialogTitle>
             <DialogDescription>
-              {t("create-student-desc")}
+              Create a new student account.
             </DialogDescription>
           </DialogHeader>
           
           <div className="grid gap-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="studentUsername">{t("username")}</Label>
+              <Label htmlFor="studentUsername">Username</Label>
               <Input
                 id="studentUsername"
                 value={studentData.username}
                 onChange={(e) => setStudentData({...studentData, username: e.target.value})}
-                placeholder={t("student-username")}
+                placeholder="Student username"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="studentDisplayName">{t("display-name")}</Label>
+              <Label htmlFor="studentDisplayName">Display Name</Label>
               <Input
                 id="studentDisplayName"
                 value={studentData.displayName}
                 onChange={(e) => setStudentData({...studentData, displayName: e.target.value})}
-                placeholder={t("student-display-name")}
+                placeholder="Student display name"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="studentPassword">{t("password")}</Label>
+              <Label htmlFor="studentPassword">Password</Label>
               <Input
                 id="studentPassword"
                 type="password"
                 value={studentData.password}
                 onChange={(e) => setStudentData({...studentData, password: e.target.value})}
-                placeholder={t("create-password")}
+                placeholder="Create password"
               />
             </div>
           </div>
           
           <DialogFooter>
             <Button variant="outline" onClick={() => setIsAddStudentOpen(false)}>
-              {t("cancel")}
+              Cancel
             </Button>
             <Button onClick={handleAddStudent}>
-              {t("create-account")}
+              Create Account
             </Button>
           </DialogFooter>
         </DialogContent>

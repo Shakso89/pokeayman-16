@@ -1,6 +1,4 @@
 
-// Add the needed interface types to resolve all errors
-
 // Students and Teachers
 export interface Student {
   id: string;
@@ -65,8 +63,10 @@ export interface PokemonPool {
 export interface School {
   id: string;
   name: string;
-  code: string;
+  code?: string;
   location?: string;
+  teacherId?: string;
+  createdAt?: string;
 }
 
 export interface Class {
@@ -109,10 +109,10 @@ export interface Attachment {
 export interface Message {
   id: string;
   senderId: string;
-  senderType: "teacher" | "student";
+  senderType: "teacher" | "student" | "admin";
   senderName: string;
   receiverId: string;
-  receiverType: "teacher" | "student";
+  receiverType: "teacher" | "student" | "admin";
   content: string;
   createdAt: string;
   read: boolean;
@@ -125,10 +125,10 @@ export interface Message {
 export interface FriendRequest {
   id: string;
   senderId: string;
-  senderType: "teacher" | "student";
+  senderType: "teacher" | "student" | "admin";
   senderName: string;
   receiverId: string;
-  receiverType: "teacher" | "student";
+  receiverType: "teacher" | "student" | "admin";
   status: "pending" | "accepted" | "rejected";
   createdAt: string;
   senderAvatar?: string;

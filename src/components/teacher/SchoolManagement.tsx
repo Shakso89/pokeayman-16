@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -59,7 +58,6 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
           const newSchool: School = {
             id: schoolId,
             name,
-            teacherId, // Set admin as creator
             createdAt: new Date().toISOString(),
           };
           
@@ -121,7 +119,6 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
     const newSchoolData: School = {
       id: schoolId,
       name: newSchool.name,
-      teacherId, // Set current teacher as creator
       createdAt: new Date().toISOString(),
     };
 
