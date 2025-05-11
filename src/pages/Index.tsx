@@ -1,3 +1,4 @@
+
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -5,11 +6,11 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PokemonOrbit from "@/components/PokemonOrbit";
 import { useTranslation } from "@/hooks/useTranslation";
+import SearchBar from "@/components/SearchBar";
+
 const Index: React.FC = () => {
   const navigate = useNavigate();
-  const {
-    t
-  } = useTranslation();
+  const { t } = useTranslation();
 
   // Check if user is already logged in
   useEffect(() => {
@@ -21,7 +22,9 @@ const Index: React.FC = () => {
       navigate("/student-dashboard");
     }
   }, [navigate]);
-  return <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 flex flex-col items-center">
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 flex flex-col items-center">
       <Header />
 
       <div className="flex-1 flex flex-col md:flex-row items-center justify-between w-full max-w-6xl p-6">
@@ -33,6 +36,14 @@ const Index: React.FC = () => {
             to boost student motivation and make learning unforgettable. Join a new wave of 
             gamified education.
           </p>
+          
+          {/* Add search bar to landing page */}
+          <div className="mt-8 max-w-md mx-auto">
+            <div className="bg-white/80 rounded-lg p-4 backdrop-blur-sm">
+              <h3 className="text-lg font-medium mb-2 text-center text-gray-800">Find Teachers & Students</h3>
+              <SearchBar />
+            </div>
+          </div>
         </div>
 
         {/* Right Side - Main Content */}
@@ -68,6 +79,8 @@ const Index: React.FC = () => {
       </div>
       
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default Index;
