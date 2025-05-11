@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -26,10 +25,8 @@ const TeacherSignUp: React.FC = () => {
     
     // Validation
     if (password !== confirmPassword) {
-      toast({
-        title: "Passwords do not match",
+      toast("Passwords do not match", {
         description: "Please make sure your passwords match.",
-        variant: "destructive",
       });
       setIsLoading(false);
       return;
@@ -53,8 +50,7 @@ const TeacherSignUp: React.FC = () => {
       });
       localStorage.setItem("teachers", JSON.stringify(teachers));
       
-      toast({
-        title: "Account created",
+      toast("Account created", {
         description: "Welcome to TR Ayman! Your account has been created."
       });
       
