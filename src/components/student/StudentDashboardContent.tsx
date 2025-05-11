@@ -12,6 +12,7 @@ import StudentCollection from "@/components/student/StudentCollection";
 import MysteryBallTab from "@/components/student/MysteryBallTab";
 import SchoolPoolDialog from "@/components/student/SchoolPoolDialog";
 import MyClassesTab from "@/components/student/MyClassesTab";
+import SchoolPokemonPoolTab from "@/components/student/SchoolPokemonPoolTab"; // Add this import for SchoolPokemonPoolTab
 
 interface StudentDashboardContentProps {
   studentName: string;
