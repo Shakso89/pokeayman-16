@@ -1,219 +1,166 @@
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from 'react';
 import { Button } from "@/components/ui/button";
-import { Image, X } from "lucide-react";
-import { toast } from "sonner";
-import { useTranslation } from "@/hooks/useTranslation";
+import { Upload, X } from 'lucide-react';
+import { toast } from "@/hooks/use-toast";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 interface UploadPhotosProps {
-  userId: string;
-  userType: "teacher" | "student";
-  isOwnProfile: boolean;
-  onPhotoClick: (url: string) => void;
+  avatarImage: string | null;
+  onSave?: (avatarImage: string) => void;
 }
 
-interface UserPhotos {
-  userId: string;
-  userType: "teacher" | "student";
-  photos: string[];
+function getBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = error => reject(error);
+  });
 }
 
-const MAX_PHOTOS = 4;
-const MAX_SIZE_MB = 5;
-
-const UploadPhotos: React.FC<UploadPhotosProps> = ({ 
-  userId, 
-  userType, 
-  isOwnProfile,
-  onPhotoClick
-}) => {
-  const { t } = useTranslation();
+export const UploadPhotos: React.FC<UploadPhotosProps> = ({ avatarImage, onSave }) => {
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(avatarImage || null);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [photos, setPhotos] = useState<string[]>([]);
-  
-  useEffect(() => {
-    loadPhotos();
-  }, [userId]);
-  
-  const loadPhotos = () => {
-    try {
-      const allPhotos: UserPhotos[] = JSON.parse(localStorage.getItem("userPhotos") || "[]");
-      const userPhotos = allPhotos.find(p => p.userId === userId && p.userType === userType);
+  const [isUploading, setIsUploading] = useState(false);
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
       
-      if (userPhotos) {
-        setPhotos(userPhotos.photos);
-      } else {
-        setPhotos([]);
+      // Check file type
+      if (!file.type.match('image.*')) {
+        toast({
+          description: "Only image files are allowed",
+          variant: "destructive",
+        });
+        return;
       }
-    } catch (error) {
-      console.error("Error loading photos:", error);
-      setPhotos([]);
+      
+      // Check file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        toast({
+          description: "File is too large, maximum size is 5MB",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      setSelectedFile(file);
+      
+      try {
+        const base64 = await getBase64(file);
+        setPreview(base64);
+      } catch (error) {
+        console.error('Error processing image:', error);
+        toast({
+          description: "Error processing the image",
+          variant: "destructive",
+        });
+      }
     }
   };
-  
-  const handlePhotoClick = () => {
-    if (isOwnProfile && photos.length < MAX_PHOTOS) {
-      fileInputRef.current?.click();
-    }
-  };
-  
-  const handlePhotoChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-    
-    // Check file size
-    const sizeMB = file.size / (1024 * 1024);
-    if (sizeMB > MAX_SIZE_MB) {
-      // Fix: Change from toast(t("message"), {...}) to toast(t("message"))
-      toast(t("photo-too-large", { size: MAX_SIZE_MB }));
+
+  const handleUpload = async () => {
+    if (!selectedFile) {
+      toast({
+        description: "Please select an image first",
+        variant: "destructive",
+      });
       return;
     }
     
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      // Save photo to localStorage
-      try {
-        const allPhotos: UserPhotos[] = JSON.parse(localStorage.getItem("userPhotos") || "[]");
-        const userPhotosIndex = allPhotos.findIndex(p => p.userId === userId && p.userType === userType);
-        
-        if (userPhotosIndex !== -1) {
-          // User already has photos
-          if (allPhotos[userPhotosIndex].photos.length >= MAX_PHOTOS) {
-            // Fix: Change from toast(t("message"), {...}) to toast(t("message"))
-            toast(t("max-photos-reached", { count: MAX_PHOTOS }));
-            return;
-          }
-          
-          allPhotos[userPhotosIndex].photos.push(reader.result as string);
-        } else {
-          // First photo for this user
-          allPhotos.push({
-            userId,
-            userType,
-            photos: [reader.result as string]
-          });
-        }
-        
-        localStorage.setItem("userPhotos", JSON.stringify(allPhotos));
-        
-        // Update local state
-        loadPhotos();
-        
-        toast(t("photo-uploaded"));
-      } catch (error) {
-        console.error("Error saving photo:", error);
-        toast(t("error-uploading-photo"));
-      }
-    };
+    setIsUploading(true);
     
-    reader.readAsDataURL(file);
-  };
-  
-  const handleDeletePhoto = (index: number) => {
     try {
-      const allPhotos: UserPhotos[] = JSON.parse(localStorage.getItem("userPhotos") || "[]");
-      const userPhotosIndex = allPhotos.findIndex(p => p.userId === userId && p.userType === userType);
+      // In a real app, you would upload to a server here
+      const base64 = await getBase64(selectedFile);
       
-      if (userPhotosIndex !== -1) {
-        // Remove the photo
-        allPhotos[userPhotosIndex].photos.splice(index, 1);
-        
-        // If no photos left, remove the entry
-        if (allPhotos[userPhotosIndex].photos.length === 0) {
-          allPhotos.splice(userPhotosIndex, 1);
+      // For now, just simulate an upload and call the onSave callback
+      setTimeout(() => {
+        if (onSave) {
+          onSave(base64);
         }
         
-        localStorage.setItem("userPhotos", JSON.stringify(allPhotos));
+        setIsUploading(false);
+        toast({
+          description: "Profile picture uploaded successfully!",
+        });
         
-        // Update local state
-        loadPhotos();
-        
-        toast(t("photo-removed"));
-      }
+        // Reset the file input
+        if (fileInputRef.current) {
+          fileInputRef.current.value = '';
+        }
+      }, 1000);
     } catch (error) {
-      console.error("Error deleting photo:", error);
-      toast(t("error-removing-photo"));
+      console.error('Error uploading:', error);
+      setIsUploading(false);
+      toast({
+        description: "Error uploading the image",
+        variant: "destructive",
+      });
     }
   };
-  
-  const renderPhotoPlaceholders = () => {
-    const placeholders = [];
-    
-    // Add existing photos
-    photos.forEach((photo, index) => {
-      placeholders.push(
-        <div 
-          key={`photo-${index}`}
-          className="relative group aspect-square bg-gray-100 rounded-md overflow-hidden cursor-pointer"
-          onClick={() => onPhotoClick(photo)}
-        >
-          <img 
-            src={photo} 
-            alt={`${userType} photo ${index + 1}`}
-            className="w-full h-full object-cover"
-          />
-          
-          {isOwnProfile && (
-            <div 
-              className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-              onClick={(e) => {
-                e.stopPropagation();
-                handleDeletePhoto(index);
-              }}
-            >
-              <Button variant="destructive" size="icon" className="h-8 w-8">
-                <X size={16} />
-              </Button>
-            </div>
-          )}
-        </div>
-      );
-    });
-    
-    // Add empty slots if needed
-    if (isOwnProfile && photos.length < MAX_PHOTOS) {
-      placeholders.push(
-        <div 
-          key="add-photo"
-          className="aspect-square bg-gray-100 rounded-md border-2 border-dashed border-gray-300 flex flex-col items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors"
-          onClick={handlePhotoClick}
-        >
-          <Image size={24} className="text-gray-400" />
-          <p className="text-sm text-gray-500 mt-2">{t("add-photo")}</p>
-        </div>
-      );
+
+  const handleClear = () => {
+    setSelectedFile(null);
+    setPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
     }
-    
-    // Fill remaining slots with disabled placeholders if not own profile
-    if (!isOwnProfile) {
-      for (let i = photos.length; i < MAX_PHOTOS; i++) {
-        placeholders.push(
-          <div 
-            key={`empty-${i}`}
-            className="aspect-square bg-gray-100 rounded-md border border-gray-200"
-          />
-        );
-      }
-    }
-    
-    return placeholders;
   };
-  
+
   return (
-    <div>
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        {renderPhotoPlaceholders()}
+    <div className="flex flex-col items-center gap-4">
+      <Avatar className="h-32 w-32">
+        <AvatarImage src={preview || undefined} />
+        <AvatarFallback>
+          <Upload className="h-8 w-8 text-gray-400" />
+        </AvatarFallback>
+      </Avatar>
+      
+      <div className="flex gap-2">
+        <Button 
+          variant="outline" 
+          size="sm" 
+          className="relative"
+          onClick={() => fileInputRef.current?.click()}
+          disabled={isUploading}
+        >
+          <Upload className="h-4 w-4 mr-1" />
+          Select Image
+          <input 
+            type="file" 
+            className="hidden" 
+            ref={fileInputRef}
+            onChange={handleFileChange} 
+            accept="image/*"
+          />
+        </Button>
+        
+        {preview && (
+          <Button 
+            variant="ghost" 
+            size="sm"
+            onClick={handleClear}
+            disabled={isUploading}
+          >
+            <X className="h-4 w-4 mr-1" />
+            Clear
+          </Button>
+        )}
       </div>
       
-      <input 
-        type="file"
-        ref={fileInputRef}
-        className="hidden"
-        accept="image/*"
-        onChange={handlePhotoChange}
-      />
+      {selectedFile && (
+        <Button 
+          onClick={handleUpload} 
+          disabled={isUploading}
+          className="w-full"
+        >
+          {isUploading ? "Uploading..." : "Upload Profile Picture"}
+        </Button>
+      )}
     </div>
   );
 };
-
-export default UploadPhotos;

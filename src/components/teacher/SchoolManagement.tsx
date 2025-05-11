@@ -8,12 +8,16 @@ import { ChevronLeft, Plus, Edit, Trash2, School as SchoolIcon, Eye } from "luci
 import { useTranslation } from "@/hooks/useTranslation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { initializeSchoolPokemonPool } from "@/utils/pokemon";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface SchoolManagementProps {
   onBack: () => void;
   onSelectSchool: (schoolId: string) => void;
   teacherId: string;
 }
+
+// Predefined school names
+const PREDEFINED_SCHOOLS = ["Daya", "Betuin", "Tanzi", "Dali", "Renmei", "New School"];
 
 const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSchool, teacherId }) => {
   const [schools, setSchools] = useState<School[]>([]);
@@ -33,17 +37,39 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
     const username = localStorage.getItem("teacherUsername") || "";
     setIsAdminUser(username === "Admin");
     
-    // Load all schools for admin, only teacher's schools for others
+    // Load all schools
     const savedSchools = localStorage.getItem("schools");
-    const parsedSchools = savedSchools ? JSON.parse(savedSchools) : [];
+    let parsedSchools = savedSchools ? JSON.parse(savedSchools) : [];
+    
+    // Initialize predefined schools if they don't exist
+    if (parsedSchools.length === 0 && isAdminUser) {
+      const initialSchools = PREDEFINED_SCHOOLS.map((name, index) => {
+        const schoolId = `school-${Date.now()}-${index}`;
+        const newSchool: School = {
+          id: schoolId,
+          name,
+          teacherId, // Set admin as creator
+          createdAt: new Date().toISOString(),
+        };
+        
+        // Initialize Pokemon pool for the new school
+        initializeSchoolPokemonPool(schoolId);
+        
+        return newSchool;
+      });
+      
+      // Save predefined schools
+      localStorage.setItem("schools", JSON.stringify(initialSchools));
+      parsedSchools = initialSchools;
+    }
     
     // Admin sees all schools, teachers see only their schools
     const visibleSchools = isAdminUser 
       ? parsedSchools 
-      : parsedSchools.filter((school: School) => school.teacherId === teacherId);
+      : parsedSchools;
     
     setSchools(visibleSchools);
-  }, [teacherId]);
+  }, [teacherId, isAdminUser]);
 
   const handleAddSchool = () => {
     // Only admin can create schools
@@ -308,6 +334,13 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
                   </div>
                 </CardHeader>
                 <CardContent>
+                  {school.name === "New School" && (
+                    <Alert className="mb-3 bg-amber-50">
+                      <AlertDescription>
+                        {t("contact-admin-after-creating-classes")}
+                      </AlertDescription>
+                    </Alert>
+                  )}
                   <Button 
                     variant="default" 
                     className="w-full"
