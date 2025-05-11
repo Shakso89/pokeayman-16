@@ -3,14 +3,17 @@ import React from "react";
 
 interface PokemonIconProps {
   className?: string;
+  size?: number;
 }
 
-export const PokemonIcon: React.FC<PokemonIconProps> = ({ className }) => {
+export const PokemonIcon: React.FC<PokemonIconProps> = ({ 
+  className = "", 
+  size = 24 
+}) => {
   return (
     <svg 
-      xmlns="http://www.w3.org/2000/svg" 
-      width="24" 
-      height="24" 
+      width={size} 
+      height={size} 
       viewBox="0 0 24 24" 
       fill="none" 
       stroke="currentColor" 
@@ -20,15 +23,11 @@ export const PokemonIcon: React.FC<PokemonIconProps> = ({ className }) => {
       className={className}
     >
       <circle cx="12" cy="12" r="10" />
-      <circle cx="12" cy="12" r="2" />
-      <path d="M12 2v4" />
-      <path d="M12 18v4" />
-      <path d="M4.93 4.93l2.83 2.83" />
-      <path d="M16.24 16.24l2.83 2.83" />
-      <path d="M2 12h4" />
-      <path d="M18 12h4" />
-      <path d="M4.93 19.07l2.83-2.83" />
-      <path d="M16.24 7.76l2.83-2.83" />
+      <circle cx="12" cy="12" r="3" />
+      <line x1="12" y1="2" x2="12" y2="5" />
+      <line x1="12" y1="19" x2="12" y2="22" />
+      <line x1="2" y1="12" x2="5" y2="12" />
+      <line x1="19" y1="12" x2="22" y2="12" />
     </svg>
   );
 };

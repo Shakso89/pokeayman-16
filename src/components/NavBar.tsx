@@ -1,126 +1,107 @@
 
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import React from "react";
+import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, MessageSquare, User, Home } from "lucide-react";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-import UserSettingsModal from "./modals/UserSettingsModal";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { LogOut, User } from "lucide-react";
 import NotificationBadge from "./NotificationBadge";
-import SearchBar from "./SearchBar";
 
 interface NavBarProps {
-  userType: "teacher" | "student";
+  userType: "teacher" | "student" | "admin";
   userName?: string;
   userAvatar?: string;
 }
 
-export const NavBar: React.FC<NavBarProps> = ({
-  userType,
-  userName,
-  userAvatar
-}) => {
-  const navigate = useNavigate();
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
+export const NavBar: React.FC<NavBarProps> = ({ userType, userName, userAvatar }) => {
   const handleLogout = () => {
-    localStorage.removeItem("userType");
     localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("studentName");
-    localStorage.removeItem("teacherUsername");
-    localStorage.removeItem("isAdmin");
-    localStorage.removeItem("studentId");
-    localStorage.removeItem("teacherId");
-    localStorage.removeItem("studentClassId");
-    navigate("/");
+    localStorage.removeItem("userType");
+    window.location.href = "/";
   };
 
-  const isAdmin = localStorage.getItem("teacherUsername") === "Admin";
-  
-  const handleCloseSettings = () => {
-    setIsSettingsOpen(false);
-  };
-  
-  const handleViewProfile = () => {
-    if (userType === "teacher") {
-      const teacherId = localStorage.getItem("teacherId");
-      navigate(`/teacher/profile/${teacherId}`);
-    } else {
-      const studentId = localStorage.getItem("studentId");
-      navigate(`/teacher/student/${studentId}`);
+  const renderUserAvatar = () => (
+    <div className="flex gap-2 items-center">
+      <Avatar className="h-8 w-8">
+        {userAvatar ? (
+          <AvatarImage src={userAvatar} alt={userName || "User"} />
+        ) : (
+          <AvatarFallback>{userName?.substring(0, 2) || "U"}</AvatarFallback>
+        )}
+      </Avatar>
+      <span className="text-sm font-medium hidden md:inline-block">
+        {userName || "User"}
+      </span>
+    </div>
+  );
+
+  const getNavItems = () => {
+    switch (userType) {
+      case "admin":
+        return (
+          <>
+            <Link to="/admin">Dashboard</Link>
+          </>
+        );
+      case "teacher":
+        return (
+          <>
+            <Link to="/teacher">Dashboard</Link>
+            <Link to="/teacher/homework">Homework</Link>
+            <Link to="/teacher/reports">Reports</Link>
+          </>
+        );
+      case "student":
+        return (
+          <>
+            <Link to="/student">Dashboard</Link>
+            <Link to="/student/homework">Homework</Link>
+          </>
+        );
+      default:
+        return null;
     }
   };
 
-  return <div className="bg-white border-b shadow-sm">
-      <div className="flex items-center justify-between px-4 py-2 max-w-7xl mx-auto">
-        <div className="flex items-center gap-4">
-          <img src="/lovable-uploads/40c04be5-3d6e-4938-9a00-006177dbef3b.png" alt="PokéAyman Logo" className="h-12 w-auto" />
-          <h1 className="text-xl font-bold">
-            {userType === "teacher" ? "Teacher Dashboard" : "Student Dashboard"}
-          </h1>
-        </div>
-        
-        {/* Search Bar */}
-        <div className="hidden md:flex flex-1 mx-4">
-          <SearchBar />
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")} title="Home">
-            <Home size={20} />
-          </Button>
-          
-          {/* Notification Badge */}
-          <NotificationBadge />
-          
-          <Button variant="secondary" onClick={() => navigate(`/${userType === "teacher" ? "teacher" : "student"}/messages`)} className="flex items-center gap-2">
-            <MessageSquare size={20} />
-            <span className="hidden md:inline">Messages</span>
-          </Button>
+  return (
+    <nav className="bg-white shadow-md">
+      <div className="container mx-auto px-4 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            {/* Logo */}
+            <Link to="/" className="text-xl font-bold text-blue-600 mr-10">
+              EduPokémon
+            </Link>
 
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <Avatar>
-                  <AvatarImage src={userAvatar} alt={userName} />
-                  <AvatarFallback>
-                    {userName?.substring(0, 2).toUpperCase() || "NA"}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <div className="flex items-center justify-start p-2">
-                <div className="flex flex-col space-y-1 leading-none">
-                  <p className="font-medium">{userName}</p>
-                  <p className="text-sm text-gray-500">{userType}</p>
-                </div>
-              </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleViewProfile}>
-                <User className="mr-2 h-4 w-4" />
-                <span>View Profile</span>
-              </DropdownMenuItem>
-              
-              {isAdmin && userType === "teacher" && <DropdownMenuItem onClick={() => navigate("/admin-dashboard")}>
-                  <User className="mr-2 h-4 w-4" />
-                  <span>Admin Dashboard</span>
-                </DropdownMenuItem>}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Logout</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+            {/* Navigation Links */}
+            <div className="hidden md:flex space-x-6">
+              {getNavItems()}
+              <Link to="/messages">Messages</Link>
+            </div>
+          </div>
+
+          {/* User Actions */}
+          <div className="flex items-center space-x-4">
+            {userType && (
+              <>
+                <NotificationBadge />
+                
+                <Link to={userType === "teacher" ? "/teacher/profile" : userType === "student" ? "/student/profile" : "/admin/profile"}>
+                  {renderUserAvatar()}
+                </Link>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleLogout}
+                  className="text-gray-600"
+                >
+                  <LogOut className="h-5 w-5" />
+                </Button>
+              </>
+            )}
+          </div>
         </div>
       </div>
-      
-      {/* Mobile Search Bar */}
-      <div className="md:hidden px-4 py-2">
-        <SearchBar />
-      </div>
-      
-      {isSettingsOpen && <UserSettingsModal isOpen={isSettingsOpen} onClose={handleCloseSettings} userType={userType} />}
-    </div>;
+    </nav>
+  );
 };

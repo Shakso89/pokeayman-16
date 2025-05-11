@@ -1,789 +1,382 @@
 import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { ChevronLeft, Plus, Users, Trash, FileText, Coins, Download, Check, X, UserPlus, User } from "lucide-react";
-import { PokemonIcon } from "@/components/icons/PokemonIcon";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { TabsContent } from "@/components/ui/tabs";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Plus, Users, User, Edit, Trash, Search, PlusCircle } from "lucide-react";
+import PokemonIcon from "../icons/PokemonIcon";
 import { useToast } from "@/hooks/use-toast";
-import { useTranslation } from "@/hooks/useTranslation";
-import { useNavigate } from "react-router-dom";
-import { HomeworkAssignment, HomeworkSubmission } from "@/types/homework";
-import CreateHomeworkDialog from "./CreateHomeworkDialog";
-import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
-import { awardCoinsToStudent, removeCoinsFromStudent, removePokemonFromStudent } from "@/utils/pokemon";
-import StudentManageDialog from "@/components/dialogs/StudentManageDialog";
+import { useParams } from "react-router-dom";
+import StudentsTab from "../student/StudentsTab";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import StudentManageDialog from "../dialogs/StudentManageDialog";
+import { Class as ClassType, Student as StudentType } from "@/types/pokemon";
 
-interface ClassManagementProps {
-  onBack: () => void;
-  schoolId: string;
-  teacherId: string;
+interface Teacher {
+  id: string;
+  username: string;
+  displayName: string;
+  avatar?: string;
 }
 
-interface ClassData {
+interface Student {
+  id: string;
+  username: string;
+  displayName: string;
+  classId?: string;
+  avatar?: string;
+}
+
+interface Class {
   id: string;
   name: string;
   teacherId: string;
-  schoolId: string;
-  students: string[];
+  createdAt: string;
+  schoolId?: string;
 }
 
-interface StudentData {
-  id: string;
-  displayName: string;
-  coins?: number;
-  submissions?: HomeworkSubmission[];
-}
-
-const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, teacherId }) => {
-  const { t } = useTranslation();
+const ClassManagement: React.FC = () => {
+  const { classId } = useParams<{ classId: string }>();
+  const [schoolId, setSchoolId] = useState<string | undefined>("");
+  const [teacher, setTeacher] = useState<Teacher | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [newStudentUsername, setNewStudentUsername] = useState("");
+  const [isAddingStudent, setIsAddingStudent] = useState(false);
+  const [isManageStudentDialogOpen, setIsManageStudentDialogOpen] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<string | null>(null);
+  const [selectedStudentName, setSelectedStudentName] = useState<string | null>(null);
   const { toast } = useToast();
-  const navigate = useNavigate();
-  
-  // Class state
-  const [classes, setClasses] = useState<ClassData[]>([]);
-  const [selectedClass, setSelectedClass] = useState<ClassData | null>(null);
-  const [isCreateClassDialogOpen, setIsCreateClassDialogOpen] = useState(false);
-  const [newClassName, setNewClassName] = useState("");
-  
-  // Student state
-  const [students, setStudents] = useState<StudentData[]>([]);
-  const [selectedTab, setSelectedTab] = useState<string>("students");
-  const [isGiveCoinsOpen, setIsGiveCoinsOpen] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<{id: string, name: string} | null>(null);
-  
-  // Add student management state
-  const [isManageStudentOpen, setIsManageStudentOpen] = useState(false);
-  
-  // Add student to class state
-  const [isAddStudentDialogOpen, setIsAddStudentDialogOpen] = useState(false);
-  const [searchStudentTerm, setSearchStudentTerm] = useState("");
-  const [searchStudentResults, setSearchStudentResults] = useState<any[]>([]);
-  
-  // Homework state
-  const [isCreateHomeworkOpen, setIsCreateHomeworkOpen] = useState(false);
-  const [homeworkAssignments, setHomeworkAssignments] = useState<HomeworkAssignment[]>([]);
-  const [homeworkSubmissions, setHomeworkSubmissions] = useState<HomeworkSubmission[]>([]);
-  
-  // Load data
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editedClassName, setEditedClassName] = useState("");
+  const [currentClass, setCurrentClass] = useState<Class | null>(null);
+
   useEffect(() => {
-    loadClassesData();
-  }, [schoolId, teacherId]);
-  
-  useEffect(() => {
-    if (selectedClass) {
-      loadStudentsData();
-      loadHomeworkData();
+    if (classId) {
+      loadClass();
     }
-  }, [selectedClass]);
-  
-  const loadClassesData = () => {
-    // Get classes from localStorage
-    const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    
-    // Filter classes that belong to this school and teacher
-    const filteredClasses = allClasses.filter(
-      (cls: any) => cls.schoolId === schoolId && cls.teacherId === teacherId
-    );
-    
-    setClasses(filteredClasses);
-  };
-  
-  const loadStudentsData = () => {
-    if (!selectedClass) return;
-    
-    // Get all students
-    const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
-    
-    // Filter students that are in this class
-    const classStudents = allStudents.filter((student: any) => 
-      selectedClass.students && selectedClass.students.includes(student.id)
-    );
-    
-    // Get student data with coins
-    const studentsWithData = classStudents.map((student: any) => {
-      // Get student coins
-      const studentCollection = JSON.parse(localStorage.getItem(`pokemon-collection-${student.id}`) || '{"coins": 0}');
-      
-      return {
-        id: student.id,
-        displayName: student.displayName,
-        coins: studentCollection.coins || 0
-      };
-    });
-    
-    setStudents(studentsWithData);
-  };
-  
-  const loadHomeworkData = () => {
-    if (!selectedClass) return;
-    
-    // Get homework for this class
-    const allHomework = JSON.parse(localStorage.getItem("homeworkAssignments") || "[]");
-    const classHomework = allHomework.filter((hw: HomeworkAssignment) => 
-      hw.classId === selectedClass.id && hw.teacherId === teacherId
-    );
-    
-    setHomeworkAssignments(classHomework);
-    
-    // Get homework submissions
-    const allSubmissions = JSON.parse(localStorage.getItem("homeworkSubmissions") || "[]");
-    const classSubmissions = allSubmissions.filter((sub: HomeworkSubmission) => 
-      classHomework.some((hw: HomeworkAssignment) => hw.id === sub.homeworkId)
-    );
-    
-    setHomeworkSubmissions(classSubmissions);
-  };
-  
-  const handleCreateClass = () => {
-    if (!newClassName) {
+  }, [classId]);
+
+  const loadClass = () => {
+    try {
+      const classes = JSON.parse(localStorage.getItem("classes") || "[]");
+      const foundClass = classes.find((cls: Class) => cls.id === classId);
+      if (foundClass) {
+        setCurrentClass(foundClass);
+        setEditedClassName(foundClass.name);
+        setSchoolId(foundClass.schoolId);
+        loadTeacher(foundClass.teacherId);
+        loadStudents();
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Class not found",
+        });
+      }
+    } catch (error) {
+      console.error("Error loading class:", error);
       toast({
-        title: t("error"),
-        description: t("enter-class-name"),
-        variant: "destructive"
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load class",
       });
-      return;
     }
-    
-    // Create new class object
-    const newClass = {
-      id: `class-${Date.now()}`,
-      name: newClassName,
-      teacherId,
-      schoolId,
-      students: []
-    };
-    
-    // Update localStorage
-    const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    const updatedClasses = [...existingClasses, newClass];
-    localStorage.setItem("classes", JSON.stringify(updatedClasses));
-    
-    // Update state
-    setClasses([...classes, newClass]);
-    setNewClassName("");
-    setIsCreateClassDialogOpen(false);
-    
-    toast({
-      title: t("success"),
-      description: t("class-created")
-    });
-  };
-  
-  const handleDeleteClass = (classId: string) => {
-    // Remove class from localStorage
-    const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    const updatedClasses = existingClasses.filter((cls: any) => cls.id !== classId);
-    localStorage.setItem("classes", JSON.stringify(updatedClasses));
-    
-    // Update state
-    setClasses(classes.filter(cls => cls.id !== classId));
-    
-    // If the selected class is deleted, deselect it
-    if (selectedClass && selectedClass.id === classId) {
-      setSelectedClass(null);
-    }
-    
-    toast({
-      title: t("success"),
-      description: t("class-deleted")
-    });
-  };
-  
-  const handleClassSelect = (classData: ClassData) => {
-    setSelectedClass(classData);
-    setSelectedTab("students"); // Default to students tab
-  };
-  
-  const handleAwardCoins = (studentId: string, studentName: string) => {
-    setSelectedStudent({id: studentId, name: studentName});
-    setIsGiveCoinsOpen(true);
   };
 
-  const handleManageStudent = (studentId: string, studentName: string) => {
-    setSelectedStudent({id: studentId, name: studentName});
-    setIsManageStudentOpen(true);
-  };
-
-  const handleGiveCoins = (amount: number) => {
-    if (!selectedStudent) return;
-    
-    // Award coins to student
-    awardCoinsToStudent(selectedStudent.id, amount);
-    
-    // Refresh student data
-    loadStudentsData();
-    
-    // Close dialog and reset selected student
-    setIsGiveCoinsOpen(false);
-    setSelectedStudent(null);
-    
-    toast({
-      title: t("coins-awarded"),
-      description: `${amount} ${t("coins-awarded-to")} ${selectedStudent.name}`,
-    });
-  };
-  
-  const handleHomeworkCreated = (homework: HomeworkAssignment) => {
-    setHomeworkAssignments([...homeworkAssignments, homework]);
-  };
-  
-  const handleApproveSubmission = (submission: HomeworkSubmission) => {
-    // Find the homework to get the reward amount
-    const homework = homeworkAssignments.find(hw => hw.id === submission.homeworkId);
-    if (!homework) return;
-    
-    // Update submission status
-    const updatedSubmissions = homeworkSubmissions.map(sub => {
-      if (sub.id === submission.id) {
-        return { ...sub, status: "approved" as const };
+  const loadTeacher = (teacherId: string) => {
+    try {
+      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+      const foundTeacher = teachers.find((t: Teacher) => t.id === teacherId);
+      if (foundTeacher) {
+        setTeacher(foundTeacher);
       }
-      return sub;
-    });
-    
-    // Save updated submissions
-    localStorage.setItem("homeworkSubmissions", JSON.stringify(updatedSubmissions));
-    setHomeworkSubmissions(updatedSubmissions);
-    
-    // Award coins to student
-    awardCoinsToStudent(submission.studentId, homework.coinReward);
-    
-    // Refresh student data
-    loadStudentsData();
-    
-    toast({
-      title: t("success"),
-      description: `${t("submission-approved")} ${homework.coinReward} ${t("coins-awarded")}`,
-    });
-  };
-
-  const handleRejectSubmission = (submission: HomeworkSubmission) => {
-    // Update submission status
-    const updatedSubmissions = homeworkSubmissions.map(sub => {
-      if (sub.id === submission.id) {
-        return { ...sub, status: "rejected" as const };
-      }
-      return sub;
-    });
-    
-    // Save updated submissions
-    localStorage.setItem("homeworkSubmissions", JSON.stringify(updatedSubmissions));
-    setHomeworkSubmissions(updatedSubmissions);
-    
-    toast({
-      title: t("submission-rejected"),
-      description: t("no-coins-awarded"),
-    });
-  };
-  
-  const handleDeleteHomework = (homeworkId: string) => {
-    // Remove homework assignment
-    const filteredAssignments = homeworkAssignments.filter(hw => hw.id !== homeworkId);
-    localStorage.setItem("homeworkAssignments", JSON.stringify(filteredAssignments));
-    
-    // Remove associated submissions
-    const filteredSubmissions = homeworkSubmissions.filter(sub => sub.homeworkId !== homeworkId);
-    localStorage.setItem("homeworkSubmissions", JSON.stringify(filteredSubmissions));
-    
-    // Update state
-    setHomeworkAssignments(filteredAssignments);
-    setHomeworkSubmissions(filteredSubmissions);
-    
-    toast({
-      title: t("homework-deleted"),
-      description: t("homework-submissions-deleted"),
-    });
-  };
-
-  const navigateToStudentProfile = (studentId: string) => {
-    navigate(`/teacher/student/${studentId}`);
-  };
-
-  // Search students for adding to class
-  const handleSearchStudents = () => {
-    if (!searchStudentTerm.trim()) {
-      setSearchStudentResults([]);
-      return;
-    }
-
-    const term = searchStudentTerm.toLowerCase();
-    const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
-    
-    // Filter students who aren't already in this class
-    const filteredStudents = allStudents.filter((student: any) => {
-      const isAlreadyInClass = selectedClass?.students?.includes(student.id);
-      const matchesTerm = 
-        student.username?.toLowerCase().includes(term) ||
-        student.displayName?.toLowerCase().includes(term);
-      
-      return !isAlreadyInClass && matchesTerm;
-    });
-    
-    setSearchStudentResults(filteredStudents);
-  };
-
-  // Add student to class
-  const handleAddStudentToClass = (studentId: string) => {
-    if (!selectedClass) return;
-    
-    // Update class with new student
-    const updatedClasses = classes.map(cls => {
-      if (cls.id === selectedClass.id) {
-        return {
-          ...cls,
-          students: [...(cls.students || []), studentId]
-        };
-      }
-      return cls;
-    });
-    
-    // Save to localStorage
-    localStorage.setItem("classes", JSON.stringify(updatedClasses));
-    
-    // Update state
-    setClasses(updatedClasses);
-    setSelectedClass({
-      ...selectedClass,
-      students: [...(selectedClass.students || []), studentId]
-    });
-    
-    // Refresh student data
-    loadStudentsData();
-    
-    toast({
-      title: t("success"),
-      description: t("student-added-to-class"),
-    });
-    
-    // Clear search
-    setSearchStudentTerm("");
-    setSearchStudentResults([]);
-  };
-
-  // Filter homework based on expiration
-  const now = new Date();
-  const activeHomework = homeworkAssignments.filter(hw => new Date(hw.expiresAt) > now);
-
-  // Get submissions for a specific homework
-  const getSubmissionsForHomework = (homeworkId: string) => {
-    return homeworkSubmissions.filter(sub => sub.homeworkId === homeworkId);
-  };
-
-  // Get icon for homework type
-  const getHomeworkTypeIcon = (type: string) => {
-    switch (type) {
-      case "text": return <FileText className="h-5 w-5 text-blue-500" />;
-      case "image": return <ImageIcon className="h-5 w-5 text-green-500" />;
-      case "audio": return <MicIcon className="h-5 w-5 text-purple-500" />;
-      default: return <FileText className="h-5 w-5" />;
+    } catch (error) {
+      console.error("Error loading teacher:", error);
     }
   };
-  
-  // Create Icon components for types from lucide-react
-  const ImageIcon = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>;
-  
-  const MicIcon = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>;
-  
+
+  const loadStudents = () => {
+    try {
+      const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+      const classStudents = allStudents.filter((student: Student) => student.classId === classId);
+      setStudents(classStudents);
+    } catch (error) {
+      console.error("Error loading students:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load students",
+      });
+    }
+  };
+
+  const handleAddStudent = () => {
+    setIsAddingStudent(true);
+  };
+
+  const handleCreateStudent = () => {
+    try {
+      // Get all students from localStorage
+      const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+
+      // Check if the username already exists
+      const usernameExists = allStudents.some((student: Student) => student.username === newStudentUsername);
+      if (usernameExists) {
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Username already exists",
+        });
+        return;
+      }
+
+      // Create a new student object
+      const newStudent: Student = {
+        id: `student-${Date.now()}`,
+        username: newStudentUsername,
+        displayName: newStudentUsername,
+        classId: classId,
+        avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${newStudentUsername}`,
+        createdAt: new Date().toISOString(),
+        teacherId: teacher?.id,
+        schoolId: schoolId,
+      };
+
+      // Add the new student to the array
+      allStudents.push(newStudent);
+
+      // Save the updated array back to localStorage
+      localStorage.setItem("students", JSON.stringify(allStudents));
+
+      // Clear the input field and close the form
+      setNewStudentUsername("");
+      setIsAddingStudent(false);
+
+      // Show success message
+      toast({
+        title: "Success",
+        description: "Student created successfully",
+      });
+
+      // Refresh student list
+      loadStudents();
+    } catch (error) {
+      console.error("Error creating student:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to create student",
+      });
+    }
+  };
+
+  const handleCancelCreateStudent = () => {
+    setNewStudentUsername("");
+    setIsAddingStudent(false);
+  };
+
+  const handleOpenManageStudentDialog = (studentId: string, studentName: string) => {
+    setSelectedStudentId(studentId);
+    setSelectedStudentName(studentName);
+    setIsManageStudentDialogOpen(true);
+  };
+
+  const handleCloseManageStudentDialog = () => {
+    setSelectedStudentId(null);
+    setSelectedStudentName(null);
+    setIsManageStudentDialogOpen(false);
+  };
+
   const handleRemoveStudentFromClass = (studentId: string) => {
-    if (!selectedClass) return;
-    
-    // Update class by removing student
-    const updatedClasses = classes.map(cls => {
-      if (cls.id === selectedClass.id) {
-        return {
-          ...cls,
-          students: cls.students.filter(id => id !== studentId)
-        };
-      }
-      return cls;
-    });
-    
-    // Save to localStorage
-    localStorage.setItem("classes", JSON.stringify(updatedClasses));
-    
-    // Update state
-    setClasses(updatedClasses);
-    setSelectedClass({
-      ...selectedClass,
-      students: selectedClass.students.filter(id => id !== studentId)
-    });
-    
-    // Refresh student data
-    loadStudentsData();
-    
-    toast({
-      title: "Student removed",
-      description: "Student has been removed from the class",
-    });
+    try {
+      // Get all students from localStorage
+      const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+      
+      // Find the student to update
+      const updatedStudents = allStudents.map((student: StudentType) => {
+        if (student.id === studentId) {
+          // Remove the classId from this student
+          return { ...student, classId: undefined };
+        }
+        return student;
+      });
+      
+      // Save updated students back to localStorage
+      localStorage.setItem("students", JSON.stringify(updatedStudents));
+      
+      // Show success message
+      toast({
+        title: "Success",
+        description: "Student removed from class",
+      });
+      
+      // Refresh student list
+      loadStudents();
+    } catch (error) {
+      console.error("Error removing student from class:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to remove student from class",
+      });
+    }
+  };
+
+  const handleRemoveStudent = () => {
+    if (selectedStudentId) {
+      handleRemoveStudentFromClass(selectedStudentId);
+      handleCloseManageStudentDialog();
+    }
+  };
+
+  const handleOpenEditDialog = () => {
+    setIsEditDialogOpen(true);
+  };
+
+  const handleCloseEditDialog = () => {
+    setIsEditDialogOpen(false);
+  };
+
+  const handleSaveClassName = () => {
+    try {
+      // Get all classes from localStorage
+      const classes = JSON.parse(localStorage.getItem("classes") || "[]");
+
+      // Find the class to update
+      const updatedClasses = classes.map((cls: ClassType) => {
+        if (cls.id === classId) {
+          // Update the class name
+          return { ...cls, name: editedClassName };
+        }
+        return cls;
+      });
+
+      // Save updated classes back to localStorage
+      localStorage.setItem("classes", JSON.stringify(updatedClasses));
+
+      // Show success message
+      toast({
+        title: "Success",
+        description: "Class name updated successfully",
+      });
+
+      // Refresh class
+      loadClass();
+      handleCloseEditDialog();
+    } catch (error) {
+      console.error("Error updating class name:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to update class name",
+      });
+    }
+  };
+
+  const handleRemoveStudentFromClassDialog = () => {
+    if (selectedStudentId) {
+      handleRemoveStudentFromClass(selectedStudentId);
+      handleCloseManageStudentDialog();
+    }
   };
 
   return (
-    <div>
-      <div className="flex items-center mb-6">
-        <Button variant="outline" onClick={onBack} className="mr-4">
-          <ChevronLeft className="h-4 w-4 mr-1" />
-          {t("back")}
-        </Button>
-        <h2 className="text-2xl font-bold flex-1">
-          {selectedClass ? selectedClass.name : t("class-management")}
-        </h2>
-        
-        {!selectedClass && (
-          <Button onClick={() => setIsCreateClassDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            {t("create-class")}
+    <div className="flex flex-col h-full">
+      <Card className="flex-1">
+        <CardHeader>
+          <div className="flex justify-between items-center">
+            <CardTitle>
+              {currentClass ? currentClass.name : "Loading..."}
+            </CardTitle>
+            <div>
+              <Button variant="outline" size="icon" onClick={handleOpenEditDialog}>
+                <Edit className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="flex-1">
+          <StudentsTab classId={classId || ""} />
+        </CardContent>
+        <CardFooter>
+          <Button onClick={handleAddStudent}>
+            <Plus className="h-4 w-4 mr-2" />
+            Add Student
           </Button>
-        )}
-        
-        {selectedClass && (
-          <div className="flex gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setIsAddStudentDialogOpen(true)}
-              className="mr-2"
-            >
-              <UserPlus className="h-4 w-4 mr-1" />
-              {t("add-student")}
-            </Button>
-            <Button variant="destructive" onClick={() => handleDeleteClass(selectedClass.id)}>
-              <Trash className="h-4 w-4 mr-1" />
-              {t("delete-class")}
-            </Button>
-          </div>
-        )}
-      </div>
-      
-      {!selectedClass ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {classes.length > 0 ? (
-            classes.map(classData => (
-              <Card key={classData.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleClassSelect(classData)}>
-                <CardHeader>
-                  <CardTitle>{classData.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center text-gray-500">
-                    <Users className="h-5 w-5 mr-2" />
-                    <span>
-                      {classData.students ? classData.students.length : 0} {t("students")}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))
-          ) : (
-            <div className="col-span-full text-center py-12">
-              <p className="text-gray-500 mb-4">{t("no-classes")}</p>
-              <Button onClick={() => setIsCreateClassDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                {t("create-class")}
-              </Button>
-            </div>
-          )}
-        </div>
-      ) : (
-        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
-          <TabsList className="mb-6">
-            <TabsTrigger value="students">{t("students")}</TabsTrigger>
-            <TabsTrigger value="homework">{t("homework")}</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="students">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("students-in-class")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {students.length > 0 ? (
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t("name")}</TableHead>
-                        <TableHead>{t("coins")}</TableHead>
-                        <TableHead className="text-right">{t("actions")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {students.map(student => (
-                        <TableRow key={student.id}>
-                          <TableCell className="font-medium cursor-pointer hover:underline" 
-                                     onClick={() => navigateToStudentProfile(student.id)}>
-                            {student.displayName}
-                          </TableCell>
-                          <TableCell>{student.coins}</TableCell>
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                className="text-amber-500"
-                                onClick={() => handleAwardCoins(student.id, student.displayName)}
-                              >
-                                <Coins className="h-4 w-4 mr-1" />
-                                {t("award-coins")}
-                              </Button>
-                              
-                              <Button 
-                                variant="outline" 
-                                size="sm"
-                                onClick={() => handleManageStudent(student.id, student.displayName)}
-                              >
-                                <User className="h-4 w-4 mr-1" />
-                                {t("manage")}
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                ) : (
-                  <div className="text-center py-6">
-                    <p className="text-gray-500">{t("no-students-in-class")}</p>
-                    <Button 
-                      onClick={() => setIsAddStudentDialogOpen(true)} 
-                      className="mt-4"
-                    >
-                      <UserPlus className="h-4 w-4 mr-1" />
-                      {t("add-student")}
-                    </Button>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-          
-          <TabsContent value="homework">
-            <div className="flex justify-between mb-6">
-              <h3 className="text-xl font-semibold">{t("class-homework")}</h3>
-              <Button onClick={() => setIsCreateHomeworkOpen(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                {t("create-homework")}
-              </Button>
-            </div>
-            
-            {activeHomework.length === 0 ? (
-              <Card>
-                <CardContent className="pt-6 text-center">
-                  <p>{t("no-active-homework")}</p>
-                  <Button onClick={() => setIsCreateHomeworkOpen(true)} className="mt-4">
-                    {t("create-homework")}
-                  </Button>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {activeHomework.map(homework => {
-                  const submissions = getSubmissionsForHomework(homework.id);
-                  return (
-                    <Card key={homework.id} className="overflow-hidden">
-                      <CardHeader className="pb-3">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center">
-                            {getHomeworkTypeIcon(homework.type)}
-                            <CardTitle className="ml-2">{homework.title}</CardTitle>
-                          </div>
-                        </div>
-                        <p className="text-sm text-gray-500 mt-2">
-                          {new Date(homework.createdAt).toLocaleDateString()} - {t("expires-in")} {Math.ceil((new Date(homework.expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60))} {t("hours")}
-                        </p>
-                      </CardHeader>
-                      <CardContent>
-                        <p className="text-sm mb-3">{homework.description}</p>
-                        <div className="bg-gray-50 p-3 rounded-md">
-                          <p className="text-sm font-medium mb-2">{t("submissions")}: {submissions.length}</p>
-                          {submissions.length > 0 ? (
-                            <div className="space-y-2 max-h-64 overflow-auto">
-                              {submissions.map(submission => (
-                                <div key={submission.id} className="bg-white p-2 rounded border flex justify-between items-center">
-                                  <div>
-                                    <p className="font-medium cursor-pointer hover:underline" 
-                                       onClick={() => navigateToStudentProfile(submission.studentId)}>
-                                      {submission.studentName}
-                                    </p>
-                                    <p className="text-xs text-gray-500">{new Date(submission.submittedAt).toLocaleString()}</p>
-                                  </div>
-                                  {submission.status === "pending" ? (
-                                    <div className="flex space-x-1">
-                                      <Button size="sm" variant="outline" onClick={() => window.open(submission.content, '_blank')}>
-                                        <Download className="h-4 w-4" />
-                                      </Button>
-                                      <Button 
-                                        size="sm" 
-                                        variant="outline" 
-                                        className="text-amber-500"
-                                        onClick={() => handleAwardCoins(submission.studentId, submission.studentName)}
-                                      >
-                                        <Coins className="h-4 w-4" />
-                                      </Button>
-                                      <Button size="sm" variant="outline" className="text-red-500" onClick={() => handleRejectSubmission(submission)}>
-                                        <X className="h-4 w-4" />
-                                      </Button>
-                                      <Button size="sm" variant="outline" className="text-green-500" onClick={() => handleApproveSubmission(submission)}>
-                                        <Check className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  ) : (
-                                    <div className="flex items-center space-x-2">
-                                      <span className={`px-2 py-1 rounded text-xs ${submission.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                        {submission.status === 'approved' ? t("approved") : t("rejected")}
-                                      </span>
-                                      <Button 
-                                        size="sm" 
-                                        variant="outline" 
-                                        className="text-amber-500"
-                                        onClick={() => handleAwardCoins(submission.studentId, submission.studentName)}
-                                      >
-                                        <Coins className="h-4 w-4" />
-                                      </Button>
-                                    </div>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <p className="text-sm text-gray-500">{t("no-submissions-yet")}</p>
-                          )}
-                        </div>
-                      </CardContent>
-                      <CardFooter className="flex justify-between">
-                        <div className="text-sm">
-                          <span className="font-medium">{t("reward")}:</span> {homework.coinReward} {t("coins")}
-                        </div>
-                        <Button variant="outline" className="text-red-500" onClick={() => handleDeleteHomework(homework.id)}>
-                          {t("delete")}
-                        </Button>
-                      </CardFooter>
-                    </Card>
-                  );
-                })}
+        </CardFooter>
+      </Card>
+
+      {isAddingStudent && (
+        <Dialog open={isAddingStudent} onOpenChange={setIsAddingStudent}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Create New Student</DialogTitle>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="username" className="text-right">
+                  Username
+                </Label>
+                <Input
+                  id="username"
+                  value={newStudentUsername}
+                  onChange={(e) => setNewStudentUsername(e.target.value)}
+                  className="col-span-3"
+                />
               </div>
-            )}
-          </TabsContent>
-        </Tabs>
+            </div>
+            <DialogFooter>
+              <Button type="button" variant="secondary" onClick={handleCancelCreateStudent}>
+                Cancel
+              </Button>
+              <Button type="submit" onClick={handleCreateStudent}>
+                Create
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       )}
-      
-      {/* Create Class Dialog */}
-      <Dialog open={isCreateClassDialogOpen} onOpenChange={setIsCreateClassDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("create-class")}</DialogTitle>
-            <DialogDescription>
-              {t("create-class-desc")}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="space-y-2">
-              <Label htmlFor="className">{t("class-name")}</Label>
-              <Input
-                id="className"
-                value={newClassName}
-                onChange={(e) => setNewClassName(e.target.value)}
-                placeholder={t("enter-class-name")}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateClassDialogOpen(false)}>
-              {t("cancel")}
-            </Button>
-            <Button onClick={handleCreateClass}>
-              {t("create")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Add Student to Class Dialog */}
-      <Dialog open={isAddStudentDialogOpen} onOpenChange={setIsAddStudentDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>{t("add-student-to-class")}</DialogTitle>
-            <DialogDescription>
-              {t("search-student-by-name")}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="flex gap-2">
-              <Input
-                placeholder={t("search-student")}
-                value={searchStudentTerm}
-                onChange={(e) => setSearchStudentTerm(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    handleSearchStudents();
-                  }
-                }}
-              />
-              <Button onClick={handleSearchStudents}>{t("search")}</Button>
-            </div>
-            
-            <div className="max-h-64 overflow-y-auto">
-              {searchStudentResults.length > 0 ? (
-                <div className="space-y-2">
-                  {searchStudentResults.map((student) => (
-                    <div key={student.id} className="flex items-center justify-between p-2 border rounded">
-                      <div>
-                        <p className="font-medium">{student.displayName || student.username}</p>
-                        <p className="text-xs text-gray-500">@{student.username}</p>
-                      </div>
-                      <Button size="sm" onClick={() => handleAddStudentToClass(student.id)}>
-                        {t("add")}
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              ) : searchStudentTerm ? (
-                <p className="text-center py-4 text-gray-500">{t("no-students-found")}</p>
-              ) : (
-                <p className="text-center py-4 text-gray-500">{t("search-to-find-students")}</p>
-              )}
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setIsAddStudentDialogOpen(false)}>
-              {t("cancel")}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-      
-      {/* Create Homework Dialog */}
-      {selectedClass && (
-        <CreateHomeworkDialog
-          open={isCreateHomeworkOpen}
-          onOpenChange={setIsCreateHomeworkOpen}
-          onHomeworkCreated={handleHomeworkCreated}
-          teacherId={teacherId}
-          classId={selectedClass.id}
-          className={selectedClass.name}
-        />
-      )}
-      
-      {/* Give Coins Dialog */}
-      <GiveCoinsDialog
-        open={isGiveCoinsOpen}
-        onOpenChange={setIsGiveCoinsOpen}
-        onGiveCoins={handleGiveCoins}
-      />
-      
-      {/* Student Manage Dialog */}
-      {selectedStudent && (
+
+      {selectedStudentId && selectedStudentName && (
         <StudentManageDialog
-          open={isManageStudentOpen}
-          onOpenChange={setIsManageStudentOpen}
-          studentId={selectedStudent.id}
-          studentName={selectedStudent.name}
-          onRemoveFromClass={() => handleRemoveStudentFromClass(selectedStudent.id)}
+          open={isManageStudentDialogOpen}
+          onOpenChange={setIsManageStudentDialogOpen}
+          studentId={selectedStudentId}
+          studentName={selectedStudentName}
+          onRemoveFromClass={handleRemoveStudentFromClassDialog}
         />
       )}
+
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Class Name</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="name"
+                value={editedClassName}
+                onChange={(e) => setEditedClassName(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="secondary" onClick={handleCloseEditDialog}>
+              Cancel
+            </Button>
+            <Button type="submit" onClick={handleSaveClassName}>
+              Save
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
