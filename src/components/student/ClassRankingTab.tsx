@@ -39,6 +39,8 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
       const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
       const classStudents = allStudents.filter((s: Student) => s.classId === classId);
       
+      console.log("Class students for ranking:", classStudents);
+      
       // Get Pokemon counts and coins for each student
       const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
       
@@ -69,6 +71,8 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
         ...student,
         rank: index + 1
       }));
+      
+      console.log("Ranked students:", rankedStudents);
       
       // Only show top 10
       setStudents(rankedStudents.slice(0, 10));

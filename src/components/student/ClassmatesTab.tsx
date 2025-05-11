@@ -35,25 +35,34 @@ const ClassmatesTab: React.FC<ClassmatesTabProps> = ({ classId }) => {
       
       // Add some sample students if none are found and we're in development mode
       if (classStudents.length === 0 && import.meta.env.DEV) {
-        // This is just for demo purposes
+        // This is just for demo purposes - using the correct names as requested
         const sampleClassmates = [
           {
             id: "student-1",
-            username: "john_doe",
-            displayName: "John Doe",
+            username: "ariel_waters",
+            displayName: "Ariel",
             classId: classId,
             teacherId: "teacher-1", 
             createdAt: new Date().toISOString(),
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John"
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ariel"
           },
           {
             id: "student-2",
-            username: "jane_smith",
-            displayName: "Jane Smith",
+            username: "brian_smith",
+            displayName: "Brian",
             classId: classId,
             teacherId: "teacher-1",
             createdAt: new Date().toISOString(),
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jane"
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Brian"
+          },
+          {
+            id: "student-3",
+            username: "kate_jones",
+            displayName: "Kate",
+            classId: classId,
+            teacherId: "teacher-1",
+            createdAt: new Date().toISOString(),
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Kate"
           }
         ];
         
@@ -63,6 +72,32 @@ const ClassmatesTab: React.FC<ClassmatesTabProps> = ({ classId }) => {
         
         // Update state
         setClassmates(sampleClassmates);
+        
+        // Also make sure these students have Pokemon collections for the ranking
+        const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
+        const updatedStudentPokemons = [...studentPokemons];
+        
+        // Add sample Pokemon data for these students if they don't have any
+        sampleClassmates.forEach(student => {
+          const existingIndex = updatedStudentPokemons.findIndex(sp => sp.studentId === student.id);
+          if (existingIndex === -1) {
+            // Add some random number of pokemons and coins
+            const pokemonCount = Math.floor(Math.random() * 5) + 1;
+            updatedStudentPokemons.push({
+              studentId: student.id,
+              pokemons: Array(pokemonCount).fill(null).map((_, i) => ({
+                id: `pokemon-${student.id}-${i}`,
+                name: `Pokemon ${i+1}`,
+                image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${Math.floor(Math.random() * 150) + 1}.png`,
+                type: "normal",
+                rarity: ["common", "uncommon", "rare", "legendary"][Math.floor(Math.random() * 4)] as "common" | "uncommon" | "rare" | "legendary"
+              })),
+              coins: Math.floor(Math.random() * 100)
+            });
+          }
+        });
+        
+        localStorage.setItem("studentPokemons", JSON.stringify(updatedStudentPokemons));
         
         toast({
           description: "Sample classmates added for demonstration",
