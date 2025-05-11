@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, MessageSquare, User, Home, Medal } from "lucide-react";
+import { LogOut, MessageSquare, User, Home, Medal, Settings } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import UserSettingsModal from "./modals/UserSettingsModal";
@@ -100,19 +100,24 @@ export const NavBar: React.FC<NavBarProps> = ({
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleViewProfile}>
                 <User className="mr-2 h-4 w-4" />
-                <span>View Profile</span>
+                <span>{t("view-profile")}</span>
+              </DropdownMenuItem>
+              
+              <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
+                <Settings className="mr-2 h-4 w-4" />
+                <span>{t("settings")}</span>
               </DropdownMenuItem>
               
               {isAdmin && userType === "teacher" && (
                 <DropdownMenuItem onClick={() => navigate("/admin-dashboard")}>
                   <User className="mr-2 h-4 w-4" />
-                  <span>Admin Dashboard</span>
+                  <span>{t("admin-dashboard")}</span>
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>Logout</span>
+                <span>{t("logout")}</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -134,3 +139,15 @@ export const NavBar: React.FC<NavBarProps> = ({
     </div>
   );
 };
+
+function t(key: string): string {
+  // Simple translation function for this component
+  const translations: Record<string, string> = {
+    "view-profile": "View Profile",
+    "settings": "Settings",
+    "admin-dashboard": "Admin Dashboard",
+    "logout": "Logout"
+  };
+  
+  return translations[key] || key;
+}

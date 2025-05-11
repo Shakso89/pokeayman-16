@@ -3,7 +3,7 @@ import React, { useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Coins, Camera, MessageSquare, UserPlus } from "lucide-react";
+import { Coins, Camera, MessageSquare, UserPlus, Settings } from "lucide-react";
 import { Student } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "sonner";
@@ -99,6 +99,12 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
     localStorage.setItem("selectedContactType", "student");
   };
   
+  const handleOpenSettings = () => {
+    // For demonstration purposes, we'll just show a toast
+    // In a real implementation, this would open a settings modal
+    toast("Settings would open here");
+  };
+  
   return (
     <Card className="col-span-1 pokemon-card">
       <CardHeader>
@@ -161,7 +167,10 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
           <div className="flex justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500">{t("current-coins")}:</p>
-              <p>{coins}</p>
+              <p className="text-xl font-bold text-amber-600 flex items-center">
+                <Coins className="h-4 w-4 mr-1 text-amber-500" />
+                {coins}
+              </p>
             </div>
             <div>
               <p className="text-sm font-medium text-gray-500">{t("spent-coins")}:</p>
@@ -209,6 +218,17 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
                 {t("view-profile")}
               </Button>
             </div>
+          )}
+          
+          {isOwnProfile && (
+            <Button
+              variant="outline"
+              className="w-full flex items-center"
+              onClick={handleOpenSettings}
+            >
+              <Settings className="h-4 w-4 mr-2" />
+              {t("settings")}
+            </Button>
           )}
         </div>
       </CardContent>

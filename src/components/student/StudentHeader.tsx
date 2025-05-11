@@ -48,6 +48,14 @@ const StudentHeader: React.FC<StudentHeaderProps> = ({
               <MessageSquare className="h-4 w-4" />
               Messages
             </Button>
+            
+            <Button
+              className="bg-green-500 hover:bg-green-600 flex items-center gap-2"
+              onClick={() => navigate("/student/settings")}
+            >
+              <Coins className="h-4 w-4" />
+              {coins} Coins
+            </Button>
           </div>
         </div>
       </CardContent>
