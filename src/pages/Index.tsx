@@ -27,7 +27,7 @@ const Index: React.FC = () => {
       <div className="flex-1 flex flex-col md:flex-row items-center justify-between w-full max-w-6xl p-6">
         {/* Left Side - Description */}
         <div className="md:w-1/2 text-left mb-8 md:mb-0 md:pr-8 my-0 py-0 mx-0 px-[97px]">
-          <h2 className="text-3xl font-bold text-white mb-4">Why PokéAyamn?</h2>
+          <h2 className="text-3xl font-bold text-white mb-4">Why PokéAyman?</h2>
           <p className="text-xl text-white/90">
             Turn everyday lessons into exciting adventures! Use Pokémon, challenges, and rewards 
             to boost student motivation and make learning unforgettable. Join a new wave of 
