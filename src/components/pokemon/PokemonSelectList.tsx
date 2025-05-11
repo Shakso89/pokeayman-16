@@ -10,7 +10,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { useTranslation } from "@/hooks/useTranslation";
 
 interface PokemonSelectListProps {
   pokemons: Pokemon[];
@@ -27,13 +26,11 @@ const PokemonSelectList: React.FC<PokemonSelectListProps> = ({
   label = "Select Pokémon",
   placeholder = "Choose a Pokémon"
 }) => {
-  const { t } = useTranslation();
-
   // Don't render the component if there are no pokemons
   if (pokemons.length === 0) {
     return (
       <div className="text-center py-4">
-        <p className="text-gray-500">{t("no-available-pokemon")}</p>
+        <p className="text-gray-500">No Pokémon available</p>
       </div>
     );
   }

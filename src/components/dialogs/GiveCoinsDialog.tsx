@@ -11,7 +11,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
-import { useTranslation } from "@/hooks/useTranslation";
 
 interface GiveCoinsDialogProps {
   open: boolean;
@@ -24,7 +23,6 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
   onOpenChange, 
   onGiveCoins 
 }) => {
-  const { t } = useTranslation();
   const [coinAmount, setCoinAmount] = useState<number>(10);
 
   const handleGiveCoins = () => {
@@ -35,15 +33,15 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t("give-coins-to-student")}</DialogTitle>
+          <DialogTitle>Give Coins to Student</DialogTitle>
           <DialogDescription>
-            {t("give-coins-description")}
+            Enter the amount of coins to give to the student.
           </DialogDescription>
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="coins">{t("coin-amount")}</Label>
+            <Label htmlFor="coins">Coin Amount</Label>
             <Input
               id="coins"
               type="number"
@@ -56,10 +54,10 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
         
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            {t("cancel")}
+            Cancel
           </Button>
           <Button onClick={handleGiveCoins}>
-            {t("give-coins")}
+            Give Coins
           </Button>
         </DialogFooter>
       </DialogContent>

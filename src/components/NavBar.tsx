@@ -1,29 +1,28 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, MessageSquare, User, Home, Medal } from "lucide-react";
-import LanguageSelector from "./LanguageSelector";
-import { useTranslation } from "@/hooks/useTranslation";
+import { LogOut, MessageSquare, User, Home } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import UserSettingsModal from "./modals/UserSettingsModal";
 import NotificationBadge from "./NotificationBadge";
 import SearchBar from "./SearchBar";
+
 interface NavBarProps {
   userType: "teacher" | "student";
   userName?: string;
   userAvatar?: string;
 }
+
 export const NavBar: React.FC<NavBarProps> = ({
   userType,
   userName,
   userAvatar
 }) => {
   const navigate = useNavigate();
-  const {
-    t
-  } = useTranslation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+
   const handleLogout = () => {
     localStorage.removeItem("userType");
     localStorage.removeItem("isLoggedIn");
@@ -35,10 +34,13 @@ export const NavBar: React.FC<NavBarProps> = ({
     localStorage.removeItem("studentClassId");
     navigate("/");
   };
+
   const isAdmin = localStorage.getItem("teacherUsername") === "Admin";
+  
   const handleCloseSettings = () => {
     setIsSettingsOpen(false);
   };
+  
   const handleViewProfile = () => {
     if (userType === "teacher") {
       const teacherId = localStorage.getItem("teacherId");
@@ -48,35 +50,32 @@ export const NavBar: React.FC<NavBarProps> = ({
       navigate(`/teacher/student/${studentId}`);
     }
   };
+
   return <div className="bg-white border-b shadow-sm">
       <div className="flex items-center justify-between px-4 py-2 max-w-7xl mx-auto">
         <div className="flex items-center gap-4">
           <img src="/lovable-uploads/40c04be5-3d6e-4938-9a00-006177dbef3b.png" alt="PokéAyman Logo" className="h-12 w-auto" />
           <h1 className="text-xl font-bold">
-            {userType === "teacher" ? t("teacher-dashboard") : t("student-dashboard")}
+            {userType === "teacher" ? "Teacher Dashboard" : "Student Dashboard"}
           </h1>
         </div>
         
-        {/* Added Search Bar */}
+        {/* Search Bar */}
         <div className="hidden md:flex flex-1 mx-4">
           <SearchBar />
         </div>
         
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")} title={t("home")}>
+          <Button variant="ghost" size="icon" onClick={() => navigate("/")} title="Home">
             <Home size={20} />
           </Button>
           
-          <LanguageSelector />
-          
-          {/* Added Notification Badge */}
+          {/* Notification Badge */}
           <NotificationBadge />
           
-          
-
           <Button variant="secondary" onClick={() => navigate(`/${userType === "teacher" ? "teacher" : "student"}/messages`)} className="flex items-center gap-2">
             <MessageSquare size={20} />
-            <span className="hidden md:inline">{t("messages")}</span>
+            <span className="hidden md:inline">Messages</span>
           </Button>
 
           <DropdownMenu>
@@ -100,17 +99,17 @@ export const NavBar: React.FC<NavBarProps> = ({
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleViewProfile}>
                 <User className="mr-2 h-4 w-4" />
-                <span>{t("view-profile")}</span>
+                <span>View Profile</span>
               </DropdownMenuItem>
               
               {isAdmin && userType === "teacher" && <DropdownMenuItem onClick={() => navigate("/admin-dashboard")}>
                   <User className="mr-2 h-4 w-4" />
-                  <span>{t("admin-dashboard")}</span>
+                  <span>Admin Dashboard</span>
                 </DropdownMenuItem>}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
-                <span>{t("logout")}</span>
+                <span>Logout</span>
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>

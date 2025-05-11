@@ -2,7 +2,6 @@
 import React, { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Plus, X, Camera } from "lucide-react";
-import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "sonner";
 
 interface PhotosTabProps {
@@ -20,7 +19,6 @@ export const PhotosTab: React.FC<PhotosTabProps> = ({
   maxPhotos = 4,
   readOnly = false
 }) => {
-  const { t } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [currentPhotos, setCurrentPhotos] = useState<string[]>(photos);
   
@@ -34,14 +32,14 @@ export const PhotosTab: React.FC<PhotosTabProps> = ({
       
       // Check file type
       if (!file.type.match('image.*')) {
-        toast.error(t("only-images-allowed"));
+        toast.error("Only images are allowed");
         return;
       }
       
       // Check file size (max 5MB)
       const maxSize = 5 * 1024 * 1024; // 5MB
       if (file.size > maxSize) {
-        toast.error(t("image-too-large"));
+        toast.error("Image is too large (max 5MB)");
         return;
       }
       
@@ -105,7 +103,7 @@ export const PhotosTab: React.FC<PhotosTabProps> = ({
             <div className="flex flex-col items-center p-4">
               <Plus className="h-8 w-8 text-gray-400" />
               <span className="text-sm text-gray-500 mt-2">
-                {t("add-photo")}
+                Add Photo
               </span>
             </div>
           </div>
@@ -116,14 +114,14 @@ export const PhotosTab: React.FC<PhotosTabProps> = ({
       {!readOnly && currentPhotos.length === 0 && (
         <div className="text-center py-8">
           <Camera className="mx-auto h-12 w-12 text-gray-300" />
-          <p className="mt-2 text-gray-500">{t("no-photos-yet")}</p>
-          <p className="text-sm text-gray-400">{t("add-up-to-photos", { count: maxPhotos })}</p>
+          <p className="mt-2 text-gray-500">No photos yet</p>
+          <p className="text-sm text-gray-400">Add up to {maxPhotos} photos</p>
           <Button 
             variant="outline" 
             onClick={handleAddPhotoClick} 
             className="mt-4"
           >
-            {t("add-photo")}
+            Add Photo
           </Button>
         </div>
       )}

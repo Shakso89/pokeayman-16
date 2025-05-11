@@ -1,8 +1,10 @@
+
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { User, Mail, Lock } from "lucide-react";
+
 interface SignupFormFieldsProps {
   username: string;
   setUsername: (value: string) => void;
@@ -12,13 +14,11 @@ interface SignupFormFieldsProps {
   setPassword: (value: string) => void;
   confirmPassword: string;
   setConfirmPassword: (value: string) => void;
-  activationCode: string;
-  setActivationCode: (value: string) => void;
   isLoading: boolean;
   onOpenContactDialog: () => void;
   onNavigateToLogin: () => void;
-  activationOptional?: boolean;
 }
+
 const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
   username,
   setUsername,
@@ -28,12 +28,8 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
   setPassword,
   confirmPassword,
   setConfirmPassword,
-  activationCode,
-  setActivationCode,
   isLoading,
-  onOpenContactDialog,
-  onNavigateToLogin,
-  activationOptional = false
+  onNavigateToLogin
 }) => {
   return <>
       {/* Username field */}
@@ -72,15 +68,6 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
         </div>
       </div>
       
-      {/* Activation Code field - optional now */}
-      <div className="space-y-2">
-        
-        
-        <p className="text-xs text-gray-400">
-          {activationOptional ? "You can register without a code, but will need one to access all features" : "Use code starting with TRIAL for a 7-day trial"}
-        </p>
-      </div>
-      
       {/* Submit button */}
       <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
         {isLoading ? "Creating Account..." : "Create Account"}
@@ -96,4 +83,5 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
       </div>
     </>;
 };
+
 export default SignupFormFields;
