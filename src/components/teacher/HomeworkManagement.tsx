@@ -2,13 +2,15 @@
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, FileText, Image, Mic, Check, X, Download } from "lucide-react";
+import { ChevronLeft, FileText, Image, Mic, Check, X, Download, Coins } from "lucide-react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkAssignment, HomeworkSubmission } from "@/types/homework";
 import { awardCoinsToStudent } from "@/utils/pokemon";
 import CreateHomeworkDialog from "./CreateHomeworkDialog";
+import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
+import { useNavigate } from "react-router-dom";
 
 interface HomeworkManagementProps {
   onBack: () => void;
@@ -18,12 +20,15 @@ interface HomeworkManagementProps {
 const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacherId }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const navigate = useNavigate();
   
   const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
   const [isCreateHomeworkOpen, setIsCreateHomeworkOpen] = useState(false);
   const [homeworkAssignments, setHomeworkAssignments] = useState<HomeworkAssignment[]>([]);
   const [homeworkSubmissions, setHomeworkSubmissions] = useState<HomeworkSubmission[]>([]);
   const [classes, setClasses] = useState<Array<{ id: string; name: string }>>([]);
+  const [isGiveCoinsOpen, setIsGiveCoinsOpen] = useState(false);
+  const [selectedStudent, setSelectedStudent] = useState<{id: string, name: string} | null>(null);
   
   // Load data
   useEffect(() => {
@@ -62,7 +67,7 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
     // Update submission status
     const updatedSubmissions = homeworkSubmissions.map(sub => {
       if (sub.id === submission.id) {
-        return { ...sub, status: "approved" };
+        return { ...sub, status: "approved" as const };
       }
       return sub;
     });
@@ -84,7 +89,7 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
     // Update submission status
     const updatedSubmissions = homeworkSubmissions.map(sub => {
       if (sub.id === submission.id) {
-        return { ...sub, status: "rejected" };
+        return { ...sub, status: "rejected" as const };
       }
       return sub;
     });
@@ -116,6 +121,31 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
       title: t("homework-deleted"),
       description: t("homework-submissions-deleted"),
     });
+  };
+
+  const handleAwardCoins = (studentId: string, studentName: string) => {
+    setSelectedStudent({id: studentId, name: studentName});
+    setIsGiveCoinsOpen(true);
+  };
+
+  const handleGiveCoins = (amount: number) => {
+    if (!selectedStudent) return;
+    
+    // Award coins to student
+    awardCoinsToStudent(selectedStudent.id, amount);
+    
+    // Close dialog and reset selected student
+    setIsGiveCoinsOpen(false);
+    setSelectedStudent(null);
+    
+    toast({
+      title: t("coins-awarded"),
+      description: `${amount} ${t("coins-awarded-to")} ${selectedStudent.name}`,
+    });
+  };
+
+  const navigateToStudentProfile = (studentId: string) => {
+    navigate(`/teacher/student/${studentId}`);
   };
 
   // Filter homework based on expiration
@@ -202,13 +232,24 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
                             {submissions.map(submission => (
                               <div key={submission.id} className="bg-white p-2 rounded border flex justify-between items-center">
                                 <div>
-                                  <p className="font-medium">{submission.studentName}</p>
+                                  <p className="font-medium cursor-pointer hover:underline" 
+                                     onClick={() => navigateToStudentProfile(submission.studentId)}>
+                                    {submission.studentName}
+                                  </p>
                                   <p className="text-xs text-gray-500">{new Date(submission.submittedAt).toLocaleString()}</p>
                                 </div>
                                 {submission.status === "pending" ? (
                                   <div className="flex space-x-1">
                                     <Button size="sm" variant="outline" onClick={() => window.open(submission.content, '_blank')}>
                                       <Download className="h-4 w-4" />
+                                    </Button>
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline" 
+                                      className="text-amber-500"
+                                      onClick={() => handleAwardCoins(submission.studentId, submission.studentName)}
+                                    >
+                                      <Coins className="h-4 w-4" />
                                     </Button>
                                     <Button size="sm" variant="outline" className="text-red-500" onClick={() => handleRejectSubmission(submission)}>
                                       <X className="h-4 w-4" />
@@ -218,9 +259,19 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
                                     </Button>
                                   </div>
                                 ) : (
-                                  <span className={`px-2 py-1 rounded text-xs ${submission.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
-                                    {submission.status === 'approved' ? t("approved") : t("rejected")}
-                                  </span>
+                                  <div className="flex items-center space-x-2">
+                                    <span className={`px-2 py-1 rounded text-xs ${submission.status === 'approved' ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}`}>
+                                      {submission.status === 'approved' ? t("approved") : t("rejected")}
+                                    </span>
+                                    <Button 
+                                      size="sm" 
+                                      variant="outline" 
+                                      className="text-amber-500"
+                                      onClick={() => handleAwardCoins(submission.studentId, submission.studentName)}
+                                    >
+                                      <Coins className="h-4 w-4" />
+                                    </Button>
+                                  </div>
                                 )}
                               </div>
                             ))}
@@ -297,6 +348,12 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
         onHomeworkCreated={handleHomeworkCreated}
         teacherId={teacherId}
         classes={classes}
+      />
+
+      <GiveCoinsDialog
+        open={isGiveCoinsOpen}
+        onOpenChange={setIsGiveCoinsOpen}
+        onGiveCoins={handleGiveCoins}
       />
     </div>
   );
