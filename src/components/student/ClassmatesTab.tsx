@@ -5,6 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Student } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Card, CardContent } from "@/components/ui/card";
+import { useToast } from "@/hooks/use-toast";
 
 interface ClassmatesTabProps {
   classId: string;
@@ -12,6 +13,7 @@ interface ClassmatesTabProps {
 
 const ClassmatesTab: React.FC<ClassmatesTabProps> = ({ classId }) => {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const [classmates, setClassmates] = useState<Student[]>([]);
   const navigate = useNavigate();
   
@@ -20,16 +22,63 @@ const ClassmatesTab: React.FC<ClassmatesTabProps> = ({ classId }) => {
   }, [classId]);
   
   const loadClassmates = () => {
-    // In a real app, we would fetch from an API
-    // For this demo, we'll use localStorage
-    const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
-    
-    // Filter students for this class
-    const classStudents = allStudents.filter((student: Student) => 
-      student.classId === classId
-    );
-    
-    setClassmates(classStudents);
+    try {
+      // Get all students from localStorage
+      const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+      
+      // Filter students for this class
+      const classStudents = allStudents.filter((student: Student) => 
+        student.classId === classId
+      );
+      
+      console.log(`Found ${classStudents.length} classmates for class ${classId}`);
+      
+      // Add some sample students if none are found and we're in development mode
+      if (classStudents.length === 0 && import.meta.env.DEV) {
+        // This is just for demo purposes
+        const sampleClassmates = [
+          {
+            id: "student-1",
+            username: "john_doe",
+            displayName: "John Doe",
+            classId: classId,
+            teacherId: "teacher-1", 
+            createdAt: new Date().toISOString(),
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John"
+          },
+          {
+            id: "student-2",
+            username: "jane_smith",
+            displayName: "Jane Smith",
+            classId: classId,
+            teacherId: "teacher-1",
+            createdAt: new Date().toISOString(),
+            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Jane"
+          }
+        ];
+        
+        // Update localStorage with sample students
+        const updatedStudents = [...allStudents, ...sampleClassmates];
+        localStorage.setItem("students", JSON.stringify(updatedStudents));
+        
+        // Update state
+        setClassmates(sampleClassmates);
+        
+        toast({
+          description: "Sample classmates added for demonstration",
+        });
+      } else {
+        setClassmates(classStudents);
+      }
+    } catch (error) {
+      console.error("Error loading classmates:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to load classmates",
+      });
+      setClassmates([]);
+    }
   };
   
   const handleStudentClick = (studentId: string) => {
