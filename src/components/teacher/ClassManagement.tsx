@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, Plus, Users, Trash, FileText, Coins, Download, Check, X, UserPlus } from "lucide-react";
+import { ChevronLeft, Plus, Users, Trash, FileText, Coins, Download, Check, X, UserPlus, Gamepad2 } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -13,6 +13,7 @@ import { useNavigate } from "react-router-dom";
 import { HomeworkAssignment, HomeworkSubmission } from "@/types/homework";
 import CreateHomeworkDialog from "./CreateHomeworkDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
+import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
 import { awardCoinsToStudent } from "@/utils/pokemon";
 
 interface ClassManagementProps {
@@ -52,6 +53,9 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
   const [selectedTab, setSelectedTab] = useState<string>("students");
   const [isGiveCoinsOpen, setIsGiveCoinsOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<{id: string, name: string} | null>(null);
+  
+  // Manage Pokemon dialog state
+  const [isManagePokemonOpen, setIsManagePokemonOpen] = useState(false);
   
   // Add student to class state
   const [isAddStudentDialogOpen, setIsAddStudentDialogOpen] = useState(false);
@@ -217,6 +221,16 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
     });
   };
   
+  const handleManagePokemon = (studentId: string, studentName: string) => {
+    setSelectedStudent({id: studentId, name: studentName});
+    setIsManagePokemonOpen(true);
+  };
+
+  const handlePokemonRemoved = () => {
+    // Refresh student data when a Pokemon is removed
+    loadStudentsData();
+  };
+
   const handleHomeworkCreated = (homework: HomeworkAssignment) => {
     setHomeworkAssignments([...homeworkAssignments, homework]);
   };
@@ -472,15 +486,26 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
                           </TableCell>
                           <TableCell>{student.coins}</TableCell>
                           <TableCell className="text-right">
-                            <Button 
-                              variant="outline" 
-                              size="sm"
-                              className="text-amber-500"
-                              onClick={() => handleAwardCoins(student.id, student.displayName)}
-                            >
-                              <Coins className="h-4 w-4 mr-1" />
-                              {t("award-coins")}
-                            </Button>
+                            <div className="flex justify-end gap-2">
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="text-amber-500"
+                                onClick={() => handleAwardCoins(student.id, student.displayName)}
+                              >
+                                <Coins className="h-4 w-4 mr-1" />
+                                {t("award-coins")}
+                              </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="text-blue-500"
+                                onClick={() => handleManagePokemon(student.id, student.displayName)}
+                              >
+                                <Gamepad2 className="h-4 w-4 mr-1" />
+                                {t("manage-pokemon")}
+                              </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -719,6 +744,18 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
         onOpenChange={setIsGiveCoinsOpen}
         onGiveCoins={handleGiveCoins}
       />
+      
+      {/* Manage Pokemon Dialog */}
+      {selectedStudent && (
+        <ManagePokemonDialog
+          open={isManagePokemonOpen}
+          onOpenChange={setIsManagePokemonOpen}
+          studentId={selectedStudent.id}
+          studentName={selectedStudent.name}
+          schoolId={schoolId}
+          onPokemonRemoved={handlePokemonRemoved}
+        />
+      )}
     </div>
   );
 };

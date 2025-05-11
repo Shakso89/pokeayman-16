@@ -25,7 +25,8 @@ export {
 // Export from studentPokemon.ts
 export { 
   getStudentPokemonCollection, 
-  removePokemonFromStudent, 
+  removePokemonFromStudent,
+  removePokemonFromStudentAndReturnToPool,
   removeCoinsFromStudent,
   awardCoinsToStudent,
   assignPokemonToStudent,

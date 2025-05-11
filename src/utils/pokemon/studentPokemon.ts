@@ -1,3 +1,4 @@
+
 import { Pokemon, StudentPokemon } from "@/types/pokemon";
 import { getStudentPokemons, saveStudentPokemons } from "./storage";
 import { getPokemonPools, savePokemonPools } from "./storage";
@@ -32,6 +33,54 @@ export const removePokemonFromStudent = (studentId: string): boolean => {
   }
   
   return false;
+};
+
+// Remove a specific Pokemon from a student and return it to the school pool
+export const removePokemonFromStudentAndReturnToPool = (
+  studentId: string, 
+  pokemonId: string,
+  schoolId: string
+): boolean => {
+  // Get student's collection
+  const studentPokemons = getStudentPokemons();
+  const studentIndex = studentPokemons.findIndex(sp => sp.studentId === studentId);
+  
+  if (studentIndex < 0) {
+    console.error("Student not found:", studentId);
+    return false;
+  }
+  
+  // Find the Pokemon in the student's collection
+  const pokemonIndex = studentPokemons[studentIndex].pokemons.findIndex(p => p.id === pokemonId);
+  
+  if (pokemonIndex < 0) {
+    console.error("Pokemon not found in student collection:", pokemonId);
+    return false;
+  }
+  
+  // Remove the Pokemon from the student's collection
+  const removedPokemon = studentPokemons[studentIndex].pokemons.splice(pokemonIndex, 1)[0];
+  
+  // Update student's collection in localStorage
+  saveStudentPokemons(studentPokemons);
+  
+  // Get school pool
+  const pokemonPools = getPokemonPools();
+  const schoolPoolIndex = pokemonPools.findIndex(pool => pool.schoolId === schoolId);
+  
+  if (schoolPoolIndex < 0) {
+    console.error("School pool not found:", schoolId);
+    return false;
+  }
+  
+  // Add the Pokemon back to the school pool
+  pokemonPools[schoolPoolIndex].availablePokemons.push(removedPokemon);
+  
+  // Update pools in localStorage
+  savePokemonPools(pokemonPools);
+  
+  console.log("Pokemon returned to school pool:", removedPokemon.name);
+  return true;
 };
 
 // Remove coins from a student
