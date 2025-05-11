@@ -9,7 +9,7 @@ import { ChevronLeft, UserPlus, UserCheck } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { FriendRequest } from "@/types/pokemon";
-import UploadPhotos from "@/components/profile/UploadPhotos";
+import { UploadPhotos } from "@/components/profile/UploadPhotos";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Teacher {
