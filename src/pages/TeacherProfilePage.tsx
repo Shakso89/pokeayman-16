@@ -1,24 +1,19 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, UserPlus, UserCheck } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { ChevronLeft, UserPlus, UserCheck, Instagram, Phone, MessageSquare } from "lucide-react";
+import { toast } from "sonner";
 import { useTranslation } from "@/hooks/useTranslation";
-import { FriendRequest } from "@/types/pokemon";
-import { UploadPhotos } from "@/components/profile/UploadPhotos";
+import { FriendRequest, Teacher } from "@/types/pokemon";
+import { PhotosTab } from "@/components/profile/PhotosTab";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-
-interface Teacher {
-  id: string;
-  username: string;
-  displayName?: string;
-  email: string;
-  avatar?: string;
-  classes?: string[];
-}
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 
 const TeacherProfilePage: React.FC = () => {
   const { teacherId } = useParams<{ teacherId: string }>();
@@ -30,6 +25,16 @@ const TeacherProfilePage: React.FC = () => {
   const [friendStatus, setFriendStatus] = useState<"none" | "pending" | "accepted">("none");
   const [studentCount, setStudentCount] = useState<number>(0);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [isEditMode, setIsEditMode] = useState(false);
+  const [editData, setEditData] = useState<{
+    displayName: string;
+    instagram?: string;
+    whatsapp?: string;
+    line?: string;
+    phone?: string;
+  }>({
+    displayName: "",
+  });
   
   const userType = localStorage.getItem("userType");
   const currentUserId = userType === "teacher" ? 
@@ -53,34 +58,33 @@ const TeacherProfilePage: React.FC = () => {
       if (teacher) {
         setTeacher(teacher);
         
+        // Initialize edit data
+        setEditData({
+          displayName: teacher.displayName || "",
+          instagram: teacher.socialMedia?.instagram,
+          whatsapp: teacher.socialMedia?.whatsapp,
+          line: teacher.socialMedia?.line,
+          phone: teacher.socialMedia?.phone,
+        });
+        
         // Count students
         const students = JSON.parse(localStorage.getItem("students") || "[]");
-        const classStudents = students.filter((s: any) => 
-          s.classId && teacher.classes?.includes(s.classId)
-        );
-        setStudentCount(classStudents.length);
+        const teacherStudents = students.filter((s: any) => s.teacherId === teacher.id);
+        setStudentCount(teacherStudents.length);
       } else {
-        toast({
-          title: t("error"),
-          description: t("teacher-not-found"),
-          variant: "destructive",
-        });
+        toast.error(t("teacher-not-found"));
         navigate(-1);
       }
     } catch (error) {
       console.error("Error loading teacher:", error);
-      toast({
-        title: t("error"),
-        description: t("error-loading-teacher"),
-        variant: "destructive",
-      });
+      toast.error(t("error-loading-teacher"));
     } finally {
       setIsLoading(false);
     }
   };
   
   const checkFriendStatus = (id: string) => {
-    if (!currentUserId) return;
+    if (!currentUserId || userType === "teacher") return;
     
     try {
       const friendRequests: FriendRequest[] = JSON.parse(localStorage.getItem("friendRequests") || "[]");
@@ -124,18 +128,58 @@ const TeacherProfilePage: React.FC = () => {
       
       setFriendStatus("pending");
       
-      toast({
-        title: t("request-sent"),
-        description: t("friend-request-sent"),
-      });
+      toast.success(t("friend-request-sent"));
     } catch (error) {
       console.error("Error sending friend request:", error);
-      toast({
-        title: t("error"),
-        description: t("error-sending-request"),
-        variant: "destructive",
-      });
+      toast.error(t("error-sending-request"));
     }
+  };
+
+  const handleSaveChanges = () => {
+    if (!teacher) return;
+    
+    try {
+      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+      const index = teachers.findIndex((t: Teacher) => t.id === teacher.id);
+      
+      if (index !== -1) {
+        teachers[index] = {
+          ...teachers[index],
+          displayName: editData.displayName,
+          socialMedia: {
+            instagram: editData.instagram,
+            whatsapp: editData.whatsapp,
+            line: editData.line,
+            phone: editData.phone,
+          }
+        };
+        
+        localStorage.setItem("teachers", JSON.stringify(teachers));
+        
+        // If this is the current user's profile, update localStorage
+        if (isOwnProfile && userType === "teacher") {
+          localStorage.setItem("teacherDisplayName", editData.displayName);
+        }
+        
+        setTeacher(teachers[index]);
+        setIsEditMode(false);
+        toast.success(t("profile-updated"));
+      }
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      toast.error(t("error-updating-profile"));
+    }
+  };
+
+  const handleSendMessage = () => {
+    if (!teacher) return;
+    
+    // Navigate to messages page
+    navigate(userType === "teacher" ? "/teacher/messages" : "/student/messages");
+    
+    // Store the selected contact in localStorage for the messages page to use
+    localStorage.setItem("selectedContactId", teacher.id);
+    localStorage.setItem("selectedContactType", "teacher");
   };
   
   if (isLoading || !teacher) {
@@ -198,35 +242,180 @@ const TeacherProfilePage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-3">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">{t("classes-managed")}:</p>
-                  <p>{teacher.classes?.length || 0}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">{t("total-students")}:</p>
-                  <p>{studentCount}</p>
-                </div>
-                
-                {!isOwnProfile && (
-                  <div className="mt-4">
-                    {friendStatus === "none" && (
-                      <Button className="w-full" onClick={handleSendFriendRequest}>
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        {t("add-friend")}
-                      </Button>
+                {isEditMode ? (
+                  <>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="displayName">{t("display-name")}</Label>
+                        <Input 
+                          id="displayName" 
+                          value={editData.displayName} 
+                          onChange={(e) => setEditData({...editData, displayName: e.target.value})}
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="instagram">Instagram</Label>
+                        <Input 
+                          id="instagram" 
+                          value={editData.instagram || ""} 
+                          onChange={(e) => setEditData({...editData, instagram: e.target.value})}
+                          placeholder="@username"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="whatsapp">WhatsApp</Label>
+                        <Input 
+                          id="whatsapp" 
+                          value={editData.whatsapp || ""} 
+                          onChange={(e) => setEditData({...editData, whatsapp: e.target.value})}
+                          placeholder="+1234567890"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="line">Line</Label>
+                        <Input 
+                          id="line" 
+                          value={editData.line || ""} 
+                          onChange={(e) => setEditData({...editData, line: e.target.value})}
+                          placeholder="line_id"
+                        />
+                      </div>
+                      
+                      <div>
+                        <Label htmlFor="phone">{t("phone")}</Label>
+                        <Input 
+                          id="phone" 
+                          value={editData.phone || ""} 
+                          onChange={(e) => setEditData({...editData, phone: e.target.value})}
+                          placeholder="+1234567890"
+                        />
+                      </div>
+                      
+                      <div className="flex gap-2 pt-2">
+                        <Button 
+                          className="flex-1" 
+                          onClick={handleSaveChanges}
+                        >
+                          {t("save")}
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          className="flex-1" 
+                          onClick={() => setIsEditMode(false)}
+                        >
+                          {t("cancel")}
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <div>
+                      <p className="text-sm font-medium text-gray-500">{t("students-managed")}:</p>
+                      <p>{studentCount}</p>
+                    </div>
+                    
+                    {/* Social Media Section */}
+                    {(teacher.socialMedia?.instagram || 
+                      teacher.socialMedia?.whatsapp || 
+                      teacher.socialMedia?.line || 
+                      teacher.socialMedia?.phone) && (
+                      <div className="mt-2">
+                        <p className="text-sm font-medium text-gray-500 mb-2">{t("social-media")}:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {teacher.socialMedia?.instagram && (
+                            <a 
+                              href={`https://instagram.com/${teacher.socialMedia.instagram.replace('@', '')}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full px-3 py-1"
+                            >
+                              <Instagram className="h-4 w-4" />
+                              <span>{teacher.socialMedia.instagram}</span>
+                            </a>
+                          )}
+                          
+                          {teacher.socialMedia?.phone && (
+                            <a 
+                              href={`tel:${teacher.socialMedia.phone}`}
+                              className="flex items-center gap-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full px-3 py-1"
+                            >
+                              <Phone className="h-4 w-4" />
+                              <span>{teacher.socialMedia.phone}</span>
+                            </a>
+                          )}
+                          
+                          {teacher.socialMedia?.whatsapp && (
+                            <div className="flex items-center gap-1 text-sm bg-gray-100 rounded-full px-3 py-1">
+                              <span>WhatsApp: {teacher.socialMedia.whatsapp}</span>
+                            </div>
+                          )}
+                          
+                          {teacher.socialMedia?.line && (
+                            <div className="flex items-center gap-1 text-sm bg-gray-100 rounded-full px-3 py-1">
+                              <span>Line: {teacher.socialMedia.line}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     )}
-                    {friendStatus === "pending" && (
-                      <Button className="w-full" variant="secondary" disabled>
-                        {t("request-pending")}
+                    
+                    {isOwnProfile ? (
+                      <Button 
+                        className="mt-4" 
+                        onClick={() => setIsEditMode(true)}
+                      >
+                        {t("edit-profile")}
                       </Button>
+                    ) : (
+                      <div className="space-y-2 mt-4">
+                        <Button 
+                          className="w-full" 
+                          onClick={handleSendMessage}
+                        >
+                          <MessageSquare className="mr-2 h-4 w-4" />
+                          {t("send-message")}
+                        </Button>
+                        
+                        {userType === "student" && (
+                          <>
+                            {friendStatus === "none" && (
+                              <Button 
+                                variant="outline" 
+                                className="w-full" 
+                                onClick={handleSendFriendRequest}
+                              >
+                                <UserPlus className="mr-2 h-4 w-4" />
+                                {t("add-friend")}
+                              </Button>
+                            )}
+                            {friendStatus === "pending" && (
+                              <Button 
+                                variant="outline" 
+                                className="w-full" 
+                                disabled
+                              >
+                                {t("request-pending")}
+                              </Button>
+                            )}
+                            {friendStatus === "accepted" && (
+                              <Button 
+                                variant="outline" 
+                                className="w-full" 
+                                disabled
+                              >
+                                <UserCheck className="mr-2 h-4 w-4" />
+                                {t("friends")}
+                              </Button>
+                            )}
+                          </>
+                        )}
+                      </div>
                     )}
-                    {friendStatus === "accepted" && (
-                      <Button className="w-full" variant="outline" disabled>
-                        <UserCheck className="mr-2 h-4 w-4" />
-                        {t("friends")}
-                      </Button>
-                    )}
-                  </div>
+                  </>
                 )}
               </div>
             </CardContent>
@@ -236,6 +425,7 @@ const TeacherProfilePage: React.FC = () => {
             <Tabs defaultValue="photos">
               <TabsList className="mb-4">
                 <TabsTrigger value="photos">{t("photos")}</TabsTrigger>
+                <TabsTrigger value="students">{t("students")}</TabsTrigger>
               </TabsList>
               
               <TabsContent value="photos">
@@ -244,20 +434,36 @@ const TeacherProfilePage: React.FC = () => {
                     <CardTitle>{t("teacher-photos")}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <UploadPhotos 
-                      avatarImage={teacher.avatar || null}
-                      onSave={(avatarImage) => {
-                        // Update teacher avatar in localStorage
+                    <PhotosTab 
+                      photos={teacher.photos || []} 
+                      onPhotoClick={setSelectedPhoto}
+                      onSavePhotos={(photos) => {
+                        if (!isOwnProfile) return;
+                        
                         const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-                        const teacherIndex = teachers.findIndex((t: any) => t.id === teacher.id);
-                        if (teacherIndex !== -1) {
-                          teachers[teacherIndex].avatar = avatarImage;
+                        const index = teachers.findIndex((t: Teacher) => t.id === teacher.id);
+                        
+                        if (index !== -1) {
+                          teachers[index].photos = photos;
                           localStorage.setItem("teachers", JSON.stringify(teachers));
-                          // Update local state
-                          setTeacher({...teacher, avatar: avatarImage});
+                          setTeacher({...teacher, photos});
+                          toast.success(t("photos-updated"));
                         }
                       }}
+                      maxPhotos={4}
+                      readOnly={!isOwnProfile}
                     />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              <TabsContent value="students">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("students-managed")}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <StudentsListTab teacherId={teacher.id} />
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -283,6 +489,56 @@ const TeacherProfilePage: React.FC = () => {
           )}
         </DialogContent>
       </Dialog>
+    </div>
+  );
+};
+
+// Component to display students managed by this teacher
+const StudentsListTab: React.FC<{ teacherId: string }> = ({ teacherId }) => {
+  const [students, setStudents] = useState<any[]>([]);
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+
+  useEffect(() => {
+    const loadStudents = () => {
+      try {
+        const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+        const filteredStudents = allStudents.filter((s: any) => s.teacherId === teacherId);
+        setStudents(filteredStudents);
+      } catch (error) {
+        console.error("Error loading students:", error);
+      }
+    };
+    
+    loadStudents();
+  }, [teacherId]);
+
+  const handleStudentClick = (studentId: string) => {
+    navigate(`/teacher/student/${studentId}`);
+  };
+
+  if (students.length === 0) {
+    return <p className="text-gray-500">{t("no-students-found")}</p>;
+  }
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+      {students.map((student) => (
+        <div 
+          key={student.id}
+          className="flex items-center p-4 bg-white rounded-lg border shadow-sm cursor-pointer hover:bg-gray-50"
+          onClick={() => handleStudentClick(student.id)}
+        >
+          <Avatar className="h-10 w-10 mr-3">
+            <AvatarImage src={student.avatar} alt={student.displayName} />
+            <AvatarFallback>{student.displayName.substring(0, 2).toUpperCase()}</AvatarFallback>
+          </Avatar>
+          <div>
+            <p className="font-medium">{student.displayName}</p>
+            <p className="text-sm text-gray-500">@{student.username}</p>
+          </div>
+        </div>
+      ))}
     </div>
   );
 };

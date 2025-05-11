@@ -9,6 +9,13 @@ export interface Student {
   updatedAt?: string;
   avatar?: string;
   classId?: string;
+  photos?: string[];
+  socialMedia?: {
+    instagram?: string;
+    whatsapp?: string;
+    line?: string;
+    phone?: string;
+  };
 }
 
 export interface Teacher {
@@ -18,6 +25,13 @@ export interface Teacher {
   createdAt: string;
   updatedAt?: string;
   avatar?: string;
+  photos?: string[];
+  socialMedia?: {
+    instagram?: string;
+    whatsapp?: string;
+    line?: string;
+    phone?: string;
+  };
 }
 
 export interface Class {

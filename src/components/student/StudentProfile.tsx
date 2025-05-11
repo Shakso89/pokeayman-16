@@ -40,6 +40,8 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
   const handleAvatarClick = () => {
     if (isOwnProfile) {
       fileInputRef.current?.click();
+    } else {
+      handleViewProfile();
     }
   };
   
@@ -111,7 +113,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
             <div className="relative">
               <div 
                 className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md cursor-pointer"
-                onClick={handleViewProfile}
+                onClick={handleAvatarClick}
               >
                 {student.avatar ? (
                   <img 
@@ -133,7 +135,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
                   variant="secondary"
                   size="icon"
                   className="absolute bottom-0 right-0 rounded-full h-8 w-8 shadow-md"
-                  onClick={handleAvatarClick}
+                  onClick={() => fileInputRef.current?.click()}
                 >
                   <Camera size={16} />
                 </Button>
