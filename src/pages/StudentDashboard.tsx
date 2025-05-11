@@ -8,7 +8,7 @@ import { Pokemon } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Trophy } from "lucide-react";
+import { Trophy, Users, Book } from "lucide-react";
 
 // Import our components
 import StudentHeader from "@/components/student/StudentHeader";
@@ -16,6 +16,7 @@ import StudentCollection from "@/components/student/StudentCollection";
 import MysteryBallTab from "@/components/student/MysteryBallTab";
 import SchoolPoolDialog from "@/components/student/SchoolPoolDialog";
 import HomeworkTab from "@/components/student/HomeworkTab";
+import MyClassesTab from "@/components/student/MyClassesTab";
 
 const StudentDashboard: React.FC = () => {
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
@@ -156,7 +157,7 @@ const StudentDashboard: React.FC = () => {
         {/* Rankings button */}
         <div className="flex justify-end mt-4">
           <Link to="/student/rankings">
-            <Button className="flex items-center gap-2">
+            <Button className="flex items-center gap-2" variant="ranking">
               <Trophy className="h-4 w-4" />
               {t("view-rankings")}
             </Button>
@@ -165,11 +166,15 @@ const StudentDashboard: React.FC = () => {
         
         <div className="mt-6 relative">
           <Tabs defaultValue="my-pokemons" className="w-full mt-8" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 mb-8">
+            <TabsList className="grid w-full grid-cols-5 mb-8">
               <TabsTrigger value="my-pokemons">My Pokémons</TabsTrigger>
               <TabsTrigger value="mystery-ball">Mystery Ball</TabsTrigger>
               <TabsTrigger value="school-pool">School Pool</TabsTrigger>
               <TabsTrigger value="homework">Homework</TabsTrigger>
+              <TabsTrigger value="my-classes" className="flex items-center gap-2">
+                <Users className="h-4 w-4" />
+                {t("my-classes")}
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="my-pokemons" className="mt-4">
@@ -219,6 +224,14 @@ const StudentDashboard: React.FC = () => {
             
             <TabsContent value="homework" className="mt-4">
               <HomeworkTab 
+                studentId={studentId}
+                studentName={studentName}
+                classId={classId}
+              />
+            </TabsContent>
+            
+            <TabsContent value="my-classes" className="mt-4">
+              <MyClassesTab 
                 studentId={studentId}
                 studentName={studentName}
                 classId={classId}
