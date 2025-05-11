@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -138,8 +139,8 @@ const TeacherDashboard: React.FC = () => {
               <CardContent className="p-6">
                 <div className="flex justify-between items-center">
                   <div>
-                    <h2 className="text-3xl font-bold mb-2">{t("welcome-teacher")}</h2>
-                    <p>{t("manage-classes-description")}</p>
+                    <h2 className="text-3xl font-bold mb-2">Welcome Teacher</h2>
+                    <p>Manage your classes, students and more.</p>
                   </div>
                   {isAdmin && (
                     <Button 
@@ -147,7 +148,7 @@ const TeacherDashboard: React.FC = () => {
                       className="bg-purple-600 hover:bg-purple-700 flex items-center gap-2"
                     >
                       <Shield className="h-4 w-4" />
-                      {t("admin-dashboard")}
+                      Admin Dashboard
                     </Button>
                   )}
                 </div>
@@ -159,7 +160,7 @@ const TeacherDashboard: React.FC = () => {
               onClick={() => setIsAddStudentOpen(true)}
             >
               <UserPlus className="h-4 w-4" />
-              {t("create-student")}
+              Create Student
             </Button>
             
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -167,17 +168,17 @@ const TeacherDashboard: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <School className="h-6 w-6 text-blue-500" />
-                    {t("manage-classes")}
+                    Manage Classes
                   </CardTitle>
                   <CardDescription>
-                    {isAdmin ? t("manage-schools-classes") : t("manage-classes-desc")}
+                    {isAdmin ? "Manage schools and their classes" : "Manage your classes and students"}
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-500">
                     {isAdmin 
-                      ? t("admin-manage-classes-details") 
-                      : t("manage-classes-details")}
+                      ? "Create, update and delete schools and classes" 
+                      : "Create and manage classes, add students"}
                   </p>
                 </CardContent>
                 <CardFooter>
@@ -185,7 +186,7 @@ const TeacherDashboard: React.FC = () => {
                     className="w-full pokemon-button" 
                     onClick={() => setCurrentView("classes")}
                   >
-                    {t("manage-classes")}
+                    Manage Classes
                   </Button>
                 </CardFooter>
               </Card>
@@ -194,15 +195,15 @@ const TeacherDashboard: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <MessageSquare className="h-6 w-6 text-green-500" />
-                    {t("messages")}
+                    Messages
                   </CardTitle>
                   <CardDescription>
-                    {t("school-collab-desc")}
+                    School Collaboration
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-500">
-                    {t("school-collab-details")}
+                    Connect with other schools and teachers
                   </p>
                 </CardContent>
                 <CardFooter>
@@ -210,7 +211,7 @@ const TeacherDashboard: React.FC = () => {
                     className="w-full pokemon-button"
                     onClick={() => navigate("/teacher/messages")}
                   >
-                    {t("messages")}
+                    Messages
                   </Button>
                 </CardFooter>
               </Card>
@@ -219,15 +220,15 @@ const TeacherDashboard: React.FC = () => {
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
                     <BarChart className="h-6 w-6 text-purple-500" />
-                    {t("reports-analytics")}
+                    Reports & Analytics
                   </CardTitle>
                   <CardDescription>
-                    {t("student-participation")}
+                    Student Participation
                   </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <p className="text-gray-500">
-                    {t("student-engagement")}
+                    Track student engagement and progress
                   </p>
                 </CardContent>
                 <CardFooter>
@@ -235,7 +236,7 @@ const TeacherDashboard: React.FC = () => {
                     className="w-full pokemon-button"
                     onClick={() => navigate("/teacher/reports")}
                   >
-                    {t("reports-analytics")}
+                    Reports & Analytics
                   </Button>
                 </CardFooter>
               </Card>
@@ -331,3 +332,4 @@ const TeacherDashboard: React.FC = () => {
 };
 
 export default TeacherDashboard;
+
