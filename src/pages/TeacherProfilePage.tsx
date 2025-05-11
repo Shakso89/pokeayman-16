@@ -1,177 +1,189 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, UserPlus, UserCheck } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
-import { useTranslation } from "@/hooks/useTranslation";
-import { FriendRequest } from "@/types/pokemon";
-import { UploadPhotos } from "@/components/profile/UploadPhotos";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { ChevronLeft, UserPlus, Edit, Phone, Instagram, MessageSquare } from "lucide-react";
+import { toast } from "sonner";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import Footer from "@/components/Footer";
+import { PhotoGrid } from "@/components/profile/PhotoGrid";
 
-interface Teacher {
-  id: string;
-  username: string;
-  displayName?: string;
-  email: string;
-  avatar?: string;
-  classes?: string[];
+interface SocialLinks {
+  line?: string;
+  whatsapp?: string;
+  instagram?: string;
+  phone?: string;
 }
 
-const TeacherProfilePage: React.FC = () => {
+interface TeacherProfile {
+  id: string;
+  displayName: string;
+  username: string;
+  email: string;
+  avatar?: string;
+  photos: string[];
+  classes: string[];
+  socialLinks?: SocialLinks;
+}
+
+export default function TeacherProfilePage() {
   const { teacherId } = useParams<{ teacherId: string }>();
   const navigate = useNavigate();
-  const { t } = useTranslation();
   
-  const [teacher, setTeacher] = useState<Teacher | null>(null);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
-  const [friendStatus, setFriendStatus] = useState<"none" | "pending" | "accepted">("none");
-  const [studentCount, setStudentCount] = useState<number>(0);
-  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
+  const [teacher, setTeacher] = useState<TeacherProfile | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<Partial<TeacherProfile>>({});
+  const [studentCount, setStudentCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
   
-  const userType = localStorage.getItem("userType");
-  const currentUserId = userType === "teacher" ? 
-    localStorage.getItem("teacherId") : 
-    localStorage.getItem("studentId");
-  const isOwnProfile = currentUserId === teacherId;
+  // Check if current user is the owner of this profile
+  const currentUserId = localStorage.getItem("teacherId");
+  const isOwner = currentUserId === teacherId;
   
   useEffect(() => {
     if (teacherId) {
-      loadTeacherData(teacherId);
-      checkFriendStatus(teacherId);
+      loadTeacherProfile();
     }
   }, [teacherId]);
   
-  const loadTeacherData = (id: string) => {
+  const loadTeacherProfile = () => {
     setIsLoading(true);
+    
     try {
+      // In a real app, this would be an API call
       const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-      const teacher = teachers.find((t: Teacher) => t.id === id);
+      const foundTeacher = teachers.find((t: any) => t.id === teacherId);
       
-      if (teacher) {
-        setTeacher(teacher);
+      if (foundTeacher) {
+        // Ensure photos array exists
+        const teacherData = {
+          ...foundTeacher,
+          photos: foundTeacher.photos || [],
+          socialLinks: foundTeacher.socialLinks || {}
+        };
+        
+        setTeacher(teacherData);
+        setEditData(teacherData);
         
         // Count students
-        const students = JSON.parse(localStorage.getItem("students") || "[]");
-        const classStudents = students.filter((s: any) => 
-          s.classId && teacher.classes?.includes(s.classId)
+        const classes = JSON.parse(localStorage.getItem("classes") || "[]");
+        const teacherClasses = classes.filter((c: any) => 
+          foundTeacher.classes?.includes(c.id)
         );
-        setStudentCount(classStudents.length);
-      } else {
-        toast({
-          title: t("error"),
-          description: t("teacher-not-found"),
-          variant: "destructive",
+        
+        let totalStudents = 0;
+        teacherClasses.forEach((cls: any) => {
+          totalStudents += cls.students?.length || 0;
         });
+        
+        setStudentCount(totalStudents);
+      } else {
+        toast.error("Teacher not found");
         navigate(-1);
       }
     } catch (error) {
-      console.error("Error loading teacher:", error);
-      toast({
-        title: t("error"),
-        description: t("error-loading-teacher"),
-        variant: "destructive",
-      });
+      console.error("Error loading teacher profile:", error);
+      toast.error("Error loading profile");
     } finally {
       setIsLoading(false);
     }
   };
   
-  const checkFriendStatus = (id: string) => {
-    if (!currentUserId) return;
+  const handleSave = () => {
+    if (!teacher) return;
     
     try {
-      const friendRequests: FriendRequest[] = JSON.parse(localStorage.getItem("friendRequests") || "[]");
+      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+      const index = teachers.findIndex((t: any) => t.id === teacherId);
       
-      // Check for any requests between current user and viewed teacher
-      const existingRequest = friendRequests.find(request => 
-        (request.senderId === currentUserId && request.receiverId === id) ||
-        (request.receiverId === currentUserId && request.senderId === id)
-      );
-      
-      if (existingRequest) {
-        setFriendStatus(existingRequest.status as "pending" | "accepted");
+      if (index !== -1) {
+        teachers[index] = {
+          ...teachers[index],
+          displayName: editData.displayName || teacher.displayName,
+          avatar: editData.avatar || teacher.avatar,
+          photos: editData.photos || teacher.photos,
+          socialLinks: editData.socialLinks || teacher.socialLinks
+        };
+        
+        localStorage.setItem("teachers", JSON.stringify(teachers));
+        setTeacher({...teacher, ...editData});
+        setIsEditing(false);
+        toast.success("Profile updated successfully");
       }
     } catch (error) {
-      console.error("Error checking friend status:", error);
+      console.error("Error saving profile:", error);
+      toast.error("Failed to save profile changes");
     }
   };
   
-  const handleSendFriendRequest = () => {
-    if (!currentUserId || !teacher) return;
+  const handleCancel = () => {
+    setEditData(teacher || {});
+    setIsEditing(false);
+  };
+  
+  const handleSendMessage = () => {
+    if (!teacher) return;
     
-    try {
-      const currentUserName = userType === "teacher" ?
-        localStorage.getItem("teacherDisplayName") || localStorage.getItem("teacherUsername") :
-        localStorage.getItem("studentName");
-      
-      const newRequest: FriendRequest = {
-        id: `fr-${Date.now()}`,
-        senderId: currentUserId,
-        senderType: userType as "teacher" | "student",
-        senderName: currentUserName || "",
-        receiverId: teacher.id,
-        receiverType: "teacher",
-        status: "pending",
-        createdAt: new Date().toISOString()
-      };
-      
-      const friendRequests = JSON.parse(localStorage.getItem("friendRequests") || "[]");
-      friendRequests.push(newRequest);
-      localStorage.setItem("friendRequests", JSON.stringify(friendRequests));
-      
-      setFriendStatus("pending");
-      
-      toast({
-        title: t("request-sent"),
-        description: t("friend-request-sent"),
-      });
-    } catch (error) {
-      console.error("Error sending friend request:", error);
-      toast({
-        title: t("error"),
-        description: t("error-sending-request"),
-        variant: "destructive",
-      });
-    }
+    // Store the selected contact in localStorage
+    localStorage.setItem("selectedContactId", teacher.id);
+    localStorage.setItem("selectedContactType", "teacher");
+    
+    // Navigate to messages page
+    navigate("/teacher/messages");
   };
   
-  if (isLoading || !teacher) {
+  const updateSocialLink = (network: keyof SocialLinks, value: string) => {
+    setEditData({
+      ...editData,
+      socialLinks: {
+        ...(editData.socialLinks || {}),
+        [network]: value
+      }
+    });
+  };
+  
+  if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p className="text-lg">{t("loading")}</p>
+        <p>Loading profile...</p>
+      </div>
+    );
+  }
+  
+  if (!teacher) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <p>Teacher not found</p>
       </div>
     );
   }
   
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 flex flex-col">
       <NavBar 
-        userType={userType as "teacher" | "student"}
-        userName={
-          userType === "teacher" 
-            ? localStorage.getItem("teacherDisplayName") || localStorage.getItem("teacherUsername") 
-            : localStorage.getItem("studentName")
-        }
+        userType={"teacher"}
+        userName={localStorage.getItem("teacherUsername") || ""}
       />
       
-      <div className="container mx-auto py-8 px-4">
+      <div className="container mx-auto py-8 px-4 flex-grow">
         <div className="flex items-center mb-6">
           <Button 
             variant="outline" 
-            onClick={() => navigate(-1)}
             className="mr-4"
+            onClick={() => navigate(-1)}
           >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            {t("back")}
+            <ChevronLeft className="h-4 w-4 mr-2" />
+            Back
           </Button>
-          <h1 className="text-2xl font-bold">{t("teacher-profile")}</h1>
+          <h1 className="text-2xl font-bold">Teacher Profile</h1>
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Teacher Profile Card */}
+          {/* Profile Card */}
           <Card className="col-span-1">
             <CardHeader className="text-center">
               <div className="flex justify-center mb-4">
@@ -180,84 +192,237 @@ const TeacherProfilePage: React.FC = () => {
                     {teacher.avatar ? (
                       <img 
                         src={teacher.avatar} 
-                        alt={teacher.displayName || teacher.username} 
+                        alt={teacher.displayName} 
                         className="w-full h-full object-cover"
                       />
                     ) : (
                       <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                         <span className="text-2xl font-bold text-gray-500">
-                          {(teacher.displayName || teacher.username).substring(0, 2).toUpperCase()}
+                          {teacher.displayName.substring(0, 2).toUpperCase()}
                         </span>
                       </div>
                     )}
                   </div>
                 </div>
               </div>
-              <CardTitle>{teacher.displayName || teacher.username}</CardTitle>
+              <CardTitle>{teacher.displayName}</CardTitle>
               <p className="text-sm text-gray-500">@{teacher.username}</p>
             </CardHeader>
             <CardContent>
               <div className="flex flex-col gap-3">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">{t("classes-managed")}:</p>
+                  <p className="text-sm font-medium text-gray-500">Email:</p>
+                  <p>{teacher.email}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-500">Classes:</p>
                   <p>{teacher.classes?.length || 0}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">{t("total-students")}:</p>
+                  <p className="text-sm font-medium text-gray-500">Students:</p>
                   <p>{studentCount}</p>
                 </div>
                 
-                {!isOwnProfile && (
+                {!isOwner && (
                   <div className="mt-4">
-                    {friendStatus === "none" && (
-                      <Button className="w-full" onClick={handleSendFriendRequest}>
-                        <UserPlus className="mr-2 h-4 w-4" />
-                        {t("add-friend")}
-                      </Button>
-                    )}
-                    {friendStatus === "pending" && (
-                      <Button className="w-full" variant="secondary" disabled>
-                        {t("request-pending")}
-                      </Button>
-                    )}
-                    {friendStatus === "accepted" && (
-                      <Button className="w-full" variant="outline" disabled>
-                        <UserCheck className="mr-2 h-4 w-4" />
-                        {t("friends")}
-                      </Button>
-                    )}
+                    <Button 
+                      className="w-full mb-2"
+                      onClick={handleSendMessage}
+                    >
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Send Message
+                    </Button>
+                    <Button variant="outline" className="w-full">
+                      <UserPlus className="mr-2 h-4 w-4" />
+                      Add Friend
+                    </Button>
+                  </div>
+                )}
+                
+                {isOwner && !isEditing && (
+                  <Button 
+                    className="mt-4 w-full"
+                    onClick={() => setIsEditing(true)}
+                  >
+                    <Edit className="mr-2 h-4 w-4" />
+                    Edit Profile
+                  </Button>
+                )}
+                
+                {isOwner && isEditing && (
+                  <div className="flex gap-2 mt-4">
+                    <Button 
+                      className="flex-1"
+                      onClick={handleSave}
+                    >
+                      Save Changes
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={handleCancel}
+                    >
+                      Cancel
+                    </Button>
                   </div>
                 )}
               </div>
             </CardContent>
           </Card>
           
+          {/* Main Content */}
           <div className="col-span-1 lg:col-span-3">
             <Tabs defaultValue="photos">
-              <TabsList className="mb-4">
-                <TabsTrigger value="photos">{t("photos")}</TabsTrigger>
+              <TabsList>
+                <TabsTrigger value="photos">Photos</TabsTrigger>
+                <TabsTrigger value="students">Students</TabsTrigger>
+                <TabsTrigger value="social">Social Media</TabsTrigger>
               </TabsList>
               
+              {/* Photos Tab */}
               <TabsContent value="photos">
                 <Card>
                   <CardHeader>
-                    <CardTitle>{t("teacher-photos")}</CardTitle>
+                    <CardTitle>Photos</CardTitle>
+                    <p className="text-sm text-gray-500">Upload up to 4 photos</p>
                   </CardHeader>
                   <CardContent>
-                    <UploadPhotos 
-                      avatarImage={teacher.avatar || null}
-                      onSave={(avatarImage) => {
-                        // Update teacher avatar in localStorage
-                        const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-                        const teacherIndex = teachers.findIndex((t: any) => t.id === teacher.id);
-                        if (teacherIndex !== -1) {
-                          teachers[teacherIndex].avatar = avatarImage;
-                          localStorage.setItem("teachers", JSON.stringify(teachers));
-                          // Update local state
-                          setTeacher({...teacher, avatar: avatarImage});
-                        }
-                      }}
+                    <PhotoGrid 
+                      photos={isEditing ? editData.photos || [] : teacher.photos || []}
+                      maxPhotos={4}
+                      editable={isOwner && isEditing}
+                      onPhotosChange={photos => setEditData({...editData, photos})}
                     />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              {/* Students Tab */}
+              <TabsContent value="students">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Students</CardTitle>
+                    <p className="text-sm text-gray-500">
+                      Total students across all classes: {studentCount}
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    {studentCount > 0 ? (
+                      <p>Students list would appear here in a real implementation</p>
+                    ) : (
+                      <p className="text-center text-gray-500 py-8">
+                        No students yet
+                      </p>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+              
+              {/* Social Media Tab */}
+              <TabsContent value="social">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Social Media</CardTitle>
+                    <p className="text-sm text-gray-500">Optional contact information</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {/* Line */}
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-green-500 flex items-center justify-center text-white">
+                          L
+                        </div>
+                        <div className="flex-grow">
+                          {isEditing ? (
+                            <Input
+                              placeholder="Line ID"
+                              value={editData.socialLinks?.line || ''}
+                              onChange={(e) => updateSocialLink('line', e.target.value)}
+                            />
+                          ) : (
+                            <p>
+                              {teacher.socialLinks?.line ? (
+                                teacher.socialLinks.line
+                              ) : (
+                                <span className="text-gray-400">No Line ID provided</span>
+                              )}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* WhatsApp */}
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-green-600 flex items-center justify-center text-white">
+                          W
+                        </div>
+                        <div className="flex-grow">
+                          {isEditing ? (
+                            <Input
+                              placeholder="WhatsApp Number"
+                              value={editData.socialLinks?.whatsapp || ''}
+                              onChange={(e) => updateSocialLink('whatsapp', e.target.value)}
+                            />
+                          ) : (
+                            <p>
+                              {teacher.socialLinks?.whatsapp ? (
+                                teacher.socialLinks.whatsapp
+                              ) : (
+                                <span className="text-gray-400">No WhatsApp number provided</span>
+                              )}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Instagram */}
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-purple-500 to-pink-500 flex items-center justify-center text-white">
+                          <Instagram className="h-4 w-4" />
+                        </div>
+                        <div className="flex-grow">
+                          {isEditing ? (
+                            <Input
+                              placeholder="Instagram Username"
+                              value={editData.socialLinks?.instagram || ''}
+                              onChange={(e) => updateSocialLink('instagram', e.target.value)}
+                            />
+                          ) : (
+                            <p>
+                              {teacher.socialLinks?.instagram ? (
+                                teacher.socialLinks.instagram
+                              ) : (
+                                <span className="text-gray-400">No Instagram username provided</span>
+                              )}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Phone */}
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white">
+                          <Phone className="h-4 w-4" />
+                        </div>
+                        <div className="flex-grow">
+                          {isEditing ? (
+                            <Input
+                              placeholder="Phone Number"
+                              value={editData.socialLinks?.phone || ''}
+                              onChange={(e) => updateSocialLink('phone', e.target.value)}
+                            />
+                          ) : (
+                            <p>
+                              {teacher.socialLinks?.phone ? (
+                                teacher.socialLinks.phone
+                              ) : (
+                                <span className="text-gray-400">No phone number provided</span>
+                              )}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   </CardContent>
                 </Card>
               </TabsContent>
@@ -266,25 +431,7 @@ const TeacherProfilePage: React.FC = () => {
         </div>
       </div>
       
-      {/* Photo View Modal */}
-      <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
-        <DialogContent className="max-w-3xl p-0">
-          <DialogHeader className="p-4">
-            <DialogTitle>{t("photo")}</DialogTitle>
-          </DialogHeader>
-          {selectedPhoto && (
-            <div className="flex items-center justify-center p-2">
-              <img 
-                src={selectedPhoto} 
-                alt="Enlarged" 
-                className="max-h-[70vh] object-contain"
-              />
-            </div>
-          )}
-        </DialogContent>
-      </Dialog>
+      <Footer />
     </div>
   );
-};
-
-export default TeacherProfilePage;
+}

@@ -47,7 +47,7 @@ export const NavBar: React.FC<NavBarProps> = ({
       navigate(`/teacher/profile/${teacherId}`);
     } else {
       const studentId = localStorage.getItem("studentId");
-      navigate(`/teacher/student/${studentId}`);
+      navigate(`/student/profile/${studentId}`);
     }
   };
 

@@ -16,6 +16,7 @@ import MessagesPage from "./pages/Messages";
 import ReportsPage from "./pages/ReportsPage";
 import StudentDetailPage from "./pages/StudentDetailPage";
 import TeacherProfilePage from "./pages/TeacherProfilePage";
+import StudentProfilePage from "./pages/StudentProfilePage";
 import RankingPage from "./pages/RankingPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 
@@ -64,7 +65,7 @@ function App() {
         } />
         <Route path="/student/profile/:studentId" element={
           <ProtectedRoute>
-            <StudentDetailPage />
+            <StudentProfilePage />
           </ProtectedRoute>
         } />
         <Route path="/teacher/profile/:teacherId" element={

@@ -1,6 +1,8 @@
 
 import { useState } from "react";
 
+export type Language = "en";
+
 export const useTranslation = () => {
   // Simple implementation that just returns the key - no actual translation
   const t = (key: string) => key;
