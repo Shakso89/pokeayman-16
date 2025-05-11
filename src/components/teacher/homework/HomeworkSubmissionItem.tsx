@@ -4,7 +4,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkSubmission } from "@/types/homework";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Check, X, Coins, User, Volume } from "lucide-react";
+import { Check, X, Coins, User, Volume, Image, Play } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface HomeworkSubmissionItemProps {
@@ -24,11 +24,27 @@ export const HomeworkSubmissionItem: React.FC<HomeworkSubmissionItemProps> = ({
 }) => {
   const { t } = useTranslation();
   const [viewContent, setViewContent] = useState(false);
+  const [showImage, setShowImage] = useState(false);
+  const [playingAudio, setPlayingAudio] = useState(false);
   
   // Check if the content is a data URL
   const isDataUrl = submission.content?.startsWith('data:');
   const isImage = isDataUrl && submission.content?.startsWith('data:image/');
   const isAudio = isDataUrl && submission.content?.startsWith('data:audio/');
+
+  // Audio player reference
+  const audioRef = React.useRef<HTMLAudioElement | null>(null);
+
+  const handlePlayAudio = () => {
+    if (audioRef.current) {
+      if (playingAudio) {
+        audioRef.current.pause();
+      } else {
+        audioRef.current.play();
+      }
+      setPlayingAudio(!playingAudio);
+    }
+  };
 
   return (
     <>
@@ -54,6 +70,34 @@ export const HomeworkSubmissionItem: React.FC<HomeworkSubmissionItemProps> = ({
           >
             {t("view")}
           </Button>
+          
+          {isImage && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-blue-500"
+              onClick={() => setShowImage(!showImage)}
+            >
+              <Image className="h-4 w-4" />
+            </Button>
+          )}
+          
+          {isAudio && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="text-blue-500"
+              onClick={handlePlayAudio}
+            >
+              <Play className="h-4 w-4" />
+              <audio 
+                ref={audioRef}
+                src={submission.content} 
+                className="hidden"
+                onEnded={() => setPlayingAudio(false)}
+              />
+            </Button>
+          )}
           
           {submission.status === "pending" && onApprove && onReject && (
             <>
@@ -93,19 +137,38 @@ export const HomeworkSubmissionItem: React.FC<HomeworkSubmissionItemProps> = ({
           >
             <User className="h-4 w-4" />
           </Button>
-          
-          {isAudio && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-blue-500"
-              onClick={() => setViewContent(true)}
-            >
-              <Volume className="h-4 w-4" />
-            </Button>
-          )}
         </div>
       </div>
+
+      {/* Quick image preview */}
+      {showImage && isImage && (
+        <div className="mt-2 p-2 border rounded-md bg-white">
+          <div className="flex justify-between items-center mb-2">
+            <p className="text-sm font-medium">{t("submission-preview")}</p>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setShowImage(false)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+          <img 
+            src={submission.content} 
+            alt={`${submission.studentName}'s submission`}
+            className="max-h-48 max-w-full rounded-md"
+          />
+          <div className="mt-2 flex justify-end">
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => setViewContent(true)}
+            >
+              {t("view-full")}
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Content Preview Dialog */}
       <Dialog open={viewContent} onOpenChange={setViewContent}>
