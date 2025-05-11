@@ -26,13 +26,13 @@ const AdminDashboard: React.FC = () => {
               <p className="mb-4">Manage teachers and students</p>
               <Button 
                 className="w-full mb-2"
-                onClick={() => navigate("/admin/teachers")}
+                onClick={() => navigate("/admin-dashboard/teachers")}
               >
                 Manage Teachers
               </Button>
               <Button 
                 className="w-full"
-                onClick={() => navigate("/admin/students")}
+                onClick={() => navigate("/admin-dashboard/students")}
               >
                 Manage Students
               </Button>
@@ -47,7 +47,7 @@ const AdminDashboard: React.FC = () => {
               <p className="mb-4">Manage schools and classes</p>
               <Button 
                 className="w-full"
-                onClick={() => navigate("/admin/schools")}
+                onClick={() => navigate("/admin-dashboard/schools")}
               >
                 School Management
               </Button>
@@ -62,7 +62,7 @@ const AdminDashboard: React.FC = () => {
               <p className="mb-4">Configure system settings</p>
               <Button 
                 className="w-full"
-                onClick={() => navigate("/admin/settings")}
+                onClick={() => navigate("/admin-dashboard/settings")}
               >
                 System Settings
               </Button>

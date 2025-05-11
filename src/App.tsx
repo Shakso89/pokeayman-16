@@ -37,11 +37,34 @@ function App() {
         <Route path="/teacher-login" element={<TeacherLogin />} />
         <Route path="/student-login" element={<StudentLogin />} />
         <Route path="/teacher-signup" element={<TeacherSignUp />} />
+        
+        {/* Admin routes */}
         <Route path="/admin-dashboard" element={
           <ProtectedRoute>
             <AdminDashboard />
           </ProtectedRoute>
         } />
+        <Route path="/admin-dashboard/teachers" element={
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin-dashboard/students" element={
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin-dashboard/schools" element={
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        <Route path="/admin-dashboard/settings" element={
+          <ProtectedRoute>
+            <AdminDashboard />
+          </ProtectedRoute>
+        } />
+        
         <Route path="/teacher/messages" element={
           <ProtectedRoute>
             <MessagesPage />
