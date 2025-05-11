@@ -1,12 +1,9 @@
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import LanguageSelector from "./LanguageSelector";
-import { useTranslation } from "@/hooks/useTranslation";
 
 const Footer: React.FC = () => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
 
   return (
     <footer className="w-full bg-white/10 backdrop-blur-md py-6 text-center text-white">
@@ -19,14 +16,13 @@ const Footer: React.FC = () => {
             onClick={() => navigate("/")}
           />
         </div>
-        <p>© 2025 PokéAyman. {t("all-rights-reserved")}</p>
+        <p>© 2025 PokéAyman. All Rights Reserved</p>
         <div className="flex justify-center mt-4 gap-4">
-          <LanguageSelector className="text-white hover:text-blue-200 transition-colors" />
           <button
             onClick={() => navigate("/contact")}
             className="text-white hover:text-blue-200 transition-colors"
           >
-            {t("contact-us")}
+            Contact Us
           </button>
         </div>
       </div>

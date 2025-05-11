@@ -1,15 +1,13 @@
+
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PokemonOrbit from "@/components/PokemonOrbit";
-import { useTranslation } from "@/hooks/useTranslation";
+
 const Index: React.FC = () => {
   const navigate = useNavigate();
-  const {
-    t
-  } = useTranslation();
 
   // Check if user is already logged in
   useEffect(() => {
@@ -21,6 +19,7 @@ const Index: React.FC = () => {
       navigate("/student-dashboard");
     }
   }, [navigate]);
+  
   return <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 flex flex-col items-center">
       <Header />
 
@@ -52,11 +51,11 @@ const Index: React.FC = () => {
           {/* Call to action */}
           <div className="text-center mt-4">
             <Button onClick={() => navigate("/student-login")} className="bg-pokemon-red hover:bg-red-600 text-white font-bold text-xl px-10 py-6 rounded-full shadow-lg hover:shadow-xl transform transition-all hover:scale-105 animate-pulse">
-              {t('get-started')}
+              Get Started
             </Button>
             
             <p className="text-white mt-4">
-              {t('join-community')}
+              Join our community
             </p>
           </div>
         </div>

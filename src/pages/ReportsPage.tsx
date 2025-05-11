@@ -5,7 +5,6 @@ import { NavBar } from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
-import { useTranslation } from "@/hooks/useTranslation";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BarChart,
@@ -26,8 +25,6 @@ const ReportsPage: React.FC = () => {
   const userType = localStorage.getItem("userType");
   const teacherId = localStorage.getItem("teacherId");
   const username = localStorage.getItem("teacherUsername") || "";
-  
-  const { t } = useTranslation();
   
   const [participationData, setParticipationData] = useState<any[]>([]);
   const [pokemonDistribution, setPokemonDistribution] = useState<any[]>([]);
@@ -145,22 +142,22 @@ const ReportsPage: React.FC = () => {
             className="mr-4"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
-            {t("back")}
+            Back
           </Button>
-          <h1 className="text-3xl font-bold">{t("reports-analytics")}</h1>
+          <h1 className="text-3xl font-bold">Reports & Analytics</h1>
         </div>
         
         <Tabs defaultValue="participation">
           <TabsList className="mb-6">
-            <TabsTrigger value="participation">{t("participation")}</TabsTrigger>
-            <TabsTrigger value="pokemon">{t("pokemon-distribution")}</TabsTrigger>
-            <TabsTrigger value="engagement">{t("engagement")}</TabsTrigger>
+            <TabsTrigger value="participation">Participation</TabsTrigger>
+            <TabsTrigger value="pokemon">Pokemon Distribution</TabsTrigger>
+            <TabsTrigger value="engagement">Engagement</TabsTrigger>
           </TabsList>
           
           <TabsContent value="participation">
             <Card>
               <CardHeader>
-                <CardTitle>{t("student-participation")}</CardTitle>
+                <CardTitle>Student Participation</CardTitle>
               </CardHeader>
               <CardContent className="h-96">
                 {participationData.length > 0 ? (
@@ -173,13 +170,13 @@ const ReportsPage: React.FC = () => {
                       <YAxis />
                       <Tooltip />
                       <Legend />
-                      <Bar dataKey="participated" fill="#8884d8" name={t("participated")} />
-                      <Bar dataKey="total" fill="#82ca9d" name={t("total-students")} />
+                      <Bar dataKey="participated" fill="#8884d8" name="Participated" />
+                      <Bar dataKey="total" fill="#82ca9d" name="Total Students" />
                     </BarChart>
                   </ResponsiveContainer>
                 ) : (
                   <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-500">{t("no-participation-data")}</p>
+                    <p className="text-gray-500">No participation data</p>
                   </div>
                 )}
               </CardContent>
@@ -189,13 +186,13 @@ const ReportsPage: React.FC = () => {
           <TabsContent value="pokemon">
             <Card>
               <CardHeader>
-                <CardTitle>{t("pokemon-distribution")}</CardTitle>
+                <CardTitle>Pokemon Distribution</CardTitle>
               </CardHeader>
               <CardContent className="h-96">
                 {pokemonDistribution.length > 0 ? (
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4 h-full">
                     <div>
-                      <h3 className="text-lg font-medium mb-4">{t("by-type")}</h3>
+                      <h3 className="text-lg font-medium mb-4">By Type</h3>
                       <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
                           <Pie
@@ -218,7 +215,7 @@ const ReportsPage: React.FC = () => {
                       </ResponsiveContainer>
                     </div>
                     <div>
-                      <h3 className="text-lg font-medium mb-4">{t("by-rarity")}</h3>
+                      <h3 className="text-lg font-medium mb-4">By Rarity</h3>
                       <ResponsiveContainer width="100%" height={300}>
                         <PieChart>
                           <Pie
@@ -243,7 +240,7 @@ const ReportsPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="flex items-center justify-center h-full">
-                    <p className="text-gray-500">{t("no-pokemon-distribution-data")}</p>
+                    <p className="text-gray-500">No pokemon distribution data</p>
                   </div>
                 )}
               </CardContent>
@@ -253,7 +250,7 @@ const ReportsPage: React.FC = () => {
           <TabsContent value="engagement">
             <Card>
               <CardHeader>
-                <CardTitle>{t("student-engagement")}</CardTitle>
+                <CardTitle>Student Engagement</CardTitle>
               </CardHeader>
               <CardContent className="h-96">
                 <ResponsiveContainer width="100%" height="100%">
@@ -265,9 +262,9 @@ const ReportsPage: React.FC = () => {
                     <YAxis />
                     <Tooltip />
                     <Legend />
-                    <Bar dataKey="logins" fill="#8884d8" name={t("logins")} />
-                    <Bar dataKey="battles" fill="#82ca9d" name={t("battle-participation")} />
-                    <Bar dataKey="messages" fill="#ffc658" name={t("messages")} />
+                    <Bar dataKey="logins" fill="#8884d8" name="Logins" />
+                    <Bar dataKey="battles" fill="#82ca9d" name="Battle Participation" />
+                    <Bar dataKey="messages" fill="#ffc658" name="Messages" />
                   </BarChart>
                 </ResponsiveContainer>
               </CardContent>

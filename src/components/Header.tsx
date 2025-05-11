@@ -11,14 +11,11 @@ import {
   navigationMenuTriggerStyle
 } from "@/components/ui/navigation-menu";
 import { cn } from "@/lib/utils";
-import { useTranslation } from "@/hooks/useTranslation";
-import LanguageSelector from "./LanguageSelector";
 import { Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
   
   return (
     <div className="w-full bg-white/10 backdrop-blur-md py-4 px-6 flex justify-between items-center">
@@ -43,13 +40,11 @@ const Header: React.FC = () => {
           <Home size={20} />
         </Button>
         
-        <LanguageSelector className="text-white hover:bg-white/20" />
-        
         {/* Navigation Menu */}
         <NavigationMenu>
           <NavigationMenuList>
             <NavigationMenuItem>
-              <NavigationMenuTrigger className="bg-transparent text-white hover:bg-white/20">{t("sign-in")}</NavigationMenuTrigger>
+              <NavigationMenuTrigger className="bg-transparent text-white hover:bg-white/20">Sign In</NavigationMenuTrigger>
               <NavigationMenuContent>
                 <ul className="grid gap-3 p-4 w-[200px]">
                   <li>
@@ -61,7 +56,7 @@ const Header: React.FC = () => {
                           "cursor-pointer flex items-center justify-start gap-2"
                         )}
                       >
-                        {t("teacher-login")}
+                        Teacher Login
                       </a>
                     </NavigationMenuLink>
                   </li>
@@ -74,7 +69,7 @@ const Header: React.FC = () => {
                           "cursor-pointer flex items-center justify-start gap-2"
                         )}
                       >
-                        {t("student-login")}
+                        Student Login
                       </a>
                     </NavigationMenuLink>
                   </li>
@@ -91,7 +86,7 @@ const Header: React.FC = () => {
                     "cursor-pointer bg-transparent text-white hover:bg-white/20"
                   )}
                 >
-                  {t("contact-us")}
+                  Contact Us
                 </a>
               </NavigationMenuLink>
             </NavigationMenuItem>

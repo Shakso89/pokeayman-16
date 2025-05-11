@@ -1,7 +1,6 @@
 
 import React from "react";
 import { Card } from "@/components/ui/card";
-import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkAssignment, HomeworkSubmission } from "@/types/homework";
 import { HomeworkCard } from "./HomeworkCard";
 
@@ -22,8 +21,6 @@ export const HomeworkList: React.FC<HomeworkListProps> = ({
   onViewSubmission,
   now
 }) => {
-  const { t } = useTranslation();
-
   // Check if student has submitted for a homework
   const hasSubmitted = (homeworkId: string) => {
     return submissions.some(sub => sub.homeworkId === homeworkId);
@@ -38,7 +35,7 @@ export const HomeworkList: React.FC<HomeworkListProps> = ({
   if (homeworks.length === 0) {
     return (
       <div className="text-center py-12">
-        <p>{t("no-homework")}</p>
+        <p>No homework</p>
       </div>
     );
   }
@@ -54,7 +51,7 @@ export const HomeworkList: React.FC<HomeworkListProps> = ({
           <HomeworkCard
             key={homework.id}
             homework={homework}
-            className={classes[homework.classId] || t("unknown-class")}
+            className={classes[homework.classId] || "Unknown class"}
             submitted={submitted}
             status={status}
             isExpired={isExpired}
