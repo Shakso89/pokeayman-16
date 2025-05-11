@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -10,13 +9,11 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import UserSettingsModal from "./modals/UserSettingsModal";
 import NotificationBadge from "./NotificationBadge";
 import SearchBar from "./SearchBar";
-
 interface NavBarProps {
   userType: "teacher" | "student";
   userName?: string;
   userAvatar?: string;
 }
-
 export const NavBar: React.FC<NavBarProps> = ({
   userType,
   userName,
@@ -27,7 +24,6 @@ export const NavBar: React.FC<NavBarProps> = ({
     t
   } = useTranslation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  
   const handleLogout = () => {
     localStorage.removeItem("userType");
     localStorage.removeItem("isLoggedIn");
@@ -39,13 +35,10 @@ export const NavBar: React.FC<NavBarProps> = ({
     localStorage.removeItem("studentClassId");
     navigate("/");
   };
-  
   const isAdmin = localStorage.getItem("teacherUsername") === "Admin";
-  
   const handleCloseSettings = () => {
     setIsSettingsOpen(false);
   };
-  
   const handleViewProfile = () => {
     if (userType === "teacher") {
       const teacherId = localStorage.getItem("teacherId");
@@ -55,7 +48,6 @@ export const NavBar: React.FC<NavBarProps> = ({
       navigate(`/teacher/student/${studentId}`);
     }
   };
-  
   return <div className="bg-white border-b shadow-sm">
       <div className="flex items-center justify-between px-4 py-2 max-w-7xl mx-auto">
         <div className="flex items-center gap-4">
@@ -80,10 +72,7 @@ export const NavBar: React.FC<NavBarProps> = ({
           {/* Added Notification Badge */}
           <NotificationBadge />
           
-          <Button variant="ranking" onClick={() => navigate(`/${userType === "teacher" ? "teacher" : "student"}/rankings`)} className="flex items-center gap-2">
-            <Medal size={20} />
-            <span className="hidden md:inline">{t("rankings")}</span>
-          </Button>
+          
 
           <Button variant="secondary" onClick={() => navigate(`/${userType === "teacher" ? "teacher" : "student"}/messages`)} className="flex items-center gap-2">
             <MessageSquare size={20} />

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -16,7 +15,6 @@ import StudentCollection from "@/components/student/StudentCollection";
 import MysteryBallTab from "@/components/student/MysteryBallTab";
 import SchoolPoolDialog from "@/components/student/SchoolPoolDialog";
 import MyClassesTab from "@/components/student/MyClassesTab";
-
 const StudentDashboard: React.FC = () => {
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const userType = localStorage.getItem("userType");
@@ -24,9 +22,12 @@ const StudentDashboard: React.FC = () => {
   const studentId = localStorage.getItem("studentId") || "";
   const classId = localStorage.getItem("studentClassId") || "";
   const schoolId = localStorage.getItem("studentSchoolId") || "";
-  const { t } = useTranslation();
-  const { toast } = useToast();
-  
+  const {
+    t
+  } = useTranslation();
+  const {
+    toast
+  } = useToast();
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
   const [coins, setCoins] = useState(0);
   const [schoolPokemons, setSchoolPokemons] = useState<Pokemon[]>([]);
@@ -35,7 +36,6 @@ const StudentDashboard: React.FC = () => {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [showSchoolPool, setShowSchoolPool] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  
   useEffect(() => {
     console.log("StudentDashboard loaded with:", {
       studentId,
@@ -54,7 +54,6 @@ const StudentDashboard: React.FC = () => {
       localStorage.setItem("studentSchoolId", "default-school-1");
     }
   }, [studentId, schoolId]);
-
   const loadStudentData = () => {
     console.log("Loading student data for:", studentId);
     // Load Pokemon collection and coins
@@ -75,7 +74,6 @@ const StudentDashboard: React.FC = () => {
       setAvatar(student.avatar);
     }
   };
-  
   const loadSchoolPokemonPool = () => {
     const currentSchoolId = schoolId || localStorage.getItem("studentSchoolId") || "default-school-1";
     console.log("Loading school pokemon pool for:", currentSchoolId);
@@ -88,7 +86,6 @@ const StudentDashboard: React.FC = () => {
       setSchoolPokemons([]);
     }
   };
-  
   const loadActiveBattles = () => {
     if (!studentId || !classId || !schoolId) return;
     const savedBattles = localStorage.getItem("battles");
@@ -142,11 +139,9 @@ const StudentDashboard: React.FC = () => {
 
   // Get the current school ID (either from state or localStorage)
   const currentSchoolId = schoolId || localStorage.getItem("studentSchoolId") || "default-school-1";
-  
   if (!isLoggedIn || userType !== "student") {
     return <Navigate to="/student-login" />;
   }
-  
   return <div className="min-h-screen bg-gray-100">
       <NavBar userType="student" userName={studentName} userAvatar={avatar || undefined} />
       
@@ -156,10 +151,7 @@ const StudentDashboard: React.FC = () => {
         {/* Rankings button */}
         <div className="flex justify-end mt-4">
           <Link to="/student/rankings">
-            <Button className="flex items-center gap-2" variant="ranking">
-              <Trophy className="h-4 w-4" />
-              {t("view-rankings")}
-            </Button>
+            
           </Link>
         </div>
         
@@ -180,16 +172,7 @@ const StudentDashboard: React.FC = () => {
             </TabsContent>
             
             <TabsContent value="mystery-ball" className="mt-4">
-              <MysteryBallTab 
-                schoolPokemons={schoolPokemons} 
-                studentId={studentId} 
-                schoolId={currentSchoolId} 
-                coins={coins} 
-                isLoading={isLoading} 
-                onPokemonWon={handlePokemonWon} 
-                onCoinsWon={handleCoinsWon} 
-                onRefreshPool={handleRefreshPool} 
-              />
+              <MysteryBallTab schoolPokemons={schoolPokemons} studentId={studentId} schoolId={currentSchoolId} coins={coins} isLoading={isLoading} onPokemonWon={handlePokemonWon} onCoinsWon={handleCoinsWon} onRefreshPool={handleRefreshPool} />
             </TabsContent>
             
             <TabsContent value="school-pool" className="mt-4">
@@ -198,8 +181,7 @@ const StudentDashboard: React.FC = () => {
                 <p className="text-center mb-6 text-gray-600">Available Pokémon in your school pool: {schoolPokemons.length}</p>
                 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4 max-h-[500px] overflow-y-auto p-4 bg-gray-50 rounded-lg">
-                  {schoolPokemons.map(pokemon => (
-                    <div key={pokemon.id} className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
+                  {schoolPokemons.map(pokemon => <div key={pokemon.id} className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
                       <img src={pokemon.image} alt={pokemon.name} className="w-full h-24 object-contain mx-auto" />
                       <div className="mt-2 text-center">
                         <p className="font-medium text-sm">{pokemon.name}</p>
@@ -208,36 +190,24 @@ const StudentDashboard: React.FC = () => {
                           {pokemon.rarity}
                         </span>
                       </div>
-                    </div>
-                  ))}
+                    </div>)}
                   
-                  {schoolPokemons.length === 0 && (
-                    <div className="col-span-full text-center py-12 text-gray-500">
+                  {schoolPokemons.length === 0 && <div className="col-span-full text-center py-12 text-gray-500">
                       No Pokémon available in the school pool.
-                    </div>
-                  )}
+                    </div>}
                 </div>
               </div>
             </TabsContent>
             
             <TabsContent value="my-classes" className="mt-4">
-              <MyClassesTab 
-                studentId={studentId}
-                studentName={studentName}
-                classId={classId}
-              />
+              <MyClassesTab studentId={studentId} studentName={studentName} classId={classId} />
             </TabsContent>
           </Tabs>
         </div>
       </div>
       
       {/* School Pool Dialog */}
-      <SchoolPoolDialog 
-        open={showSchoolPool} 
-        onOpenChange={setShowSchoolPool} 
-        schoolPokemons={schoolPokemons} 
-      />
+      <SchoolPoolDialog open={showSchoolPool} onOpenChange={setShowSchoolPool} schoolPokemons={schoolPokemons} />
     </div>;
 };
-
 export default StudentDashboard;
