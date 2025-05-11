@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -60,20 +59,12 @@ const StudentDetailPage: React.FC = () => {
       if (student) {
         setStudent(student);
       } else {
-        toast({
-          title: t("error"),
-          description: t("student-not-found"),
-          variant: "destructive",
-        });
+        toast(t("student-not-found"));
         navigate("/teacher-dashboard");
       }
     } catch (error) {
       console.error("Error loading student:", error);
-      toast({
-        title: t("error"),
-        description: t("error-loading-student"),
-        variant: "destructive",
-      });
+      toast(t("error-loading-student"));
     } finally {
       setIsLoading(false);
     }
