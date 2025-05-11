@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Badge } from "@/components/ui/badge";
@@ -23,6 +22,7 @@ interface School {
 interface StudentWithRank extends Student {
   pokemonCount: number;
   rank: number;
+  coins: number;
 }
 
 const RankingPage: React.FC = () => {
@@ -45,9 +45,9 @@ const RankingPage: React.FC = () => {
     localStorage.getItem("studentId");
   const userClassId = localStorage.getItem("studentClassId") || "";
   
-  // Get schools the user belongs to
+  // Get all available schools
   useEffect(() => {
-    loadUserSchools();
+    loadAllSchools();
   }, [userType, userId]);
   
   // Load classes when school is selected
@@ -57,42 +57,28 @@ const RankingPage: React.FC = () => {
     }
   }, [selectedSchool]);
   
-  const loadUserSchools = () => {
-    const allSchools = JSON.parse(localStorage.getItem("schools") || "[]");
-    
-    if (userType === "student" && userId) {
-      // Students can only see their own school
-      const students = JSON.parse(localStorage.getItem("students") || "[]");
-      const student = students.find((s: Student) => s.id === userId);
+  const loadAllSchools = () => {
+    try {
+      const allSchools = JSON.parse(localStorage.getItem("schools") || "[]");
       
-      if (student && student.schoolId) {
-        const school = allSchools.find((s: School) => s.id === student.schoolId);
-        if (school) {
-          setSchools([school]);
-          // Auto-select the school for students
-          setSelectedSchool(school);
-        } else {
-          setSchools([]);
+      // No filtering, show all available schools
+      setSchools(allSchools);
+      
+      // If user is a student, auto-select their school for convenience
+      if (userType === "student" && userId) {
+        const students = JSON.parse(localStorage.getItem("students") || "[]");
+        const student = students.find((s: Student) => s.id === userId);
+        
+        if (student && student.schoolId) {
+          const school = allSchools.find((s: School) => s.id === student.schoolId);
+          if (school) {
+            setSelectedSchool(school);
+          }
         }
-      } else {
-        setSchools([]);
       }
-    } else if (userType === "teacher" && userId) {
-      // Teachers can see schools they are assigned to
-      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-      const teacher = teachers.find((t: any) => t.id === userId);
-      
-      if (teacher && teacher.schools?.length) {
-        const teacherSchools = allSchools.filter((s: School) => 
-          teacher.schools.includes(s.id)
-        );
-        setSchools(teacherSchools);
-      } else if (userId === "admin") {
-        // Admin can see all schools
-        setSchools(allSchools);
-      } else {
-        setSchools([]);
-      }
+    } catch (error) {
+      console.error("Error loading schools:", error);
+      setSchools([]);
     }
   };
   
@@ -130,13 +116,14 @@ const RankingPage: React.FC = () => {
       const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
       const filteredStudents = allStudents.filter((s: Student) => s.classId === classId);
       
-      // Get Pokemon counts for each student
+      // Get Pokemon counts and coins for each student
       const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
       
       const studentsWithPokemonCount = filteredStudents.map((s: Student) => {
         const pokemonData = studentPokemons.find((p: any) => p.studentId === s.id);
         const count = pokemonData ? (pokemonData.pokemons || []).length : 0;
-        return { ...s, pokemonCount: count };
+        const coins = pokemonData ? pokemonData.coins || 0 : 0;
+        return { ...s, pokemonCount: count, coins };
       });
       
       // Sort by Pokemon count
@@ -150,7 +137,8 @@ const RankingPage: React.FC = () => {
         rank: index + 1
       }));
       
-      return rankedStudents;
+      // Return top 10 for class ranking
+      return rankedStudents.slice(0, 10);
     } catch (error) {
       console.error("Error loading class students:", error);
       return [];
@@ -167,13 +155,14 @@ const RankingPage: React.FC = () => {
       const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
       const schoolStudents = allStudents.filter((s: Student) => s.schoolId === schoolId);
       
-      // Get Pokemon counts for each student
+      // Get Pokemon counts and coins for each student
       const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
       
       const studentsWithPokemonCount = schoolStudents.map((s: Student) => {
         const pokemonData = studentPokemons.find((p: any) => p.studentId === s.id);
         const count = pokemonData ? (pokemonData.pokemons || []).length : 0;
-        return { ...s, pokemonCount: count };
+        const coins = pokemonData ? pokemonData.coins || 0 : 0;
+        return { ...s, pokemonCount: count, coins };
       });
       
       // Sort by Pokemon count
@@ -187,8 +176,8 @@ const RankingPage: React.FC = () => {
         rank: index + 1
       }));
       
-      // Limit to top 10
-      setStudents(rankedStudents.slice(0, 10));
+      // Limit to top 20 for school ranking (increased from 10)
+      setStudents(rankedStudents.slice(0, 20));
     } catch (error) {
       console.error("Error loading school students:", error);
     }
@@ -226,7 +215,7 @@ const RankingPage: React.FC = () => {
     }
   };
   
-  const renderStudentList = (studentList: StudentWithRank[]) => {
+  const renderStudentList = (studentList: StudentWithRank[], title: string) => {
     if (!studentList || studentList.length === 0) {
       return (
         <div className="text-center py-12">
@@ -237,6 +226,7 @@ const RankingPage: React.FC = () => {
     
     return (
       <div className="space-y-4">
+        <h3 className="text-lg font-medium mb-3">{title}</h3>
         {studentList.map(student => (
           <div 
             key={student.id}
@@ -263,7 +253,9 @@ const RankingPage: React.FC = () => {
             
             <div className="text-right">
               <p className="font-bold">{student.pokemonCount}</p>
-              <p className="text-sm text-gray-500">{t("pokemon")}</p>
+              <p className="text-sm text-gray-500">
+                {t("pokemon")} • {student.coins} {t("coins")}
+              </p>
             </div>
           </div>
         ))}
@@ -295,7 +287,7 @@ const RankingPage: React.FC = () => {
           <h1 className="text-2xl font-bold">
             {selectedSchool ? selectedSchool.name : t("school-rankings")}
           </h1>
-          {selectedSchool && userType === "teacher" && (
+          {selectedSchool && (
             <Button 
               variant="ghost"
               onClick={() => setSelectedSchool(null)}
@@ -365,7 +357,7 @@ const RankingPage: React.FC = () => {
             </CardHeader>
             <CardContent>
               <TabsContent value="school">
-                {renderStudentList(students)}
+                {renderStudentList(students, `${t("top")} 20 - ${t("school-ranking")}`)}
               </TabsContent>
               
               <TabsContent value="class">
@@ -376,7 +368,7 @@ const RankingPage: React.FC = () => {
                         <h3 className="font-medium text-lg mb-3 px-2 py-1 bg-gray-50 rounded-md">
                           {cls.name}
                         </h3>
-                        {renderStudentList(classStudents[cls.id] || [])}
+                        {renderStudentList(classStudents[cls.id] || [], `${t("top")} 10 - ${cls.name}`)}
                       </div>
                     ))}
                   </div>
