@@ -1,12 +1,14 @@
 
 import React, { useState, useEffect } from "react";
-import { Navigate } from "react-router-dom";
+import { Navigate, Link } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getStudentPokemonCollection, getSchoolPokemonPool, initializeSchoolPokemonPool, awardCoinsToStudent } from "@/utils/pokemon";
 import { Pokemon } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
+import { Trophy } from "lucide-react";
 
 // Import our components
 import StudentHeader from "@/components/student/StudentHeader";
@@ -151,7 +153,17 @@ const StudentDashboard: React.FC = () => {
       <div className="container mx-auto py-8 px-4">
         <StudentHeader studentName={studentName} coins={coins} activeBattles={activeBattles} onOpenSchoolPool={() => setShowSchoolPool(true)} />
         
-        <div className="mt-10 relative">
+        {/* Rankings button */}
+        <div className="flex justify-end mt-4">
+          <Link to="/student/rankings">
+            <Button className="flex items-center gap-2">
+              <Trophy className="h-4 w-4" />
+              {t("view-rankings")}
+            </Button>
+          </Link>
+        </div>
+        
+        <div className="mt-6 relative">
           <Tabs defaultValue="my-pokemons" className="w-full mt-8" value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4 mb-8">
               <TabsTrigger value="my-pokemons">My Pokémons</TabsTrigger>

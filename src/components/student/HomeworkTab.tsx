@@ -23,10 +23,24 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ studentId, studentName, class
   const [selectedHomework, setSelectedHomework] = useState<HomeworkAssignment | null>(null);
   const [isSubmitOpen, setIsSubmitOpen] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [classes, setClasses] = useState<{[id: string]: string}>({});
   
   useEffect(() => {
     loadHomeworkData();
+    loadClassesData();
   }, [classId]);
+  
+  const loadClassesData = () => {
+    // Get class information for displaying class names
+    const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+    const classMap: {[id: string]: string} = {};
+    
+    allClasses.forEach((cls: any) => {
+      classMap[cls.id] = cls.name;
+    });
+    
+    setClasses(classMap);
+  };
   
   const loadHomeworkData = () => {
     console.log("Loading homework for class:", classId);
@@ -132,6 +146,11 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ studentId, studentName, class
     return submission ? submission.status : null;
   };
   
+  // Get class name for a homework
+  const getClassName = (classId: string) => {
+    return classes[classId] || t("unknown-class");
+  };
+  
   // Get homework type icon
   const getHomeworkTypeIcon = (type: string) => {
     switch (type) {
@@ -169,11 +188,18 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ studentId, studentName, class
                     <CardTitle>{homework.title}</CardTitle>
                   </div>
                   <CardDescription>
-                    {!isExpired ? (
-                      <>{t("due")} {new Date(homework.expiresAt).toLocaleDateString()} ({Math.ceil((new Date(homework.expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60))} {t("hours")})</>
-                    ) : (
-                      <span className="text-red-500">{t("expired")}</span>
-                    )}
+                    <div className="flex justify-between items-center">
+                      <span>
+                        {!isExpired ? (
+                          <>{t("due")} {new Date(homework.expiresAt).toLocaleDateString()} ({Math.ceil((new Date(homework.expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60))} {t("hours")})</>
+                        ) : (
+                          <span className="text-red-500">{t("expired")}</span>
+                        )}
+                      </span>
+                      <span className="text-xs bg-gray-100 px-2 py-1 rounded">
+                        {getClassName(homework.classId)}
+                      </span>
+                    </div>
                   </CardDescription>
                 </CardHeader>
                 <CardContent>

@@ -5,6 +5,7 @@ import { HomeworkAssignment, HomeworkSubmission } from "@/types/homework";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { getHomeworkTypeIcon } from "./HomeworkUtils";
+import { Badge } from "@/components/ui/badge";
 
 interface ArchivedHomeworkTabProps {
   homeworks: HomeworkAssignment[];
@@ -36,6 +37,7 @@ const ArchivedHomeworkTab: React.FC<ArchivedHomeworkTabProps> = ({
       {homeworks.map(homework => {
         const homeworkSubmissions = getSubmissionsForHomework(homework.id);
         const approvedSubmissions = homeworkSubmissions.filter(sub => sub.status === "approved");
+        const className = getClassName(homework.classId);
         
         return (
           <Card key={homework.id} className="bg-gray-50">
@@ -45,9 +47,9 @@ const ArchivedHomeworkTab: React.FC<ArchivedHomeworkTabProps> = ({
                   {getHomeworkTypeIcon(homework.type)}
                   <CardTitle className="ml-2 text-gray-600">{homework.title}</CardTitle>
                 </div>
-                <div className="px-2 py-1 rounded bg-gray-200 text-gray-700 text-xs font-medium">
-                  {getClassName(homework.classId)}
-                </div>
+                <Badge variant="secondary" className="text-xs">
+                  {className}
+                </Badge>
               </div>
               <CardDescription className="mt-2">
                 {t("expired")}: {new Date(homework.expiresAt).toLocaleDateString()}
@@ -65,6 +67,12 @@ const ArchivedHomeworkTab: React.FC<ArchivedHomeworkTabProps> = ({
           </Card>
         );
       })}
+      
+      {homeworks.length === 0 && (
+        <div className="col-span-full text-center py-12">
+          <p className="text-xl text-gray-500">{t("no-archived-homework")}</p>
+        </div>
+      )}
     </div>
   );
 };

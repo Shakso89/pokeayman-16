@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Badge } from "@/components/ui/badge";
@@ -5,11 +6,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { ChevronLeft, Trophy } from "lucide-react";
+import { ChevronLeft, Trophy, School, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Student, Pokemon } from "@/types/pokemon";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PokemonList from "@/components/student/PokemonList";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 interface School {
   id: string;
@@ -33,16 +35,27 @@ const RankingPage: React.FC = () => {
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
   const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
+  const [classStudents, setClassStudents] = useState<{ [key: string]: StudentWithRank[] }>({});
+  const [classes, setClasses] = useState<{id: string, name: string}[]>([]);
+  const [currentTab, setCurrentTab] = useState<'school' | 'class'>('school');
   
   const userType = localStorage.getItem("userType") as "teacher" | "student";
   const userId = userType === "teacher" ? 
     localStorage.getItem("teacherId") : 
     localStorage.getItem("studentId");
+  const userClassId = localStorage.getItem("studentClassId") || "";
   
   // Get schools the user belongs to
   useEffect(() => {
     loadUserSchools();
   }, [userType, userId]);
+  
+  // Load classes when school is selected
+  useEffect(() => {
+    if (selectedSchool) {
+      loadSchoolClasses(selectedSchool.id);
+    }
+  }, [selectedSchool]);
   
   const loadUserSchools = () => {
     const allSchools = JSON.parse(localStorage.getItem("schools") || "[]");
@@ -56,6 +69,8 @@ const RankingPage: React.FC = () => {
         const school = allSchools.find((s: School) => s.id === student.schoolId);
         if (school) {
           setSchools([school]);
+          // Auto-select the school for students
+          setSelectedSchool(school);
         } else {
           setSchools([]);
         }
@@ -78,6 +93,67 @@ const RankingPage: React.FC = () => {
       } else {
         setSchools([]);
       }
+    }
+  };
+  
+  const loadSchoolClasses = (schoolId: string) => {
+    try {
+      const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+      const filteredClasses = allClasses.filter((c: any) => c.schoolId === schoolId);
+      
+      setClasses(filteredClasses.map((c: any) => ({ 
+        id: c.id, 
+        name: c.name 
+      })));
+      
+      // For each class, load students
+      const classStudentsMap: { [key: string]: StudentWithRank[] } = {};
+      
+      filteredClasses.forEach((cls: any) => {
+        const classStudentList = loadClassStudents(cls.id);
+        classStudentsMap[cls.id] = classStudentList;
+      });
+      
+      setClassStudents(classStudentsMap);
+      
+      // For students, auto-select their class tab
+      if (userType === "student" && userClassId) {
+        setCurrentTab('class');
+      }
+    } catch (error) {
+      console.error("Error loading classes:", error);
+    }
+  };
+  
+  const loadClassStudents = (classId: string): StudentWithRank[] => {
+    try {
+      const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+      const filteredStudents = allStudents.filter((s: Student) => s.classId === classId);
+      
+      // Get Pokemon counts for each student
+      const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
+      
+      const studentsWithPokemonCount = filteredStudents.map((s: Student) => {
+        const pokemonData = studentPokemons.find((p: any) => p.studentId === s.id);
+        const count = pokemonData ? (pokemonData.pokemons || []).length : 0;
+        return { ...s, pokemonCount: count };
+      });
+      
+      // Sort by Pokemon count
+      const sortedStudents = studentsWithPokemonCount.sort((a: any, b: any) => 
+        b.pokemonCount - a.pokemonCount
+      );
+      
+      // Add rank
+      const rankedStudents = sortedStudents.map((student: any, index: number) => ({
+        ...student,
+        rank: index + 1
+      }));
+      
+      return rankedStudents;
+    } catch (error) {
+      console.error("Error loading class students:", error);
+      return [];
     }
   };
   
@@ -150,6 +226,51 @@ const RankingPage: React.FC = () => {
     }
   };
   
+  const renderStudentList = (studentList: StudentWithRank[]) => {
+    if (!studentList || studentList.length === 0) {
+      return (
+        <div className="text-center py-12">
+          <p className="text-xl text-gray-500">{t("no-students")}</p>
+        </div>
+      );
+    }
+    
+    return (
+      <div className="space-y-4">
+        {studentList.map(student => (
+          <div 
+            key={student.id}
+            className="flex items-center p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
+            onClick={() => handleStudentClick(student)}
+          >
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${getRankingColor(student.rank)}`}>
+              {student.rank <= 3 ? <Trophy size={16} /> : student.rank}
+            </div>
+            
+            <div className="ml-4 flex-1 flex items-center">
+              <Avatar className="h-10 w-10 mr-3">
+                <AvatarImage src={student.avatar} />
+                <AvatarFallback>
+                  {student.displayName?.substring(0, 2).toUpperCase() || "ST"}
+                </AvatarFallback>
+              </Avatar>
+              
+              <div>
+                <p className="font-medium">{student.displayName}</p>
+                <p className="text-sm text-gray-500">@{student.username}</p>
+              </div>
+            </div>
+            
+            <div className="text-right">
+              <p className="font-bold">{student.pokemonCount}</p>
+              <p className="text-sm text-gray-500">{t("pokemon")}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
+  
   return (
     <div className="min-h-screen bg-gray-100">
       <NavBar 
@@ -174,7 +295,7 @@ const RankingPage: React.FC = () => {
           <h1 className="text-2xl font-bold">
             {selectedSchool ? selectedSchool.name : t("school-rankings")}
           </h1>
-          {selectedSchool && (
+          {selectedSchool && userType === "teacher" && (
             <Button 
               variant="ghost"
               onClick={() => setSelectedSchool(null)}
@@ -226,47 +347,45 @@ const RankingPage: React.FC = () => {
         ) : (
           <Card>
             <CardHeader className="pb-2">
-              <CardTitle>{t("top-students")}</CardTitle>
+              <div className="flex justify-between items-center">
+                <CardTitle>{t("top-students")}</CardTitle>
+                <Tabs value={currentTab} onValueChange={(value) => setCurrentTab(value as 'school' | 'class')}>
+                  <TabsList>
+                    <TabsTrigger value="school" className="flex items-center gap-1">
+                      <School className="h-4 w-4" />
+                      {t("school")}
+                    </TabsTrigger>
+                    <TabsTrigger value="class" className="flex items-center gap-1">
+                      <Users className="h-4 w-4" />
+                      {t("class")}
+                    </TabsTrigger>
+                  </TabsList>
+                </Tabs>
+              </div>
             </CardHeader>
             <CardContent>
-              {students.length > 0 ? (
-                <div className="space-y-4">
-                  {students.map(student => (
-                    <div 
-                      key={student.id}
-                      className="flex items-center p-4 border rounded-lg hover:bg-gray-50 cursor-pointer"
-                      onClick={() => handleStudentClick(student)}
-                    >
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${getRankingColor(student.rank)}`}>
-                        {student.rank <= 3 ? <Trophy size={16} /> : student.rank}
+              <TabsContent value="school">
+                {renderStudentList(students)}
+              </TabsContent>
+              
+              <TabsContent value="class">
+                {classes.length > 0 ? (
+                  <div className="space-y-6">
+                    {classes.map(cls => (
+                      <div key={cls.id}>
+                        <h3 className="font-medium text-lg mb-3 px-2 py-1 bg-gray-50 rounded-md">
+                          {cls.name}
+                        </h3>
+                        {renderStudentList(classStudents[cls.id] || [])}
                       </div>
-                      
-                      <div className="ml-4 flex-1 flex items-center">
-                        <Avatar className="h-10 w-10 mr-3">
-                          <AvatarImage src={student.avatar} />
-                          <AvatarFallback>
-                            {student.displayName?.substring(0, 2).toUpperCase() || "ST"}
-                          </AvatarFallback>
-                        </Avatar>
-                        
-                        <div>
-                          <p className="font-medium">{student.displayName}</p>
-                          <p className="text-sm text-gray-500">@{student.username}</p>
-                        </div>
-                      </div>
-                      
-                      <div className="text-right">
-                        <p className="font-bold">{student.pokemonCount}</p>
-                        <p className="text-sm text-gray-500">{t("pokemon")}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-12">
-                  <p className="text-xl text-gray-500">{t("no-students")}</p>
-                </div>
-              )}
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12">
+                    <p className="text-xl text-gray-500">{t("no-classes")}</p>
+                  </div>
+                )}
+              </TabsContent>
             </CardContent>
           </Card>
         )}
