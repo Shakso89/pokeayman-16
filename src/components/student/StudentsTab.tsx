@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -8,112 +7,109 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { ArrowDownAZ, ArrowUpAZ } from "lucide-react";
-
 interface StudentsTabProps {
   classId: string;
 }
-
 interface StudentWithPokemon extends Student {
   pokemonCount: number;
   coins: number;
 }
-
-const StudentsTab: React.FC<StudentsTabProps> = ({ classId }) => {
-  const { t } = useTranslation();
-  const { toast } = useToast();
+const StudentsTab: React.FC<StudentsTabProps> = ({
+  classId
+}) => {
+  const {
+    t
+  } = useTranslation();
+  const {
+    toast
+  } = useToast();
   const [students, setStudents] = useState<StudentWithPokemon[]>([]);
   const navigate = useNavigate();
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
-  
   useEffect(() => {
     loadStudents();
   }, [classId]);
-  
   const loadStudents = () => {
     try {
       // Get all students from localStorage
       const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
-      
+
       // Filter students for this class
-      const classStudents = allStudents.filter((student: Student) => 
-        student.classId === classId
-      );
-      
+      const classStudents = allStudents.filter((student: Student) => student.classId === classId);
       console.log(`Found ${classStudents.length} students for class ${classId}`);
-      
+
       // Get Pokemon counts for each student
       const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
-      
+
       // Add Pokemon count information to each student
       const studentsWithPokemon = classStudents.map((student: Student) => {
         const pokemonData = studentPokemons.find((p: any) => p.studentId === student.id);
         const pokemonCount = pokemonData ? (pokemonData.pokemons || []).length : 0;
         const coins = pokemonData ? pokemonData.coins : 0;
-        
         return {
           ...student,
           pokemonCount,
           coins
         };
       });
-      
+
       // Sort students by Pokemon count
       sortStudents(studentsWithPokemon);
-      
+
       // Add some sample students if none are found and we're in development mode
       if (studentsWithPokemon.length === 0 && import.meta.env.DEV) {
         // This is just for demo purposes - using the correct names as requested
-        const sampleStudents = [
-          {
-            id: "student-1",
-            username: "ariel_waters",
-            displayName: "Ariel",
-            classId: classId,
-            teacherId: "teacher-1", 
-            createdAt: new Date().toISOString(),
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ariel",
-            pokemonCount: 5,
-            coins: 50
-          },
-          {
-            id: "student-2",
-            username: "brian_smith",
-            displayName: "Brian",
-            classId: classId,
-            teacherId: "teacher-1",
-            createdAt: new Date().toISOString(),
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Brian",
-            pokemonCount: 3,
-            coins: 30
-          },
-          {
-            id: "student-3",
-            username: "kate_jones",
-            displayName: "Kate",
-            classId: classId,
-            teacherId: "teacher-1",
-            createdAt: new Date().toISOString(),
-            avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Kate",
-            pokemonCount: 4,
-            coins: 40
-          }
-        ];
-        
+        const sampleStudents = [{
+          id: "student-1",
+          username: "ariel_waters",
+          displayName: "Ariel",
+          classId: classId,
+          teacherId: "teacher-1",
+          createdAt: new Date().toISOString(),
+          avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ariel",
+          pokemonCount: 5,
+          coins: 50
+        }, {
+          id: "student-2",
+          username: "brian_smith",
+          displayName: "Brian",
+          classId: classId,
+          teacherId: "teacher-1",
+          createdAt: new Date().toISOString(),
+          avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Brian",
+          pokemonCount: 3,
+          coins: 30
+        }, {
+          id: "student-3",
+          username: "kate_jones",
+          displayName: "Kate",
+          classId: classId,
+          teacherId: "teacher-1",
+          createdAt: new Date().toISOString(),
+          avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Kate",
+          pokemonCount: 4,
+          coins: 40
+        }];
+
         // Update localStorage with sample students
         const updatedStudents = [...allStudents];
         sampleStudents.forEach(sampleStudent => {
           const existingIndex = updatedStudents.findIndex(s => s.id === sampleStudent.id);
           if (existingIndex === -1) {
             // Add the student without pokemonCount and coins properties
-            const { pokemonCount, coins, ...studentWithoutPokemonData } = sampleStudent;
+            const {
+              pokemonCount,
+              coins,
+              ...studentWithoutPokemonData
+            } = sampleStudent;
             updatedStudents.push(studentWithoutPokemonData);
           }
         });
         localStorage.setItem("students", JSON.stringify(updatedStudents));
-        
+
         // Also make sure these students have Pokemon collections
         const updatedStudentPokemons = [...studentPokemons];
-        
+
         // Add sample Pokemon data for these students if they don't have any
         sampleStudents.forEach(student => {
           const existingIndex = updatedStudentPokemons.findIndex(sp => sp.studentId === student.id);
@@ -122,7 +118,7 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId }) => {
               studentId: student.id,
               pokemons: Array(student.pokemonCount).fill(null).map((_, i) => ({
                 id: `pokemon-${student.id}-${i}`,
-                name: `Pokemon ${i+1}`,
+                name: `Pokemon ${i + 1}`,
                 image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${Math.floor(Math.random() * 150) + 1}.png`,
                 type: "normal",
                 rarity: ["common", "uncommon", "rare", "legendary"][Math.floor(Math.random() * 4)] as "common" | "uncommon" | "rare" | "legendary"
@@ -131,14 +127,12 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId }) => {
             });
           }
         });
-        
         localStorage.setItem("studentPokemons", JSON.stringify(updatedStudentPokemons));
-        
+
         // Update state
         setStudents(sampleStudents);
-        
         toast({
-          description: "Sample students added for demonstration",
+          description: "Sample students added for demonstration"
         });
       } else {
         setStudents(studentsWithPokemon);
@@ -148,12 +142,11 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId }) => {
       toast({
         variant: "destructive",
         title: "Error",
-        description: "Failed to load students",
+        description: "Failed to load students"
       });
       setStudents([]);
     }
   };
-  
   const sortStudents = (studentsArray: StudentWithPokemon[]) => {
     const sorted = [...studentsArray].sort((a, b) => {
       if (sortOrder === "desc") {
@@ -162,24 +155,19 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId }) => {
         return a.pokemonCount - b.pokemonCount;
       }
     });
-    
     setStudents(sorted);
   };
-  
   const toggleSortOrder = () => {
     const newOrder = sortOrder === "desc" ? "asc" : "desc";
     setSortOrder(newOrder);
     sortStudents(students);
   };
-  
   const handleStudentClick = (studentId: string) => {
     // Navigate to the student profile page
     navigate(`/student/profile/${studentId}`);
   };
-  
   if (students.length === 0) {
-    return (
-      <div className="flex flex-col items-center justify-center py-16 px-4">
+    return <div className="flex flex-col items-center justify-center py-16 px-4">
         <div className="bg-gray-50 rounded-full p-6 mb-4">
           <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-gray-400">
             <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
@@ -189,59 +177,10 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId }) => {
           </svg>
         </div>
         <p className="text-lg font-medium text-gray-500">{t("no-students-found")}</p>
-      </div>
-    );
+      </div>;
   }
-  
-  return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex justify-between items-center mb-6">
-          <h3 className="text-lg font-medium">{t("students")}: {students.length}</h3>
-          <Button variant="outline" onClick={toggleSortOrder} className="flex items-center gap-2">
-            {sortOrder === "desc" ? (
-              <>
-                <ArrowDownAZ className="h-4 w-4" />
-                {t("sort-by-pokemon-desc")}
-              </>
-            ) : (
-              <>
-                <ArrowUpAZ className="h-4 w-4" />
-                {t("sort-by-pokemon-asc")}
-              </>
-            )}
-          </Button>
-        </div>
-        
-        <div className="space-y-3">
-          {students.map(student => (
-            <div 
-              key={student.id}
-              className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-              onClick={() => handleStudentClick(student.id)}
-            >
-              <Avatar className="h-10 w-10 mr-4">
-                <AvatarImage src={student.avatar} alt={student.displayName} />
-                <AvatarFallback>
-                  {student.displayName.substring(0, 2).toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="flex-1">
-                <p className="font-medium">{student.displayName}</p>
-                <p className="text-sm text-gray-500">@{student.username}</p>
-              </div>
-              
-              <div className="text-right">
-                <p className="font-medium">{student.pokemonCount} {t("pokemon")}</p>
-                <p className="text-sm text-gray-500">{student.coins} {t("coins")}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </CardContent>
-    </Card>
-  );
+  return <Card>
+      
+    </Card>;
 };
-
 export default StudentsTab;
