@@ -6,6 +6,7 @@ import { Student, Pokemon } from "@/types/pokemon";
 import { Trophy } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PokemonList from "@/components/student/PokemonList";
+import { Card, CardContent } from "@/components/ui/card";
 
 interface StudentWithScore {
   id: string;
@@ -69,7 +70,8 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
         rank: index + 1
       }));
       
-      setStudents(rankedStudents);
+      // Only show top 10
+      setStudents(rankedStudents.slice(0, 10));
       
     } catch (error) {
       console.error("Error loading rankings:", error);
@@ -111,52 +113,57 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
   
   if (students.length === 0) {
     return (
-      <div className="text-center py-12">
-        <p className="text-gray-500">{t("no-students-found")}</p>
+      <div className="flex flex-col items-center justify-center py-16 px-4">
+        <div className="bg-gray-50 rounded-full p-6 mb-4">
+          <Trophy size={48} className="text-gray-400" />
+        </div>
+        <p className="text-lg font-medium text-gray-500">{t("no-students-found")}</p>
       </div>
     );
   }
   
   return (
-    <div>
-      <h3 className="text-lg font-medium mb-4">{t("class-ranking")}</h3>
-      
-      <div className="space-y-3">
-        {students.map(student => (
-          <div 
-            key={student.id}
-            className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-            onClick={() => handleStudentClick(student)}
-          >
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${getRankingColor(student.rank)}`}>
-              {student.rank <= 3 ? <Trophy size={16} /> : student.rank}
-            </div>
-            
-            <div className="ml-3 flex-1 flex items-center">
-              <Avatar className="h-8 w-8 mr-2">
-                <AvatarImage src={student.avatar} />
-                <AvatarFallback>
-                  {student.displayName?.substring(0, 2).toUpperCase() || "ST"}
-                </AvatarFallback>
-              </Avatar>
+    <Card>
+      <CardContent className="pt-6">
+        <h3 className="text-lg font-medium mb-6">{t("class-ranking")} - {t("top")} 10</h3>
+        
+        <div className="space-y-3">
+          {students.map(student => (
+            <div 
+              key={student.id}
+              className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
+              onClick={() => handleStudentClick(student)}
+            >
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${getRankingColor(student.rank)}`}>
+                {student.rank <= 3 ? <Trophy size={16} /> : student.rank}
+              </div>
               
-              <div>
-                <p className="font-medium text-sm">{student.displayName}</p>
-                <p className="text-xs text-gray-500">@{student.username}</p>
+              <div className="ml-3 flex-1 flex items-center">
+                <Avatar className="h-8 w-8 mr-2">
+                  <AvatarImage src={student.avatar} />
+                  <AvatarFallback>
+                    {student.displayName?.substring(0, 2).toUpperCase() || "ST"}
+                  </AvatarFallback>
+                </Avatar>
+                
+                <div>
+                  <p className="font-medium text-sm">{student.displayName}</p>
+                  <p className="text-xs text-gray-500">@{student.username}</p>
+                </div>
+              </div>
+              
+              <div className="text-right">
+                <p className="font-medium text-sm">{student.totalScore} {t("points")}</p>
+                <div className="flex items-center justify-end gap-2 text-xs text-gray-500">
+                  <span>{student.pokemonCount} {t("pokemon")}</span>
+                  <span>•</span>
+                  <span>{student.coins} {t("coins")}</span>
+                </div>
               </div>
             </div>
-            
-            <div className="text-right">
-              <p className="font-medium text-sm">{student.totalScore} {t("points")}</p>
-              <div className="flex items-center justify-end gap-2 text-xs text-gray-500">
-                <span>{student.pokemonCount} {t("pokemon")}</span>
-                <span>•</span>
-                <span>{student.coins} {t("coins")}</span>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      </CardContent>
       
       {/* Student Pokemon Modal */}
       <Dialog open={!!selectedStudent} onOpenChange={() => setSelectedStudent(null)}>
@@ -173,7 +180,7 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
+    </Card>
   );
 };
 
