@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, Plus, Users, Trash, FileText, Coins, Download, Check, X, UserPlus, Gamepad2 } from "lucide-react";
+import { ChevronLeft, Plus, Users, Trash, FileText, Coins, Download, Check, X, UserPlus, Gamepad2, UserMinus } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -61,6 +61,9 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
   const [isAddStudentDialogOpen, setIsAddStudentDialogOpen] = useState(false);
   const [searchStudentTerm, setSearchStudentTerm] = useState("");
   const [searchStudentResults, setSearchStudentResults] = useState<any[]>([]);
+  
+  // Confirm remove student dialog state
+  const [isConfirmRemoveStudentOpen, setIsConfirmRemoveStudentOpen] = useState(false);
   
   // Homework state
   const [isCreateHomeworkOpen, setIsCreateHomeworkOpen] = useState(false);
@@ -505,6 +508,15 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
                                 <Gamepad2 className="h-4 w-4 mr-1" />
                                 {t("manage-pokemon")}
                               </Button>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                className="text-red-500"
+                                onClick={() => handleRemoveStudentFromClass(student.id, student.displayName)}
+                              >
+                                <UserMinus className="h-4 w-4 mr-1" />
+                                {t("remove-student")}
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>
@@ -756,6 +768,28 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
           onPokemonRemoved={handlePokemonRemoved}
         />
       )}
+      
+      {/* Confirm Remove Student Dialog */}
+      <Dialog open={isConfirmRemoveStudentOpen} onOpenChange={setIsConfirmRemoveStudentOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Remove Student from Class</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to remove {selectedStudent?.name} from this class? 
+              This won't delete the student account, but they will no longer have access to this class.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsConfirmRemoveStudentOpen(false)}>
+              Cancel
+            </Button>
+            <Button variant="destructive" onClick={confirmRemoveStudent}>
+              Remove Student
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -16,7 +16,11 @@ export const useTranslation = () => {
       "failed-to-remove-pokemon": "Failed to remove Pokémon",
       "no-pokemon-found": "No Pokémon found in this student's collection",
       "loading": "Loading...",
-      "remove": "Remove"
+      "removing": "Removing...",
+      "remove": "Remove",
+      "close": "Close",
+      "remove-student": "Remove Student",
+      "error": "Error"
     };
     
     return translations[key] || key;

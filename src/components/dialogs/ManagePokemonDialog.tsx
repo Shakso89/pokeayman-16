@@ -3,10 +3,10 @@ import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Pokemon } from "@/types/pokemon";
-import { getStudentPokemonCollection } from "@/utils/pokemon";
-import { removePokemonFromStudentAndReturnToPool } from "@/utils/pokemon";
+import { getStudentPokemonCollection, removePokemonFromStudentAndReturnToPool } from "@/utils/pokemon";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
+import { Loader2 } from "lucide-react";
 
 interface ManagePokemonDialogProps {
   open: boolean;
@@ -29,6 +29,7 @@ const ManagePokemonDialog = ({
   const { toast } = useToast();
   const [pokemons, setPokemons] = useState<Pokemon[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isRemoving, setIsRemoving] = useState<string | null>(null);
 
   useEffect(() => {
     if (open) {
@@ -38,6 +39,7 @@ const ManagePokemonDialog = ({
 
   const loadStudentPokemons = () => {
     setIsLoading(true);
+    
     // Get student's Pokemon collection
     const collection = getStudentPokemonCollection(studentId);
     
@@ -50,9 +52,16 @@ const ManagePokemonDialog = ({
     setIsLoading(false);
   };
 
-  const handleRemovePokemon = (pokemonId: string, pokemonName: string) => {
+  const handleRemovePokemon = async (pokemonId: string, pokemonName: string) => {
+    setIsRemoving(pokemonId);
+    
     // Remove Pokemon and return it to school pool
     const success = removePokemonFromStudentAndReturnToPool(studentId, pokemonId, schoolId);
+    
+    // Add a small delay to show the loading state
+    await new Promise(resolve => setTimeout(resolve, 300));
+    
+    setIsRemoving(null);
     
     if (success) {
       toast({
@@ -76,7 +85,7 @@ const ManagePokemonDialog = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{t("manage-pokemon-for")} {studentName}</DialogTitle>
           <DialogDescription>
@@ -85,21 +94,26 @@ const ManagePokemonDialog = ({
         </DialogHeader>
         
         {isLoading ? (
-          <div className="py-6 text-center">{t("loading")}</div>
+          <div className="py-12 text-center">
+            <Loader2 className="h-8 w-8 animate-spin mx-auto text-primary" />
+            <p className="mt-2">{t("loading")}</p>
+          </div>
         ) : pokemons.length > 0 ? (
-          <div className="grid grid-cols-2 gap-4 my-4 max-h-[400px] overflow-y-auto p-1">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 my-4 max-h-[400px] overflow-y-auto p-1">
             {pokemons.map((pokemon) => (
-              <div key={pokemon.id} className="border rounded-lg overflow-hidden bg-white">
+              <div key={pokemon.id} className="border rounded-lg overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow">
                 <div className="p-2 flex justify-center bg-gray-50">
                   <img 
                     src={pokemon.image} 
                     alt={pokemon.name} 
-                    className="h-24 object-contain"
+                    className="h-20 object-contain"
                   />
                 </div>
                 <div className="p-3">
-                  <h4 className="font-medium text-center mb-1">{pokemon.name}</h4>
-                  <div className="flex justify-between items-center">
+                  <h4 className="font-medium text-center text-sm mb-1 truncate" title={pokemon.name}>
+                    {pokemon.name}
+                  </h4>
+                  <div className="flex justify-between items-center mb-2">
                     <span className={`text-xs rounded-full px-2 py-1 ${getRarityColor(pokemon.rarity)}`}>
                       {pokemon.rarity}
                     </span>
@@ -108,18 +122,31 @@ const ManagePokemonDialog = ({
                   <Button 
                     variant="destructive" 
                     size="sm" 
-                    className="w-full mt-2"
+                    className="w-full"
                     onClick={() => handleRemovePokemon(pokemon.id, pokemon.name)}
+                    disabled={isRemoving === pokemon.id}
                   >
-                    {t("remove")}
+                    {isRemoving === pokemon.id ? (
+                      <>
+                        <Loader2 className="h-3 w-3 animate-spin mr-1" />
+                        {t("removing")}
+                      </>
+                    ) : (
+                      t("remove")
+                    )}
                   </Button>
                 </div>
               </div>
             ))}
           </div>
         ) : (
-          <div className="py-8 text-center text-gray-500">
-            {t("no-pokemon-found")}
+          <div className="py-12 text-center text-gray-500">
+            <img 
+              src="/pokeball.png" 
+              alt="Empty pokeball" 
+              className="w-16 h-16 mx-auto opacity-30"
+            />
+            <p className="mt-4">{t("no-pokemon-found")}</p>
           </div>
         )}
         
