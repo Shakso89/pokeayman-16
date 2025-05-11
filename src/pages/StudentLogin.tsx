@@ -1,12 +1,15 @@
-
 import React from "react";
 import { LoginForm } from "@/components/LoginForm";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Home } from "lucide-react";
 import PokemonDecorations from "@/components/signup/PokemonDecorations";
 const StudentLogin: React.FC = () => {
   const navigate = useNavigate();
+  const {
+    t
+  } = useTranslation();
 
   // Find student in classes data when logging in
   const handleLoginSuccess = (username: string, password: string) => {

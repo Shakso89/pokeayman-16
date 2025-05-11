@@ -4,9 +4,11 @@ import { useNavigate } from "react-router-dom";
 import { Mail, Phone, Instagram } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const Contact: React.FC = () => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 flex flex-col items-center">
@@ -14,7 +16,7 @@ const Contact: React.FC = () => {
 
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-4xl p-6">
         <div className="bg-white/20 backdrop-blur-md rounded-xl p-8 shadow-xl w-full max-w-3xl">
-          <h1 className="text-4xl font-bold text-white mb-8 text-center">Contact Us</h1>
+          <h1 className="text-4xl font-bold text-white mb-8 text-center">{t("contact-us")}</h1>
 
           <div className="grid gap-6 md:grid-cols-2">
             {/* Phone */}
@@ -26,7 +28,7 @@ const Contact: React.FC = () => {
                 <Phone className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <h3 className="font-bold text-white">Phone</h3>
+                <h3 className="font-bold text-white">{t("phone")}</h3>
                 <p className="text-white/90">+886 900 170 038</p>
               </div>
             </a>
@@ -43,7 +45,7 @@ const Contact: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-bold text-white">LINE</h3>
-                <p className="text-white/90">Click to connect</p>
+                <p className="text-white/90">{t("click-to-connect")}</p>
               </div>
             </a>
 
@@ -59,7 +61,7 @@ const Contact: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-bold text-white">WhatsApp</h3>
-                <p className="text-white/90">Click to connect</p>
+                <p className="text-white/90">{t("click-to-connect")}</p>
               </div>
             </a>
 
@@ -72,7 +74,7 @@ const Contact: React.FC = () => {
                 <Mail className="h-6 w-6 text-blue-600" />
               </div>
               <div>
-                <h3 className="font-bold text-white">Email</h3>
+                <h3 className="font-bold text-white">{t("email")}</h3>
                 <p className="text-white/90">ayman.soliman.tr@gmail.com</p>
               </div>
             </a>
@@ -98,7 +100,7 @@ const Contact: React.FC = () => {
             onClick={() => navigate("/")}
             className="mt-8 px-6 py-2 bg-white/30 hover:bg-white/40 backdrop-blur-sm rounded-lg text-white font-semibold mx-auto block transition-colors"
           >
-            Back to Home
+            {t("back-to-home")}
           </button>
         </div>
       </div>

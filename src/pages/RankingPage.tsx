@@ -4,6 +4,7 @@ import { NavBar } from "@/components/NavBar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { useTranslation } from "@/hooks/useTranslation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChevronLeft, Trophy, School, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
@@ -25,6 +26,7 @@ interface StudentWithRank extends Student {
 }
 
 const RankingPage: React.FC = () => {
+  const { t } = useTranslation();
   const navigate = useNavigate();
   
   const [schools, setSchools] = useState<School[]>([]);
@@ -228,7 +230,7 @@ const RankingPage: React.FC = () => {
     if (!studentList || studentList.length === 0) {
       return (
         <div className="text-center py-12">
-          <p className="text-xl text-gray-500">No students</p>
+          <p className="text-xl text-gray-500">{t("no-students")}</p>
         </div>
       );
     }
@@ -261,7 +263,7 @@ const RankingPage: React.FC = () => {
             
             <div className="text-right">
               <p className="font-bold">{student.pokemonCount}</p>
-              <p className="text-sm text-gray-500">Pokemon</p>
+              <p className="text-sm text-gray-500">{t("pokemon")}</p>
             </div>
           </div>
         ))}
@@ -288,10 +290,10 @@ const RankingPage: React.FC = () => {
             className="mr-4"
           >
             <ChevronLeft className="h-4 w-4 mr-1" />
-            Back
+            {t("back")}
           </Button>
           <h1 className="text-2xl font-bold">
-            {selectedSchool ? selectedSchool.name : "School Rankings"}
+            {selectedSchool ? selectedSchool.name : t("school-rankings")}
           </h1>
           {selectedSchool && userType === "teacher" && (
             <Button 
@@ -299,7 +301,7 @@ const RankingPage: React.FC = () => {
               onClick={() => setSelectedSchool(null)}
               className="ml-4"
             >
-              Back to schools
+              {t("back-to-schools")}
             </Button>
           )}
         </div>
@@ -319,17 +321,17 @@ const RankingPage: React.FC = () => {
                   <CardContent>
                     <div className="flex flex-col gap-2">
                       <div className="flex justify-between">
-                        <span className="text-sm text-gray-500">Code:</span>
+                        <span className="text-sm text-gray-500">{t("code")}:</span>
                         <Badge variant="secondary">{school.code}</Badge>
                       </div>
                       {school.location && (
                         <div className="flex justify-between">
-                          <span className="text-sm text-gray-500">Location:</span>
+                          <span className="text-sm text-gray-500">{t("location")}:</span>
                           <span>{school.location}</span>
                         </div>
                       )}
                       <Button className="mt-2 w-full">
-                        View Rankings
+                        {t("view-rankings")}
                       </Button>
                     </div>
                   </CardContent>
@@ -337,8 +339,8 @@ const RankingPage: React.FC = () => {
               ))
             ) : (
               <div className="col-span-full text-center py-12">
-                <p className="text-xl text-gray-500">No schools</p>
-                <p className="mt-2 text-gray-400">No schools available</p>
+                <p className="text-xl text-gray-500">{t("no-schools")}</p>
+                <p className="mt-2 text-gray-400">{t("no-schools-description")}</p>
               </div>
             )}
           </div>
@@ -346,16 +348,16 @@ const RankingPage: React.FC = () => {
           <Card>
             <CardHeader className="pb-2">
               <div className="flex justify-between items-center">
-                <CardTitle>Top Students</CardTitle>
+                <CardTitle>{t("top-students")}</CardTitle>
                 <Tabs value={currentTab} onValueChange={(value) => setCurrentTab(value as 'school' | 'class')}>
                   <TabsList>
                     <TabsTrigger value="school" className="flex items-center gap-1">
                       <School className="h-4 w-4" />
-                      School
+                      {t("school")}
                     </TabsTrigger>
                     <TabsTrigger value="class" className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
-                      Class
+                      {t("class")}
                     </TabsTrigger>
                   </TabsList>
                 </Tabs>
@@ -380,7 +382,7 @@ const RankingPage: React.FC = () => {
                   </div>
                 ) : (
                   <div className="text-center py-12">
-                    <p className="text-xl text-gray-500">No classes</p>
+                    <p className="text-xl text-gray-500">{t("no-classes")}</p>
                   </div>
                 )}
               </TabsContent>
@@ -394,7 +396,7 @@ const RankingPage: React.FC = () => {
         <DialogContent className="max-w-3xl">
           <DialogHeader>
             <DialogTitle>
-              {selectedStudent?.displayName}'s Pokemon Collection
+              {selectedStudent?.displayName}'s {t("pokemon-collection")}
             </DialogTitle>
           </DialogHeader>
           <div className="mt-4">
@@ -423,11 +425,11 @@ const RankingPage: React.FC = () => {
               />
               <div className="grid grid-cols-2 gap-4 w-full">
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Type:</p>
+                  <p className="text-sm font-medium text-gray-500">{t("type")}:</p>
                   <p>{selectedPokemon.type}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">Rarity:</p>
+                  <p className="text-sm font-medium text-gray-500">{t("rarity")}:</p>
                   <p>{selectedPokemon.rarity}</p>
                 </div>
               </div>
