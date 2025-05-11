@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, Plus, Users, Trash, FileText, Coins, Download, Check, X } from "lucide-react";
+import { ChevronLeft, Plus, Users, Trash, FileText, Coins, Download, Check, X, UserPlus } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -53,6 +52,11 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
   const [selectedTab, setSelectedTab] = useState<string>("students");
   const [isGiveCoinsOpen, setIsGiveCoinsOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<{id: string, name: string} | null>(null);
+  
+  // Add student to class state
+  const [isAddStudentDialogOpen, setIsAddStudentDialogOpen] = useState(false);
+  const [searchStudentTerm, setSearchStudentTerm] = useState("");
+  const [searchStudentResults, setSearchStudentResults] = useState<any[]>([]);
   
   // Homework state
   const [isCreateHomeworkOpen, setIsCreateHomeworkOpen] = useState(false);
@@ -288,6 +292,67 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
     navigate(`/teacher/student/${studentId}`);
   };
 
+  // Search students for adding to class
+  const handleSearchStudents = () => {
+    if (!searchStudentTerm.trim()) {
+      setSearchStudentResults([]);
+      return;
+    }
+
+    const term = searchStudentTerm.toLowerCase();
+    const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+    
+    // Filter students who aren't already in this class
+    const filteredStudents = allStudents.filter((student: any) => {
+      const isAlreadyInClass = selectedClass?.students?.includes(student.id);
+      const matchesTerm = 
+        student.username?.toLowerCase().includes(term) ||
+        student.displayName?.toLowerCase().includes(term);
+      
+      return !isAlreadyInClass && matchesTerm;
+    });
+    
+    setSearchStudentResults(filteredStudents);
+  };
+
+  // Add student to class
+  const handleAddStudentToClass = (studentId: string) => {
+    if (!selectedClass) return;
+    
+    // Update class with new student
+    const updatedClasses = classes.map(cls => {
+      if (cls.id === selectedClass.id) {
+        return {
+          ...cls,
+          students: [...(cls.students || []), studentId]
+        };
+      }
+      return cls;
+    });
+    
+    // Save to localStorage
+    localStorage.setItem("classes", JSON.stringify(updatedClasses));
+    
+    // Update state
+    setClasses(updatedClasses);
+    setSelectedClass({
+      ...selectedClass,
+      students: [...(selectedClass.students || []), studentId]
+    });
+    
+    // Refresh student data
+    loadStudentsData();
+    
+    toast({
+      title: t("success"),
+      description: t("student-added-to-class"),
+    });
+    
+    // Clear search
+    setSearchStudentTerm("");
+    setSearchStudentResults([]);
+  };
+
   // Filter homework based on expiration
   const now = new Date();
   const activeHomework = homeworkAssignments.filter(hw => new Date(hw.expiresAt) > now);
@@ -301,11 +366,16 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
   const getHomeworkTypeIcon = (type: string) => {
     switch (type) {
       case "text": return <FileText className="h-5 w-5 text-blue-500" />;
-      case "image": return <Image className="h-5 w-5 text-green-500" />;
-      case "audio": return <Mic className="h-5 w-5 text-purple-500" />;
+      case "image": return <ImageIcon className="h-5 w-5 text-green-500" />;
+      case "audio": return <MicIcon className="h-5 w-5 text-purple-500" />;
       default: return <FileText className="h-5 w-5" />;
     }
   };
+  
+  // Create Icon components for types from lucide-react
+  const ImageIcon = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><rect width="18" height="18" x="3" y="3" rx="2" ry="2"/><circle cx="9" cy="9" r="2"/><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/></svg>;
+  
+  const MicIcon = ({ className }: { className?: string }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" x2="12" y1="19" y2="22"/></svg>;
   
   return (
     <div>
@@ -326,10 +396,20 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
         )}
         
         {selectedClass && (
-          <Button variant="destructive" onClick={() => handleDeleteClass(selectedClass.id)}>
-            <Trash className="h-4 w-4 mr-1" />
-            {t("delete-class")}
-          </Button>
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => setIsAddStudentDialogOpen(true)}
+              className="mr-2"
+            >
+              <UserPlus className="h-4 w-4 mr-1" />
+              {t("add-student")}
+            </Button>
+            <Button variant="destructive" onClick={() => handleDeleteClass(selectedClass.id)}>
+              <Trash className="h-4 w-4 mr-1" />
+              {t("delete-class")}
+            </Button>
+          </div>
         )}
       </div>
       
@@ -409,6 +489,13 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
                 ) : (
                   <div className="text-center py-6">
                     <p className="text-gray-500">{t("no-students-in-class")}</p>
+                    <Button 
+                      onClick={() => setIsAddStudentDialogOpen(true)} 
+                      className="mt-4"
+                    >
+                      <UserPlus className="h-4 w-4 mr-1" />
+                      {t("add-student")}
+                    </Button>
                   </div>
                 )}
               </CardContent>
@@ -553,6 +640,62 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
             </Button>
             <Button onClick={handleCreateClass}>
               {t("create")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      
+      {/* Add Student to Class Dialog */}
+      <Dialog open={isAddStudentDialogOpen} onOpenChange={setIsAddStudentDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{t("add-student-to-class")}</DialogTitle>
+            <DialogDescription>
+              {t("search-student-by-name")}
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="grid gap-4 py-4">
+            <div className="flex gap-2">
+              <Input
+                placeholder={t("search-student")}
+                value={searchStudentTerm}
+                onChange={(e) => setSearchStudentTerm(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    handleSearchStudents();
+                  }
+                }}
+              />
+              <Button onClick={handleSearchStudents}>{t("search")}</Button>
+            </div>
+            
+            <div className="max-h-64 overflow-y-auto">
+              {searchStudentResults.length > 0 ? (
+                <div className="space-y-2">
+                  {searchStudentResults.map((student) => (
+                    <div key={student.id} className="flex items-center justify-between p-2 border rounded">
+                      <div>
+                        <p className="font-medium">{student.displayName || student.username}</p>
+                        <p className="text-xs text-gray-500">@{student.username}</p>
+                      </div>
+                      <Button size="sm" onClick={() => handleAddStudentToClass(student.id)}>
+                        {t("add")}
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              ) : searchStudentTerm ? (
+                <p className="text-center py-4 text-gray-500">{t("no-students-found")}</p>
+              ) : (
+                <p className="text-center py-4 text-gray-500">{t("search-to-find-students")}</p>
+              )}
+            </div>
+          </div>
+          
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsAddStudentDialogOpen(false)}>
+              {t("cancel")}
             </Button>
           </DialogFooter>
         </DialogContent>

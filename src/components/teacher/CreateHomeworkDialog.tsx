@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText, Image, Mic } from "lucide-react";
+import { FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkAssignment } from "@/types/homework";
@@ -143,7 +143,7 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
                 className="flex-1"
                 onClick={() => setHomeworkData({...homeworkData, type: "image"})}
               >
-                <Image className="mr-2 h-4 w-4" />
+                <ImageIcon className="mr-2 h-4 w-4" />
                 {t("image")}
               </Button>
               <Button
@@ -152,7 +152,7 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
                 className="flex-1"
                 onClick={() => setHomeworkData({...homeworkData, type: "audio"})}
               >
-                <Mic className="mr-2 h-4 w-4" />
+                <MicIcon className="mr-2 h-4 w-4" />
                 {t("audio")}
               </Button>
             </div>
@@ -182,5 +182,22 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
     </Dialog>
   );
 };
+
+// Create Icon components for image and mic
+const ImageIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect width="18" height="18" x="3" y="3" rx="2" ry="2"/>
+    <circle cx="9" cy="9" r="2"/>
+    <path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"/>
+  </svg>
+);
+
+const MicIcon = () => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
+    <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
+    <line x1="12" x2="12" y1="19" y2="22"/>
+  </svg>
+);
 
 export default CreateHomeworkDialog;
