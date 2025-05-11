@@ -34,6 +34,7 @@ const MessagesPage: React.FC = () => {
   const [isRecording, setIsRecording] = useState(false);
   const [mediaType, setMediaType] = useState<"text" | "photo" | "voice">("text");
   const [mediaContent, setMediaContent] = useState<string | null>(null);
+  const [recorder, setRecorder] = useState<MediaRecorder | null>(null);
   
   const messageEndRef = useRef<HTMLDivElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -220,13 +221,12 @@ const MessagesPage: React.FC = () => {
       
       mediaRecorder.start();
       setIsRecording(true);
+      setRecorder(mediaRecorder);
       
-      // Stop recording after 30 seconds
-      setTimeout(() => {
-        if (mediaRecorder.state !== "inactive") {
-          mediaRecorder.stop();
-        }
-      }, 30000);
+      toast({
+        title: t("recording"),
+        description: t("recording-started"),
+      });
       
       return mediaRecorder;
     } catch (error) {
@@ -242,20 +242,17 @@ const MessagesPage: React.FC = () => {
   
   const handleMicClick = async () => {
     if (isRecording) {
-      // Stop recording logic would be here
+      // Stop recording
+      recorder?.stop();
       setIsRecording(false);
+      toast({
+        title: t("recording-stopped"),
+        description: t("recording-processed"),
+      });
       return;
     }
     
-    const recorder = await startRecording();
-    if (!recorder) return;
-    
-    // Stop recording when clicked again
-    setTimeout(() => {
-      if (recorder.state !== "inactive") {
-        recorder.stop();
-      }
-    }, 5000); // For demo purposes, auto-stop after 5 seconds
+    await startRecording();
   };
   
   const cancelMediaUpload = () => {
@@ -440,7 +437,7 @@ const MessagesPage: React.FC = () => {
                         variant="ghost" 
                         size="icon"
                         onClick={handleMicClick}
-                        className={isRecording ? "bg-red-100 text-red-500" : ""}
+                        className={isRecording ? "bg-red-100 text-red-500 animate-pulse" : ""}
                         disabled={mediaType !== "text" && !isRecording}
                       >
                         <Mic className="h-5 w-5" />

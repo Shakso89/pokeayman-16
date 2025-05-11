@@ -1,3 +1,4 @@
+
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Index from "./pages/Index";
 import StudentDashboard from "./pages/StudentDashboard";
@@ -11,7 +12,6 @@ import NotFound from "./pages/NotFound";
 import "./App.css";
 import { Toaster } from "./components/ui/toaster";
 import MessagesPage from "./pages/Messages";
-import StudentBattlePage from "./pages/StudentBattlePage";
 import ReportsPage from "./pages/ReportsPage";
 import StudentDetailPage from "./pages/StudentDetailPage";
 import RankingPage from "./pages/RankingPage";
@@ -48,11 +48,6 @@ function App() {
         <Route path="/student/messages" element={
           <ProtectedRoute>
             <MessagesPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/student/battles" element={
-          <ProtectedRoute>
-            <StudentBattlePage />
           </ProtectedRoute>
         } />
         <Route path="/teacher/reports" element={

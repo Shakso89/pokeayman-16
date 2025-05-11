@@ -6,10 +6,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Medal, Trophy, School, Users } from "lucide-react";
+import { Medal, Trophy, School, Users, ArrowLeft } from "lucide-react";
 import { getStudentPokemonCollection } from "@/utils/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface RankingStudent {
   id: string;
@@ -28,12 +29,22 @@ interface SchoolInfo {
   name: string;
 }
 
+interface Pokemon {
+  id: string;
+  name: string;
+  image: string;
+  rarity: string;
+}
+
 const RankingPage: React.FC = () => {
   const [students, setStudents] = useState<RankingStudent[]>([]);
   const [rankingType, setRankingType] = useState<"pokemon" | "rare" | "legendary" | "coins">("pokemon");
   const [scope, setScope] = useState<"class" | "school">("class");
   const [schools, setSchools] = useState<SchoolInfo[]>([]);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<RankingStudent | null>(null);
+  const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
   const { t } = useTranslation();
   
   // Get user info
@@ -48,13 +59,44 @@ const RankingPage: React.FC = () => {
     localStorage.getItem("teacherUsername") || "";
 
   useEffect(() => {
-    // Load schools from localStorage
+    // Load schools based on user type and affiliation
+    loadUserSchools();
+  }, [userType, studentId, teacherId]);
+
+  const loadUserSchools = () => {
     const storedSchools = JSON.parse(localStorage.getItem("schools") || "[]");
-    setSchools(storedSchools.map((school: any) => ({
-      id: school.id,
-      name: school.name
-    })));
-  }, []);
+    const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+    
+    if (userType === "student" && studentId && schoolId) {
+      // Students only see their own school
+      const studentSchool = storedSchools.find((school: any) => school.id === schoolId);
+      if (studentSchool) {
+        setSchools([{
+          id: studentSchool.id,
+          name: studentSchool.name
+        }]);
+      }
+    } else if (userType === "teacher" && teacherId) {
+      // Find the current teacher
+      const currentTeacher = teachers.find((t: any) => t.id === teacherId);
+      if (currentTeacher && currentTeacher.schools && currentTeacher.schools.length > 0) {
+        // Get all schools this teacher belongs to
+        const teacherSchools = storedSchools
+          .filter((school: any) => currentTeacher.schools.includes(school.id))
+          .map((school: any) => ({
+            id: school.id,
+            name: school.name
+          }));
+        setSchools(teacherSchools);
+      } else {
+        // Fallback to all schools if no specific assignment found
+        setSchools(storedSchools.map((school: any) => ({
+          id: school.id,
+          name: school.name
+        })));
+      }
+    }
+  };
 
   useEffect(() => {
     loadStudentRankings();
@@ -145,6 +187,18 @@ const RankingPage: React.FC = () => {
       setSelectedSchoolId(null);
     }
   }, [scope]);
+
+  // Load student's Pokemon collection when a student is selected
+  const handleViewStudentCollection = (student: RankingStudent) => {
+    setSelectedStudent(student);
+    const collection = getStudentPokemonCollection(student.id);
+    if (collection && collection.pokemons) {
+      setStudentPokemons(collection.pokemons);
+    } else {
+      setStudentPokemons([]);
+    }
+    setIsDialogOpen(true);
+  };
 
   // Redirect if not logged in
   if (!isLoggedIn) {
@@ -237,6 +291,7 @@ const RankingPage: React.FC = () => {
                       onClick={handleBackToSchools}
                       className="mr-2"
                     >
+                      <ArrowLeft className="h-4 w-4 mr-1" />
                       {t("back-to-schools")}
                     </Button>
                   )}
@@ -271,6 +326,7 @@ const RankingPage: React.FC = () => {
                       {rankingType === "legendary" && t("legendary-pokemon")}
                       {rankingType === "coins" && t("coins")}
                     </TableHead>
+                    <TableHead className="w-24 text-center">{t("actions")}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -305,12 +361,21 @@ const RankingPage: React.FC = () => {
                         {rankingType === "legendary" && student.legendaryCount}
                         {rankingType === "coins" && student.coins}
                       </TableCell>
+                      <TableCell className="text-center">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => handleViewStudentCollection(student)}
+                        >
+                          {t("view")}
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   ))}
                   
                   {students.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={3} className="text-center py-8 text-gray-500">
+                      <TableCell colSpan={4} className="text-center py-8 text-gray-500">
                         {t("no-students-found")}
                       </TableCell>
                     </TableRow>
@@ -321,6 +386,50 @@ const RankingPage: React.FC = () => {
           </Card>
         )}
       </div>
+
+      {/* Dialog to show student's Pokemon collection */}
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              {selectedStudent?.displayName}'s {t("pokemon-collection")}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+            {studentPokemons.length > 0 ? (
+              studentPokemons.map((pokemon) => (
+                <div 
+                  key={pokemon.id} 
+                  className={`border rounded-lg p-2 text-center ${
+                    pokemon.rarity === 'legendary' ? 'bg-yellow-50 border-yellow-200' :
+                    pokemon.rarity === 'rare' ? 'bg-blue-50 border-blue-200' :
+                    'bg-gray-50'
+                  }`}
+                >
+                  <img 
+                    src={pokemon.image} 
+                    alt={pokemon.name}
+                    className="w-full h-24 object-contain mx-auto" 
+                  />
+                  <p className="font-medium text-sm mt-1">{pokemon.name}</p>
+                  <span className={`text-xs px-2 py-0.5 rounded-full ${
+                    pokemon.rarity === 'legendary' ? 'bg-yellow-100 text-yellow-800' :
+                    pokemon.rarity === 'rare' ? 'bg-blue-100 text-blue-800' :
+                    'bg-gray-100 text-gray-800'
+                  }`}>
+                    {pokemon.rarity}
+                  </span>
+                </div>
+              ))
+            ) : (
+              <div className="col-span-3 py-6 text-center text-gray-500">
+                <p>{t("no-pokemon-found")}</p>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
