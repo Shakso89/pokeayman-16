@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -32,14 +33,8 @@ const ClassmatesTab: React.FC<ClassmatesTabProps> = ({ classId }) => {
   };
   
   const handleStudentClick = (studentId: string) => {
-    const userType = localStorage.getItem("userType");
-    
-    if (userType === "teacher") {
-      navigate(`/teacher/student/${studentId}`);
-    } else {
-      // For student users, navigate to the student profile page
-      navigate(`/student/profile/${studentId}`);
-    }
+    // Always navigate to the student profile page
+    navigate(`/student/profile/${studentId}`);
   };
   
   if (classmates.length === 0) {
