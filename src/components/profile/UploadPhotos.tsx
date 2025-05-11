@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Image, X } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { useTranslation } from "@/hooks/useTranslation";
 
 interface UploadPhotosProps {
@@ -63,10 +64,7 @@ const UploadPhotos: React.FC<UploadPhotosProps> = ({
     // Check file size
     const sizeMB = file.size / (1024 * 1024);
     if (sizeMB > MAX_SIZE_MB) {
-      toast({
-        title: t("error"),
-        description: t("photo-too-large", { size: MAX_SIZE_MB })
-      });
+      toast(t("photo-too-large", { size: MAX_SIZE_MB }));
       return;
     }
     
@@ -80,10 +78,7 @@ const UploadPhotos: React.FC<UploadPhotosProps> = ({
         if (userPhotosIndex !== -1) {
           // User already has photos
           if (allPhotos[userPhotosIndex].photos.length >= MAX_PHOTOS) {
-            toast({
-              title: t("error"),
-              description: t("max-photos-reached", { count: MAX_PHOTOS })
-            });
+            toast(t("max-photos-reached", { count: MAX_PHOTOS }));
             return;
           }
           
@@ -102,17 +97,10 @@ const UploadPhotos: React.FC<UploadPhotosProps> = ({
         // Update local state
         loadPhotos();
         
-        toast({
-          title: t("success"),
-          description: t("photo-uploaded")
-        });
+        toast(t("photo-uploaded"));
       } catch (error) {
         console.error("Error saving photo:", error);
-        toast({
-          title: t("error"),
-          description: t("error-uploading-photo"),
-          variant: "destructive",
-        });
+        toast(t("error-uploading-photo"));
       }
     };
     
@@ -138,18 +126,11 @@ const UploadPhotos: React.FC<UploadPhotosProps> = ({
         // Update local state
         loadPhotos();
         
-        toast({
-          title: t("success"),
-          description: t("photo-removed")
-        });
+        toast(t("photo-removed"));
       }
     } catch (error) {
       console.error("Error deleting photo:", error);
-      toast({
-        title: t("error"),
-        description: t("error-removing-photo"),
-        variant: "destructive",
-      });
+      toast(t("error-removing-photo"));
     }
   };
   

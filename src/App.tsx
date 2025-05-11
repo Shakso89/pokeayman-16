@@ -10,6 +10,7 @@ import AdminDashboard from "./pages/AdminDashboard";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 import "./App.css";
+import { Toaster as SonnerToaster } from "sonner";
 import { Toaster } from "./components/ui/toaster";
 import MessagesPage from "./pages/Messages";
 import ReportsPage from "./pages/ReportsPage";
@@ -72,6 +73,7 @@ function App() {
         <Route path="*" element={<NotFound />} />
       </Routes>
       <Toaster />
+      <SonnerToaster position="top-right" />
     </BrowserRouter>
   );
 }
