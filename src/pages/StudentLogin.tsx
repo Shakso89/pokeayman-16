@@ -1,15 +1,13 @@
+
 import React from "react";
 import { LoginForm } from "@/components/LoginForm";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useTranslation } from "@/hooks/useTranslation";
 import { Home } from "lucide-react";
 import PokemonDecorations from "@/components/signup/PokemonDecorations";
+
 const StudentLogin: React.FC = () => {
   const navigate = useNavigate();
-  const {
-    t
-  } = useTranslation();
 
   // Find student in classes data when logging in
   const handleLoginSuccess = (username: string, password: string) => {
@@ -26,7 +24,9 @@ const StudentLogin: React.FC = () => {
       }
     }
   };
-  return <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 relative overflow-hidden">
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 relative overflow-hidden">
       <div className="absolute top-4 left-4 z-10">
         <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white">
           <Home className="h-5 w-5" />
@@ -44,6 +44,8 @@ const StudentLogin: React.FC = () => {
       
       {/* Pokemon decorations */}
       <PokemonDecorations />
-    </div>;
+    </div>
+  );
 };
+
 export default StudentLogin;

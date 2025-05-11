@@ -1,11 +1,14 @@
+
 import React from "react";
 import { LoginForm } from "@/components/LoginForm";
 import { useNavigate } from "react-router-dom";
 import { Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import PokemonDecorations from "@/components/signup/PokemonDecorations";
+
 const TeacherLogin: React.FC = () => {
   const navigate = useNavigate();
+  
   const handleLoginSuccess = (username: string, password: string) => {
     // Check if this is the admin login
     const isAdmin = username === "Admin" && password === "AdminAyman";
@@ -17,7 +20,9 @@ const TeacherLogin: React.FC = () => {
       navigate("/admin-dashboard");
     }
   };
-  return <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 relative overflow-hidden">
+  
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 relative overflow-hidden">
       <div className="absolute top-4 left-4 z-10">
         <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white">
           <Home className="h-5 w-5" />
@@ -35,6 +40,8 @@ const TeacherLogin: React.FC = () => {
       
       {/* Pokemon decorations */}
       <PokemonDecorations />
-    </div>;
+    </div>
+  );
 };
+
 export default TeacherLogin;
