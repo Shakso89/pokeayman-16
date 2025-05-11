@@ -1,15 +1,15 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { NavBar } from "@/components/NavBar";
 import { UploadPhotos } from "@/components/profile/UploadPhotos";
 import { useTranslation } from "@/hooks/useTranslation";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Edit, Save, XCircle } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface StudentData {
   id: string;
@@ -19,20 +19,15 @@ interface StudentData {
   createdAt: string;
   updatedAt?: string;
   avatar?: string;
-}
-
-interface ProfileFormData {
-  displayName: string;
-  username: string;
+  classId?: string;
 }
 
 const StudentDetailPage: React.FC = () => {
   const { id, studentId } = useParams<{ id?: string, studentId?: string }>();
   const [student, setStudent] = useState<StudentData | null>(null);
-  const [showEditForm, setShowEditForm] = useState(false);
-  const [isUpdating, setIsUpdating] = useState(false);
-  const { t } = useTranslation();
   const navigate = useNavigate();
+  const { t } = useTranslation();
+  const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const userType = localStorage.getItem("userType");
@@ -42,14 +37,26 @@ const StudentDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (actualStudentId) {
-      const studentsData = localStorage.getItem("students");
-      if (studentsData) {
-        const students = JSON.parse(studentsData);
-        const foundStudent = students.find((s: StudentData) => s.id === actualStudentId);
-        setStudent(foundStudent);
-      }
+      loadStudentData(actualStudentId);
     }
   }, [actualStudentId]);
+  
+  const loadStudentData = (id: string) => {
+    const studentsData = localStorage.getItem("students");
+    if (studentsData) {
+      const students = JSON.parse(studentsData);
+      const foundStudent = students.find((s: StudentData) => s.id === id);
+      if (foundStudent) {
+        setStudent(foundStudent);
+      } else {
+        toast({
+          description: t("student-not-found"),
+          variant: "destructive",
+        });
+        navigate(-1);
+      }
+    }
+  };
 
   if (!isLoggedIn) {
     return <Navigate to={userType === "teacher" ? "/teacher-login" : "/student-login"} />;
@@ -60,66 +67,19 @@ const StudentDetailPage: React.FC = () => {
       <div className="min-h-screen bg-gray-100">
         <NavBar 
           userType={userType as "teacher" | "student"} 
-          userName={userType === "teacher" ? "Teacher" : localStorage.getItem("studentName") || ""}
+          userName={userType === "teacher" ? localStorage.getItem("teacherDisplayName") || "Teacher" : localStorage.getItem("studentName") || ""}
         />
         <div className="container mx-auto py-8 px-4 text-center">
-          <p>{t("student-not-found")}</p>
+          <p>{t("loading")}...</p>
         </div>
       </div>
     );
   }
 
-  const handleUpdateProfile = async (values: ProfileFormData) => {
-    setIsUpdating(true);
-    
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    try {
-      // Update student data in localStorage
-      const students = JSON.parse(localStorage.getItem("students") || "[]");
-      const studentIndex = students.findIndex((s: any) => s.id === id);
-      
-      if (studentIndex !== -1) {
-        students[studentIndex] = {
-          ...students[studentIndex],
-          ...values,
-          updatedAt: new Date().toISOString()
-        };
-        
-        localStorage.setItem("students", JSON.stringify(students));
-        
-        // Update component state
-        setStudent({
-          ...student!,
-          ...values
-        });
-        
-        toast({
-          description: "Profile updated successfully!",
-        });
-      } else {
-        toast({
-          description: "Student not found",
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Failed to update profile:", error);
-      toast({
-        description: "Failed to update profile",
-        variant: "destructive",
-      });
-    } finally {
-      setIsUpdating(false);
-      setShowEditForm(false);
-    }
-  };
-
   const handleAvatarUpdate = (newAvatar: string) => {
     // Update student data in localStorage
     const students = JSON.parse(localStorage.getItem("students") || "[]");
-    const studentIndex = students.findIndex((s: any) => s.id === id);
+    const studentIndex = students.findIndex((s: any) => s.id === actualStudentId);
     
     if (studentIndex !== -1) {
       students[studentIndex].avatar = newAvatar;
@@ -137,95 +97,110 @@ const StudentDetailPage: React.FC = () => {
     }
   };
 
-  const canEdit = userType === "teacher";
+  const isOwnProfile = userType === "student" && 
+    localStorage.getItem("studentId") === actualStudentId;
+  const canEdit = userType === "teacher" || isOwnProfile;
 
   return (
     <div className="min-h-screen bg-gray-100">
       <NavBar 
         userType={userType as "teacher" | "student"}
-        userName={userType === "teacher" ? "Teacher" : localStorage.getItem("studentName") || ""}
+        userName={userType === "teacher" ? 
+          localStorage.getItem("teacherDisplayName") || "Teacher" : 
+          localStorage.getItem("studentName") || ""}
       />
       
       <div className="container mx-auto py-8 px-4">
-        <Card className="mb-6 border-none shadow-lg pokemon-gradient-bg text-white">
-          <CardContent className="p-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h2 className="text-3xl font-bold mb-2">{student.displayName}</h2>
-                <p>{t("student-profile")}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex items-center mb-6">
+          <Button 
+            variant="outline" 
+            onClick={() => navigate(-1)}
+            className="mr-4"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            {t("back")}
+          </Button>
+          <h1 className="text-2xl font-bold">{t("student-profile")}</h1>
+        </div>
         
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex justify-between items-center">
-              {t("profile-information")}
-              {canEdit && !showEditForm ? (
-                <Button size="sm" onClick={() => setShowEditForm(true)}>
-                  <Edit className="h-4 w-4 mr-2" />
-                  {t("edit-profile")}
-                </Button>
-              ) : canEdit && showEditForm ? (
-                <Button size="sm" variant="ghost" onClick={() => setShowEditForm(false)}>
-                  <XCircle className="h-4 w-4 mr-2" />
-                  {t("cancel")}
-                </Button>
-              ) : null}
-            </CardTitle>
-            <CardDescription>{userType === "teacher" ? t("view-edit-student-info") : t("view-student-info")}</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-6">
-            <div className="flex justify-center">
-              <UploadPhotos 
-                avatarImage={student.avatar || null} 
-                onSave={handleAvatarUpdate} 
-                readOnly={userType !== "teacher"}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {/* Student Profile Card */}
+          <Card className="col-span-1">
+            <CardHeader className="text-center">
+              <div className="flex justify-center mb-4">
+                <div className="relative">
+                  <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md">
+                    {student.avatar ? (
+                      <img 
+                        src={student.avatar} 
+                        alt={student.displayName} 
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
+                        <span className="text-2xl font-bold text-gray-500">
+                          {student.displayName.substring(0, 2).toUpperCase()}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+              <CardTitle>{student.displayName}</CardTitle>
+              <p className="text-sm text-gray-500">@{student.username}</p>
+            </CardHeader>
+            <CardContent>
+              <div className="flex flex-col gap-3">
+                <div>
+                  <p className="text-sm font-medium text-gray-500">{t("class")}:</p>
+                  <p>{student.classId || t("no-class-assigned")}</p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+          
+          <div className="col-span-1 lg:col-span-3">
+            <Tabs defaultValue="photos">
+              <TabsList className="mb-4">
+                <TabsTrigger value="photos">{t("photos")}</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="photos">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("student-photos")}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <UploadPhotos 
+                      avatarImage={student.avatar || null}
+                      onSave={handleAvatarUpdate} 
+                      readOnly={!canEdit}
+                    />
+                  </CardContent>
+                </Card>
+              </TabsContent>
+            </Tabs>
+          </div>
+        </div>
+      </div>
+      
+      {/* Photo View Modal */}
+      <Dialog open={!!selectedPhoto} onOpenChange={() => setSelectedPhoto(null)}>
+        <DialogContent className="max-w-3xl p-0">
+          <DialogHeader className="p-4">
+            <DialogTitle>{t("photo")}</DialogTitle>
+          </DialogHeader>
+          {selectedPhoto && (
+            <div className="flex items-center justify-center p-2">
+              <img 
+                src={selectedPhoto} 
+                alt="Enlarged" 
+                className="max-h-[70vh] object-contain"
               />
             </div>
-            
-            {canEdit && showEditForm ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label htmlFor="displayName">{t("display-name")}</Label>
-                  <Input
-                    id="displayName"
-                    defaultValue={student.displayName}
-                    disabled={isUpdating}
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="username">{t("username")}</Label>
-                  <Input
-                    id="username"
-                    defaultValue={student.username}
-                    disabled={isUpdating}
-                  />
-                </div>
-                <Button onClick={() => handleUpdateProfile({
-                      displayName: (document.getElementById("displayName") as HTMLInputElement).value,
-                      username: (document.getElementById("username") as HTMLInputElement).value
-                    })} disabled={isUpdating} className="mt-4">
-                  <Save className="h-4 w-4 mr-2" />
-                  {isUpdating ? t("updating") : t("save-changes")}
-                </Button>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <Label>{t("display-name")}</Label>
-                  <Input value={student.displayName} readOnly />
-                </div>
-                <div>
-                  <Label>{t("username")}</Label>
-                  <Input value={student.username} readOnly />
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
