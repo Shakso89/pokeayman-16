@@ -1,10 +1,8 @@
-
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { User, Mail, Lock } from "lucide-react";
-
 interface SignupFormFieldsProps {
   username: string;
   setUsername: (value: string) => void;
@@ -21,7 +19,6 @@ interface SignupFormFieldsProps {
   onNavigateToLogin: () => void;
   activationOptional?: boolean;
 }
-
 const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
   username,
   setUsername,
@@ -38,20 +35,12 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
   onNavigateToLogin,
   activationOptional = false
 }) => {
-  return (
-    <>
+  return <>
       {/* Username field */}
       <div className="space-y-2">
         <Label htmlFor="username">Username</Label>
         <div className="relative">
-          <Input
-            id="username"
-            placeholder="Enter your username"
-            value={username}
-            onChange={(e) => setUsername(e.target.value)}
-            className="pl-10 bg-black/30 border-gray-700 text-white"
-            required
-          />
+          <Input id="username" placeholder="Enter your username" value={username} onChange={e => setUsername(e.target.value)} className="pl-10 bg-black/30 border-gray-700 text-white" required />
           <User className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
         </div>
       </div>
@@ -60,15 +49,7 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
       <div className="space-y-2">
         <Label htmlFor="email">Email</Label>
         <div className="relative">
-          <Input
-            id="email"
-            type="email"
-            placeholder="Enter your email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            className="pl-10 bg-black/30 border-gray-700 text-white"
-            required
-          />
+          <Input id="email" type="email" placeholder="Enter your email" value={email} onChange={e => setEmail(e.target.value)} className="pl-10 bg-black/30 border-gray-700 text-white" required />
           <Mail className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
         </div>
       </div>
@@ -77,15 +58,7 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
       <div className="space-y-2">
         <Label htmlFor="password">Password</Label>
         <div className="relative">
-          <Input
-            id="password"
-            type="password"
-            placeholder="Enter your password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className="pl-10 bg-black/30 border-gray-700 text-white"
-            required
-          />
+          <Input id="password" type="password" placeholder="Enter your password" value={password} onChange={e => setPassword(e.target.value)} className="pl-10 bg-black/30 border-gray-700 text-white" required />
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
         </div>
       </div>
@@ -94,49 +67,13 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
       <div className="space-y-2">
         <Label htmlFor="confirmPassword">Confirm Password</Label>
         <div className="relative">
-          <Input
-            id="confirmPassword"
-            type="password"
-            placeholder="Confirm your password"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            className="pl-10 bg-black/30 border-gray-700 text-white"
-            required
-          />
+          <Input id="confirmPassword" type="password" placeholder="Confirm your password" value={confirmPassword} onChange={e => setConfirmPassword(e.target.value)} className="pl-10 bg-black/30 border-gray-700 text-white" required />
           <Lock className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
         </div>
       </div>
       
       {/* Activation Code field - optional now */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <Label htmlFor="activationCode">
-            Activation Code {activationOptional && <span className="text-gray-400 text-xs">(optional)</span>}
-          </Label>
-          <Button 
-            type="button" 
-            variant="link" 
-            size="sm" 
-            onClick={onOpenContactDialog}
-            className="text-xs text-blue-400"
-          >
-            Need a code?
-          </Button>
-        </div>
-        <Input
-          id="activationCode"
-          placeholder="Enter your activation code (optional)"
-          value={activationCode}
-          onChange={(e) => setActivationCode(e.target.value)}
-          className="bg-black/30 border-gray-700 text-white"
-          required={!activationOptional}
-        />
-        <p className="text-xs text-gray-400">
-          {activationOptional 
-            ? "You can register without a code, but will need one to access all features"
-            : "Use code starting with TRIAL for a 7-day trial"}
-        </p>
-      </div>
+      
       
       {/* Submit button */}
       <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700" disabled={isLoading}>
@@ -146,17 +83,11 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
       <div className="text-center text-sm mt-2">
         <p>
           Already have an account?{" "}
-          <button 
-            type="button" 
-            onClick={onNavigateToLogin}
-            className="text-blue-400 hover:underline"
-          >
+          <button type="button" onClick={onNavigateToLogin} className="text-blue-400 hover:underline">
             Sign in
           </button>
         </p>
       </div>
-    </>
-  );
+    </>;
 };
-
 export default SignupFormFields;
