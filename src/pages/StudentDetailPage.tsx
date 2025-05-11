@@ -5,7 +5,7 @@ import { NavBar } from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronLeft, Award, Sword } from "lucide-react";
+import { ChevronLeft, Award } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Pokemon, Student } from "@/types/pokemon";
@@ -24,7 +24,6 @@ const StudentDetailPage: React.FC = () => {
   const [student, setStudent] = useState<Student | null>(null);
   const [pokemons, setPokemons] = useState<Pokemon[]>([]);
   const [coins, setCoins] = useState<number>(0);
-  const [battles, setBattles] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   
   // Dialog states
@@ -34,7 +33,6 @@ const StudentDetailPage: React.FC = () => {
     if (studentId) {
       loadStudentData(studentId);
       loadStudentPokemon(studentId);
-      loadStudentBattles(studentId);
     }
   }, [studentId]);
   
@@ -80,22 +78,6 @@ const StudentDetailPage: React.FC = () => {
       }
     } catch (error) {
       console.error("Error loading student pokemon:", error);
-    }
-  };
-  
-  const loadStudentBattles = (id: string) => {
-    try {
-      const allBattles = JSON.parse(localStorage.getItem("battles") || "[]");
-      const studentBattles = allBattles.filter((battle: any) => {
-        // Find battles where the student participated
-        return battle.participants.includes(id) || 
-               battle.answers.some((answer: any) => answer.studentId === id) ||
-               (battle.winner && battle.winner.studentId === id);
-      });
-      
-      setBattles(studentBattles);
-    } catch (error) {
-      console.error("Error loading battles:", error);
     }
   };
   
@@ -205,7 +187,7 @@ const StudentDetailPage: React.FC = () => {
             student={student}
             coins={coins}
             pokemonCount={pokemons.length}
-            battlesCount={battles.length}
+            battlesCount={0}
             onGiveCoins={() => setIsGiveCoinDialogOpen(true)}
           />
           
@@ -216,10 +198,6 @@ const StudentDetailPage: React.FC = () => {
                   <Award className="h-4 w-4 mr-2" />
                   {t("pokemon")}
                 </TabsTrigger>
-                <TabsTrigger value="battles" className="flex items-center">
-                  <Sword className="h-4 w-4 mr-2" />
-                  {t("battle-history")}
-                </TabsTrigger>
               </TabsList>
               
               <TabsContent value="pokemon">
@@ -227,15 +205,6 @@ const StudentDetailPage: React.FC = () => {
                   <PokemonList 
                     pokemons={pokemons} 
                     onRemovePokemon={handleRemovePokemon} 
-                  />
-                </Card>
-              </TabsContent>
-              
-              <TabsContent value="battles">
-                <Card>
-                  <BattleHistory 
-                    battles={battles} 
-                    studentId={student.id} 
                   />
                 </Card>
               </TabsContent>

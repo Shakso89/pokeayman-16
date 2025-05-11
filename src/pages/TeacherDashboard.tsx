@@ -1,12 +1,10 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { NavBar } from "@/components/NavBar";
-import { Users, Sword, UserPlus, Shield, School, MessageSquare, BarChart, ChevronLeft } from "lucide-react";
+import { Users, UserPlus, Shield, School, MessageSquare, BarChart, ChevronLeft } from "lucide-react";
 import ClassManagement from "@/components/teacher/ClassManagement";
-import BattleMode from "@/components/teacher/BattleMode";
 import SchoolCollaboration from "@/components/teacher/SchoolCollaboration";
 import SchoolManagement from "@/components/teacher/SchoolManagement";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -17,7 +15,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState<"main" | "classes" | "battle" | "collaboration">("main");
+  const [currentView, setCurrentView] = useState<"main" | "classes" | "collaboration">("main");
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [studentData, setStudentData] = useState({
     username: "",
@@ -166,7 +164,7 @@ const TeacherDashboard: React.FC = () => {
               {t("create-student")}
             </Button>
             
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <Card className="hover:shadow-lg transition-all pokemon-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -194,31 +192,6 @@ const TeacherDashboard: React.FC = () => {
                 </CardFooter>
               </Card>
 
-              <Card className="hover:shadow-lg transition-all pokemon-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sword className="h-6 w-6 text-red-500" />
-                    {t("battle-mode")}
-                  </CardTitle>
-                  <CardDescription>
-                    {t("battle-mode-desc")}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-500">
-                    {t("battle-mode-details")}
-                  </p>
-                </CardContent>
-                <CardFooter>
-                  <Button 
-                    className="w-full pokemon-button"
-                    onClick={() => setCurrentView("battle")}
-                  >
-                    {t("enter-battle-mode")}
-                  </Button>
-                </CardFooter>
-              </Card>
-              
               <Card className="hover:shadow-lg transition-all pokemon-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -284,8 +257,6 @@ const TeacherDashboard: React.FC = () => {
               teacherId={teacherId || ""}
             />
           )
-        ) : currentView === "battle" ? (
-          <BattleMode onBack={() => setCurrentView("main")} />
         ) : (
           <div>
             <div className="flex items-center mb-6">
