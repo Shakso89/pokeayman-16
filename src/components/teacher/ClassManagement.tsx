@@ -370,6 +370,52 @@ const ClassManagement: React.FC<ClassManagementProps> = ({ onBack, schoolId, tea
     setSearchStudentResults([]);
   };
 
+  // IMPLEMENT THE MISSING FUNCTIONS HERE:
+
+  // 1. Function to handle removing a student from class
+  const handleRemoveStudentFromClass = (studentId: string, studentName: string) => {
+    setSelectedStudent({id: studentId, name: studentName});
+    setIsConfirmRemoveStudentOpen(true);
+  };
+
+  // 2. Function to confirm removing the student from class
+  const confirmRemoveStudent = () => {
+    if (!selectedStudent || !selectedClass) return;
+    
+    // Update class by removing the student
+    const updatedClasses = classes.map(cls => {
+      if (cls.id === selectedClass.id) {
+        return {
+          ...cls,
+          students: (cls.students || []).filter(id => id !== selectedStudent.id)
+        };
+      }
+      return cls;
+    });
+    
+    // Save to localStorage
+    localStorage.setItem("classes", JSON.stringify(updatedClasses));
+    
+    // Update state
+    setClasses(updatedClasses);
+    setSelectedClass({
+      ...selectedClass,
+      students: (selectedClass.students || []).filter(id => id !== selectedStudent.id)
+    });
+    
+    // Refresh student data
+    loadStudentsData();
+    
+    toast({
+      title: t("success"),
+      description: `${selectedStudent.name} ${t("removed-from-class")}`,
+    });
+    
+    // Close dialog and reset selected student
+    setIsConfirmRemoveStudentOpen(false);
+    setSelectedStudent(null);
+  };
+
   // Filter homework based on expiration
   const now = new Date();
   const activeHomework = homeworkAssignments.filter(hw => new Date(hw.expiresAt) > now);
