@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { NavBar } from "@/components/NavBar";
-import { Users, UserPlus, Shield, School, MessageSquare, BarChart, ChevronLeft } from "lucide-react";
+import { Users, UserPlus, Shield, School, MessageSquare, BarChart, ChevronLeft, FileText } from "lucide-react";
 import ClassManagement from "@/components/teacher/ClassManagement";
 import SchoolCollaboration from "@/components/teacher/SchoolCollaboration";
 import SchoolManagement from "@/components/teacher/SchoolManagement";
+import HomeworkManagement from "@/components/teacher/HomeworkManagement";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,7 +17,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState<"main" | "classes" | "collaboration">("main");
+  const [currentView, setCurrentView] = useState<"main" | "classes" | "collaboration" | "homework">("main");
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [studentData, setStudentData] = useState({
     username: "",
@@ -164,7 +166,7 @@ const TeacherDashboard: React.FC = () => {
               {t("create-student")}
             </Button>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               <Card className="hover:shadow-lg transition-all pokemon-card">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2">
@@ -241,6 +243,31 @@ const TeacherDashboard: React.FC = () => {
                   </Button>
                 </CardFooter>
               </Card>
+              
+              <Card className="hover:shadow-lg transition-all pokemon-card">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2">
+                    <FileText className="h-6 w-6 text-amber-500" />
+                    {t("homework")}
+                  </CardTitle>
+                  <CardDescription>
+                    {t("assign-and-review")}
+                  </CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <p className="text-gray-500">
+                    {t("create-homework-desc")}
+                  </p>
+                </CardContent>
+                <CardFooter>
+                  <Button 
+                    className="w-full pokemon-button"
+                    onClick={() => setCurrentView("homework")}
+                  >
+                    {t("manage-homework")}
+                  </Button>
+                </CardFooter>
+              </Card>
             </div>
           </>
         ) : currentView === "classes" ? (
@@ -257,6 +284,11 @@ const TeacherDashboard: React.FC = () => {
               teacherId={teacherId || ""}
             />
           )
+        ) : currentView === "homework" ? (
+          <HomeworkManagement 
+            onBack={() => setCurrentView("main")} 
+            teacherId={teacherId || ""}
+          />
         ) : (
           <div>
             <div className="flex items-center mb-6">
