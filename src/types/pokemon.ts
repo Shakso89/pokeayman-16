@@ -16,6 +16,7 @@ export interface StudentPokemon {
   studentId: string;
   pokemons: Pokemon[];
   coins: number;
+  spentCoins?: number; // Added spentCoins as optional
 }
 
 export interface School {

@@ -24,7 +24,14 @@ export const StudentCoinInfo: React.FC<StudentCoinInfoProps> = ({ studentId }) =
       
       if (studentData) {
         setCoinBalance(studentData.coins || 0);
-        setSpentCoins(studentData.spentCoins || 0);
+        
+        // Check if spentCoins exists, if not calculate it or set to 0
+        if (studentData.spentCoins !== undefined) {
+          setSpentCoins(studentData.spentCoins);
+        } else {
+          // Default to 0 since spentCoins property doesn't exist in the type
+          setSpentCoins(0);
+        }
       }
     } catch (error) {
       console.error("Error loading student coins:", error);
