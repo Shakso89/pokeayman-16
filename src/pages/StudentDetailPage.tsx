@@ -339,14 +339,6 @@ const StudentDetailPage: React.FC = () => {
                   <p>{selectedPokemon.type}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium text-gray-500">{t("level")}:</p>
-                  <p>{selectedPokemon.level}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">{t("hp")}:</p>
-                  <p>{selectedPokemon.hp}</p>
-                </div>
-                <div>
                   <p className="text-sm font-medium text-gray-500">{t("rarity")}:</p>
                   <p>{selectedPokemon.rarity}</p>
                 </div>

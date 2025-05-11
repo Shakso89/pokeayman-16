@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Search } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Input } from "@/components/ui/input";
@@ -27,47 +27,66 @@ const SearchBar: React.FC = () => {
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
   const [searchResults, setSearchResults] = useState<User[]>([]);
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   
-  const handleSearch = (term: string) => {
-    if (!term.trim()) {
+  // Effect to perform search when term changes
+  useEffect(() => {
+    if (!searchTerm.trim()) {
       setSearchResults([]);
       return;
     }
     
-    const searchTerm = term.toLowerCase();
+    setIsLoading(true);
+    // Small timeout to prevent excessive searches while typing
+    const timer = setTimeout(() => {
+      performSearch(searchTerm);
+      setIsLoading(false);
+    }, 300);
     
-    // Search teachers
-    const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-    const teacherResults = teachers
-      .filter((teacher: any) => 
-        teacher.displayName?.toLowerCase().includes(searchTerm) || 
-        teacher.username.toLowerCase().includes(searchTerm)
-      )
-      .map((teacher: any) => ({
-        id: teacher.id,
-        name: teacher.displayName || teacher.username,
-        username: teacher.username,
-        type: "teacher" as const,
-        avatar: teacher.avatar
-      }));
-    
-    // Search students
-    const students = JSON.parse(localStorage.getItem("students") || "[]");
-    const studentResults = students
-      .filter((student: any) => 
-        student.displayName?.toLowerCase().includes(searchTerm) || 
-        student.username?.toLowerCase().includes(searchTerm) ||
-        student.name?.toLowerCase().includes(searchTerm)
-      )
-      .map((student: any) => ({
-        id: student.id,
-        name: student.displayName || student.name,
-        username: student.username,
-        type: "student" as const,
-        avatar: student.avatar
-      }));
-    
-    setSearchResults([...teacherResults, ...studentResults]);
+    return () => clearTimeout(timer);
+  }, [searchTerm]);
+  
+  const performSearch = (term: string) => {
+    try {
+      const searchTermLower = term.toLowerCase();
+      
+      // Search teachers
+      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+      const teacherResults = teachers
+        .filter((teacher: any) => 
+          (teacher.displayName?.toLowerCase().includes(searchTermLower) || 
+          teacher.username.toLowerCase().includes(searchTermLower))
+        )
+        .map((teacher: any) => ({
+          id: teacher.id,
+          name: teacher.displayName || teacher.username,
+          username: teacher.username,
+          type: "teacher" as const,
+          avatar: teacher.avatar
+        }));
+      
+      // Search students
+      const students = JSON.parse(localStorage.getItem("students") || "[]");
+      const studentResults = students
+        .filter((student: any) => 
+          (student.displayName?.toLowerCase().includes(searchTermLower) || 
+          student.username?.toLowerCase().includes(searchTermLower) ||
+          student.name?.toLowerCase().includes(searchTermLower))
+        )
+        .map((student: any) => ({
+          id: student.id,
+          name: student.displayName || student.name,
+          username: student.username,
+          type: "student" as const,
+          avatar: student.avatar
+        }));
+      
+      setSearchResults([...teacherResults, ...studentResults]);
+    } catch (error) {
+      console.error("Error searching users:", error);
+      setSearchResults([]);
+    }
   };
   
   const handleSelectUser = (user: User) => {
@@ -98,9 +117,11 @@ const SearchBar: React.FC = () => {
       <CommandDialog open={isOpen} onOpenChange={setIsOpen}>
         <CommandInput 
           placeholder={t("search-teachers-students")} 
-          onValueChange={handleSearch} 
+          value={searchTerm}
+          onValueChange={setSearchTerm}
         />
         <CommandList>
+          {isLoading && <div className="py-6 text-center text-sm">{t("searching")}...</div>}
           <CommandEmpty>{t("no-results-found")}</CommandEmpty>
           {searchResults.length > 0 && (
             <>

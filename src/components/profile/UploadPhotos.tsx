@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Image, X } from "lucide-react";
@@ -66,8 +65,7 @@ const UploadPhotos: React.FC<UploadPhotosProps> = ({
     if (sizeMB > MAX_SIZE_MB) {
       toast({
         title: t("error"),
-        description: t("photo-too-large", { size: MAX_SIZE_MB }),
-        variant: "destructive",
+        description: t("photo-too-large", { size: MAX_SIZE_MB })
       });
       return;
     }
@@ -84,8 +82,7 @@ const UploadPhotos: React.FC<UploadPhotosProps> = ({
           if (allPhotos[userPhotosIndex].photos.length >= MAX_PHOTOS) {
             toast({
               title: t("error"),
-              description: t("max-photos-reached", { count: MAX_PHOTOS }),
-              variant: "destructive",
+              description: t("max-photos-reached", { count: MAX_PHOTOS })
             });
             return;
           }

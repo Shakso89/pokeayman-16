@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { FriendRequest } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
+import { toast } from "@/components/ui/toast";
 
 const NotificationBadge: React.FC = () => {
   const { t } = useTranslation();

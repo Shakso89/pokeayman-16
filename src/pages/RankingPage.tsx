@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Badge } from "@/components/ui/badge";
@@ -290,7 +289,7 @@ const RankingPage: React.FC = () => {
         </DialogContent>
       </Dialog>
       
-      {/* Pokemon View Modal */}
+      {/* Pokémon View Modal */}
       <Dialog open={!!selectedPokemon} onOpenChange={() => setSelectedPokemon(null)}>
         <DialogContent className="max-w-md">
           <DialogHeader>
@@ -309,14 +308,6 @@ const RankingPage: React.FC = () => {
                 <div>
                   <p className="text-sm font-medium text-gray-500">{t("type")}:</p>
                   <p>{selectedPokemon.type}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">{t("level")}:</p>
-                  <p>{selectedPokemon.level}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-gray-500">{t("hp")}:</p>
-                  <p>{selectedPokemon.hp}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">{t("rarity")}:</p>

@@ -53,8 +53,8 @@ const PokemonList: React.FC<PokemonListProps> = ({
             <div className="p-3">
               <h3 className="font-medium text-center">{pokemon.name}</h3>
               <div className="flex justify-between text-xs text-gray-500 mt-1">
-                <span>Lv. {pokemon.level}</span>
                 <span>{pokemon.type}</span>
+                <span>{pokemon.rarity}</span>
               </div>
               
               {isTeacherView && onRemovePokemon && (

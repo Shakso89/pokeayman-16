@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, Settings, MessageSquare, User, Home, Medal, Search } from "lucide-react";
+import { LogOut, Settings, MessageSquare, User, Home, Medal, Search, UserCog } from "lucide-react";
 import LanguageSelector from "./LanguageSelector";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -48,6 +48,16 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName, userAvatar }
   
   const handleCloseSettings = () => {
     setIsSettingsOpen(false);
+  };
+
+  const handleViewProfile = () => {
+    if (userType === "teacher") {
+      const teacherId = localStorage.getItem("teacherId");
+      navigate(`/teacher/profile/${teacherId}`);
+    } else {
+      const studentId = localStorage.getItem("studentId");
+      navigate(`/teacher/student/${studentId}`);
+    }
   };
   
   return (
@@ -121,9 +131,13 @@ export const NavBar: React.FC<NavBarProps> = ({ userType, userName, userAvatar }
                 </div>
               </div>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleViewProfile}>
+                <User className="mr-2 h-4 w-4" />
+                <span>{t("view-profile")}</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleOpenSettings}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>{t("settings")}</span>
+                <UserCog className="mr-2 h-4 w-4" />
+                <span>{t("edit-profile")}</span>
               </DropdownMenuItem>
               {isAdmin && userType === "teacher" && (
                 <DropdownMenuItem onClick={() => navigate("/admin-dashboard")}>

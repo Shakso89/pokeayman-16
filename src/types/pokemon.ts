@@ -4,6 +4,7 @@ export interface Pokemon {
   image: string;
   type: string;
   rarity: "common" | "uncommon" | "rare" | "legendary";
+  // Removed level property
 }
 
 export interface PokemonPool {
