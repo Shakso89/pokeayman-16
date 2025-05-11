@@ -57,7 +57,7 @@ const PokemonDetailDialog: React.FC<PokemonDetailDialogProps> = ({
               </span>
             </div>
             
-            <p className="text-sm text-gray-600 mt-2">{pokemon.description || t("no-description")}</p>
+            <p className="text-sm text-gray-600 mt-2">{t("no-description")}</p>
           </div>
         </div>
         

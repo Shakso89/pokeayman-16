@@ -3,18 +3,32 @@ import React, { useState } from "react";
 import { Pokemon } from "@/types/pokemon";
 import { Card, CardContent } from "@/components/ui/card";
 import PokemonDetailDialog from "@/components/pokemon/PokemonDetailDialog";
+import { X } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface PokemonListProps {
   pokemons: Pokemon[];
+  onPokemonClick?: (pokemon: Pokemon) => void;
+  onRemovePokemon?: (pokemon: Pokemon) => void;
+  isTeacherView?: boolean;
 }
 
-const PokemonList: React.FC<PokemonListProps> = ({ pokemons }) => {
+const PokemonList: React.FC<PokemonListProps> = ({ 
+  pokemons,
+  onPokemonClick,
+  onRemovePokemon,
+  isTeacherView
+}) => {
   const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
   const handlePokemonClick = (pokemon: Pokemon) => {
-    setSelectedPokemon(pokemon);
-    setIsDialogOpen(true);
+    if (onPokemonClick) {
+      onPokemonClick(pokemon);
+    } else {
+      setSelectedPokemon(pokemon);
+      setIsDialogOpen(true);
+    }
   };
 
   const handleCloseDialog = () => {
@@ -28,10 +42,25 @@ const PokemonList: React.FC<PokemonListProps> = ({ pokemons }) => {
           pokemons.map((pokemon) => (
             <Card 
               key={pokemon.id} 
-              className="cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => handlePokemonClick(pokemon)}
+              className="cursor-pointer hover:shadow-md transition-shadow relative"
             >
-              <CardContent className="p-4">
+              {isTeacherView && onRemovePokemon && (
+                <Button 
+                  variant="destructive" 
+                  size="icon" 
+                  className="absolute top-1 right-1 h-6 w-6 z-10"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRemovePokemon(pokemon);
+                  }}
+                >
+                  <X size={12} />
+                </Button>
+              )}
+              <CardContent 
+                className="p-4"
+                onClick={() => handlePokemonClick(pokemon)}
+              >
                 <div className="flex flex-col items-center">
                   <div className="w-20 h-20 mb-2">
                     <img
