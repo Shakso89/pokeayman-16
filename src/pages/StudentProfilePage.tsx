@@ -8,6 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ChevronLeft, UserPlus, Edit, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import Footer from "@/components/Footer";
 import { PhotoGrid } from "@/components/profile/PhotoGrid";
 
@@ -30,6 +31,7 @@ export default function StudentProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<StudentProfile>>({});
   const [isLoading, setIsLoading] = useState(true);
+  const [friendRequestSent, setFriendRequestSent] = useState(false);
   
   // Check if current user is the owner of this profile
   const currentUserId = localStorage.getItem("studentId");
@@ -38,6 +40,8 @@ export default function StudentProfilePage() {
   useEffect(() => {
     if (studentId) {
       loadStudentProfile();
+      // Check if friend request was already sent
+      checkFriendRequestStatus();
     }
   }, [studentId]);
   
@@ -68,6 +72,22 @@ export default function StudentProfilePage() {
       toast.error("Error loading profile");
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  const checkFriendRequestStatus = () => {
+    if (!studentId || !currentUserId) return;
+    
+    // Check if friend request exists in localStorage
+    const friendRequests = JSON.parse(localStorage.getItem("friendRequests") || "[]");
+    const existingRequest = friendRequests.find(
+      (request: any) => 
+        (request.senderId === currentUserId && request.receiverId === studentId) ||
+        (request.senderId === studentId && request.receiverId === currentUserId)
+    );
+    
+    if (existingRequest) {
+      setFriendRequestSent(true);
     }
   };
   
@@ -112,6 +132,35 @@ export default function StudentProfilePage() {
     
     // Navigate to messages page
     navigate("/student/messages");
+  };
+  
+  const handleAddFriend = () => {
+    if (!student || !currentUserId) return;
+    
+    const userType = localStorage.getItem("userType");
+    const userName = localStorage.getItem("studentName") || localStorage.getItem("teacherUsername") || "";
+    
+    // Create a friend request object
+    const friendRequest = {
+      id: `fr-${Date.now()}`,
+      senderId: currentUserId,
+      senderType: userType,
+      senderName: userName,
+      receiverId: student.id,
+      receiverType: "student",
+      receiverName: student.displayName,
+      status: "pending",
+      createdAt: new Date().toISOString()
+    };
+    
+    // Save to localStorage
+    const friendRequests = JSON.parse(localStorage.getItem("friendRequests") || "[]");
+    friendRequests.push(friendRequest);
+    localStorage.setItem("friendRequests", JSON.stringify(friendRequests));
+    
+    // Update UI
+    setFriendRequestSent(true);
+    toast.success("Friend request sent");
   };
   
   if (isLoading) {
@@ -187,9 +236,14 @@ export default function StudentProfilePage() {
                       <MessageSquare className="mr-2 h-4 w-4" />
                       Send Message
                     </Button>
-                    <Button variant="outline" className="w-full">
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={handleAddFriend}
+                      disabled={friendRequestSent}
+                    >
                       <UserPlus className="mr-2 h-4 w-4" />
-                      Add Friend
+                      {friendRequestSent ? "Friend Request Sent" : "Add Friend"}
                     </Button>
                   </div>
                 )}

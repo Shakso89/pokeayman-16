@@ -39,6 +39,7 @@ export default function TeacherProfilePage() {
   const [editData, setEditData] = useState<Partial<TeacherProfile>>({});
   const [studentCount, setStudentCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [friendRequestSent, setFriendRequestSent] = useState(false);
   
   // Check if current user is the owner of this profile
   const currentUserId = localStorage.getItem("teacherId");
@@ -47,6 +48,7 @@ export default function TeacherProfilePage() {
   useEffect(() => {
     if (teacherId) {
       loadTeacherProfile();
+      checkFriendRequestStatus();
     }
   }, [teacherId]);
   
@@ -93,6 +95,22 @@ export default function TeacherProfilePage() {
     }
   };
   
+  const checkFriendRequestStatus = () => {
+    if (!teacherId || !currentUserId) return;
+    
+    // Check if friend request exists in localStorage
+    const friendRequests = JSON.parse(localStorage.getItem("friendRequests") || "[]");
+    const existingRequest = friendRequests.find(
+      (request: any) => 
+        (request.senderId === currentUserId && request.receiverId === teacherId) ||
+        (request.senderId === teacherId && request.receiverId === currentUserId)
+    );
+    
+    if (existingRequest) {
+      setFriendRequestSent(true);
+    }
+  };
+  
   const handleSave = () => {
     if (!teacher) return;
     
@@ -134,6 +152,35 @@ export default function TeacherProfilePage() {
     
     // Navigate to messages page
     navigate("/teacher/messages");
+  };
+  
+  const handleAddFriend = () => {
+    if (!teacher || !currentUserId) return;
+    
+    const userType = localStorage.getItem("userType");
+    const userName = localStorage.getItem("studentName") || localStorage.getItem("teacherUsername") || "";
+    
+    // Create a friend request object
+    const friendRequest = {
+      id: `fr-${Date.now()}`,
+      senderId: currentUserId,
+      senderType: userType,
+      senderName: userName,
+      receiverId: teacher.id,
+      receiverType: "teacher",
+      receiverName: teacher.displayName,
+      status: "pending",
+      createdAt: new Date().toISOString()
+    };
+    
+    // Save to localStorage
+    const friendRequests = JSON.parse(localStorage.getItem("friendRequests") || "[]");
+    friendRequests.push(friendRequest);
+    localStorage.setItem("friendRequests", JSON.stringify(friendRequests));
+    
+    // Update UI
+    setFriendRequestSent(true);
+    toast.success("Friend request sent");
   };
   
   const updateSocialLink = (network: keyof SocialLinks, value: string) => {
@@ -232,9 +279,14 @@ export default function TeacherProfilePage() {
                       <MessageSquare className="mr-2 h-4 w-4" />
                       Send Message
                     </Button>
-                    <Button variant="outline" className="w-full">
+                    <Button 
+                      variant="outline" 
+                      className="w-full"
+                      onClick={handleAddFriend}
+                      disabled={friendRequestSent}
+                    >
                       <UserPlus className="mr-2 h-4 w-4" />
-                      Add Friend
+                      {friendRequestSent ? "Friend Request Sent" : "Add Friend"}
                     </Button>
                   </div>
                 )}
