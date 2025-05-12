@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { ChevronLeft, Plus, Users, Trash, FileText, Coins, Download, Check, X, UserPlus, Gamepad2, UserMinus } from "lucide-react";
+import { ChevronLeft, Plus, Users, Trash, FileText, Coins, Download, Check, X, UserPlus, Gamepad2, UserMinus, Heart, MessageSquare, UserPlus as RequestAccess } from "lucide-react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -15,35 +15,40 @@ import CreateHomeworkDialog from "./CreateHomeworkDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
 import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
 import { awardCoinsToStudent } from "@/utils/pokemon";
+import ClassFeed from "./ClassFeed";
+
 interface ClassManagementProps {
   onBack: () => void;
   schoolId: string;
   teacherId: string;
 }
+
 interface ClassData {
   id: string;
   name: string;
   teacherId: string;
   schoolId: string;
   students: string[];
+  isPublic?: boolean;
+  createdAt?: string;
+  likes?: string[];
+  description?: string;
 }
+
 interface StudentData {
   id: string;
   displayName: string;
   coins?: number;
   submissions?: HomeworkSubmission[];
 }
+
 const ClassManagement: React.FC<ClassManagementProps> = ({
   onBack,
   schoolId,
   teacherId
 }) => {
-  const {
-    t
-  } = useTranslation();
-  const {
-    toast
-  } = useToast();
+  const { t } = useTranslation();
+  const { toast } = useToast();
   const navigate = useNavigate();
 
   // Class state
@@ -51,6 +56,9 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   const [selectedClass, setSelectedClass] = useState<ClassData | null>(null);
   const [isCreateClassDialogOpen, setIsCreateClassDialogOpen] = useState(false);
   const [newClassName, setNewClassName] = useState("");
+  const [newClassDescription, setNewClassDescription] = useState("");
+  const [isPublic, setIsPublic] = useState(true);
+  const [viewMode, setViewMode] = useState<"manage" | "social">("manage");
 
   // Student state
   const [students, setStudents] = useState<StudentData[]>([]);
@@ -81,12 +89,14 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   useEffect(() => {
     loadClassesData();
   }, [schoolId, teacherId]);
+
   useEffect(() => {
     if (selectedClass) {
       loadStudentsData();
       loadHomeworkData();
     }
   }, [selectedClass]);
+
   const loadClassesData = () => {
     // Get classes from localStorage
     const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
@@ -95,6 +105,16 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     const filteredClasses = allClasses.filter((cls: any) => cls.schoolId === schoolId && cls.teacherId === teacherId);
     setClasses(filteredClasses);
   };
+
+  const loadAllClasses = () => {
+    // Get all classes from localStorage
+    const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+    
+    // Filter classes that belong to this school
+    const filteredClasses = allClasses.filter((cls: any) => cls.schoolId === schoolId);
+    return filteredClasses;
+  };
+
   const loadStudentsData = () => {
     if (!selectedClass) return;
 
@@ -116,6 +136,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     });
     setStudents(studentsWithData);
   };
+
   const loadHomeworkData = () => {
     if (!selectedClass) return;
 
@@ -129,6 +150,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     const classSubmissions = allSubmissions.filter((sub: HomeworkSubmission) => classHomework.some((hw: HomeworkAssignment) => hw.id === sub.homeworkId));
     setHomeworkSubmissions(classSubmissions);
   };
+
   const handleCreateClass = () => {
     if (!newClassName) {
       toast({
@@ -143,9 +165,13 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     const newClass = {
       id: `class-${Date.now()}`,
       name: newClassName,
+      description: newClassDescription,
       teacherId,
       schoolId,
-      students: []
+      students: [],
+      isPublic: isPublic,
+      createdAt: new Date().toISOString(),
+      likes: []
     };
 
     // Update localStorage
@@ -156,17 +182,30 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     // Update state
     setClasses([...classes, newClass]);
     setNewClassName("");
+    setNewClassDescription("");
+    setIsPublic(true);
     setIsCreateClassDialogOpen(false);
     toast({
       title: t("success"),
       description: t("class-created")
     });
   };
+
   const handleDeleteClass = (classId: string) => {
     // Remove class from localStorage
     const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
     const updatedClasses = existingClasses.filter((cls: any) => cls.id !== classId);
     localStorage.setItem("classes", JSON.stringify(updatedClasses));
+
+    // Remove class comments
+    const existingComments = JSON.parse(localStorage.getItem("classComments") || "[]");
+    const updatedComments = existingComments.filter((comment: any) => comment.classId !== classId);
+    localStorage.setItem("classComments", JSON.stringify(updatedComments));
+
+    // Remove access requests
+    const existingRequests = JSON.parse(localStorage.getItem("accessRequests") || "[]");
+    const updatedRequests = existingRequests.filter((request: any) => request.classId !== classId);
+    localStorage.setItem("accessRequests", JSON.stringify(updatedRequests));
 
     // Update state
     setClasses(classes.filter(cls => cls.id !== classId));
@@ -180,10 +219,81 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       description: t("class-deleted")
     });
   };
+
   const handleClassSelect = (classData: ClassData) => {
     setSelectedClass(classData);
     setSelectedTab("students"); // Default to students tab
+    setViewMode(classData.teacherId === teacherId ? "manage" : "social");
   };
+
+  const handleToggleLike = (classId: string) => {
+    const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+    
+    const updatedClasses = existingClasses.map((cls: ClassData) => {
+      if (cls.id === classId) {
+        const likes = cls.likes || [];
+        const hasLiked = likes.includes(teacherId);
+        
+        return {
+          ...cls,
+          likes: hasLiked 
+            ? likes.filter(id => id !== teacherId)
+            : [...likes, teacherId]
+        };
+      }
+      return cls;
+    });
+    
+    localStorage.setItem("classes", JSON.stringify(updatedClasses));
+    
+    if (selectedClass && selectedClass.id === classId) {
+      const updatedClass = updatedClasses.find((cls: ClassData) => cls.id === classId);
+      setSelectedClass(updatedClass || null);
+    }
+    
+    toast({
+      title: t("success"),
+      description: updatedClasses.find((cls: ClassData) => cls.id === classId)?.likes?.includes(teacherId) 
+        ? t("class-liked") 
+        : t("class-unliked")
+    });
+  };
+
+  const handleRequestAccess = (classId: string) => {
+    const existingRequests = JSON.parse(localStorage.getItem("accessRequests") || "[]");
+    
+    // Check if request already exists
+    const hasRequested = existingRequests.some(
+      (req: any) => req.classId === classId && req.requesterId === teacherId
+    );
+    
+    if (hasRequested) {
+      toast({
+        title: t("info"),
+        description: t("access-already-requested")
+      });
+      return;
+    }
+    
+    // Add new request
+    const newRequest = {
+      id: `request-${Date.now()}`,
+      classId,
+      requesterId: teacherId,
+      ownerTeacherId: selectedClass?.teacherId || "",
+      status: "pending",
+      requestedAt: new Date().toISOString()
+    };
+    
+    const updatedRequests = [...existingRequests, newRequest];
+    localStorage.setItem("accessRequests", JSON.stringify(updatedRequests));
+    
+    toast({
+      title: t("success"),
+      description: t("access-requested")
+    });
+  };
+
   const handleAwardCoins = (studentId: string, studentName: string) => {
     setSelectedStudent({
       id: studentId,
@@ -191,6 +301,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     });
     setIsGiveCoinsOpen(true);
   };
+
   const handleGiveCoins = (amount: number) => {
     if (!selectedStudent) return;
 
@@ -208,6 +319,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       description: `${amount} ${t("coins-awarded-to")} ${selectedStudent.name}`
     });
   };
+
   const handleManagePokemon = (studentId: string, studentName: string) => {
     setSelectedStudent({
       id: studentId,
@@ -215,13 +327,16 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     });
     setIsManagePokemonOpen(true);
   };
+
   const handlePokemonRemoved = () => {
     // Refresh student data when a Pokemon is removed
     loadStudentsData();
   };
+
   const handleHomeworkCreated = (homework: HomeworkAssignment) => {
     setHomeworkAssignments([...homeworkAssignments, homework]);
   };
+
   const handleApproveSubmission = (submission: HomeworkSubmission) => {
     // Find the homework to get the reward amount
     const homework = homeworkAssignments.find(hw => hw.id === submission.homeworkId);
@@ -252,6 +367,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       description: `${t("submission-approved")} ${homework.coinReward} ${t("coins-awarded")}`
     });
   };
+
   const handleRejectSubmission = (submission: HomeworkSubmission) => {
     // Update submission status
     const updatedSubmissions = homeworkSubmissions.map(sub => {
@@ -272,6 +388,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       description: t("no-coins-awarded")
     });
   };
+
   const handleDeleteHomework = (homeworkId: string) => {
     // Remove homework assignment
     const filteredAssignments = homeworkAssignments.filter(hw => hw.id !== homeworkId);
@@ -289,6 +406,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       description: t("homework-submissions-deleted")
     });
   };
+
   const navigateToStudentProfile = (studentId: string) => {
     navigate(`/teacher/student/${studentId}`);
   };
@@ -430,7 +548,9 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   }: {
     className?: string;
   }) => <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z" /><path d="M19 10v2a7 7 0 0 1-14 0v-2" /><line x1="12" x2="12" y1="19" y2="22" /></svg>;
-  return <div>
+
+  return (
+    <div>
       <div className="flex items-center mb-6">
         <Button variant="outline" onClick={onBack} className="mr-4">
           <ChevronLeft className="h-4 w-4 mr-1" />
@@ -441,11 +561,12 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         </h2>
         
         {!selectedClass && <Button onClick={() => setIsCreateClassDialogOpen(true)}>
-            <Plus className="h-4 w-4 mr-1" />
-            {t("create-class")}
-          </Button>}
+          <Plus className="h-4 w-4 mr-1" />
+          {t("create-class")}
+        </Button>}
         
-        {selectedClass && <div className="flex gap-2">
+        {selectedClass && viewMode === "manage" && (
+          <div className="flex gap-2">
             <Button variant="outline" onClick={() => setIsAddStudentDialogOpen(true)} className="mr-2">
               <UserPlus className="h-4 w-4 mr-1" />
               {t("add-student")}
@@ -454,102 +575,150 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
               <Trash className="h-4 w-4 mr-1" />
               {t("delete-class")}
             </Button>
-          </div>}
+          </div>
+        )}
+        
+        {selectedClass && viewMode === "social" && (
+          <div className="flex gap-2">
+            <Button 
+              variant="outline" 
+              onClick={() => handleToggleLike(selectedClass.id)}
+              className={`${(selectedClass.likes || []).includes(teacherId) ? "bg-pink-50" : ""}`}
+            >
+              <Heart 
+                className={`h-4 w-4 mr-1 ${(selectedClass.likes || []).includes(teacherId) ? "fill-pink-500 text-pink-500" : ""}`} 
+              />
+              {(selectedClass.likes || []).length} {t("likes")}
+            </Button>
+            <Button variant="outline" onClick={() => handleRequestAccess(selectedClass.id)}>
+              <RequestAccess className="h-4 w-4 mr-1" />
+              {t("request-control-access")}
+            </Button>
+          </div>
+        )}
       </div>
       
-      {!selectedClass ? <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {classes.length > 0 ? classes.map(classData => <Card key={classData.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleClassSelect(classData)}>
-                <CardHeader>
-                  <CardTitle>{classData.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="flex items-center text-gray-500">
-                    <Users className="h-5 w-5 mr-2" />
-                    <span>
-                      {classData.students ? classData.students.length : 0} {t("students")}
-                    </span>
-                  </div>
-                </CardContent>
-              </Card>) : <div className="col-span-full text-center py-12">
-              <p className="text-gray-500 mb-4">{t("no-classes")}</p>
-              <Button onClick={() => setIsCreateClassDialogOpen(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                {t("create-class")}
-              </Button>
-            </div>}
-        </div> : <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+      {!selectedClass ? (
+        <Tabs defaultValue="my-classes">
           <TabsList className="mb-6">
-            <TabsTrigger value="students">{t("students")}</TabsTrigger>
-            <TabsTrigger value="homework">{t("homework")}</TabsTrigger>
+            <TabsTrigger value="my-classes">{t("my-classes")}</TabsTrigger>
+            <TabsTrigger value="all-classes">{t("all-classes")}</TabsTrigger>
           </TabsList>
           
-          <TabsContent value="students">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("students-in-class")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {students.length > 0 ? <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>{t("name")}</TableHead>
-                        
-                        <TableHead className="text-right">{t("actions")}</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {students.map(student => <TableRow key={student.id}>
-                          <TableCell className="font-medium cursor-pointer hover:underline" onClick={() => navigateToStudentProfile(student.id)}>
-                            {student.displayName}
-                          </TableCell>
-                          
-                          <TableCell className="text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button variant="outline" size="sm" className="text-amber-500" onClick={() => handleAwardCoins(student.id, student.displayName)}>
-                                <Coins className="h-4 w-4 mr-1" />
-                                {t("award-coins")}
-                              </Button>
-                              <Button variant="outline" size="sm" className="text-blue-500" onClick={() => handleManagePokemon(student.id, student.displayName)}>
-                                <Gamepad2 className="h-4 w-4 mr-1" />
-                                {t("manage-pokemon")}
-                              </Button>
-                              <Button variant="outline" size="sm" className="text-red-500" onClick={() => handleRemoveStudentFromClass(student.id, student.displayName)}>
-                                <UserMinus className="h-4 w-4 mr-1" />
-                                {t("remove-student")}
-                              </Button>
-                            </div>
-                          </TableCell>
-                        </TableRow>)}
-                    </TableBody>
-                  </Table> : <div className="text-center py-6">
-                    <p className="text-gray-500">{t("no-students-in-class")}</p>
-                    <Button onClick={() => setIsAddStudentDialogOpen(true)} className="mt-4">
-                      <UserPlus className="h-4 w-4 mr-1" />
-                      {t("add-student")}
-                    </Button>
-                  </div>}
-              </CardContent>
-            </Card>
+          <TabsContent value="my-classes">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {classes.length > 0 ? classes.map(classData => (
+                <Card key={classData.id} className="cursor-pointer hover:shadow-md transition-shadow" onClick={() => handleClassSelect(classData)}>
+                  <CardHeader>
+                    <CardTitle>{classData.name}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex items-center text-gray-500">
+                      <Users className="h-5 w-5 mr-2" />
+                      <span>
+                        {classData.students ? classData.students.length : 0} {t("students")}
+                      </span>
+                    </div>
+                    {classData.description && (
+                      <p className="text-sm text-gray-600 mt-2">{classData.description}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              )) : (
+                <div className="col-span-full text-center py-12">
+                  <p className="text-gray-500 mb-4">{t("no-classes")}</p>
+                  <Button onClick={() => setIsCreateClassDialogOpen(true)}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    {t("create-class")}
+                  </Button>
+                </div>
+              )}
+            </div>
           </TabsContent>
           
-          <TabsContent value="homework">
-            <div className="flex justify-between mb-6">
-              <h3 className="text-xl font-semibold">{t("class-homework")}</h3>
-              <Button onClick={() => setIsCreateHomeworkOpen(true)}>
-                <Plus className="h-4 w-4 mr-1" />
-                {t("create-homework")}
-              </Button>
-            </div>
+          <TabsContent value="all-classes">
+            <ClassFeed 
+              schoolId={schoolId} 
+              teacherId={teacherId} 
+              onClassSelect={handleClassSelect} 
+            />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        viewMode === "manage" ? (
+          <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+            <TabsList className="mb-6">
+              <TabsTrigger value="students">{t("students")}</TabsTrigger>
+              <TabsTrigger value="homework">{t("homework")}</TabsTrigger>
+            </TabsList>
             
-            {activeHomework.length === 0 ? <Card>
-                <CardContent className="pt-6 text-center">
-                  <p>{t("no-active-homework")}</p>
-                  <Button onClick={() => setIsCreateHomeworkOpen(true)} className="mt-4">
-                    {t("create-homework")}
-                  </Button>
+            <TabsContent value="students">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t("students-in-class")}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  {students.length > 0 ? <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>{t("name")}</TableHead>
+                          
+                          <TableHead className="text-right">{t("actions")}</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {students.map(student => <TableRow key={student.id}>
+                            <TableCell className="font-medium cursor-pointer hover:underline" onClick={() => navigateToStudentProfile(student.id)}>
+                              {student.displayName}
+                            </TableCell>
+                            
+                            <TableCell className="text-right">
+                              <div className="flex justify-end gap-2">
+                                <Button variant="outline" size="sm" className="text-amber-500" onClick={() => handleAwardCoins(student.id, student.displayName)}>
+                                  <Coins className="h-4 w-4 mr-1" />
+                                  {t("award-coins")}
+                                </Button>
+                                <Button variant="outline" size="sm" className="text-blue-500" onClick={() => handleManagePokemon(student.id, student.displayName)}>
+                                  <Gamepad2 className="h-4 w-4 mr-1" />
+                                  {t("manage-pokemon")}
+                                </Button>
+                                <Button variant="outline" size="sm" className="text-red-500" onClick={() => handleRemoveStudentFromClass(student.id, student.displayName)}>
+                                  <UserMinus className="h-4 w-4 mr-1" />
+                                  {t("remove-student")}
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>)}
+                      </TableBody>
+                    </Table> : <div className="text-center py-6">
+                      <p className="text-gray-500">{t("no-students-in-class")}</p>
+                      <Button onClick={() => setIsAddStudentDialogOpen(true)} className="mt-4">
+                        <UserPlus className="h-4 w-4 mr-1" />
+                        {t("add-student")}
+                      </Button>
+                    </div>}
                 </CardContent>
-              </Card> : <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {activeHomework.map(homework => {
+              </Card>
+            </TabsContent>
+            
+            <TabsContent value="homework">
+              <div className="flex justify-between mb-6">
+                <h3 className="text-xl font-semibold">{t("class-homework")}</h3>
+                <Button onClick={() => setIsCreateHomeworkOpen(true)}>
+                  <Plus className="h-4 w-4 mr-1" />
+                  {t("create-homework")}
+                </Button>
+              </div>
+              
+              {activeHomework.length === 0 ? <Card>
+                  <CardContent className="pt-6 text-center">
+                    <p>{t("no-active-homework")}</p>
+                    <Button onClick={() => setIsCreateHomeworkOpen(true)} className="mt-4">
+                      {t("create-homework")}
+                    </Button>
+                  </CardContent>
+                </Card> : <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {activeHomework.map(homework => {
             const submissions = getSubmissionsForHomework(homework.id);
             return <Card key={homework.id} className="overflow-hidden">
                       <CardHeader className="pb-3">
@@ -611,8 +780,52 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
                     </Card>;
           })}
               </div>}
-          </TabsContent>
-        </Tabs>}
+            </TabsContent>
+          </Tabs>
+        ) : (
+          <div>
+            <Card className="mb-6">
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>{selectedClass.name}</CardTitle>
+                    {selectedClass.createdAt && (
+                      <p className="text-sm text-gray-500 mt-1">
+                        {new Date(selectedClass.createdAt).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                  
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500">
+                      {selectedClass.students?.length || 0} {t("students")}
+                    </span>
+                    <Button 
+                      variant="ghost" 
+                      size="sm" 
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleToggleLike(selectedClass.id);
+                      }}
+                    >
+                      <Heart className={`h-4 w-4 ${(selectedClass.likes || []).includes(teacherId) ? "fill-pink-500 text-pink-500" : ""}`} />
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {selectedClass.description ? (
+                  <p className="text-gray-600">{selectedClass.description}</p>
+                ) : (
+                  <p className="text-gray-500 italic">{t("no-description")}</p>
+                )}
+              </CardContent>
+            </Card>
+            
+            <ClassComments classId={selectedClass.id} teacherId={teacherId} />
+          </div>
+        )
+      )}
       
       {/* Create Class Dialog */}
       <Dialog open={isCreateClassDialogOpen} onOpenChange={setIsCreateClassDialogOpen}>
@@ -628,6 +841,22 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
             <div className="space-y-2">
               <Label htmlFor="className">{t("class-name")}</Label>
               <Input id="className" value={newClassName} onChange={e => setNewClassName(e.target.value)} placeholder={t("enter-class-name")} />
+            </div>
+            
+            <div className="space-y-2">
+              <Label htmlFor="classDescription">{t("class-description")}</Label>
+              <Input id="classDescription" value={newClassDescription} onChange={e => setNewClassDescription(e.target.value)} placeholder={t("enter-class-description")} />
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <input 
+                type="checkbox" 
+                id="isPublic" 
+                checked={isPublic} 
+                onChange={(e) => setIsPublic(e.target.checked)} 
+                className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <Label htmlFor="isPublic">{t("make-class-public")}</Label>
             </div>
           </div>
           
@@ -715,6 +944,8 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>;
+    </div>
+  );
 };
+
 export default ClassManagement;
