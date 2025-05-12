@@ -17,7 +17,6 @@ const TeacherSignUp: React.FC = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [activationCode, setActivationCode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
@@ -59,9 +58,6 @@ const TeacherSignUp: React.FC = () => {
         // Create teacher record in localStorage for backward compatibility
         const teacherId = authData.user.id;
         
-        // Check if activation code is provided (optional now)
-        const isActivated = activationCode ? validateActivationCode(activationCode) : false;
-        
         // Store user data in localStorage for now (will be replaced with proper DB integration later)
         const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
         teachers.push({
@@ -70,10 +66,8 @@ const TeacherSignUp: React.FC = () => {
           email,
           password, // In a real app, you would never store plain-text passwords
           avatarUrl,
-          activationCode,
-          activated: isActivated, // Default to not activated if no code provided
-          activationExpiry: isActivated ? getActivationExpiry(activationCode) : "",
           students: [],
+          isActive: true, // All accounts are active by default now
           createdAt: new Date().toISOString()
         });
         localStorage.setItem("teachers", JSON.stringify(teachers));
@@ -84,13 +78,13 @@ const TeacherSignUp: React.FC = () => {
           teacherId,
           username,
           displayName: username,
-          credits: 50, // Start with 50 free credits
+          credits: 500, // Start with 500 free credits (updated from 50)
           usedCredits: 0,
           transactionHistory: [
             {
               id: `tr-${Date.now()}`,
               teacherId,
-              amount: 50,
+              amount: 500,
               reason: "Initial free credits",
               timestamp: new Date().toISOString()
             }
@@ -98,18 +92,9 @@ const TeacherSignUp: React.FC = () => {
         });
         localStorage.setItem("teacherCredits", JSON.stringify(teacherCredits));
         
-        // Mark activation code as used if provided
-        if (activationCode) {
-          const usedCodes = JSON.parse(localStorage.getItem("usedActivationCodes") || "[]");
-          usedCodes.push(activationCode);
-          localStorage.setItem("usedActivationCodes", JSON.stringify(usedCodes));
-        }
-        
         toast({
           title: "Account created",
-          description: isActivated 
-            ? "Welcome to TR Ayman! Your account is fully activated."
-            : "Welcome to TR Ayman! Please contact us to activate your account for full access.",
+          description: "Welcome to TR Ayman! Your account is fully activated with 500 free credits.",
         });
         
         // Sign out the user so they can log in properly
@@ -127,56 +112,6 @@ const TeacherSignUp: React.FC = () => {
     } finally {
       setIsLoading(false);
     }
-  };
-  
-  // Function to validate activation code
-  const validateActivationCode = (code: string): boolean => {
-    // Special case for admin
-    if (code === "ADMIN-MASTER-CODE") return true;
-    
-    // Check if code has been used
-    const usedCodes = JSON.parse(localStorage.getItem("usedActivationCodes") || "[]");
-    if (usedCodes.includes(code)) {
-      toast({
-        title: "Code already used",
-        description: "This activation code has already been used.",
-        variant: "destructive",
-      });
-      return false;
-    }
-    
-    // Get valid codes from localStorage (in a real app, this would be a server check)
-    const validCodes = JSON.parse(localStorage.getItem("activationCodes") || "[]");
-    return validCodes.includes(code) || /^(TRIAL|MONTH|YEAR)\d+$/.test(code);
-  };
-  
-  // Function to calculate activation expiry based on code type
-  const getActivationExpiry = (code: string): string => {
-    const now = new Date();
-    
-    if (code === "ADMIN-MASTER-CODE") {
-      // Never expires for admin
-      const expiry = new Date(now);
-      expiry.setFullYear(expiry.getFullYear() + 100);
-      return expiry.toISOString();
-    } else if (code.startsWith("TRIAL")) {
-      // 7-day trial
-      const expiry = new Date(now);
-      expiry.setDate(expiry.getDate() + 7);
-      return expiry.toISOString();
-    } else if (code.startsWith("MONTH")) {
-      // Monthly subscription
-      const expiry = new Date(now);
-      expiry.setMonth(expiry.getMonth() + 1);
-      return expiry.toISOString();
-    } else if (code.startsWith("YEAR")) {
-      // Annual subscription
-      const expiry = new Date(now);
-      expiry.setFullYear(expiry.getFullYear() + 1);
-      return expiry.toISOString();
-    }
-    
-    return ""; // Invalid code
   };
   
   return (
@@ -215,12 +150,9 @@ const TeacherSignUp: React.FC = () => {
               setPassword={setPassword}
               confirmPassword={confirmPassword}
               setConfirmPassword={setConfirmPassword}
-              activationCode={activationCode}
-              setActivationCode={setActivationCode}
               isLoading={isLoading}
               onOpenContactDialog={() => setContactDialogOpen(true)}
               onNavigateToLogin={() => navigate("/teacher-login")}
-              activationOptional={true} // Make activation code optional
             />
           </form>
           

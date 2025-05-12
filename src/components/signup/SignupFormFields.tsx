@@ -3,7 +3,7 @@ import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { User, Mail, Lock, Key } from "lucide-react";
+import { User, Mail, Lock } from "lucide-react";
 
 interface SignupFormFieldsProps {
   username: string;
@@ -14,12 +14,9 @@ interface SignupFormFieldsProps {
   setPassword: (value: string) => void;
   confirmPassword: string;
   setConfirmPassword: (value: string) => void;
-  activationCode: string;
-  setActivationCode: (value: string) => void;
   isLoading: boolean;
   onOpenContactDialog: () => void;
   onNavigateToLogin: () => void;
-  activationOptional?: boolean;
 }
 
 const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
@@ -31,12 +28,8 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
   setPassword,
   confirmPassword,
   setConfirmPassword,
-  activationCode,
-  setActivationCode,
   isLoading,
-  onOpenContactDialog,
-  onNavigateToLogin,
-  activationOptional = false
+  onNavigateToLogin
 }) => {
   // Password validation
   const hasMinLength = password.length >= 6;
@@ -93,36 +86,6 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
         {confirmPassword.length > 0 && (
           <p className={passwordsMatch ? "text-green-400 text-xs" : "text-red-400 text-xs"}>
             {passwordsMatch ? "✓ Passwords match" : "✗ Passwords don't match"}
-          </p>
-        )}
-      </div>
-      
-      {/* Activation Code field - optional now */}
-      <div className="space-y-2">
-        <Label htmlFor="activationCode">
-          Activation Code {activationOptional && <span className="text-gray-400 text-sm">(optional)</span>}
-        </Label>
-        <div className="relative">
-          <Input 
-            id="activationCode" 
-            placeholder="Enter activation code if you have one" 
-            value={activationCode} 
-            onChange={e => setActivationCode(e.target.value)} 
-            className="pl-10 bg-black/30 border-gray-700 text-white"
-            required={!activationOptional}
-          />
-          <Key className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 h-5 w-5" />
-        </div>
-        {activationOptional && (
-          <p className="text-xs text-gray-400">
-            Don't have an activation code?{" "}
-            <button 
-              type="button" 
-              onClick={onOpenContactDialog}
-              className="text-blue-400 hover:underline"
-            >
-              Contact us
-            </button>
           </p>
         )}
       </div>

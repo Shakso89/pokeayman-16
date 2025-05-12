@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,9 +9,11 @@ import { CreditCard, History, BadgeDollarSign, Contact } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getTeacherCredits } from "@/utils/creditService";
 import { TeacherCredit as TeacherCreditType, CreditTransaction } from "@/types/teacher";
+
 interface TeacherCreditProps {
   teacherId: string;
 }
+
 const TeacherCredit: React.FC<TeacherCreditProps> = ({
   teacherId
 }) => {
@@ -20,6 +23,7 @@ const TeacherCredit: React.FC<TeacherCreditProps> = ({
     t
   } = useTranslation();
   const navigate = useNavigate();
+
   useEffect(() => {
     // Load credit data for the teacher
     const teacherCreditData = getTeacherCredits(teacherId);
@@ -33,14 +37,17 @@ const TeacherCredit: React.FC<TeacherCreditProps> = ({
       setRecentTransactions(recent);
     }
   }, [teacherId]);
+
   const handleRequestCredits = () => {
     navigate("/contact");
   };
+
   if (!creditData) {
     return <div className="flex justify-center items-center h-64">
         <p>{t("loading-credits") || "Loading credit information..."}</p>
       </div>;
   }
+
   return <div className="grid gap-6">
       {/* Current Credits Card */}
       <Card className="shadow-md">
@@ -103,19 +110,35 @@ const TeacherCredit: React.FC<TeacherCreditProps> = ({
         <CardContent className="pt-6">
           <div className="grid gap-3">
             <div className="flex justify-between border-b pb-2">
-              <span>50 {t("credits") || "Credits"}</span>
-              <span className="font-bold">$NT$99</span>
+              <div>
+                <span className="font-semibold">Starter Pack</span>
+                <div className="text-xs text-gray-500">500 {t("credits") || "Credits"}</div>
+                <div className="text-xs text-gray-500">New teachers managing 1 small class</div>
+              </div>
+              <span className="font-bold">NT$99</span>
             </div>
             <div className="flex justify-between border-b pb-2">
-              <span>100 {t("credits") || "Credits"}</span>
+              <div>
+                <span className="font-semibold">Pro Pack</span>
+                <div className="text-xs text-gray-500">1000 {t("credits") || "Credits"}</div>
+                <div className="text-xs text-gray-500">Regular classroom use with rewards</div>
+              </div>
               <span className="font-bold">NT$169</span>
             </div>
             <div className="flex justify-between border-b pb-2">
-              <span>500 {t("credits") || "Credits"}</span>
+              <div>
+                <span className="font-semibold">Elite Pack</span>
+                <div className="text-xs text-gray-500">1500 {t("credits") || "Credits"}</div>
+                <div className="text-xs text-gray-500">Teachers running multiple classes</div>
+              </div>
               <span className="font-bold">NT$199</span>
             </div>
             <div className="flex justify-between">
-              <span>1000 {t("credits") || "Credits"}</span>
+              <div>
+                <span className="font-semibold">Master Pack</span>
+                <div className="text-xs text-gray-500">2000 {t("credits") || "Credits"}</div>
+                <div className="text-xs text-gray-500">Schools or highly active teachers</div>
+              </div>
               <span className="font-bold">NT$249</span>
             </div>
           </div>
@@ -129,4 +152,5 @@ const TeacherCredit: React.FC<TeacherCreditProps> = ({
       </Card>
     </div>;
 };
+
 export default TeacherCredit;

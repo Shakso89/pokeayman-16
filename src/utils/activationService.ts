@@ -3,7 +3,8 @@
 
 /**
  * Checks if a teacher account is activated/unfrozen
- * @returns boolean indicating if the account is activated
+ * All accounts are now active by default
+ * @returns boolean Always returns true as all accounts are active
  */
 export const isTeacherActivated = (): boolean => {
   // Check if user is admin (admins are always activated)
@@ -11,19 +12,7 @@ export const isTeacherActivated = (): boolean => {
     return true;
   }
   
-  // For regular teachers, check if they are frozen (now all accounts start activated)
-  const teacherData = localStorage.getItem("teachers");
-  if (teacherData) {
-    const teachers = JSON.parse(teacherData);
-    const teacherId = localStorage.getItem("teacherId");
-    
-    if (teacherId) {
-      const teacher = teachers.find((t: any) => t.id === teacherId);
-      return teacher ? teacher.isActive !== false : true;
-    }
-  }
-  
-  // Default to activated if no teacher data is found
+  // All accounts are now active by default
   return true;
 };
 
