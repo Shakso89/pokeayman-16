@@ -9,13 +9,15 @@ interface DashboardActionsProps {
   onViewCredits: () => void;
   onManageClasses?: () => void;
   creditsAmount?: number;
+  isAdmin?: boolean;
 }
 
 const DashboardActions: React.FC<DashboardActionsProps> = ({ 
   onAddStudent, 
   onViewCredits,
   onManageClasses,
-  creditsAmount 
+  creditsAmount,
+  isAdmin
 }) => {
   const { t } = useTranslation();
 
