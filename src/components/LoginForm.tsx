@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthLayout } from "./AuthLayout";
 import { toast } from "@/hooks/use-toast";
-import { User } from "lucide-react";
+import { User, Lock } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { setActivationStatus } from "@/utils/activationService";
 import { cn } from "@/lib/utils";
+import { supabase } from "@/integrations/supabase/client";
 
 interface LoginFormProps {
   type: "teacher" | "student";
@@ -25,65 +26,95 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
   
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simple authentication for demo purposes
-    setTimeout(() => {
+    try {
       if (type === "teacher") {
-        // Check if user exists in our "database" (localStorage)
-        const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-        const teacher = teachers.find((t: any) => t.username === username && t.password === password);
-        
-        if (teacher || (username === "Admin" && password === "AdminAyman")) {
+        // Special case for admin login
+        if (username === "Admin" && password === "AdminAyman") {
+          toast({
+            title: "Success!",
+            description: "Welcome back, Admin!",
+          });
+          localStorage.setItem("userType", "teacher");
+          localStorage.setItem("isLoggedIn", "true");
+          localStorage.setItem("teacherUsername", username);
+          localStorage.setItem("isAdmin", "true");
+          localStorage.setItem("teacherId", "admin-" + Date.now().toString());
+          setActivationStatus(true);
+          
+          if (onLoginSuccess) {
+            onLoginSuccess(username, password);
+          }
+          
+          navigate("/admin-dashboard");
+          return;
+        }
+
+        // First try to sign in with Supabase Auth
+        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+          email: username, // Using username as email for simplicity
+          password,
+        });
+
+        if (authError) {
+          // Fallback to legacy authentication
+          const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+          const teacher = teachers.find((t: any) => 
+            (t.username === username || t.email === username) && t.password === password
+          );
+          
+          if (teacher) {
+            toast({
+              title: "Success!",
+              description: "Welcome back, Teacher!",
+            });
+            localStorage.setItem("userType", "teacher");
+            localStorage.setItem("isLoggedIn", "true");
+            localStorage.setItem("teacherUsername", teacher.username);
+            localStorage.setItem("isAdmin", "false");
+            
+            if (teacher.isActive) {
+              setActivationStatus(true);
+            } else {
+              setActivationStatus(false);
+            }
+            
+            localStorage.setItem("teacherId", teacher.id);
+            
+            if (onLoginSuccess) {
+              onLoginSuccess(username, password);
+            }
+            
+            navigate("/teacher-dashboard");
+          } else {
+            throw new Error("Invalid username or password.");
+          }
+        } else if (authData.user) {
+          // Successfully authenticated with Supabase
+          const userMetadata = authData.user.user_metadata;
+          
           toast({
             title: "Success!",
             description: "Welcome back, Teacher!",
           });
+          
           localStorage.setItem("userType", "teacher");
           localStorage.setItem("isLoggedIn", "true");
-          
-          // Store the teacher's username for admin access check
-          localStorage.setItem("teacherUsername", username);
-          
-          // If it's Admin account, set isAdmin flag and activate account
-          if (username === "Admin") {
-            localStorage.setItem("isAdmin", "true");
-            setActivationStatus(true); // Updated to pass only boolean
-          } else {
-            localStorage.removeItem("isAdmin");
-            
-            // Set activation status based on teacher record
-            if (teacher && teacher.isActive) {
-              setActivationStatus(true); // Updated to pass only boolean
-            } else {
-              setActivationStatus(false); // Updated to pass only boolean
-            }
-          }
-          
-          // If it's a registered teacher (not Admin), store their ID
-          if (teacher) {
-            localStorage.setItem("teacherId", teacher.id);
-          } else {
-            // For Admin login
-            localStorage.setItem("teacherId", "teacher-" + Date.now().toString());
-          }
+          localStorage.setItem("teacherUsername", userMetadata.username || username);
+          localStorage.setItem("isAdmin", "false");
+          localStorage.setItem("teacherId", authData.user.id);
           
           if (onLoginSuccess) {
             onLoginSuccess(username, password);
           }
           
           navigate("/teacher-dashboard");
-        } else {
-          toast({
-            title: "Authentication failed",
-            description: "Invalid username or password.",
-            variant: "destructive",
-          });
         }
       } else {
-        // For student login, we check if the student exists
+        // Student login - similar approach but using student records
         const students = JSON.parse(localStorage.getItem("students") || "[]");
         const student = students.find((s: any) => s.username === username && s.password === password);
         
@@ -103,15 +134,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
           
           navigate("/student-dashboard");
         } else {
-          toast({
-            title: "Authentication failed",
-            description: "Invalid username or password. If you don't have an account, ask your teacher to create one for you.",
-            variant: "destructive",
-          });
+          throw new Error("Invalid username or password. If you don't have an account, ask your teacher to create one for you.");
         }
       }
+    } catch (error: any) {
+      toast({
+        title: "Authentication failed",
+        description: error.message || "Invalid username or password.",
+        variant: "destructive",
+      });
+    } finally {
       setIsLoading(false);
-    }, 1000);
+    }
   };
 
   return (
@@ -122,11 +156,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="username" className={darkMode ? "text-white" : ""}>{t("username") || "Username"}</Label>
+          <Label htmlFor="username" className={darkMode ? "text-white" : ""}>{t("username") || "Username/Email"}</Label>
           <div className="relative">
             <Input
               id="username"
-              placeholder={t("enter-your-username") || "Enter your username"}
+              placeholder={type === "teacher" ? "Enter your username or email" : "Enter your username"}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               className={cn("pl-10", darkMode && "bg-black/30 border-gray-700 text-white")}
@@ -137,15 +171,18 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
         </div>
         <div className="space-y-2">
           <Label htmlFor="password" className={darkMode ? "text-white" : ""}>{t("password") || "Password"}</Label>
-          <Input
-            id="password"
-            type="password"
-            placeholder={t("enter-your-password") || "Enter your password"}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            className={darkMode ? "bg-black/30 border-gray-700 text-white" : ""}
-            required
-          />
+          <div className="relative">
+            <Input
+              id="password"
+              type="password"
+              placeholder={t("enter-your-password") || "Enter your password"}
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className={cn("pl-10", darkMode && "bg-black/30 border-gray-700 text-white")}
+              required
+            />
+            <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 ${darkMode ? "text-gray-400" : "text-gray-500"}`} />
+          </div>
         </div>
         <Button 
           type="submit" 

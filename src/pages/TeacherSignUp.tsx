@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,6 +9,7 @@ import AvatarSelector from "@/components/signup/AvatarSelector";
 import SignupFormFields from "@/components/signup/SignupFormFields";
 import ContactDialog from "@/components/signup/ContactDialog";
 import PokemonDecorations from "@/components/signup/PokemonDecorations";
+import { supabase } from "@/integrations/supabase/client";
 
 const TeacherSignUp: React.FC = () => {
   const navigate = useNavigate();
@@ -20,7 +22,7 @@ const TeacherSignUp: React.FC = () => {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [contactDialogOpen, setContactDialogOpen] = useState(false);
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
     
@@ -34,48 +36,77 @@ const TeacherSignUp: React.FC = () => {
       setIsLoading(false);
       return;
     }
-    
-    // Registration logic
-    setTimeout(() => {
-      // In a real app, you would make an API call to register the user
-      const teacherId = "teacher-" + Date.now().toString();
-      
-      // Check if activation code is provided (optional now)
-      const isActivated = activationCode ? validateActivationCode(activationCode) : false;
-      
-      // Store user data in localStorage
-      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-      teachers.push({
-        id: teacherId,
-        username,
+
+    try {
+      // First, register with Supabase Auth
+      const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
-        password, // In a real app, you would never store plain-text passwords
-        avatarUrl,
-        activationCode,
-        activated: isActivated, // Default to not activated if no code provided
-        activationExpiry: isActivated ? getActivationExpiry(activationCode) : "",
-        students: [],
-        createdAt: new Date().toISOString()
+        password,
+        options: {
+          data: {
+            username,
+            avatar_url: avatarUrl,
+            user_type: "teacher",
+          }
+        }
       });
-      localStorage.setItem("teachers", JSON.stringify(teachers));
       
-      // Mark activation code as used if provided
-      if (activationCode) {
-        const usedCodes = JSON.parse(localStorage.getItem("usedActivationCodes") || "[]");
-        usedCodes.push(activationCode);
-        localStorage.setItem("usedActivationCodes", JSON.stringify(usedCodes));
+      if (authError) {
+        throw authError;
       }
       
+      if (authData.user) {
+        // Create teacher record in localStorage for backward compatibility
+        const teacherId = authData.user.id;
+        
+        // Check if activation code is provided (optional now)
+        const isActivated = activationCode ? validateActivationCode(activationCode) : false;
+        
+        // Store user data in localStorage for now (will be replaced with proper DB integration later)
+        const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+        teachers.push({
+          id: teacherId,
+          username,
+          email,
+          password, // In a real app, you would never store plain-text passwords
+          avatarUrl,
+          activationCode,
+          activated: isActivated, // Default to not activated if no code provided
+          activationExpiry: isActivated ? getActivationExpiry(activationCode) : "",
+          students: [],
+          createdAt: new Date().toISOString()
+        });
+        localStorage.setItem("teachers", JSON.stringify(teachers));
+        
+        // Mark activation code as used if provided
+        if (activationCode) {
+          const usedCodes = JSON.parse(localStorage.getItem("usedActivationCodes") || "[]");
+          usedCodes.push(activationCode);
+          localStorage.setItem("usedActivationCodes", JSON.stringify(usedCodes));
+        }
+        
+        toast({
+          title: "Account created",
+          description: isActivated 
+            ? "Welcome to TR Ayman! Your account is fully activated."
+            : "Welcome to TR Ayman! Please contact us to activate your account for full access.",
+        });
+        
+        // Sign out the user so they can log in properly
+        await supabase.auth.signOut();
+        
+        navigate("/teacher-login");
+      }
+    } catch (error: any) {
       toast({
-        title: "Account created",
-        description: isActivated 
-          ? "Welcome to TR Ayman! Your account is fully activated."
-          : "Welcome to TR Ayman! Please contact us to activate your account for full access.",
+        title: "Registration failed",
+        description: error.message || "There was an error during registration. Please try again.",
+        variant: "destructive",
       });
-      
-      navigate("/teacher-login");
+      console.error("Registration error:", error);
+    } finally {
       setIsLoading(false);
-    }, 1500);
+    }
   };
   
   // Function to validate activation code

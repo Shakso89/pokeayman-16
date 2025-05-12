@@ -6,7 +6,6 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import PokemonOrbit from "@/components/PokemonOrbit";
 import { useTranslation } from "@/hooks/useTranslation";
-import SearchBar from "@/components/SearchBar";
 
 const Index: React.FC = () => {
   const navigate = useNavigate();
@@ -36,14 +35,6 @@ const Index: React.FC = () => {
             to boost student motivation and make learning unforgettable. Join a new wave of 
             gamified education.
           </p>
-          
-          {/* Add search bar to landing page */}
-          <div className="mt-8 max-w-md mx-auto">
-            <div className="bg-white/80 rounded-lg p-4 backdrop-blur-sm">
-              <h3 className="text-lg font-medium mb-2 text-center text-gray-800">Find Teachers & Students</h3>
-              <SearchBar />
-            </div>
-          </div>
         </div>
 
         {/* Right Side - Main Content */}

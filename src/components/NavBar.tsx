@@ -7,7 +7,6 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import UserSettingsModal from "./modals/UserSettingsModal";
 import NotificationBadge from "./NotificationBadge";
-import SearchBar from "./SearchBar";
 import { useTranslation } from "@/hooks/useTranslation";
 
 interface NavBarProps {
@@ -61,11 +60,6 @@ export const NavBar: React.FC<NavBarProps> = ({
           <h1 className="text-xl font-bold">
             {userType === "teacher" ? "Teacher Dashboard" : "Student Dashboard"}
           </h1>
-        </div>
-        
-        {/* Added Search Bar */}
-        <div className="hidden md:flex flex-1 mx-4">
-          <SearchBar />
         </div>
         
         <div className="flex items-center gap-2">
@@ -124,11 +118,6 @@ export const NavBar: React.FC<NavBarProps> = ({
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
-      </div>
-      
-      {/* Mobile Search Bar */}
-      <div className="md:hidden px-4 py-2">
-        <SearchBar />
       </div>
       
       {isSettingsOpen && (
