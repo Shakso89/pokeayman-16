@@ -145,3 +145,16 @@ export const calculateCreditCost = (action: string, params?: any): number => {
       return 0;
   }
 };
+
+// Initialize credits for a teacher when they login
+export const ensureTeacherCredits = (teacherId: string, username: string, displayName: string = ""): void => {
+  if (!teacherId || !username) return;
+  
+  const teacherCredits = JSON.parse(localStorage.getItem("teacherCredits") || "[]");
+  const hasCredits = teacherCredits.some((tc: TeacherCredit) => tc.teacherId === teacherId);
+  
+  if (!hasCredits) {
+    initializeTeacherCredits(teacherId, username, displayName);
+    console.log(`Initialized credits for teacher: ${username}`);
+  }
+};

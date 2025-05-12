@@ -1,48 +1,64 @@
 
-import React from "react";
-import { LoginForm } from "@/components/LoginForm";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Home } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import PokemonDecorations from "@/components/signup/PokemonDecorations";
+import { AuthLayout } from "@/components/AuthLayout";
+import LoginForm from "@/components/LoginForm";
+import { ensureTeacherCredits } from "@/utils/creditService";
 
-const TeacherLogin: React.FC = () => {
+const TeacherLogin = () => {
   const navigate = useNavigate();
+  const [error, setError] = useState("");
   
-  const handleLoginSuccess = (username: string, password: string) => {
-    // Check if this is an admin login - now includes "Ayman" 
-    const isAdmin = 
-      (username === "Admin" && password === "AdminAyman") || 
-      (username === "Ayman" && password === "AymanPassword");
-
-    // Store admin status if it's the admin
-    if (isAdmin) {
-      localStorage.setItem("isAdmin", "true");
-      // Redirect to admin dashboard
-      navigate("/admin-dashboard");
+  const handleLogin = (username: string, password: string) => {
+    // Get teachers from localStorage
+    const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+    
+    // Find teacher by username and password
+    const teacher = teachers.find(
+      (t: any) => t.username === username && t.password === password
+    );
+    
+    if (teacher) {
+      // Set login state
+      localStorage.setItem("isLoggedIn", "true");
+      localStorage.setItem("userType", "teacher");
+      localStorage.setItem("teacherId", teacher.id);
+      localStorage.setItem("teacherUsername", username);
+      
+      // Initialize credits if they don't already exist
+      ensureTeacherCredits(teacher.id, username, teacher.displayName);
+      
+      // Update last login timestamp
+      const updatedTeachers = teachers.map((t: any) => {
+        if (t.id === teacher.id) {
+          return {
+            ...t,
+            lastLogin: new Date().toISOString()
+          };
+        }
+        return t;
+      });
+      localStorage.setItem("teachers", JSON.stringify(updatedTeachers));
+      
+      // Redirect to teacher dashboard
+      navigate("/teacher-dashboard");
+    } else {
+      // Show error message
+      setError("Invalid username or password");
     }
   };
   
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 relative overflow-hidden">
-      <div className="absolute top-4 left-4 z-10">
-        <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white">
-          <Home className="h-5 w-5" />
-        </Button>
-      </div>
-      
-      {/* Logo at the top */}
-      <div className="flex justify-center pt-4 mb-4 relative z-10">
-        
-      </div>
-      
-      <div className="relative z-10">
-        <LoginForm type="teacher" onLoginSuccess={handleLoginSuccess} darkMode={true} />
-      </div>
-      
-      {/* Pokemon decorations */}
-      <PokemonDecorations />
-    </div>
+    <AuthLayout>
+      <LoginForm
+        title="Teacher Login"
+        userType="teacher"
+        onSubmit={handleLogin}
+        error={error}
+        forgotPasswordUrl="#"
+        signUpUrl="/teacher-signup"
+      />
+    </AuthLayout>
   );
 };
 

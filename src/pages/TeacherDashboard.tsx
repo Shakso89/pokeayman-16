@@ -3,20 +3,24 @@ import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NavBar } from "@/components/NavBar";
-import { Users, UserPlus, Shield, School, MessageSquare, BarChart, ChevronLeft } from "lucide-react";
+import { Users, UserPlus, Shield, School, MessageSquare, BarChart, ChevronLeft, CreditCard } from "lucide-react";
 import ClassManagement from "@/components/teacher/ClassManagement";
 import SchoolCollaboration from "@/components/teacher/SchoolCollaboration";
 import SchoolManagement from "@/components/teacher/SchoolManagement";
+import TeacherCredit from "@/components/teacher/TeacherCredit";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
+import { initializeTeacherCredits } from "@/utils/creditService";
 
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState<"main" | "classes" | "collaboration">("main");
+  const [currentView, setCurrentView] = useState<"main" | "classes" | "collaboration" | "credits">("main");
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [studentData, setStudentData] = useState({
     username: "",
@@ -31,7 +35,7 @@ const TeacherDashboard: React.FC = () => {
   const userType = localStorage.getItem("userType");
   const teacherId = localStorage.getItem("teacherId");
   const username = localStorage.getItem("teacherUsername") || "";
-  const isAdmin = username === "Admin";
+  const isAdmin = username === "Admin" || username === "Ayman";
 
   useEffect(() => {
     // Load teacher data
@@ -40,18 +44,18 @@ const TeacherDashboard: React.FC = () => {
       const teacher = teachers.find((t: any) => t.id === teacherId);
       if (teacher) {
         setTeacherData(teacher);
+        
+        // Initialize teacher credits if not already done
+        const displayName = teacher.displayName || username;
+        initializeTeacherCredits(teacherId, username, displayName);
       }
     }
-  }, [teacherId]);
+  }, [teacherId, username]);
 
   const handleAddStudent = () => {
     // Validate student data
     if (!studentData.username || !studentData.password || !studentData.displayName) {
-      toast({
-        title: t("error"),
-        description: t("fill-all-fields"),
-        variant: "destructive",
-      });
+      toast(t("fill-all-fields"));
       return;
     }
     
@@ -63,11 +67,7 @@ const TeacherDashboard: React.FC = () => {
     
     // Check if username is already taken
     if (students.some((s: any) => s.username === studentData.username)) {
-      toast({
-        title: t("error"),
-        description: "This username is already in use",
-        variant: "destructive",
-      });
+      toast("This username is already in use");
       return;
     }
     
@@ -108,10 +108,7 @@ const TeacherDashboard: React.FC = () => {
     }
     
     // Show success message
-    toast({
-      title: t("success"),
-      description: t("student-added"),
-    });
+    toast(t("student-added"));
     
     // Reset form and close dialog
     setStudentData({
@@ -125,6 +122,104 @@ const TeacherDashboard: React.FC = () => {
   if (!isLoggedIn || userType !== "teacher") {
     return <Navigate to="/teacher-login" />;
   }
+
+  const renderMainContent = () => {
+    if (activeTab === "dashboard") {
+      return (
+        <>
+          <Button 
+            className="mb-6 bg-green-500 hover:bg-green-600 text-white flex items-center gap-2"
+            onClick={() => setIsAddStudentOpen(true)}
+          >
+            <UserPlus className="h-4 w-4" />
+            {t("create-student")}
+          </Button>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <Card className="hover:shadow-lg transition-all pokemon-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <School className="h-6 w-6 text-blue-500" />
+                  {t("manage-classes")}
+                </CardTitle>
+                <CardDescription>
+                  {isAdmin ? t("manage-schools-classes") : t("manage-classes-desc")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500">
+                  {isAdmin 
+                    ? t("admin-manage-classes-details") 
+                    : t("manage-classes-details")}
+                </p>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  className="w-full pokemon-button" 
+                  onClick={() => setCurrentView("classes")}
+                >
+                  {t("manage-classes")}
+                </Button>
+              </CardFooter>
+            </Card>
+
+            <Card className="hover:shadow-lg transition-all pokemon-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <MessageSquare className="h-6 w-6 text-green-500" />
+                  {t("messages")}
+                </CardTitle>
+                <CardDescription>
+                  {t("school-collab-desc")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500">
+                  {t("school-collab-details")}
+                </p>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  className="w-full pokemon-button"
+                  onClick={() => navigate("/teacher/messages")}
+                >
+                  {t("messages")}
+                </Button>
+              </CardFooter>
+            </Card>
+            
+            <Card className="hover:shadow-lg transition-all pokemon-card">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BarChart className="h-6 w-6 text-purple-500" />
+                  {t("reports-analytics")}
+                </CardTitle>
+                <CardDescription>
+                  {t("student-participation")}
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-gray-500">
+                  {t("student-engagement")}
+                </p>
+              </CardContent>
+              <CardFooter>
+                <Button 
+                  className="w-full pokemon-button"
+                  onClick={() => navigate("/teacher/reports")}
+                >
+                  {t("reports-analytics")}
+                </Button>
+              </CardFooter>
+            </Card>
+          </div>
+        </>
+      );
+    } else if (activeTab === "credits") {
+      return <TeacherCredit teacherId={teacherId || ""} />;
+    }
+    return null;
+  };
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -157,92 +252,23 @@ const TeacherDashboard: React.FC = () => {
               </CardContent>
             </Card>
             
-            <Button 
-              className="mb-6 bg-green-500 hover:bg-green-600 text-white flex items-center gap-2"
-              onClick={() => setIsAddStudentOpen(true)}
-            >
-              <UserPlus className="h-4 w-4" />
-              {t("create-student")}
-            </Button>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              <Card className="hover:shadow-lg transition-all pokemon-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <School className="h-6 w-6 text-blue-500" />
-                    {t("manage-classes")}
-                  </CardTitle>
-                  <CardDescription>
-                    {isAdmin ? t("manage-schools-classes") : t("manage-classes-desc")}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-500">
-                    {isAdmin 
-                      ? t("admin-manage-classes-details") 
-                      : t("manage-classes-details")}
-                  </p>
-                </CardContent>
-                <CardFooter>
-                  <Button 
-                    className="w-full pokemon-button" 
-                    onClick={() => setCurrentView("classes")}
-                  >
-                    {t("manage-classes")}
-                  </Button>
-                </CardFooter>
-              </Card>
-
-              <Card className="hover:shadow-lg transition-all pokemon-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <MessageSquare className="h-6 w-6 text-green-500" />
-                    {t("messages")}
-                  </CardTitle>
-                  <CardDescription>
-                    {t("school-collab-desc")}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-500">
-                    {t("school-collab-details")}
-                  </p>
-                </CardContent>
-                <CardFooter>
-                  <Button 
-                    className="w-full pokemon-button"
-                    onClick={() => navigate("/teacher/messages")}
-                  >
-                    {t("messages")}
-                  </Button>
-                </CardFooter>
-              </Card>
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+              <TabsList className="mb-6">
+                <TabsTrigger value="dashboard">{t("dashboard") || "Dashboard"}</TabsTrigger>
+                <TabsTrigger value="credits" className="flex items-center gap-2">
+                  <CreditCard className="h-4 w-4" />
+                  {t("credits") || "Credits"}
+                </TabsTrigger>
+              </TabsList>
               
-              <Card className="hover:shadow-lg transition-all pokemon-card">
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <BarChart className="h-6 w-6 text-purple-500" />
-                    {t("reports-analytics")}
-                  </CardTitle>
-                  <CardDescription>
-                    {t("student-participation")}
-                  </CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <p className="text-gray-500">
-                    {t("student-engagement")}
-                  </p>
-                </CardContent>
-                <CardFooter>
-                  <Button 
-                    className="w-full pokemon-button"
-                    onClick={() => navigate("/teacher/reports")}
-                  >
-                    {t("reports-analytics")}
-                  </Button>
-                </CardFooter>
-              </Card>
-            </div>
+              <TabsContent value="dashboard" className="mt-0">
+                {renderMainContent()}
+              </TabsContent>
+              
+              <TabsContent value="credits" className="mt-0">
+                {renderMainContent()}
+              </TabsContent>
+            </Tabs>
           </>
         ) : currentView === "classes" ? (
           selectedSchoolId ? (
