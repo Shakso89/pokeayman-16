@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -55,7 +54,10 @@ const TeacherDashboard: React.FC = () => {
   const handleAddStudent = () => {
     // Validate student data
     if (!studentData.username || !studentData.password || !studentData.displayName) {
-      toast(t("fill-all-fields"));
+      toast({
+        title: "Error",
+        description: t("fill-all-fields")
+      });
       return;
     }
     
@@ -67,7 +69,10 @@ const TeacherDashboard: React.FC = () => {
     
     // Check if username is already taken
     if (students.some((s: any) => s.username === studentData.username)) {
-      toast("This username is already in use");
+      toast({
+        title: "Error",
+        description: "This username is already in use"
+      });
       return;
     }
     
@@ -108,7 +113,10 @@ const TeacherDashboard: React.FC = () => {
     }
     
     // Show success message
-    toast(t("student-added"));
+    toast({
+      title: "Success",
+      description: t("student-added")
+    });
     
     // Reset form and close dialog
     setStudentData({

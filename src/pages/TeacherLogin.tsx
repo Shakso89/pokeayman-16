@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthLayout } from "@/components/AuthLayout";
-import LoginForm from "@/components/LoginForm";
+import { LoginForm } from "@/components/LoginForm";
 import { ensureTeacherCredits } from "@/utils/creditService";
 
 const TeacherLogin = () => {
@@ -49,14 +49,11 @@ const TeacherLogin = () => {
   };
   
   return (
-    <AuthLayout>
+    <AuthLayout title="Teacher Login">
       <LoginForm
-        title="Teacher Login"
-        userType="teacher"
-        onSubmit={handleLogin}
+        type="teacher"
+        onLoginSuccess={handleLogin}
         error={error}
-        forgotPasswordUrl="#"
-        signUpUrl="/teacher-signup"
       />
     </AuthLayout>
   );
