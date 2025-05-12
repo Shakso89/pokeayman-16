@@ -2,12 +2,11 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Shield } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 
-interface AdminHeaderProps {
-  t: (key: string, fallback?: string) => string;
-}
-
-const AdminHeader: React.FC<AdminHeaderProps> = ({ t }) => {
+const AdminHeader: React.FC = () => {
+  const { t } = useTranslation();
+  
   return (
     <Card className="mb-6 border-none shadow-lg bg-gradient-to-br from-purple-600 to-blue-500 text-white">
       <CardContent className="p-6">

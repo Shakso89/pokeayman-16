@@ -4,13 +4,14 @@ import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 import { NavBar } from "@/components/NavBar";
 import { UploadPhotos } from "@/components/profile/UploadPhotos";
 import { useTranslation } from "@/hooks/useTranslation";
 import { ChevronLeft, MessageSquare, UserPlus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FriendRequest } from "@/types/pokemon";
+import { ProfileSidebar } from "@/components/student-profile/ProfileSidebar";
 
 interface StudentData {
   id: string;
@@ -32,6 +33,8 @@ const StudentDetailPage: React.FC = () => {
   const [friendRequestSent, setFriendRequestSent] = useState<boolean>(false);
   const [friendRequestPending, setFriendRequestPending] = useState<boolean>(false);
   const [alreadyFriends, setAlreadyFriends] = useState<boolean>(false);
+  const [isEditing, setIsEditing] = useState<boolean>(false);
+  const [editData, setEditData] = useState<Partial<StudentData>>({});
 
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const userType = localStorage.getItem("userType");
@@ -44,6 +47,9 @@ const StudentDetailPage: React.FC = () => {
   
   // Use the ID from either parameter
   const actualStudentId = studentId || id;
+  
+  // Check if current user is the owner of this profile
+  const isOwnProfile = userType === "student" && localStorage.getItem("studentId") === actualStudentId;
 
   useEffect(() => {
     if (actualStudentId) {
@@ -59,6 +65,7 @@ const StudentDetailPage: React.FC = () => {
       const foundStudent = students.find((s: StudentData) => s.id === id);
       if (foundStudent) {
         setStudent(foundStudent);
+        setEditData(foundStudent);
       } else {
         toast({
           description: t("student-not-found"),
@@ -132,8 +139,6 @@ const StudentDetailPage: React.FC = () => {
     }
   };
 
-  const isOwnProfile = userType === "student" && 
-    localStorage.getItem("studentId") === actualStudentId;
   const canEdit = userType === "teacher" || isOwnProfile;
 
   const handleSendMessage = () => {
@@ -193,6 +198,54 @@ const StudentDetailPage: React.FC = () => {
       description: t("friend-request-accepted"),
     });
   };
+  
+  const handleSave = () => {
+    if (!student) return;
+    
+    try {
+      const students = JSON.parse(localStorage.getItem("students") || "[]");
+      const index = students.findIndex((s: any) => s.id === actualStudentId);
+      
+      if (index !== -1) {
+        students[index] = {
+          ...students[index],
+          displayName: editData.displayName || student.displayName,
+          avatar: editData.avatar || student.avatar
+        };
+        
+        localStorage.setItem("students", JSON.stringify(students));
+        
+        // Update the student in local state
+        setStudent({
+          ...student,
+          displayName: editData.displayName || student.displayName,
+          avatar: editData.avatar || student.avatar
+        });
+        
+        // If this is the current logged-in student, update their name in localStorage
+        if (isOwnProfile) {
+          localStorage.setItem("studentName", editData.displayName || student.displayName);
+        }
+        
+        setIsEditing(false);
+        toast({
+          description: t("profile-updated-successfully"),
+        });
+      }
+    } catch (error) {
+      console.error("Error saving profile:", error);
+      toast({
+        title: t("error"),
+        description: t("failed-to-save-profile"),
+        variant: "destructive"
+      });
+    }
+  };
+  
+  const handleCancel = () => {
+    setEditData(student || {});
+    setIsEditing(false);
+  };
 
   if (!isLoggedIn) {
     return <Navigate to={userType === "teacher" ? "/teacher-login" : "/student-login"} />;
@@ -235,96 +288,29 @@ const StudentDetailPage: React.FC = () => {
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Student Profile Card */}
-          <Card className="col-span-1">
-            <CardHeader className="text-center">
-              <div className="flex justify-center mb-4">
-                <div className="relative">
-                  <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white shadow-md">
-                    {student.avatar ? (
-                      <img 
-                        src={student.avatar} 
-                        alt={student.displayName} 
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full bg-gray-200 flex items-center justify-center">
-                        <span className="text-2xl font-bold text-gray-500">
-                          {student.displayName.substring(0, 2).toUpperCase()}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-              <CardTitle>{student.displayName}</CardTitle>
-              <p className="text-sm text-gray-500">@{student.username}</p>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-col gap-3">
-                <div>
-                  <p className="text-sm font-medium text-gray-500">{t("class")}:</p>
-                  <p>{student.classId || t("no-class-assigned")}</p>
-                </div>
-                
-                {/* Social actions - only show if not own profile */}
-                {!isOwnProfile && (
-                  <div className="mt-4 space-y-2">
-                    <Button 
-                      className="w-full"
-                      onClick={handleSendMessage}
-                    >
-                      <MessageSquare className="h-4 w-4 mr-2" />
-                      {t("send-message")}
-                    </Button>
-                    
-                    {alreadyFriends ? (
-                      <Button 
-                        className="w-full"
-                        variant="outline"
-                        disabled
-                      >
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        {t("already-friends")}
-                      </Button>
-                    ) : friendRequestSent ? (
-                      <Button 
-                        className="w-full"
-                        variant="outline"
-                        disabled
-                      >
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        {t("friend-request-sent")}
-                      </Button>
-                    ) : friendRequestPending ? (
-                      <Button 
-                        className="w-full"
-                        variant="secondary"
-                        onClick={handleAcceptFriendRequest}
-                      >
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        {t("accept-friend-request")}
-                      </Button>
-                    ) : (
-                      <Button 
-                        className="w-full"
-                        variant="outline"
-                        onClick={handleFriendRequest}
-                      >
-                        <UserPlus className="h-4 w-4 mr-2" />
-                        {t("add-friend")}
-                      </Button>
-                    )}
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
+          {/* Student Profile Sidebar */}
+          <ProfileSidebar
+            student={{
+              id: student.id,
+              displayName: student.displayName,
+              username: student.username,
+              avatar: student.avatar
+            }}
+            isOwner={isOwnProfile}
+            isEditing={isEditing}
+            friendRequestSent={friendRequestSent}
+            onEditClick={() => setIsEditing(true)}
+            onSendMessageClick={handleSendMessage}
+            onAddFriendClick={friendRequestPending ? handleAcceptFriendRequest : handleFriendRequest}
+            onSaveClick={handleSave}
+            onCancelClick={handleCancel}
+          />
           
           <div className="col-span-1 lg:col-span-3">
             <Tabs defaultValue="photos">
               <TabsList className="mb-4">
                 <TabsTrigger value="photos">{t("photos")}</TabsTrigger>
+                {isOwnProfile && <TabsTrigger value="settings">{t("settings")}</TabsTrigger>}
               </TabsList>
               
               <TabsContent value="photos">
@@ -336,11 +322,42 @@ const StudentDetailPage: React.FC = () => {
                     <UploadPhotos 
                       avatarImage={student.avatar || null}
                       onSave={handleAvatarUpdate} 
-                      readOnly={!canEdit}
+                      readOnly={!canEdit || (isOwnProfile && !isEditing)}
                     />
                   </CardContent>
                 </Card>
               </TabsContent>
+              
+              {isOwnProfile && (
+                <TabsContent value="settings">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>{t("account-settings")}</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">{t("display-name")}:</label>
+                          {isEditing ? (
+                            <input 
+                              type="text" 
+                              value={editData.displayName || ""} 
+                              onChange={(e) => setEditData({...editData, displayName: e.target.value})}
+                              className="w-full px-3 py-2 border rounded-md mt-1"
+                            />
+                          ) : (
+                            <p>{student.displayName}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">{t("username")}:</label>
+                          <p>{student.username}</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </TabsContent>
+              )}
             </Tabs>
           </div>
         </div>

@@ -1,9 +1,9 @@
 
-import React, { useState } from "react";
+import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Edit, MessageSquare, UserPlus } from "lucide-react";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ProfileSidebarProps {
   student: {
@@ -33,6 +33,10 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
   onSaveClick,
   onCancelClick
 }) => {
+  const { t } = useTranslation();
+  
+  const userType = localStorage.getItem("userType");
+  
   return (
     <Card className="col-span-1">
       <CardHeader className="text-center">
@@ -61,13 +65,13 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
       <CardContent>
         <div className="flex flex-col gap-3">
           {!isOwner && (
-            <div className="mt-4">
+            <div className="mt-4 space-y-2">
               <Button 
-                className="w-full mb-2"
+                className="w-full"
                 onClick={onSendMessageClick}
               >
                 <MessageSquare className="mr-2 h-4 w-4" />
-                Send Message
+                {t("send-message")}
               </Button>
               <Button 
                 variant="outline" 
@@ -76,7 +80,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                 disabled={friendRequestSent}
               >
                 <UserPlus className="mr-2 h-4 w-4" />
-                {friendRequestSent ? "Friend Request Sent" : "Add Friend"}
+                {friendRequestSent ? t("friend-request-sent") : t("add-friend")}
               </Button>
             </div>
           )}
@@ -87,7 +91,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
               onClick={onEditClick}
             >
               <Edit className="mr-2 h-4 w-4" />
-              Edit Profile
+              {t("edit-profile")}
             </Button>
           )}
           
@@ -97,14 +101,14 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
                 className="flex-1"
                 onClick={onSaveClick}
               >
-                Save Changes
+                {t("save-changes")}
               </Button>
               <Button 
                 variant="outline" 
                 className="flex-1"
                 onClick={onCancelClick}
               >
-                Cancel
+                {t("cancel")}
               </Button>
             </div>
           )}
