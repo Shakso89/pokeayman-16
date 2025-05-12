@@ -11,6 +11,47 @@ export const getAllTeacherCredits = (): TeacherCredit[] => {
   return JSON.parse(localStorage.getItem("teacherCredits") || "[]");
 };
 
+export const initializeTeacherCredits = (teacherId: string, username: string, displayName: string = ""): boolean => {
+  try {
+    const teacherCredits = JSON.parse(localStorage.getItem("teacherCredits") || "[]");
+    
+    // Check if teacher already has credits initialized
+    const existingTeacher = teacherCredits.find((tc: TeacherCredit) => tc.teacherId === teacherId);
+    
+    if (existingTeacher) {
+      return true; // Already initialized
+    }
+    
+    // Create initial credits record with 50 credits
+    const initialCredits = 50;
+    
+    const newTeacherCredit: TeacherCredit = {
+      teacherId,
+      username,
+      displayName,
+      credits: initialCredits,
+      usedCredits: 0,
+      transactionHistory: [
+        {
+          id: `tr-${Date.now()}`,
+          teacherId,
+          amount: initialCredits,
+          reason: "Initial signup bonus",
+          timestamp: new Date().toISOString()
+        }
+      ]
+    };
+    
+    teacherCredits.push(newTeacherCredit);
+    localStorage.setItem("teacherCredits", JSON.stringify(teacherCredits));
+    
+    return true;
+  } catch (error) {
+    console.error("Error initializing teacher credits:", error);
+    return false;
+  }
+};
+
 export const addCreditsToTeacher = (teacherId: string, amount: number, reason: string): boolean => {
   try {
     const teacherCredits = JSON.parse(localStorage.getItem("teacherCredits") || "[]");

@@ -9,6 +9,7 @@ import { addCreditsToTeacher, getAllTeacherCredits } from "@/utils/creditService
 import { TeacherCredit } from "@/types/teacher";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Badge } from "@/components/ui/badge";
+import TransactionHistory from "./TransactionHistory";
 
 const CreditManagement: React.FC = () => {
   const { t } = useTranslation();
@@ -108,110 +109,118 @@ const CreditManagement: React.FC = () => {
   
   return (
     <div className="space-y-4">
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("credit-management") || "Credit Management"}</CardTitle>
-          <CardDescription>
-            {t("credit-management-description") || "Manage teacher credits for the platform"}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div>
-              <Label htmlFor="search">{t("search-teachers") || "Search Teachers"}</Label>
-              <Input
-                id="search"
-                placeholder="Search by username or ID..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
-            <div className="grid gap-2 max-h-64 overflow-y-auto">
-              {filteredTeachers.length > 0 ? (
-                filteredTeachers.map((teacher) => (
-                  <div
-                    key={teacher.teacherId}
-                    className={`p-3 rounded-lg cursor-pointer flex justify-between items-center ${
-                      selectedTeacher?.teacherId === teacher.teacherId
-                        ? "bg-blue-100 dark:bg-blue-900"
-                        : "bg-gray-100 dark:bg-gray-800"
-                    }`}
-                    onClick={() => handleSelectTeacher(teacher)}
-                  >
-                    <div>
-                      <p className="font-medium">{teacher.username}</p>
-                      <p className="text-xs text-gray-500">{teacher.teacherId}</p>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>{t("credit-management") || "Credit Management"}</CardTitle>
+            <CardDescription>
+              {t("credit-management-description") || "Manage teacher credits for the platform"}
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="search">{t("search-teachers") || "Search Teachers"}</Label>
+                <Input
+                  id="search"
+                  placeholder="Search by username or ID..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                />
+              </div>
+              
+              <div className="grid gap-2 max-h-64 overflow-y-auto">
+                {filteredTeachers.length > 0 ? (
+                  filteredTeachers.map((teacher) => (
+                    <div
+                      key={teacher.teacherId}
+                      className={`p-3 rounded-lg cursor-pointer flex justify-between items-center ${
+                        selectedTeacher?.teacherId === teacher.teacherId
+                          ? "bg-blue-100 dark:bg-blue-900"
+                          : "bg-gray-100 dark:bg-gray-800"
+                      }`}
+                      onClick={() => handleSelectTeacher(teacher)}
+                    >
+                      <div>
+                        <p className="font-medium">{teacher.username}</p>
+                        <p className="text-xs text-gray-500">{teacher.teacherId}</p>
+                      </div>
+                      <Badge className="bg-green-600">
+                        {teacher.credits} Credits
+                      </Badge>
                     </div>
-                    <Badge className="bg-green-600">
-                      {teacher.credits} Credits
-                    </Badge>
-                  </div>
-                ))
-              ) : (
-                <p className="text-center text-gray-500 p-4">
-                  {t("no-teachers-found") || "No teachers found"}
-                </p>
+                  ))
+                ) : (
+                  <p className="text-center text-gray-500 p-4">
+                    {t("no-teachers-found") || "No teachers found"}
+                  </p>
+                )}
+              </div>
+              
+              {selectedTeacher && (
+                <Card className="mt-4">
+                  <CardHeader className="pb-2">
+                    <CardTitle>{selectedTeacher.username}</CardTitle>
+                    <p className="text-sm text-gray-500">
+                      {t("available-credits") || "Available Credits"}: {selectedTeacher.credits}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {t("used-credits") || "Used Credits"}: {selectedTeacher.usedCredits}
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <div>
+                        <Label htmlFor="amount">{t("credit-amount") || "Credit Amount"}</Label>
+                        <Input
+                          id="amount"
+                          type="number"
+                          value={creditAmount}
+                          min="1"
+                          onChange={(e) => setCreditAmount(Number(e.target.value))}
+                        />
+                      </div>
+                      <div>
+                        <Label htmlFor="reason">{t("reason") || "Reason"}</Label>
+                        <Input
+                          id="reason"
+                          value={reason}
+                          placeholder="e.g., Monthly subscription"
+                          onChange={(e) => setReason(e.target.value)}
+                        />
+                      </div>
+                      <Button onClick={handleAddCredits} className="w-full">
+                        {t("add-credits") || "Add Credits"}
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
               )}
             </div>
-            
-            {selectedTeacher && (
-              <Card className="mt-4">
-                <CardHeader className="pb-2">
-                  <CardTitle>{selectedTeacher.username}</CardTitle>
-                  <p className="text-sm text-gray-500">
-                    {t("available-credits") || "Available Credits"}: {selectedTeacher.credits}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {t("used-credits") || "Used Credits"}: {selectedTeacher.usedCredits}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-4">
-                    <div>
-                      <Label htmlFor="amount">{t("credit-amount") || "Credit Amount"}</Label>
-                      <Input
-                        id="amount"
-                        type="number"
-                        value={creditAmount}
-                        min="1"
-                        onChange={(e) => setCreditAmount(Number(e.target.value))}
-                      />
-                    </div>
-                    <div>
-                      <Label htmlFor="reason">{t("reason") || "Reason"}</Label>
-                      <Input
-                        id="reason"
-                        value={reason}
-                        placeholder="e.g., Monthly subscription"
-                        onChange={(e) => setReason(e.target.value)}
-                      />
-                    </div>
-                    <Button onClick={handleAddCredits} className="w-full">
-                      {t("add-credits") || "Add Credits"}
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card>
-        <CardHeader>
-          <CardTitle>{t("credit-pricing") || "Credit Pricing"}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="space-y-1">
-            <p>• Create a student account: 5 credits</p>
-            <p>• Assign homework: 5 credits</p>
-            <p>• Approve homework: Credits equal to coin reward</p>
-            <p>• Award coins manually: 1 credit per coin</p>
-            <p>• Delete a Pokémon: 2 credits</p>
-          </div>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+        
+        <div className="space-y-4">
+          <Card>
+            <CardHeader>
+              <CardTitle>{t("credit-pricing") || "Credit Pricing"}</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-1">
+                <p>• Create a student account: 5 credits</p>
+                <p>• Assign homework: 5 credits</p>
+                <p>• Approve homework: Credits equal to coin reward</p>
+                <p>• Award coins manually: 1 credit per coin</p>
+                <p>• Delete a Pokémon: 2 credits</p>
+              </div>
+            </CardContent>
+          </Card>
+          
+          {selectedTeacher && (
+            <TransactionHistory teacher={selectedTeacher} />
+          )}
+        </div>
+      </div>
     </div>
   );
 };
