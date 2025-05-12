@@ -1,6 +1,6 @@
 
 import React from "react";
-import { Shield } from "lucide-react";
+import { Shield, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
@@ -13,6 +13,13 @@ interface DashboardHeaderProps {
 const DashboardHeader: React.FC<DashboardHeaderProps> = ({ isAdmin }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const teacherId = localStorage.getItem("teacherId");
+
+  const handleViewProfile = () => {
+    if (teacherId) {
+      navigate(`/teacher/profile/${teacherId}`);
+    }
+  };
 
   return (
     <Card className="mb-6 border-none shadow-lg pokemon-gradient-bg text-white">
@@ -22,15 +29,24 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ isAdmin }) => {
             <h2 className="text-3xl font-bold mb-2">{t("welcome-teacher")}</h2>
             <p>{t("manage-classes-description")}</p>
           </div>
-          {isAdmin && (
+          <div className="flex gap-2">
             <Button 
-              onClick={() => navigate("/admin-dashboard")}
-              className="bg-purple-600 hover:bg-purple-700 flex items-center gap-2"
+              onClick={handleViewProfile}
+              className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
             >
-              <Shield className="h-4 w-4" />
-              {t("admin-dashboard")}
+              <User className="h-4 w-4" />
+              {t("view-profile")}
             </Button>
-          )}
+            {isAdmin && (
+              <Button 
+                onClick={() => navigate("/admin-dashboard")}
+                className="bg-purple-600 hover:bg-purple-700 flex items-center gap-2"
+              >
+                <Shield className="h-4 w-4" />
+                {t("admin-dashboard")}
+              </Button>
+            )}
+          </div>
         </div>
       </CardContent>
     </Card>
