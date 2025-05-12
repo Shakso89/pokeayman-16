@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,8 +8,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { Shield, Home } from "lucide-react";
-import CodeGenerator from "@/components/CodeGenerator";
 import { useTranslation } from "@/hooks/useTranslation";
+import CreditManagement from "@/components/admin/CreditManagement";
 
 // Types for our user data
 interface TeacherData {
@@ -183,7 +184,7 @@ const AdminDashboard: React.FC = () => {
           <TabsList className="mb-6 w-full md:w-auto">
             <TabsTrigger value="teachers">{t("teachers") || "Teachers"}</TabsTrigger>
             <TabsTrigger value="students">{t("students") || "Students"}</TabsTrigger>
-            <TabsTrigger value="codes">{t("activation-codes") || "Activation Codes"}</TabsTrigger>
+            <TabsTrigger value="credits">{t("credits") || "Credits"}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="teachers" className="mt-0">
@@ -289,18 +290,8 @@ const AdminDashboard: React.FC = () => {
             </div>
           </TabsContent>
           
-          <TabsContent value="codes" className="mt-0">
-            <Card>
-              <CardHeader>
-                <CardTitle>{t("activation-code-management") || "Activation Code Management"}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="mb-4">{t("generate-codes-description") || "Generate and manage activation codes for teachers and schools."}</p>
-                <div className="grid place-items-center p-6">
-                  <CodeGenerator />
-                </div>
-              </CardContent>
-            </Card>
+          <TabsContent value="credits" className="mt-0">
+            <CreditManagement />
           </TabsContent>
         </Tabs>
       </div>

@@ -78,6 +78,26 @@ const TeacherSignUp: React.FC = () => {
         });
         localStorage.setItem("teachers", JSON.stringify(teachers));
         
+        // Initialize teacher credits
+        const teacherCredits = JSON.parse(localStorage.getItem("teacherCredits") || "[]");
+        teacherCredits.push({
+          teacherId,
+          username,
+          displayName: username,
+          credits: 50, // Start with 50 free credits
+          usedCredits: 0,
+          transactionHistory: [
+            {
+              id: `tr-${Date.now()}`,
+              teacherId,
+              amount: 50,
+              reason: "Initial free credits",
+              timestamp: new Date().toISOString()
+            }
+          ]
+        });
+        localStorage.setItem("teacherCredits", JSON.stringify(teacherCredits));
+        
         // Mark activation code as used if provided
         if (activationCode) {
           const usedCodes = JSON.parse(localStorage.getItem("usedActivationCodes") || "[]");

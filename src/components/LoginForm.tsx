@@ -19,7 +19,7 @@ interface LoginFormProps {
 }
 
 export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, darkMode = false }) => {
-  const [username, setUsername] = useState("");
+  const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const { t } = useTranslation();
@@ -33,40 +33,46 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
     try {
       if (type === "teacher") {
         // Special case for admin login
-        if (username === "Admin" && password === "AdminAyman") {
+        if ((usernameOrEmail === "Admin" || usernameOrEmail === "admin@pokeayman.com") && password === "AdminAyman") {
           toast({
             title: "Success!",
             description: "Welcome back, Admin!",
           });
           localStorage.setItem("userType", "teacher");
           localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("teacherUsername", username);
+          localStorage.setItem("teacherUsername", "Admin");
           localStorage.setItem("isAdmin", "true");
           localStorage.setItem("teacherId", "admin-" + Date.now().toString());
           setActivationStatus(true);
           
           if (onLoginSuccess) {
-            onLoginSuccess(username, password);
+            onLoginSuccess("Admin", password);
           }
           
           navigate("/admin-dashboard");
           return;
         }
 
+        // Check if input is email (contains @)
+        const isEmail = usernameOrEmail.includes('@');
+        
         // First try to sign in with Supabase Auth
         const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          email: username, // Using username as email for simplicity
+          // If it's an email, use it as email, otherwise use it as username in the email field but will be handled in fallback
+          email: isEmail ? usernameOrEmail : `${usernameOrEmail}@placeholder.com`,
           password,
         });
 
         if (authError) {
+          console.log("Auth error:", authError.message);
+          
           // Fallback to legacy authentication
           const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
           const teacher = teachers.find((t: any) => 
-            (t.username === username || t.email === username) && t.password === password
+            t.username === usernameOrEmail || t.email === usernameOrEmail
           );
           
-          if (teacher) {
+          if (teacher && teacher.password === password) {
             toast({
               title: "Success!",
               description: "Welcome back, Teacher!",
@@ -85,12 +91,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
             localStorage.setItem("teacherId", teacher.id);
             
             if (onLoginSuccess) {
-              onLoginSuccess(username, password);
+              onLoginSuccess(usernameOrEmail, password);
             }
             
             navigate("/teacher-dashboard");
           } else {
-            throw new Error("Invalid username or password.");
+            throw new Error("Invalid username/email or password.");
           }
         } else if (authData.user) {
           // Successfully authenticated with Supabase
@@ -103,12 +109,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
           
           localStorage.setItem("userType", "teacher");
           localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("teacherUsername", userMetadata.username || username);
+          localStorage.setItem("teacherUsername", userMetadata.username || usernameOrEmail);
           localStorage.setItem("isAdmin", "false");
           localStorage.setItem("teacherId", authData.user.id);
           
           if (onLoginSuccess) {
-            onLoginSuccess(username, password);
+            onLoginSuccess(usernameOrEmail, password);
           }
           
           navigate("/teacher-dashboard");
@@ -116,7 +122,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
       } else {
         // Student login - similar approach but using student records
         const students = JSON.parse(localStorage.getItem("students") || "[]");
-        const student = students.find((s: any) => s.username === username && s.password === password);
+        const student = students.find((s: any) => s.username === usernameOrEmail && s.password === password);
         
         if (student) {
           toast({
@@ -125,11 +131,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
           });
           localStorage.setItem("userType", "student");
           localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("studentName", username);
+          localStorage.setItem("studentName", usernameOrEmail);
           localStorage.setItem("studentId", student.id);
           
           if (onLoginSuccess) {
-            onLoginSuccess(username, password);
+            onLoginSuccess(usernameOrEmail, password);
           }
           
           navigate("/student-dashboard");
@@ -140,7 +146,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
     } catch (error: any) {
       toast({
         title: "Authentication failed",
-        description: error.message || "Invalid username or password.",
+        description: error.message || "Invalid username/email or password.",
         variant: "destructive",
       });
     } finally {
@@ -156,13 +162,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
     >
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="space-y-2">
-          <Label htmlFor="username" className={darkMode ? "text-white" : ""}>{t("username") || "Username/Email"}</Label>
+          <Label htmlFor="usernameOrEmail" className={darkMode ? "text-white" : ""}>
+            {type === "teacher" ? "Username or Email" : "Username"}
+          </Label>
           <div className="relative">
             <Input
-              id="username"
+              id="usernameOrEmail"
               placeholder={type === "teacher" ? "Enter your username or email" : "Enter your username"}
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
+              value={usernameOrEmail}
+              onChange={(e) => setUsernameOrEmail(e.target.value)}
               className={cn("pl-10", darkMode && "bg-black/30 border-gray-700 text-white")}
               required
             />
