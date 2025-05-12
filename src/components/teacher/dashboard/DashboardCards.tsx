@@ -9,9 +9,10 @@ import { useTranslation } from "@/hooks/useTranslation";
 interface DashboardCardsProps {
   onManageClasses: () => void;
   isAdmin?: boolean;
+  teacherId?: string;
 }
 
-const DashboardCards: React.FC<DashboardCardsProps> = ({ onManageClasses, isAdmin = false }) => {
+const DashboardCards: React.FC<DashboardCardsProps> = ({ onManageClasses, isAdmin = false, teacherId }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
 

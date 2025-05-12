@@ -7,12 +7,14 @@ import { useTranslation } from "@/hooks/useTranslation";
 interface DashboardActionsProps {
   onAddStudent: () => void;
   onViewCredits: () => void;
+  onManageClasses?: () => void;
   creditsAmount?: number;
 }
 
 const DashboardActions: React.FC<DashboardActionsProps> = ({ 
   onAddStudent, 
-  onViewCredits, 
+  onViewCredits,
+  onManageClasses,
   creditsAmount 
 }) => {
   const { t } = useTranslation();

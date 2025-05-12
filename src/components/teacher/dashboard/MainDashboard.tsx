@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Home, Settings, UserPlus } from "lucide-react";
@@ -27,6 +28,11 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
 }) => {
   const { t } = useTranslation();
   
+  const handleViewCredits = () => {
+    // Implement view credits functionality
+    console.log("View credits clicked");
+  };
+  
   return (
     <div className="grid grid-cols-1 gap-6">
       <div>
@@ -49,7 +55,8 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
           <TabsContent value="dashboard">
             <DashboardCards 
               teacherId={teacherId}
-              creditInfo={creditInfo}
+              onManageClasses={onManageClasses}
+              isAdmin={isAdmin}
             />
           </TabsContent>
           
@@ -57,6 +64,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
             <DashboardActions 
               onAddStudent={onAddStudent}
               onManageClasses={onManageClasses}
+              onViewCredits={handleViewCredits}
               isAdmin={isAdmin}
             />
           </TabsContent>

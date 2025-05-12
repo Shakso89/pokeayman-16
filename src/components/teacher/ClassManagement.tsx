@@ -16,6 +16,7 @@ import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
 import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
 import { awardCoinsToStudent } from "@/utils/pokemon";
 import ClassFeed from "./ClassFeed";
+import ClassComments from "./ClassComments";
 
 interface ClassManagementProps {
   onBack: () => void;
