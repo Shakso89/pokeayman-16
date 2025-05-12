@@ -22,8 +22,8 @@ export const initializeTeacherCredits = (teacherId: string, username: string, di
       return true; // Already initialized
     }
     
-    // Create initial credits record with 500 credits (updated from 50)
-    const initialCredits = 500;
+    // Create initial credits record with 100 credits (updated from 500)
+    const initialCredits = 100;
     
     const newTeacherCredit: TeacherCredit = {
       teacherId,

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -14,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
-import { initializeTeacherCredits } from "@/utils/creditService";
+import { initializeTeacherCredits, getTeacherCredits } from "@/utils/creditService";
 
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -28,6 +29,7 @@ const TeacherDashboard: React.FC = () => {
   });
   const [teacherData, setTeacherData] = useState<any>(null);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
+  const [creditInfo, setCreditInfo] = useState<any>(null);
   const { t } = useTranslation();
   
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
@@ -47,6 +49,10 @@ const TeacherDashboard: React.FC = () => {
         // Initialize teacher credits if not already done
         const displayName = teacher.displayName || username;
         initializeTeacherCredits(teacherId, username, displayName);
+        
+        // Load credit information
+        const credits = getTeacherCredits(teacherId);
+        setCreditInfo(credits);
       }
     }
   }, [teacherId, username]);
@@ -135,13 +141,23 @@ const TeacherDashboard: React.FC = () => {
     if (activeTab === "dashboard") {
       return (
         <>
-          <Button 
-            className="mb-6 bg-green-500 hover:bg-green-600 text-white flex items-center gap-2"
-            onClick={() => setIsAddStudentOpen(true)}
-          >
-            <UserPlus className="h-4 w-4" />
-            {t("create-student")}
-          </Button>
+          <div className="flex justify-between items-center mb-6">
+            <Button 
+              className="bg-green-500 hover:bg-green-600 text-white flex items-center gap-2"
+              onClick={() => setIsAddStudentOpen(true)}
+            >
+              <UserPlus className="h-4 w-4" />
+              {t("create-student")}
+            </Button>
+            
+            <Button 
+              className="bg-purple-500 hover:bg-purple-600 text-white flex items-center gap-2"
+              onClick={() => setActiveTab("credits")}
+            >
+              <CreditCard className="h-4 w-4" />
+              {creditInfo ? `${creditInfo.credits} ${t("credits")}` : t("view-credits")}
+            </Button>
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card className="hover:shadow-lg transition-all pokemon-card">

@@ -78,13 +78,13 @@ const TeacherSignUp: React.FC = () => {
           teacherId,
           username,
           displayName: username,
-          credits: 500, // Start with 500 free credits (updated from 50)
+          credits: 100, // Start with 100 free credits (updated from 500)
           usedCredits: 0,
           transactionHistory: [
             {
               id: `tr-${Date.now()}`,
               teacherId,
-              amount: 500,
+              amount: 100,
               reason: "Initial free credits",
               timestamp: new Date().toISOString()
             }
@@ -94,7 +94,7 @@ const TeacherSignUp: React.FC = () => {
         
         toast({
           title: "Account created",
-          description: "Welcome to TR Ayman! Your account is fully activated with 500 free credits.",
+          description: "Welcome to TR Ayman! Your account is fully activated with 100 free credits.",
         });
         
         // Sign out the user so they can log in properly
