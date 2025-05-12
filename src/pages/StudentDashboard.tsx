@@ -2,7 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getStudentPokemonCollection, getSchoolPokemonPool, initializeSchoolPokemonPool, awardCoinsToStudent } from "@/utils/pokemon";
+import { 
+  getStudentPokemonCollection, 
+  getSchoolPokemonPool, 
+  initializeSchoolPokemonPool, 
+  updateAllSchoolPoolsTo500,
+  awardCoinsToStudent 
+} from "@/utils/pokemon";
 import { Pokemon } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/hooks/use-toast";
@@ -40,6 +46,13 @@ const StudentDashboard: React.FC = () => {
       classId,
       schoolId
     });
+    
+    // Update all school pools to have 500 Pokémon
+    const updated = updateAllSchoolPoolsTo500();
+    if (updated) {
+      console.log("Updated school pools to have 500 Pokémon");
+    }
+    
     if (studentId) {
       loadStudentData();
       loadActiveBattles();
@@ -198,7 +211,11 @@ const StudentDashboard: React.FC = () => {
                 
                 <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4 max-h-[500px] overflow-y-auto p-4 bg-gray-50 rounded-lg">
                   {schoolPokemons.map(pokemon => (
-                    <div key={pokemon.id} className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow">
+                    <div 
+                      key={pokemon.id} 
+                      className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
+                      onClick={() => setShowSchoolPool(true)}
+                    >
                       <img src={pokemon.image} alt={pokemon.name} className="w-full h-24 object-contain mx-auto" />
                       <div className="mt-2 text-center">
                         <p className="font-medium text-sm">{pokemon.name}</p>

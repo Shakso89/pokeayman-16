@@ -1,4 +1,3 @@
-
 import { Pokemon, PokemonPool } from "@/types/pokemon";
 import { getPokemonPools, savePokemonPools } from "./storage";
 import { samplePokemons } from "./sampleData";
@@ -28,7 +27,33 @@ const pokemonNames = [
   "Shuckle", "Heracross", "Sneasel", "Teddiursa", "Ursaring", "Slugma", "Magcargo", "Swinub", "Piloswine", "Corsola", "Remoraid",
   "Octillery", "Delibird", "Mantine", "Skarmory", "Houndour", "Houndoom", "Kingdra", "Phanpy", "Donphan", "Porygon2", "Stantler",
   "Smeargle", "Tyrogue", "Hitmontop", "Smoochum", "Elekid", "Magby", "Miltank", "Blissey", "Raikou", "Entei", "Suicune", "Larvitar",
-  "Pupitar", "Tyranitar", "Lugia", "Ho-Oh", "Celebi"
+  "Pupitar", "Tyranitar", "Lugia", "Ho-Oh", "Celebi",
+  // Adding more Pokémon names for the expanded pool
+  "Treecko", "Grovyle", "Sceptile", "Torchic", "Combusken", "Blaziken", "Mudkip", "Marshtomp", "Swampert", 
+  "Poochyena", "Mightyena", "Zigzagoon", "Linoone", "Wurmple", "Silcoon", "Beautifly", "Cascoon", "Dustox", 
+  "Lotad", "Lombre", "Ludicolo", "Seedot", "Nuzleaf", "Shiftry", "Taillow", "Swellow", "Wingull", "Pelipper", 
+  "Ralts", "Kirlia", "Gardevoir", "Surskit", "Masquerain", "Shroomish", "Breloom", "Slakoth", "Vigoroth", 
+  "Slaking", "Nincada", "Ninjask", "Shedinja", "Whismur", "Loudred", "Exploud", "Makuhita", "Hariyama", 
+  "Azurill", "Nosepass", "Skitty", "Delcatty", "Sableye", "Mawile", "Aron", "Lairon", "Aggron", "Meditite", 
+  "Medicham", "Electrike", "Manectric", "Plusle", "Minun", "Volbeat", "Illumise", "Roselia", "Gulpin", 
+  "Swalot", "Carvanha", "Sharpedo", "Wailmer", "Wailord", "Numel", "Camerupt", "Torkoal", "Spoink", "Grumpig", 
+  "Spinda", "Trapinch", "Vibrava", "Flygon", "Cacnea", "Cacturne", "Swablu", "Altaria", "Zangoose", "Seviper", 
+  "Lunatone", "Solrock", "Barboach", "Whiscash", "Corphish", "Crawdaunt", "Baltoy", "Claydol", "Lileep", "Cradily", 
+  "Anorith", "Armaldo", "Feebas", "Milotic", "Castform", "Kecleon", "Shuppet", "Banette", "Duskull", "Dusclops", 
+  "Tropius", "Chimecho", "Absol", "Wynaut", "Snorunt", "Glalie", "Spheal", "Sealeo", "Walrein", "Clamperl", 
+  "Huntail", "Gorebyss", "Relicanth", "Luvdisc", "Bagon", "Shelgon", "Salamence", "Beldum", "Metang", "Metagross", 
+  "Regirock", "Regice", "Registeel", "Latias", "Latios", "Kyogre", "Groudon", "Rayquaza", "Jirachi", "Deoxys",
+  "Turtwig", "Grotle", "Torterra", "Chimchar", "Monferno", "Infernape", "Piplup", "Prinplup", "Empoleon", 
+  "Starly", "Staravia", "Staraptor", "Bidoof", "Bibarel", "Kricketot", "Kricketune", "Shinx", "Luxio", "Luxray", 
+  "Budew", "Roserade", "Cranidos", "Rampardos", "Shieldon", "Bastiodon", "Burmy", "Wormadam", "Mothim", "Combee", 
+  "Vespiquen", "Pachirisu", "Buizel", "Floatzel", "Cherubi", "Cherrim", "Shellos", "Gastrodon", "Ambipom", "Drifloon", 
+  "Drifblim", "Buneary", "Lopunny", "Mismagius", "Honchkrow", "Glameow", "Purugly", "Chingling", "Stunky", "Skuntank", 
+  "Bronzor", "Bronzong", "Bonsly", "Mime Jr.", "Happiny", "Chatot", "Spiritomb", "Gible", "Gabite", "Garchomp", 
+  "Munchlax", "Riolu", "Lucario", "Hippopotas", "Hippowdon", "Skorupi", "Drapion", "Croagunk", "Toxicroak", "Carnivine", 
+  "Finneon", "Lumineon", "Mantyke", "Snover", "Abomasnow", "Weavile", "Magnezone", "Lickilicky", "Rhyperior", "Tangrowth", 
+  "Electivire", "Magmortar", "Togekiss", "Yanmega", "Leafeon", "Glaceon", "Gliscor", "Mamoswine", "Porygon-Z", "Gallade", 
+  "Probopass", "Dusknoir", "Froslass", "Rotom", "Uxie", "Mesprit", "Azelf", "Dialga", "Palkia", "Heatran", 
+  "Regigigas", "Giratina", "Cresselia", "Phione", "Manaphy", "Darkrai", "Shaymin", "Arceus"
 ];
 
 // Specific mapping for Pokémon shown in the image
@@ -54,11 +79,16 @@ export const initializeSchoolPokemonPool = (schoolId: string) => {
   const existingPools = getPokemonPools();
   const existingPool = existingPools.find(p => p.schoolId === schoolId);
   
-  if (existingPool && existingPool.availablePokemons.length > 0) {
+  // If the pool exists but has fewer than 500 Pokémon, update it to have 500
+  if (existingPool) {
+    if (existingPool.availablePokemons.length < 500) {
+      console.log(`Updating school ${schoolId} pool from ${existingPool.availablePokemons.length} to 500 Pokémon`);
+      return updateSchoolPokemonPoolTo500(schoolId, existingPool);
+    }
     return existingPool;
   }
 
-  // Create a pool of exactly 200 unique Pokemons
+  // Create a pool of exactly 500 unique Pokemons
   const pokemons: Pokemon[] = [];
 
   // First add the sample pokemons (up to 60)
@@ -70,8 +100,8 @@ export const initializeSchoolPokemonPool = (schoolId: string) => {
     pokemons.push(pokemon);
   }
 
-  // Then generate the remaining pokemons to reach exactly 200
-  const remainingCount = 200 - pokemons.length;
+  // Then generate the remaining pokemons to reach exactly 500
+  const remainingCount = 500 - pokemons.length;
   for (let i = 1; i <= remainingCount; i++) {
     const index = pokemons.length + i;
     const pokedexNumber = (index % 898) + 1;
@@ -117,6 +147,73 @@ export const initializeSchoolPokemonPool = (schoolId: string) => {
   savePokemonPools(existingPools);
   
   return newPool;
+};
+
+// Function to update existing pools to 500 Pokémon
+export const updateSchoolPokemonPoolTo500 = (schoolId: string, existingPool: PokemonPool) => {
+  const currentCount = existingPool.availablePokemons.length;
+  const additionalNeeded = 500 - currentCount;
+  
+  if (additionalNeeded <= 0) {
+    return existingPool; // Pool already has 500 or more
+  }
+  
+  // Keep existing Pokémon
+  const updatedPokemons = [...existingPool.availablePokemons];
+  
+  // Add additional Pokémon
+  for (let i = 1; i <= additionalNeeded; i++) {
+    const index = currentCount + i;
+    const pokedexNumber = (index % 898) + 1;
+    const rarity = getRarityForId(index);
+    
+    // Use Pokémon names from our list
+    const nameIndex = pokedexNumber % pokemonNames.length;
+    const pokemonName = pokemonNames[nameIndex];
+    
+    updatedPokemons.push({
+      id: `pokemon-${schoolId}-${index}`,
+      name: pokemonName,
+      type: getRandomType(),
+      image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/${pokedexNumber}.png`,
+      rarity
+    });
+  }
+  
+  // Create updated pool
+  const updatedPool = {
+    schoolId,
+    availablePokemons: updatedPokemons
+  };
+  
+  // Save to localStorage
+  const existingPools = getPokemonPools();
+  const existingPoolIndex = existingPools.findIndex(p => p.schoolId === schoolId);
+  
+  if (existingPoolIndex >= 0) {
+    existingPools[existingPoolIndex] = updatedPool;
+  } else {
+    existingPools.push(updatedPool);
+  }
+  
+  savePokemonPools(existingPools);
+  
+  return updatedPool;
+};
+
+// Update all existing school pools to have 500 Pokémon
+export const updateAllSchoolPoolsTo500 = () => {
+  const existingPools = getPokemonPools();
+  let updatedAny = false;
+  
+  for (const pool of existingPools) {
+    if (pool.availablePokemons.length < 500) {
+      updateSchoolPokemonPoolTo500(pool.schoolId, pool);
+      updatedAny = true;
+    }
+  }
+  
+  return updatedAny;
 };
 
 // Get school Pokemon pool
@@ -180,6 +277,11 @@ export const getDailyWheelPokemons = (schoolId: string): Pokemon[] => {
   }
   
   return wheelPokemons;
+};
+
+// Function to update all existing school pools
+export const forceUpdateAllSchoolPools = () => {
+  updateAllSchoolPoolsTo500();
 };
 
 // For backward compatibility

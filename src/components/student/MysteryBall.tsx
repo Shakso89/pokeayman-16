@@ -192,27 +192,25 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
   
   return (
     <div className="flex flex-col items-center">
-      {/* Mystery Ball Image - clickable on mobile */}
+      {/* Mystery Ball Image - clickable */}
       <div className="relative">
         <img 
-          src="/lovable-uploads/d1db8e93-1b2c-4079-8835-6bc51f236aed.png" 
+          src="/lovable-uploads/3a4dc6ae-afe6-4fab-bde5-073d7f16e48a.png" 
           alt="Mystery Pokémon Ball" 
-          className={`w-40 h-40 ${isMobile ? 'cursor-pointer' : ''} ${isAnimating ? 'animate-bounce' : 'hover:scale-110 transition-transform'}`} 
-          onClick={isMobile ? handleOpenMysteryBall : undefined}
+          className={`w-40 h-40 cursor-pointer ${isAnimating ? 'animate-bounce' : 'hover:scale-110 transition-transform'}`} 
+          onClick={handleOpenMysteryBall}
           style={{ filter: isAnimating ? 'brightness(1.2)' : 'none' }}
         />
       </div>
 
-      {/* Button below the ball (only show if not on mobile) */}
-      {!isMobile && (
-        <Button 
-          onClick={handleOpenMysteryBall} 
-          disabled={isAnimating || (usedFreeChance && coins < 2)} 
-          className="mt-4 bg-blue-500 hover:bg-blue-600"
-        >
-          {isAnimating ? "Opening..." : usedFreeChance ? `Open (2 coins)` : "Open (Free)"}
-        </Button>
-      )}
+      {/* Button below the ball (only show if not on mobile or if user wants a clearer button) */}
+      <Button 
+        onClick={handleOpenMysteryBall} 
+        disabled={isAnimating || (usedFreeChance && coins < 2)} 
+        className="mt-4 bg-blue-500 hover:bg-blue-600"
+      >
+        {isAnimating ? "Opening..." : usedFreeChance ? `Open (2 coins)` : "Open (Free)"}
+      </Button>
       
       {/* Result Modal */}
       <MysteryBallResult 
