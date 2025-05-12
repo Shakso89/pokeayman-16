@@ -10,8 +10,10 @@ const TeacherLogin: React.FC = () => {
   const navigate = useNavigate();
   
   const handleLoginSuccess = (username: string, password: string) => {
-    // Check if this is the admin login
-    const isAdmin = username === "Admin" && password === "AdminAyman";
+    // Check if this is an admin login - now includes "Ayman" 
+    const isAdmin = 
+      (username === "Admin" && password === "AdminAyman") || 
+      (username === "Ayman" && password === "AymanPassword");
 
     // Store admin status if it's the admin
     if (isAdmin) {

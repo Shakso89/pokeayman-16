@@ -46,10 +46,10 @@ const AdminDashboard: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  // Check if current user is Admin - UPDATED to check for username "Admin"
+  // Check if current user is Admin - UPDATED to check for username "Admin" or "Ayman"
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const username = localStorage.getItem("teacherUsername") || "";
-  const isAdmin = username === "Admin";
+  const isAdmin = username === "Admin" || username === "Ayman";
 
   useEffect(() => {
     // Load teachers data
@@ -98,7 +98,7 @@ const AdminDashboard: React.FC = () => {
     setStudents(processedStudents);
   }, []);
 
-  // Redirect if not admin with username "Admin"
+  // Redirect if not admin with username "Admin" or "Ayman"
   if (!isLoggedIn || !isAdmin) {
     return <Navigate to="/teacher-login" />;
   }
@@ -108,7 +108,7 @@ const AdminDashboard: React.FC = () => {
       <NavBar userType="teacher" userName="Admin" />
       
       <div className="container mx-auto py-8 px-4">
-        <AdminHeader t={t} />
+        <AdminHeader />
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="mb-6 w-full md:w-auto">

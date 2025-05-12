@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,6 +10,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { setActivationStatus } from "@/utils/activationService";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { initializeTeacherCredits } from "@/utils/creditService";
 
 interface LoginFormProps {
   type: "teacher" | "student";
@@ -32,21 +32,33 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
 
     try {
       if (type === "teacher") {
-        // Special case for admin login
-        if ((usernameOrEmail === "Admin" || usernameOrEmail === "admin@pokeayman.com") && password === "AdminAyman") {
+        // Special case for admin login - Added "Ayman" as admin
+        if ((usernameOrEmail === "Admin" || usernameOrEmail === "admin@pokeayman.com" || usernameOrEmail === "Ayman") && 
+            (password === "AdminAyman" || (usernameOrEmail === "Ayman" && password === "AymanPassword"))) {
+          
+          const adminUsername = usernameOrEmail === "Ayman" ? "Ayman" : "Admin";
+          
           toast({
             title: "Success!",
-            description: "Welcome back, Admin!",
+            description: `Welcome back, ${adminUsername}!`,
           });
+          
           localStorage.setItem("userType", "teacher");
           localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("teacherUsername", "Admin");
+          localStorage.setItem("teacherUsername", adminUsername);
           localStorage.setItem("isAdmin", "true");
-          localStorage.setItem("teacherId", "admin-" + Date.now().toString());
+          localStorage.setItem("teacherId", `admin-${adminUsername}-${Date.now().toString()}`);
           setActivationStatus(true);
           
+          // Initialize admin credits
+          initializeTeacherCredits(
+            localStorage.getItem("teacherId") || "", 
+            adminUsername,
+            adminUsername
+          );
+          
           if (onLoginSuccess) {
-            onLoginSuccess("Admin", password);
+            onLoginSuccess(adminUsername, password);
           }
           
           navigate("/admin-dashboard");
@@ -90,6 +102,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
             
             localStorage.setItem("teacherId", teacher.id);
             
+            // Initialize teacher credits if not already done
+            initializeTeacherCredits(
+              teacher.id, 
+              teacher.username,
+              teacher.displayName || teacher.username
+            );
+            
             if (onLoginSuccess) {
               onLoginSuccess(usernameOrEmail, password);
             }
@@ -112,6 +131,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
           localStorage.setItem("teacherUsername", userMetadata.username || usernameOrEmail);
           localStorage.setItem("isAdmin", "false");
           localStorage.setItem("teacherId", authData.user.id);
+          
+          // Initialize teacher credits if not already done
+          initializeTeacherCredits(
+            authData.user.id, 
+            userMetadata.username || usernameOrEmail,
+            userMetadata.displayName || userMetadata.username || usernameOrEmail
+          );
           
           if (onLoginSuccess) {
             onLoginSuccess(usernameOrEmail, password);

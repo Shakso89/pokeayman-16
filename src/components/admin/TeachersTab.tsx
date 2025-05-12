@@ -61,7 +61,7 @@ const TeachersTab: React.FC<TeachersTabProps> = ({ teachers, setTeachers, t }) =
     <div className="grid gap-4">
       {teachers.map(teacher => (
         <Card key={teacher.id} className="relative">
-          {teacher.username === "Admin" && (
+          {(teacher.username === "Admin" || teacher.username === "Ayman") && (
             <div className="absolute top-0 right-0 m-2">
               <Badge className="bg-purple-500">
                 {t("admin-account") || "Admin Account"}
@@ -104,7 +104,7 @@ const TeachersTab: React.FC<TeachersTabProps> = ({ teachers, setTeachers, t }) =
               </div>
             </div>
             
-            {teacher.username !== "Admin" && (
+            {(teacher.username !== "Admin" && teacher.username !== "Ayman") && (
               <div className="flex gap-2">
                 <Button 
                   onClick={() => handleToggleAccount(teacher.id)} 
