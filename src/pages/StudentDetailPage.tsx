@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -67,10 +66,7 @@ const StudentDetailPage: React.FC = () => {
         setStudent(foundStudent);
         setEditData(foundStudent);
       } else {
-        toast({
-          description: t("student-not-found"),
-          variant: "destructive",
-        });
+        toast(t("student-not-found"));
         navigate(-1);
       }
     }
@@ -133,9 +129,7 @@ const StudentDetailPage: React.FC = () => {
         avatar: newAvatar
       });
       
-      toast({
-        description: "Avatar updated successfully!",
-      });
+      toast("Avatar updated successfully!");
     }
   };
 
@@ -173,9 +167,7 @@ const StudentDetailPage: React.FC = () => {
     
     setFriendRequestSent(true);
     
-    toast({
-      description: t("friend-request-sent"),
-    });
+    toast(t("friend-request-sent"));
   };
 
   const handleAcceptFriendRequest = () => {
@@ -194,9 +186,7 @@ const StudentDetailPage: React.FC = () => {
     setFriendRequestPending(false);
     setAlreadyFriends(true);
     
-    toast({
-      description: t("friend-request-accepted"),
-    });
+    toast(t("friend-request-accepted"));
   };
   
   const handleSave = () => {
@@ -228,17 +218,11 @@ const StudentDetailPage: React.FC = () => {
         }
         
         setIsEditing(false);
-        toast({
-          description: t("profile-updated-successfully"),
-        });
+        toast(t("profile-updated-successfully"));
       }
     } catch (error) {
       console.error("Error saving profile:", error);
-      toast({
-        title: t("error"),
-        description: t("failed-to-save-profile"),
-        variant: "destructive"
-      });
+      toast(t("failed-to-save-profile"));
     }
   };
   
