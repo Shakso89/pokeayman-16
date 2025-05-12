@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -16,9 +17,10 @@ interface LoginFormProps {
   type: "teacher" | "student";
   onLoginSuccess?: (username: string, password: string) => void;
   darkMode?: boolean;
+  error?: string; // Add the error prop
 }
 
-export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, darkMode = false }) => {
+export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, darkMode = false, error }) => {
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -187,6 +189,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
       className={darkMode ? "bg-black/70 text-white border-gray-800" : undefined}
     >
       <form onSubmit={handleSubmit} className="space-y-4">
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-md mb-4">
+            {error}
+          </div>
+        )}
+        
         <div className="space-y-2">
           <Label htmlFor="usernameOrEmail" className={darkMode ? "text-white" : ""}>
             {type === "teacher" ? "Username or Email" : "Username"}
@@ -203,6 +211,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
             <User className={`absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 ${darkMode ? "text-gray-400" : "text-gray-500"}`} />
           </div>
         </div>
+        
         <div className="space-y-2">
           <Label htmlFor="password" className={darkMode ? "text-white" : ""}>{t("password") || "Password"}</Label>
           <div className="relative">
@@ -218,6 +227,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({ type, onLoginSuccess, dark
             <Lock className={`absolute left-3 top-1/2 -translate-y-1/2 h-5 w-5 ${darkMode ? "text-gray-400" : "text-gray-500"}`} />
           </div>
         </div>
+        
         <Button 
           type="submit" 
           className={cn("w-full", darkMode && "bg-blue-600 hover:bg-blue-700")} 
