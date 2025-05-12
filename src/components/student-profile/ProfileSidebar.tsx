@@ -52,7 +52,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
               ) : (
                 <div className="w-full h-full bg-gray-200 flex items-center justify-center">
                   <span className="text-2xl font-bold text-gray-500">
-                    {student.displayName.substring(0, 2).toUpperCase()}
+                    {student.displayName && student.displayName.substring(0, 2).toUpperCase()}
                   </span>
                 </div>
               )}
