@@ -23,6 +23,7 @@ export function toast({
 
 export function useToast() {
   return {
-    toast
+    toast,
+    toasts: [] // Add empty toasts array for compatibility
   };
 }

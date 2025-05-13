@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { PokemonOrbit } from "@/components/PokemonOrbit";
+import PokemonOrbit from "@/components/PokemonOrbit"; // Fixed import
 import { useStudentAuth } from "@/hooks/useStudentAuth";
 import { toast } from "@/hooks/use-toast";
 
