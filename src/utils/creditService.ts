@@ -340,7 +340,7 @@ export const useCredits = async (
     // Get current credits
     const { data: teacherCredit, error: getError } = await supabase
       .from('teacher_credits')
-      .select('credits')
+      .select('credits, used_credits')
       .eq('teacher_id', teacherId)
       .single();
       

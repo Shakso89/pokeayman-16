@@ -19,32 +19,50 @@ const TeacherCredit: React.FC<TeacherCreditProps> = ({
 }) => {
   const [creditData, setCreditData] = useState<TeacherCreditType | null>(null);
   const [recentTransactions, setRecentTransactions] = useState<CreditTransaction[]>([]);
-  const {
-    t
-  } = useTranslation();
+  const [isLoading, setIsLoading] = useState(true);
+  const { t } = useTranslation();
   const navigate = useNavigate();
 
   useEffect(() => {
     // Load credit data for the teacher
-    const teacherCreditData = getTeacherCredits(teacherId);
-    setCreditData(teacherCreditData);
+    const fetchCreditData = async () => {
+      try {
+        setIsLoading(true);
+        const teacherCreditData = await getTeacherCredits(teacherId);
+        setCreditData(teacherCreditData);
 
-    // Filter transactions from the last 7 days
-    if (teacherCreditData && teacherCreditData.transactionHistory) {
-      const oneWeekAgo = new Date();
-      oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-      const recent = teacherCreditData.transactionHistory.filter(transaction => new Date(transaction.timestamp) >= oneWeekAgo).sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-      setRecentTransactions(recent);
-    }
+        // Filter transactions from the last 7 days
+        if (teacherCreditData && teacherCreditData.transactionHistory) {
+          const oneWeekAgo = new Date();
+          oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+          const recent = teacherCreditData.transactionHistory
+            .filter(transaction => new Date(transaction.timestamp) >= oneWeekAgo)
+            .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+          setRecentTransactions(recent);
+        }
+      } catch (error) {
+        console.error("Error fetching teacher credit data:", error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCreditData();
   }, [teacherId]);
 
   const handleRequestCredits = () => {
     navigate("/contact");
   };
 
-  if (!creditData) {
+  if (isLoading) {
     return <div className="flex justify-center items-center h-64">
         <p>{t("loading-credits") || "Loading credit information..."}</p>
+      </div>;
+  }
+
+  if (!creditData) {
+    return <div className="flex justify-center items-center h-64">
+        <p>{t("no-credit-data") || "No credit information found."}</p>
       </div>;
   }
 

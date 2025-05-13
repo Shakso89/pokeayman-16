@@ -19,13 +19,26 @@ const CreditManagement: React.FC = () => {
   const [selectedTeacher, setSelectedTeacher] = useState<TeacherCredit | null>(null);
   const [teacherCredits, setTeacherCredits] = useState<TeacherCredit[]>([]);
   const [filteredTeachers, setFilteredTeachers] = useState<TeacherCredit[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
   // Load all teacher credits
   useEffect(() => {
-    const loadTeacherCredits = () => {
-      const credits = getAllTeacherCredits();
-      setTeacherCredits(credits);
-      setFilteredTeachers(credits);
+    const loadTeacherCredits = async () => {
+      try {
+        setIsLoading(true);
+        const credits = await getAllTeacherCredits();
+        setTeacherCredits(credits);
+        setFilteredTeachers(credits);
+      } catch (error) {
+        console.error("Error loading teacher credits:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load teacher credits",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
     };
     
     loadTeacherCredits();
@@ -45,7 +58,7 @@ const CreditManagement: React.FC = () => {
     setSelectedTeacher(teacher);
   };
   
-  const handleAddCredits = () => {
+  const handleAddCredits = async () => {
     if (!selectedTeacher) {
       toast({
         title: "Error",
@@ -73,35 +86,43 @@ const CreditManagement: React.FC = () => {
       return;
     }
     
-    const success = addCreditsToTeacher(
-      selectedTeacher.teacherId,
-      creditAmount,
-      reason
-    );
-    
-    if (success) {
-      toast({
-        title: "Success",
-        description: `${creditAmount} credits added to ${selectedTeacher.username}`,
-      });
-      
-      // Refresh data
-      const credits = getAllTeacherCredits();
-      setTeacherCredits(credits);
-      setFilteredTeachers(credits);
-      
-      // Find and update selected teacher
-      setSelectedTeacher(
-        credits.find((tc) => tc.teacherId === selectedTeacher.teacherId) || null
+    try {
+      const success = await addCreditsToTeacher(
+        selectedTeacher.teacherId,
+        creditAmount,
+        reason
       );
       
-      // Reset form
-      setCreditAmount(50);
-      setReason("");
-    } else {
+      if (success) {
+        toast({
+          title: "Success",
+          description: `${creditAmount} credits added to ${selectedTeacher.username}`,
+        });
+        
+        // Refresh data
+        const credits = await getAllTeacherCredits();
+        setTeacherCredits(credits);
+        setFilteredTeachers(credits);
+        
+        // Find and update selected teacher
+        const updatedSelectedTeacher = credits.find((tc) => tc.teacherId === selectedTeacher.teacherId) || null;
+        setSelectedTeacher(updatedSelectedTeacher);
+        
+        // Reset form
+        setCreditAmount(50);
+        setReason("");
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to add credits",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error adding credits:", error);
       toast({
         title: "Error",
-        description: "Failed to add credits",
+        description: "An error occurred while adding credits",
         variant: "destructive",
       });
     }
@@ -130,7 +151,11 @@ const CreditManagement: React.FC = () => {
               </div>
               
               <div className="grid gap-2 max-h-64 overflow-y-auto">
-                {filteredTeachers.length > 0 ? (
+                {isLoading ? (
+                  <p className="text-center text-gray-500 p-4">
+                    {t("loading") || "Loading..."}
+                  </p>
+                ) : filteredTeachers.length > 0 ? (
                   filteredTeachers.map((teacher) => (
                     <div
                       key={teacher.teacherId}
