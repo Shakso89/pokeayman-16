@@ -1,26 +1,35 @@
 
-import { toast as sonnerToast, type ToastT } from "sonner";
+import { toast as sonnerToast, type ToastT, type ExternalToast } from "sonner";
 
-type ToastProps = {
+type ToastProps = Omit<ExternalToast, "id"> & {
   title?: string;
-  description?: string;
+  description?: React.ReactNode;
   variant?: "default" | "destructive";
-  duration?: number;
-  action?: React.ReactNode;
 };
 
-export function toast(props: ToastProps) {
-  const { title, description, variant, duration, action } = props;
+const useToast = () => {
+  const toast = (props: ToastProps) => {
+    const { title, description, variant = "default", ...rest } = props;
+    
+    return sonnerToast(title || "", {
+      description,
+      ...rest,
+    });
+  };
+
+  return {
+    toast,
+  };
+};
+
+// Re-export the toast function with our custom types
+const toast = (props: ToastProps) => {
+  const { title, description, variant = "default", ...rest } = props;
   
-  return sonnerToast(title, {
+  return sonnerToast(title || "", {
     description,
-    duration: duration || 5000,
-    action,
-    className: variant === "destructive" ? "destructive" : undefined
+    ...rest,
   });
-}
-
-// Create our own useToast hook since sonner doesn't export one directly
-export const useToast = () => {
-  return { toast };
 };
+
+export { useToast, toast };

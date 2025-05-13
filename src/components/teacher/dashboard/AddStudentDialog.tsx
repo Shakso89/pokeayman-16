@@ -80,60 +80,25 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
     setIsLoading(true);
     
     try {
-      // First check if username is already in use
-      const { data: existingStudents, error: checkError } = await supabase
-        .from('students')
-        .select('username')
-        .eq('username', studentData.username)
-        .limit(1);
-        
-      if (checkError) {
-        throw new Error(`Error checking username: ${checkError.message}`);
-      }
-        
-      if (existingStudents && existingStudents.length > 0) {
-        toast({
-          title: "Error",
-          description: "This username is already in use",
-          variant: "destructive"
-        });
-        setIsLoading(false);
-        return;
-      }
-      
       // Get a valid UUID for the teacher ID
       const validTeacherId = getValidUUID(teacherId);
       
-      // Create new student in the database
-      // The credit deduction is handled automatically by the database trigger
-      const { data: newStudent, error: insertError } = await supabase
-        .from('students')
-        .insert({
+      // Try using the edge function to create the student
+      const { data: createResponse, error: edgeFunctionError } = await supabase.functions.invoke("create_student", {
+        body: {
           username: studentData.username,
           password: studentData.password, 
-          display_name: studentData.displayName,
-          teacher_id: validTeacherId
-        })
-        .select()
-        .single();
-        
-      if (insertError) {
-        // If there's an error from Supabase (like insufficient credits)
-        if (insertError.message.includes("insufficient")) {
-          toast({
-            title: "Error",
-            description: "Insufficient credits to create a student account",
-            variant: "destructive"
-          });
-        } else {
-          toast({
-            title: "Error",
-            description: `Failed to create student: ${insertError.message}`,
-            variant: "destructive"
-          });
+          displayName: studentData.displayName,
+          teacherId: validTeacherId
         }
-        setIsLoading(false);
-        return;
+      });
+      
+      if (edgeFunctionError) {
+        throw new Error(`Edge function error: ${edgeFunctionError.message}`);
+      }
+      
+      if (createResponse.error) {
+        throw new Error(createResponse.error);
       }
       
       // Show success message
@@ -158,12 +123,13 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
         updatedTeacherData.students = [];
       }
       
-      if (newStudent) {
-        updatedTeacherData.students.push(newStudent.id);
+      if (createResponse.student) {
+        updatedTeacherData.students.push(createResponse.student.id);
         onTeacherDataUpdate(updatedTeacherData);
       }
       
       onClose();
+      
     } catch (error: any) {
       console.error("Error creating student:", error);
       toast({
