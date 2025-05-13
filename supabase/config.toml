@@ -1,8 +1,1 @@
-
-project_id = "bvhqfkagpksbxwhrmipz"
-
-[functions.handle_student_creation]
-verify_jwt = false
-
-[functions.create_student]
-verify_jwt = false
+project_id = "ffhwrbrzyphuwvkkmoxd"
