@@ -1,4 +1,3 @@
-
 import { toast } from "@/hooks/use-toast";
 import { TeacherCredit, CreditTransaction, CREDIT_COSTS } from "@/types/teacher";
 import { supabase } from "@/integrations/supabase/client";
@@ -10,7 +9,7 @@ export const getTeacherCredits = async (teacherId: string): Promise<TeacherCredi
       .from('teacher_credits')
       .select('*')
       .eq('teacher_id', teacherId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error("Error fetching teacher credits from database:", error);
@@ -18,6 +17,11 @@ export const getTeacherCredits = async (teacherId: string): Promise<TeacherCredi
       // Fallback to localStorage for backward compatibility
       const teacherCredits = JSON.parse(localStorage.getItem("teacherCredits") || "[]");
       return teacherCredits.find((tc: TeacherCredit) => tc.teacherId === teacherId) || null;
+    }
+    
+    if (!teacherCredit) {
+      console.warn("No teacher credit record found for", teacherId);
+      return null;
     }
     
     // Get transactions
@@ -36,7 +40,7 @@ export const getTeacherCredits = async (teacherId: string): Promise<TeacherCredi
       .from('teachers')
       .select('username, display_name')
       .eq('id', teacherId)
-      .single();
+      .maybeSingle();
       
     if (teacherError) {
       console.error("Error fetching teacher details:", teacherError);
@@ -68,14 +72,14 @@ export const getTeacherCredits = async (teacherId: string): Promise<TeacherCredi
 
 export const getAllTeacherCredits = async (): Promise<TeacherCredit[]> => {
   try {
+    console.log("Getting all teacher credits...");
     // Get all teacher credits from Supabase
     const { data: teacherCredits, error } = await supabase
       .from('teacher_credits')
       .select(`
         teacher_id,
         credits,
-        used_credits,
-        teachers!inner(username, display_name)
+        used_credits
       `);
       
     if (error) {
@@ -85,15 +89,35 @@ export const getAllTeacherCredits = async (): Promise<TeacherCredit[]> => {
       return JSON.parse(localStorage.getItem("teacherCredits") || "[]");
     }
     
-    // Format for compatibility with existing code
-    return teacherCredits.map(tc => ({
-      teacherId: tc.teacher_id,
-      username: tc.teachers.username,
-      displayName: tc.teachers.display_name,
-      credits: tc.credits,
-      usedCredits: tc.used_credits,
-      transactionHistory: [] // We're not loading all transactions for all teachers for performance
-    }));
+    console.log("Teacher credits from database:", teacherCredits);
+    
+    // If we have teacher credits, get the teacher details for each one
+    if (teacherCredits && teacherCredits.length > 0) {
+      // Get all teachers
+      const { data: teachers, error: teachersError } = await supabase
+        .from('teachers')
+        .select('id, username, display_name');
+        
+      if (teachersError) {
+        console.error("Error fetching teacher details:", teachersError);
+      }
+      
+      // Map teacher credits with teacher details
+      return teacherCredits.map(tc => {
+        const teacher = teachers?.find(t => t.id === tc.teacher_id);
+        
+        return {
+          teacherId: tc.teacher_id,
+          username: teacher?.username || tc.teacher_id,
+          displayName: teacher?.display_name || "",
+          credits: tc.credits,
+          usedCredits: tc.used_credits,
+          transactionHistory: [] // We're not loading all transactions for all teachers for performance
+        };
+      });
+    }
+    
+    return [];
   } catch (error) {
     console.error("Exception in getAllTeacherCredits:", error);
     
@@ -108,6 +132,7 @@ export const initializeTeacherCredits = async (
   displayName: string = ""
 ): Promise<boolean> => {
   try {
+    console.log("Initializing credits for teacher:", teacherId, username);
     // Check if teacher already has credits in Supabase
     const { data: existingCredit, error: checkError } = await supabase
       .from('teacher_credits')
@@ -121,6 +146,7 @@ export const initializeTeacherCredits = async (
     
     // If credits already exist, return true
     if (existingCredit) {
+      console.log("Teacher already has credits initialized");
       return true;
     }
     
@@ -183,6 +209,7 @@ export const initializeTeacherCredits = async (
       console.error("Error inserting credit transaction:", insertTransactionError);
     }
     
+    console.log("Successfully initialized credits for teacher");
     return true;
   } catch (error) {
     console.error("Error initializing teacher credits:", error);
@@ -235,13 +262,14 @@ export const addCreditsToTeacher = async (
   reason: string
 ): Promise<boolean> => {
   try {
+    console.log("Adding credits to teacher:", teacherId, amount, reason);
     // Start a transaction to update credits and add transaction record
     // First, get current credits
     const { data: teacherCredit, error: getError } = await supabase
       .from('teacher_credits')
       .select('credits')
       .eq('teacher_id', teacherId)
-      .single();
+      .maybeSingle();
       
     if (getError) {
       console.error("Error fetching teacher credits:", getError);
@@ -268,6 +296,16 @@ export const addCreditsToTeacher = async (
       localStorage.setItem("teacherCredits", JSON.stringify(teacherCredits));
       
       return true;
+    }
+    
+    if (!teacherCredit) {
+      console.error("Teacher credit record not found:", teacherId);
+      toast({
+        title: "Error",
+        description: "Teacher credit record not found. Please make sure the teacher exists.",
+        variant: "destructive",
+      });
+      return false;
     }
     
     // Update credits
@@ -297,6 +335,7 @@ export const addCreditsToTeacher = async (
       console.error("Error adding credit transaction:", transactionError);
     }
     
+    console.log("Successfully added credits to teacher");
     return true;
   } catch (error) {
     console.error("Error adding credits:", error);

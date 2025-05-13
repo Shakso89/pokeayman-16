@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { School, Class, Student } from "@/types/pokemon";
 import { toast } from "@/hooks/use-toast";
-import { ChevronLeft, Plus, Edit, Trash2, School as SchoolIcon, Eye } from "lucide-react";
+import { ChevronLeft, Plus, Edit, Trash2, School as SchoolIcon, Eye, Trash } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { initializeSchoolPokemonPool } from "@/utils/pokemon";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
@@ -30,13 +30,16 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
   const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
   const [studentPokemon, setStudentPokemon] = useState<any[]>([]);
   const [isAdminUser, setIsAdminUser] = useState(false);
+  const [showDeleteClassDialog, setShowDeleteClassDialog] = useState(false);
+  const [classesToDelete, setClassesToDelete] = useState<Class[]>([]);
+  const [selectedSchoolForDeletion, setSelectedSchoolForDeletion] = useState<string | null>(null);
   
   const { t } = useTranslation();
 
   useEffect(() => {
     // Check if current user is admin
     const username = localStorage.getItem("teacherUsername") || "";
-    setIsAdminUser(username === "Admin");
+    setIsAdminUser(username === "Admin" || username === "Ayman");
     
     // Load all schools
     const savedSchools = localStorage.getItem("schools");
@@ -216,12 +219,37 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
     const schoolClasses = parsedClasses.filter((cls: Class) => cls.schoolId === schoolId);
 
     if (schoolClasses.length > 0) {
-      toast({
-        title: t("error"),
-        description: t("cannot-delete-school-with-classes"),
-        variant: "destructive",
-      });
+      // Show delete class dialog
+      setClassesToDelete(schoolClasses);
+      setSelectedSchoolForDeletion(schoolId);
+      setShowDeleteClassDialog(true);
       return;
+    }
+
+    // If school has no classes, delete it directly
+    deleteSchoolAndClasses(schoolId, []);
+  };
+
+  const deleteSchoolAndClasses = (schoolId: string, classesToDelete: Class[]) => {
+    // Delete classes if any
+    if (classesToDelete.length > 0) {
+      const savedClasses = localStorage.getItem("classes");
+      const parsedClasses = savedClasses ? JSON.parse(savedClasses) : [];
+      const updatedClasses = parsedClasses.filter((cls: Class) => 
+        !classesToDelete.some(c => c.id === cls.id)
+      );
+      localStorage.setItem("classes", JSON.stringify(updatedClasses));
+
+      // Delete student associations with classes
+      const savedStudents = localStorage.getItem("students");
+      const parsedStudents = savedStudents ? JSON.parse(savedStudents) : [];
+      const updatedStudents = parsedStudents.map((student: Student) => {
+        if (classesToDelete.some(c => c.id === student.classId)) {
+          return { ...student, classId: null };
+        }
+        return student;
+      });
+      localStorage.setItem("students", JSON.stringify(updatedStudents));
     }
 
     // Delete school from localStorage
@@ -414,6 +442,53 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
               <p className="text-center py-6">{t("no-pokemon-yet")}</p>
             )}
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Class Dialog */}
+      <Dialog open={showDeleteClassDialog} onOpenChange={setShowDeleteClassDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">
+              {t("delete-classes")}
+            </DialogTitle>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <p className="mb-4">{t("delete-classes-warning")}</p>
+            
+            {classesToDelete.length > 0 ? (
+              <div className="space-y-2 max-h-60 overflow-y-auto border rounded p-2">
+                {classesToDelete.map((cls) => (
+                  <div key={cls.id} className="flex justify-between items-center p-2 bg-gray-50 rounded">
+                    <span>{cls.name}</span>
+                    <Trash className="h-4 w-4 text-red-500" />
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-center py-6">{t("no-classes")}</p>
+            )}
+          </div>
+          
+          <DialogFooter className="flex justify-between">
+            <Button variant="outline" onClick={() => setShowDeleteClassDialog(false)}>
+              {t("cancel")}
+            </Button>
+            <Button 
+              variant="destructive"
+              onClick={() => {
+                if (selectedSchoolForDeletion) {
+                  deleteSchoolAndClasses(selectedSchoolForDeletion, classesToDelete);
+                  setShowDeleteClassDialog(false);
+                  setSelectedSchoolForDeletion(null);
+                  setClassesToDelete([]);
+                }
+              }}
+            >
+              {t("delete")}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
