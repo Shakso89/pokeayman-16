@@ -115,7 +115,7 @@ export const getClassesForSchool = async (schoolId: string): Promise<ClassData[]
     }
     
     // Transform the Supabase data to our format with explicit typing
-    return (data || []).map((item: any) => ({
+    return (data || []).map((item: SupabaseClassData) => ({
       id: item.id,
       name: item.name,
       schoolId: item.school_id,

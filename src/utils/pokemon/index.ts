@@ -38,12 +38,13 @@ export {
 // Export sample Pokemon data
 export { samplePokemons } from './sampleData';
 
-// Export class management functions
+// Export class management functions - using 'export type' for type exports
 export {
-  ClassData,
-  SupabaseClassData,
   classExists,
   saveClass,
   getClassesForSchool,
   deleteClass
 } from './classManagement';
+
+// Properly export types using 'export type'
+export type { ClassData, SupabaseClassData } from './classManagement';
