@@ -38,6 +38,70 @@ export type Database = {
           },
         ]
       }
+      credit_transactions: {
+        Row: {
+          amount: number
+          id: string
+          reason: string | null
+          teacher_id: string | null
+          timestamp: string
+        }
+        Insert: {
+          amount: number
+          id?: string
+          reason?: string | null
+          teacher_id?: string | null
+          timestamp?: string
+        }
+        Update: {
+          amount?: number
+          id?: string
+          reason?: string | null
+          teacher_id?: string | null
+          timestamp?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "credit_transactions_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      schools: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          name: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "schools_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       students: {
         Row: {
           class_id: string | null
@@ -82,6 +146,41 @@ export type Database = {
           },
           {
             foreignKeyName: "students_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teacher_credits: {
+        Row: {
+          created_at: string
+          credits: number
+          id: string
+          teacher_id: string | null
+          updated_at: string
+          used_credits: number
+        }
+        Insert: {
+          created_at?: string
+          credits?: number
+          id?: string
+          teacher_id?: string | null
+          updated_at?: string
+          used_credits?: number
+        }
+        Update: {
+          created_at?: string
+          credits?: number
+          id?: string
+          teacher_id?: string | null
+          updated_at?: string
+          used_credits?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "teacher_credits_teacher_id_fkey"
             columns: ["teacher_id"]
             isOneToOne: false
             referencedRelation: "teachers"

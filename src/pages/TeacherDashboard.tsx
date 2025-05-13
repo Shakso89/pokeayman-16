@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -74,7 +73,7 @@ const TeacherDashboard: React.FC = () => {
         if (creditError) {
           console.error("Error loading credits:", creditError);
           // Fall back to local credit service
-          const credits = getTeacherCredits(teacherId);
+          const credits = await getTeacherCredits(teacherId);
           setCreditInfo(credits);
         } else {
           setCreditInfo(creditData);
