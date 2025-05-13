@@ -23,28 +23,37 @@ const TeacherSignUp: React.FC = () => {
     e.preventDefault();
     setIsLoading(true);
     
-    // Validation
-    if (password !== confirmPassword) {
-      toast({
-        title: "Passwords do not match",
-        description: "Please make sure your passwords match.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
-    }
-
-    if (!username || username.trim() === "") {
-      toast({
-        title: "Username required",
-        description: "Please enter a username.",
-        variant: "destructive",
-      });
-      setIsLoading(false);
-      return;
-    }
-
     try {
+      // Validation
+      if (password !== confirmPassword) {
+        toast({
+          title: "Passwords do not match",
+          description: "Please make sure your passwords match.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      if (!username || username.trim() === "") {
+        toast({
+          title: "Username required",
+          description: "Please enter a username.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Check if the email is valid
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        toast({
+          title: "Invalid email",
+          description: "Please enter a valid email address.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       console.log("Starting sign up process for:", email);
       
       // Register with Supabase Auth
@@ -57,23 +66,33 @@ const TeacherSignUp: React.FC = () => {
             avatar_url: avatarUrl,
             user_type: "teacher",
           },
-          // Adding emailRedirectTo to prevent any issues with email confirmation
-          emailRedirectTo: window.location.origin + "/teacher-login",
         }
       });
       
       if (authError) {
         console.error("Auth error during signup:", authError);
         
-        // Handle all error cases with clear user feedback
-        if (authError.message?.includes("email rate limit exceeded")) {
+        // Handle specific error cases
+        if (authError.message?.includes("User already registered")) {
           toast({
-            title: "Email service temporarily unavailable",
-            description: "We'll create your account directly. Please try logging in with your credentials.",
+            title: "Email already registered",
+            description: "This email is already in use. Please try logging in instead.",
+            variant: "destructive",
+          });
+        } else if (authError.message?.includes("Password should be")) {
+          toast({
+            title: "Password requirements",
+            description: authError.message,
+            variant: "destructive",
           });
         } else {
-          throw authError;
+          toast({
+            title: "Signup failed",
+            description: authError.message || "An error occurred during signup.",
+            variant: "destructive",
+          });
         }
+        return;
       }
       
       if (authData.user) {
@@ -84,10 +103,20 @@ const TeacherSignUp: React.FC = () => {
           description: "Welcome to PokéAyman! Your account has been created.",
         });
         
-        // Sign out the user so they can log in properly
-        await supabase.auth.signOut();
-        
-        navigate("/teacher-login");
+        // Wait a moment before redirecting to ensure toast is seen
+        setTimeout(() => {
+          navigate("/teacher-login");
+        }, 1500);
+      } else {
+        // This case shouldn't happen normally, but added as a fallback
+        toast({
+          title: "Something went wrong",
+          description: "Your account may have been created, but we couldn't confirm it. Please try logging in.",
+          variant: "destructive",
+        });
+        setTimeout(() => {
+          navigate("/teacher-login");
+        }, 2000);
       }
     } catch (error: any) {
       console.error("Registration error:", error);
