@@ -74,10 +74,10 @@ const TeacherSignUp: React.FC = () => {
           // Notify user about the alternative registration path
           toast({
             title: "Email service temporarily unavailable",
-            description: "We'll create your account directly. Please contact us to activate it.",
+            description: "We'll create your account directly. Please contact us if you need assistance.",
           });
           
-          // Show contact dialog to help with activation
+          // Show contact dialog to help with assistance
           setContactDialogOpen(true);
         } else {
           throw authError;

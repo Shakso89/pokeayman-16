@@ -2,7 +2,7 @@
 // A utility to manage account activation status
 
 /**
- * Checks if a teacher account is activated/unfrozen
+ * Checks if a teacher account is activated
  * All accounts are now active by default
  * @returns boolean Always returns true as all accounts are active
  */
