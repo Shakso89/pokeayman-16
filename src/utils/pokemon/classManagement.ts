@@ -32,10 +32,10 @@ export const classExists = async (classData: ClassData): Promise<boolean> => {
     if (error) {
       console.error("Error checking if class exists in database:", error);
       
-      // Fallback to localStorage with simple types
+      // Fallback to localStorage with primitive types
       const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      // Use a simple type without ClassData reference
-      return Boolean(allClasses.some((cls: {name: string, schoolId: string}) => 
+      // Use simple primitive type instead of referencing ClassData
+      return Boolean(allClasses.some((cls: {name: string; schoolId: string}) => 
         cls.name === classData.name && cls.schoolId === classData.schoolId
       ));
     }
@@ -44,10 +44,10 @@ export const classExists = async (classData: ClassData): Promise<boolean> => {
   } catch (error) {
     console.error("Exception in classExists:", error);
     
-    // Fallback to localStorage with simple types
+    // Fallback to localStorage with primitive types
     const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    // Use a simple type without ClassData reference
-    return Boolean(allClasses.some((cls: {name: string, schoolId: string}) => 
+    // Use simple primitive type instead of referencing ClassData
+    return Boolean(allClasses.some((cls: {name: string; schoolId: string}) => 
       cls.name === classData.name && cls.schoolId === classData.schoolId
     ));
   }
@@ -115,22 +115,22 @@ export const getClassesForSchool = async (schoolId: string): Promise<ClassData[]
     if (error) {
       console.error("Error fetching classes from database:", error);
       
-      // Fallback to localStorage with simple types
+      // Fallback to localStorage with primitive types
       const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
       return allClasses.filter((cls: {schoolId: string}) => cls.schoolId === schoolId);
     }
     
-    // Transform the Supabase data to our format using 'any' to avoid type recursion
-    return (data || []).map((item: any) => ({
+    // Transform the Supabase data to our format with explicit return type
+    return (data || []).map((item) => ({
       id: item.id,
       name: item.name,
       schoolId: item.school_id,
       teacherId: item.teacher_id
-    }));
+    })) as ClassData[];
   } catch (error) {
     console.error("Error fetching classes:", error);
     
-    // Fallback to localStorage with simple types
+    // Fallback to localStorage with primitive types
     const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
     return allClasses.filter((cls: {schoolId: string}) => cls.schoolId === schoolId);
   }
@@ -148,7 +148,7 @@ export const deleteClass = async (classId: string): Promise<boolean> => {
     if (error) {
       console.error("Error deleting class from database:", error);
       
-      // Fallback to localStorage with simple types
+      // Fallback to localStorage with primitive types
       const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
       const updatedClasses = allClasses.filter((cls: {id: string}) => cls.id !== classId);
       localStorage.setItem("classes", JSON.stringify(updatedClasses));
