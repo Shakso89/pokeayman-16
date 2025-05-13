@@ -5,30 +5,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NavBar } from "@/components/NavBar";
 import { useTranslation } from "@/hooks/useTranslation";
 import AdminHeader from "@/components/admin/AdminHeader";
-import TeachersTab from "@/components/admin/TeachersTab";
+import TeachersTab, { AdminTeacherData } from "@/components/admin/TeachersTab"; // Updated import with type
 import StudentsTab from "@/components/admin/StudentsTab";
 import CreditManagement from "@/components/admin/CreditManagement";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
-// Types for our user data
-interface TeacherData {
-  id: string;
-  username: string;
-  display_name?: string;
-  schools?: string[];
-  students?: string[];
-  created_at: string;
-  last_login?: string;
-  time_spent?: number; // in minutes
-  expiry_date?: string;
-  subscription_type?: "trial" | "monthly" | "annual";
-  is_active: boolean;
-  // Calculated fields
-  numSchools?: number;
-  numStudents?: number;
-}
-
+// Type for student data
 interface StudentData {
   id: string;
   username: string;
@@ -41,7 +24,7 @@ interface StudentData {
 }
 
 const AdminDashboard: React.FC = () => {
-  const [teachers, setTeachers] = useState<TeacherData[]>([]);
+  const [teachers, setTeachers] = useState<AdminTeacherData[]>([]);
   const [students, setStudents] = useState<StudentData[]>([]);
   const [activeTab, setActiveTab] = useState("teachers");
   const [isLoading, setIsLoading] = useState(true);
@@ -87,9 +70,10 @@ const AdminDashboard: React.FC = () => {
             ...teacher,
             numSchools: schoolsCount || 0,
             numStudents: studentsCount || 0,
-            // Additional formatting
-            display_name: teacher.display_name || teacher.username,
-            is_active: teacher.is_active !== false, // Default to true if not specified
+            // Map Supabase fields to our interface
+            displayName: teacher.display_name || teacher.username,
+            createdAt: teacher.created_at,
+            isActive: teacher.is_active !== false, // Default to true if not specified
           };
         }));
         

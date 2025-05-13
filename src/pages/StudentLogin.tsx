@@ -49,7 +49,7 @@ const StudentLogin: React.FC = () => {
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-400 to-purple-600 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated Pokemon background */}
+      {/* Animated Pokemon background with updated props */}
       <PokemonOrbit count={12} />
       
       <Card className="w-full max-w-md shadow-xl relative z-10 backdrop-blur-sm bg-white/80 border-white/20">

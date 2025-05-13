@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 
-interface TeacherData {
+// Renaming the interface to avoid conflicts with AdminDashboard
+export interface AdminTeacherData {
   id: string;
   username: string;
   displayName: string;
@@ -22,8 +23,8 @@ interface TeacherData {
 }
 
 interface TeachersTabProps {
-  teachers: TeacherData[];
-  setTeachers: React.Dispatch<React.SetStateAction<TeacherData[]>>;
+  teachers: AdminTeacherData[];
+  setTeachers: React.Dispatch<React.SetStateAction<AdminTeacherData[]>>;
   t: (key: string, fallback?: string) => string;
 }
 
