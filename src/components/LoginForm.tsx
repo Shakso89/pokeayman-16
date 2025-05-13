@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 
-interface LoginFormProps {
+export interface LoginFormProps {
   type: "teacher" | "student";
   onLoginSuccess?: (username: string, password: string) => void;
   darkMode?: boolean;

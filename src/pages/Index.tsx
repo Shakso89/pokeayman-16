@@ -53,7 +53,7 @@ const Index: React.FC = () => {
           
           {/* Call to action */}
           <div className="text-center mt-4">
-            <Button onClick={() => navigate("/student-login")} className="bg-pokemon-red hover:bg-red-600 text-white font-bold text-xl px-10 py-6 rounded-full shadow-lg hover:shadow-xl transform transition-all hover:scale-105 animate-pulse">
+            <Button onClick={() => navigate("/student-login")} className="pokemon-button text-white font-bold text-xl px-10 py-6 rounded-full shadow-lg hover:shadow-xl transform transition-all hover:scale-105 animate-pulse">
               {t('get-started')}
             </Button>
             

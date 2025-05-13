@@ -119,7 +119,8 @@
   }
 
   .pokemon-button {
-    @apply rounded-full bg-pokemon-red text-white hover:bg-red-600 transition-colors shadow-md;
+    @apply rounded-full text-white hover:bg-red-600 transition-colors shadow-md;
+    background-color: hsl(var(--pokemon-red));
   }
 
   .pokeball {
