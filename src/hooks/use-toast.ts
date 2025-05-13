@@ -20,4 +20,7 @@ export function toast(props: ToastProps) {
   });
 }
 
-export { useToast } from "sonner";
+// Create our own useToast hook since sonner doesn't export one directly
+export const useToast = () => {
+  return { toast };
+};
