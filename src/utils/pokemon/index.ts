@@ -49,6 +49,15 @@ interface ClassData {
   teacherId?: string;
 }
 
+// Define interface for Supabase returned class data
+interface SupabaseClassData {
+  id: string;
+  name: string;
+  school_id: string;
+  teacher_id?: string;
+  created_at: string;
+}
+
 // Class management functions with Supabase integration
 export const classExists = async (classData: ClassData): Promise<boolean> => {
   try {
@@ -144,7 +153,13 @@ export const getClassesForSchool = async (schoolId: string): Promise<ClassData[]
       return allClasses.filter((cls: ClassData) => cls.schoolId === schoolId);
     }
     
-    return data;
+    // Map Supabase data to our ClassData interface
+    return (data || []).map((cls: SupabaseClassData) => ({
+      id: cls.id,
+      name: cls.name,
+      schoolId: cls.school_id,
+      teacherId: cls.teacher_id
+    }));
   } catch (error) {
     console.error("Error fetching classes:", error);
     
