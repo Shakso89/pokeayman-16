@@ -4,17 +4,17 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface StudentData {
   id: string;
   username: string;
-  displayName: string;
-  teacherId: string;
-  createdAt: string;
-  lastLogin?: string;
-  timeSpent?: number;
-  coinsSpent?: number;
-  isActive: boolean;
+  display_name: string;
+  teacher_id: string;
+  created_at: string;
+  last_login?: string;
+  time_spent?: number;
+  is_active: boolean;
 }
 
 interface StudentsTabProps {
@@ -24,33 +24,75 @@ interface StudentsTabProps {
 }
 
 const StudentsTab: React.FC<StudentsTabProps> = ({ students, setStudents, t }) => {
-  const handleToggleAccount = (userId: string) => {
-    const updatedStudents = students.map(student => {
-      if (student.id === userId) {
-        const newIsActive = !student.isActive;
-        return {
-          ...student,
-          isActive: newIsActive
-        };
-      }
-      return student;
-    });
-    setStudents(updatedStudents);
-    localStorage.setItem("students", JSON.stringify(updatedStudents));
-    toast({
-      title: "Student account updated",
-      description: `Student account has been ${updatedStudents.find(s => s.id === userId)?.isActive ? "activated" : "frozen"}`
-    });
+  const handleToggleAccount = async (userId: string) => {
+    try {
+      // Find the current student in state
+      const student = students.find(s => s.id === userId);
+      if (!student) return;
+      
+      const newIsActive = !student.is_active;
+      
+      // Update in Supabase
+      const { error } = await supabase
+        .from('students')
+        .update({ is_active: newIsActive })
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
+      // Update local state
+      const updatedStudents = students.map(student => {
+        if (student.id === userId) {
+          return {
+            ...student,
+            is_active: newIsActive
+          };
+        }
+        return student;
+      });
+      
+      setStudents(updatedStudents);
+      
+      toast({
+        title: "Student account updated",
+        description: `Student account has been ${newIsActive ? "activated" : "frozen"}`
+      });
+    } catch (error: any) {
+      console.error("Error toggling student account:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update student account",
+        variant: "destructive"
+      });
+    }
   };
 
-  const handleDeleteAccount = (userId: string) => {
-    const filteredStudents = students.filter(student => student.id !== userId);
-    setStudents(filteredStudents);
-    localStorage.setItem("students", JSON.stringify(filteredStudents));
-    toast({
-      title: "Student account deleted",
-      description: "Student account has been permanently deleted"
-    });
+  const handleDeleteAccount = async (userId: string) => {
+    try {
+      // Delete from Supabase
+      const { error } = await supabase
+        .from('students')
+        .delete()
+        .eq('id', userId);
+      
+      if (error) throw error;
+      
+      // Update local state
+      const filteredStudents = students.filter(student => student.id !== userId);
+      setStudents(filteredStudents);
+      
+      toast({
+        title: "Student account deleted",
+        description: "Student account has been permanently deleted"
+      });
+    } catch (error: any) {
+      console.error("Error deleting student account:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete student account",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -59,9 +101,9 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ students, setStudents, t }) =
         <Card key={student.id}>
           <CardHeader>
             <CardTitle className="flex justify-between">
-              <span>{student.displayName} ({student.username})</span>
-              <Badge className={student.isActive ? "bg-green-500" : "bg-red-500"}>
-                {student.isActive ? t("active") || "Active" : t("frozen") || "Frozen"}
+              <span>{student.display_name || student.username} ({student.username})</span>
+              <Badge className={student.is_active ? "bg-green-500" : "bg-red-500"}>
+                {student.is_active ? t("active") || "Active" : t("frozen") || "Frozen"}
               </Badge>
             </CardTitle>
           </CardHeader>
@@ -69,32 +111,28 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ students, setStudents, t }) =
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
               <div>
                 <p className="text-sm text-gray-500">{t("teacher-id") || "Teacher ID"}</p>
-                <p>{student.teacherId}</p>
+                <p>{student.teacher_id}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">{t("created") || "Created"}</p>
-                <p>{new Date(student.createdAt).toLocaleDateString()}</p>
+                <p>{new Date(student.created_at).toLocaleDateString()}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">{t("last-login") || "Last Login"}</p>
-                <p>{student.lastLogin}</p>
+                <p>{student.last_login ? new Date(student.last_login).toLocaleString() : "Never"}</p>
               </div>
               <div>
                 <p className="text-sm text-gray-500">{t("time-spent") || "Time Spent"}</p>
-                <p>{student.timeSpent} {t("minutes") || "minutes"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">{t("coins-spent") || "Coins Spent"}</p>
-                <p>{student.coinsSpent}</p>
+                <p>{student.time_spent || 0} {t("minutes") || "minutes"}</p>
               </div>
             </div>
             
             <div className="flex gap-2">
               <Button 
                 onClick={() => handleToggleAccount(student.id)} 
-                variant={student.isActive ? "destructive" : "default"}
+                variant={student.is_active ? "destructive" : "default"}
               >
-                {student.isActive ? t("freeze-account") || "Freeze Account" : t("unfreeze-account") || "Unfreeze Account"}
+                {student.is_active ? t("freeze-account") || "Freeze Account" : t("unfreeze-account") || "Unfreeze Account"}
               </Button>
               <Button 
                 onClick={() => handleDeleteAccount(student.id)} 

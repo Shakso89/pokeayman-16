@@ -8,21 +8,23 @@ import AdminHeader from "@/components/admin/AdminHeader";
 import TeachersTab from "@/components/admin/TeachersTab";
 import StudentsTab from "@/components/admin/StudentsTab";
 import CreditManagement from "@/components/admin/CreditManagement";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 // Types for our user data
 interface TeacherData {
   id: string;
   username: string;
-  displayName: string;
+  display_name?: string;
   schools?: string[];
   students?: string[];
-  createdAt: string;
-  lastLogin?: string;
-  timeSpent?: number; // in minutes
-  expiryDate?: string;
-  subscriptionType?: "trial" | "monthly" | "annual";
-  isActive: boolean;
-  // Add the properties that were calculated in the useEffect
+  created_at: string;
+  last_login?: string;
+  time_spent?: number; // in minutes
+  expiry_date?: string;
+  subscription_type?: "trial" | "monthly" | "annual";
+  is_active: boolean;
+  // Calculated fields
   numSchools?: number;
   numStudents?: number;
 }
@@ -30,73 +32,93 @@ interface TeacherData {
 interface StudentData {
   id: string;
   username: string;
-  displayName: string;
-  teacherId: string;
-  createdAt: string;
-  lastLogin?: string;
-  timeSpent?: number; // in minutes
-  coinsSpent?: number;
-  isActive: boolean;
+  display_name: string;
+  teacher_id: string;
+  created_at: string;
+  last_login?: string;
+  time_spent?: number; // in minutes
+  is_active: boolean;
 }
 
 const AdminDashboard: React.FC = () => {
   const [teachers, setTeachers] = useState<TeacherData[]>([]);
   const [students, setStudents] = useState<StudentData[]>([]);
   const [activeTab, setActiveTab] = useState("teachers");
+  const [isLoading, setIsLoading] = useState(true);
   const { t } = useTranslation();
   const navigate = useNavigate();
 
-  // Check if current user is Admin - UPDATED to check for username "Admin" or "Ayman"
+  // Check if current user is Admin
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const username = localStorage.getItem("teacherUsername") || "";
   const isAdmin = username === "Admin" || username === "Ayman";
 
   useEffect(() => {
-    // Load teachers data
-    const storedTeachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-
-    // Process teacher data to include additional admin metrics
-    const processedTeachers = storedTeachers.map((teacher: any) => {
-      // Calculate number of schools
-      const numSchools = teacher.schools ? teacher.schools.length : 0;
-
-      // Calculate number of students
-      const numStudents = teacher.students ? teacher.students.length : 0;
-      return {
-        ...teacher,
-        numSchools,
-        numStudents,
-        // Default values for metrics that might not exist yet
-        timeSpent: teacher.timeSpent || 0,
-        lastLogin: teacher.lastLogin || "Never",
-        expiryDate: teacher.expiryDate || "No expiry",
-        subscriptionType: teacher.subscriptionType || "trial",
-        isActive: teacher.isActive !== false // Default to true if not specified
-      };
-    });
-    setTeachers(processedTeachers);
-
-    // Load students data
-    const storedStudents = JSON.parse(localStorage.getItem("students") || "[]");
-
-    // Get student Pokémon to calculate coins spent
-    const studentPokemon = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
-
-    // Process student data
-    const processedStudents = storedStudents.map((student: any) => {
-      // Find student's coin data
-      const pokemonData = studentPokemon.find((sp: any) => sp.studentId === student.id);
-      const coinsSpent = pokemonData ? pokemonData.coins || 0 : 0;
-      return {
-        ...student,
-        coinsSpent,
-        timeSpent: student.timeSpent || 0,
-        lastLogin: student.lastLogin || "Never",
-        isActive: student.isActive !== false // Default to true if not specified
-      };
-    });
-    setStudents(processedStudents);
-  }, []);
+    // Load data from Supabase
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        // Load teachers
+        const { data: teachersData, error: teachersError } = await supabase
+          .from('teachers')
+          .select('*');
+          
+        if (teachersError) throw teachersError;
+        
+        // Process teacher data
+        const processedTeachers = await Promise.all((teachersData || []).map(async (teacher) => {
+          // Get teacher students count
+          const { count: studentsCount, error: countError } = await supabase
+            .from('students')
+            .select('*', { count: 'exact', head: true })
+            .eq('teacher_id', teacher.id);
+            
+          if (countError) console.error("Error counting students:", countError);
+          
+          // Get teacher schools count
+          const { count: schoolsCount, error: schoolsError } = await supabase
+            .from('schools')
+            .select('*', { count: 'exact', head: true })
+            .eq('created_by', teacher.id);
+            
+          if (schoolsError) console.error("Error counting schools:", schoolsError);
+          
+          return {
+            ...teacher,
+            numSchools: schoolsCount || 0,
+            numStudents: studentsCount || 0,
+            // Additional formatting
+            display_name: teacher.display_name || teacher.username,
+            is_active: teacher.is_active !== false, // Default to true if not specified
+          };
+        }));
+        
+        setTeachers(processedTeachers);
+        
+        // Load students
+        const { data: studentsData, error: studentsError } = await supabase
+          .from('students')
+          .select('*');
+        
+        if (studentsError) throw studentsError;
+        
+        setStudents(studentsData || []);
+      } catch (error: any) {
+        console.error("Error loading data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load dashboard data",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    if (isLoggedIn && isAdmin) {
+      loadData();
+    }
+  }, [isLoggedIn, isAdmin]);
 
   // Redirect if not admin with username "Admin" or "Ayman"
   if (!isLoggedIn || !isAdmin) {
@@ -118,11 +140,19 @@ const AdminDashboard: React.FC = () => {
           </TabsList>
           
           <TabsContent value="teachers" className="mt-0">
-            <TeachersTab teachers={teachers} setTeachers={setTeachers} t={t} />
+            {isLoading ? (
+              <div className="text-center py-8">Loading teachers...</div>
+            ) : (
+              <TeachersTab teachers={teachers} setTeachers={setTeachers} t={t} />
+            )}
           </TabsContent>
           
           <TabsContent value="students" className="mt-0">
-            <StudentsTab students={students} setStudents={setStudents} t={t} />
+            {isLoading ? (
+              <div className="text-center py-8">Loading students...</div>
+            ) : (
+              <StudentsTab students={students} setStudents={setStudents} t={t} />
+            )}
           </TabsContent>
           
           <TabsContent value="credits" className="mt-0">

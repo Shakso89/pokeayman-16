@@ -12,6 +12,8 @@ import { initializeTeacherCredits, getTeacherCredits } from "@/utils/creditServi
 import DashboardHeader from "@/components/teacher/dashboard/DashboardHeader";
 import AddStudentDialog from "@/components/teacher/dashboard/AddStudentDialog";
 import MainDashboard from "@/components/teacher/dashboard/MainDashboard";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -21,6 +23,7 @@ const TeacherDashboard: React.FC = () => {
   const [teacherData, setTeacherData] = useState<any>(null);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
   const [creditInfo, setCreditInfo] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const { t } = useTranslation();
   
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
@@ -30,23 +33,68 @@ const TeacherDashboard: React.FC = () => {
   const isAdmin = username === "Admin" || username === "Ayman";
 
   useEffect(() => {
-    // Load teacher data
-    if (teacherId) {
-      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-      const teacher = teachers.find((t: any) => t.id === teacherId);
-      if (teacher) {
+    // Load teacher data from Supabase
+    const loadTeacherData = async () => {
+      if (!teacherId) return;
+      
+      setIsLoading(true);
+      try {
+        // Get teacher profile
+        let { data: teacher, error } = await supabase
+          .from('teachers')
+          .select('*')
+          .eq('id', teacherId)
+          .single();
+          
+        if (error) {
+          // If teacher doesn't exist in Supabase yet, use local data
+          console.warn("Teacher not found in database:", error);
+          const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+          teacher = teachers.find((t: any) => t.id === teacherId);
+          
+          if (!teacher) {
+            console.error("Teacher not found in localStorage either");
+            return;
+          }
+        }
+        
         setTeacherData(teacher);
         
-        // Initialize teacher credits if not already done
-        const displayName = teacher.displayName || username;
-        initializeTeacherCredits(teacherId, username, displayName);
+        // Initialize teacher credits
+        const displayName = teacher.display_name || username;
+        await initializeTeacherCredits(teacherId, username, displayName);
         
-        // Load credit information
-        const credits = getTeacherCredits(teacherId);
-        setCreditInfo(credits);
+        // Get teacher credits
+        const { data: creditData, error: creditError } = await supabase
+          .from('teacher_credits')
+          .select('*')
+          .eq('teacher_id', teacherId)
+          .single();
+          
+        if (creditError) {
+          console.error("Error loading credits:", creditError);
+          // Fall back to local credit service
+          const credits = getTeacherCredits(teacherId);
+          setCreditInfo(credits);
+        } else {
+          setCreditInfo(creditData);
+        }
+      } catch (error: any) {
+        console.error("Error loading teacher data:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load teacher data",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
       }
+    };
+    
+    if (isLoggedIn && userType === "teacher") {
+      loadTeacherData();
     }
-  }, [teacherId, username]);
+  }, [teacherId, username, isLoggedIn, userType]);
 
   if (!isLoggedIn || userType !== "teacher") {
     return <Navigate to="/teacher-login" />;
@@ -56,12 +104,16 @@ const TeacherDashboard: React.FC = () => {
     <div className="min-h-screen bg-gray-100">
       <NavBar 
         userType="teacher" 
-        userName={teacherData?.displayName || username || "Teacher"} 
-        userAvatar={teacherData?.avatar}
+        userName={teacherData?.display_name || username || "Teacher"} 
+        userAvatar={teacherData?.avatar_url}
       />
       
       <div className="container mx-auto py-8 px-4">
-        {currentView === "main" ? (
+        {isLoading ? (
+          <div className="flex justify-center items-center h-64">
+            <p className="text-gray-500">Loading dashboard...</p>
+          </div>
+        ) : currentView === "main" ? (
           <>
             <DashboardHeader isAdmin={isAdmin} />
             
@@ -101,7 +153,7 @@ const TeacherDashboard: React.FC = () => {
             
             <SchoolCollaboration 
               teacherId={teacherId || ""} 
-              teacherName={teacherData?.displayName || username || "Teacher"} 
+              teacherName={teacherData?.display_name || username || "Teacher"} 
             />
           </div>
         )}
