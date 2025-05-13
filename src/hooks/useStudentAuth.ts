@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Student } from "@/types/database";
 
 export const useStudentAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
@@ -27,12 +28,12 @@ export const useStudentAuth = () => {
         throw new Error("Invalid username or password");
       }
       
-      const student = students[0];
+      const student = students[0] as Student;
       
       // Update last login time
       await supabase
         .from('students')
-        .update({ last_login: new Date().toISOString() })
+        .update({ last_login: new Date().toISOString() } as Partial<Student>)
         .eq('id', student.id);
       
       // Store student session in localStorage

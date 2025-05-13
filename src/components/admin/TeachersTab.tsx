@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,6 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Trash2, AlertTriangle } from "lucide-react";
+import { Teacher } from "@/types/database";
 
 // Renaming the interface to avoid conflicts with AdminDashboard
 export interface AdminTeacherData {
@@ -41,7 +41,7 @@ const TeachersTab: React.FC<TeachersTabProps> = ({ teachers, setTeachers, t }) =
       // Update in Supabase
       const { error } = await supabase
         .from('teachers')
-        .update({ is_active: newIsActive })
+        .update({ is_active: newIsActive } as Partial<Teacher>)
         .eq('id', userId);
         
       if (error) throw error;

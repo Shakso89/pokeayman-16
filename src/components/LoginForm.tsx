@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,6 +11,7 @@ import { setActivationStatus } from "@/utils/activationService";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Student } from "@/types/database";
 
 export interface LoginFormProps {
   type: "teacher" | "student";
@@ -276,9 +276,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                   teacher_id: student.teacherId,
                   class_id: student.classId,
                   last_login: new Date().toISOString()
-                })
-                .select()
-                .single();
+                } as Student)
+                .select();
               
               if (!error) {
                 console.log("Migrated student to database:", data);

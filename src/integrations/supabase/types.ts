@@ -9,7 +9,125 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
-      [_ in never]: never
+      classes: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          teacher_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          teacher_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          teacher_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "classes_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      students: {
+        Row: {
+          class_id: string | null
+          created_at: string
+          display_name: string | null
+          id: string
+          is_active: boolean | null
+          last_login: string | null
+          password: string
+          teacher_id: string | null
+          username: string
+        }
+        Insert: {
+          class_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_login?: string | null
+          password: string
+          teacher_id?: string | null
+          username: string
+        }
+        Update: {
+          class_id?: string | null
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_login?: string | null
+          password?: string
+          teacher_id?: string | null
+          username?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "students_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "students_teacher_id_fkey"
+            columns: ["teacher_id"]
+            isOneToOne: false
+            referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      teachers: {
+        Row: {
+          created_at: string
+          display_name: string
+          email: string | null
+          expiry_date: string | null
+          id: string
+          is_active: boolean | null
+          last_login: string | null
+          password: string
+          subscription_type: string | null
+          username: string
+        }
+        Insert: {
+          created_at?: string
+          display_name: string
+          email?: string | null
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_login?: string | null
+          password: string
+          subscription_type?: string | null
+          username: string
+        }
+        Update: {
+          created_at?: string
+          display_name?: string
+          email?: string | null
+          expiry_date?: string | null
+          id?: string
+          is_active?: boolean | null
+          last_login?: string | null
+          password?: string
+          subscription_type?: string | null
+          username?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

@@ -1,10 +1,10 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { Student } from "@/types/database";
 
 interface StudentData {
   id: string;
@@ -35,7 +35,7 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ students, setStudents, t }) =
       // Update in Supabase
       const { error } = await supabase
         .from('students')
-        .update({ is_active: newIsActive })
+        .update({ is_active: newIsActive } as Partial<Student>)
         .eq('id', userId);
       
       if (error) throw error;
