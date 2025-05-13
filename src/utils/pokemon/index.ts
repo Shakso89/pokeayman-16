@@ -19,7 +19,8 @@ export {
   getRandomPokemonFromPool,
   getClassPokemonPool,
   initializeClassPokemonPool,
-  getDailyWheelPokemons
+  getDailyWheelPokemons,
+  updateAllSchoolPoolsTo500
 } from './schoolPokemon';
 
 // Export from studentPokemon.ts
