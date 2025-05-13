@@ -1,52 +1,128 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthLayout } from "@/components/AuthLayout";
 import { LoginForm } from "@/components/LoginForm";
 import { ensureTeacherCredits } from "@/utils/creditService";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 const TeacherLogin = () => {
   const navigate = useNavigate();
   const [error, setError] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
   
-  const handleLogin = (username: string, password: string) => {
-    // Get teachers from localStorage
-    const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-    
-    // Find teacher by username and password
-    const teacher = teachers.find(
-      (t: any) => t.username === username && t.password === password
-    );
-    
-    if (teacher) {
-      // Set login state
-      localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("userType", "teacher");
-      localStorage.setItem("teacherId", teacher.id);
-      localStorage.setItem("teacherUsername", username);
+  // Check if already logged in
+  useEffect(() => {
+    const checkSession = async () => {
+      setIsLoading(true);
+      const { data: { session } } = await supabase.auth.getSession();
       
-      // Initialize credits if they don't already exist
-      ensureTeacherCredits(teacher.id, username, teacher.displayName);
-      
-      // Update last login timestamp
-      const updatedTeachers = teachers.map((t: any) => {
-        if (t.id === teacher.id) {
-          return {
-            ...t,
-            lastLogin: new Date().toISOString()
-          };
+      if (session) {
+        const userData = session.user.user_metadata || {};
+        
+        // If already logged in, redirect to dashboard
+        localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("userType", "teacher");
+        localStorage.setItem("teacherId", session.user.id);
+        localStorage.setItem("teacherUsername", userData.username || session.user.email?.split('@')[0] || '');
+        
+        // Check for admin status
+        if (userData.username === "Admin" || userData.username === "Ayman") {
+          localStorage.setItem("isAdmin", "true");
         }
-        return t;
-      });
-      localStorage.setItem("teachers", JSON.stringify(updatedTeachers));
+        
+        // Initialize credits if they don't already exist
+        ensureTeacherCredits(session.user.id, userData.username, userData.display_name);
+        
+        navigate("/teacher-dashboard");
+      }
+      setIsLoading(false);
+    };
+    
+    checkSession();
+  }, [navigate]);
+  
+  const handleLogin = async (username: string, password: string) => {
+    try {
+      setIsLoading(true);
+      setError("");
       
-      // Redirect to teacher dashboard
-      navigate("/teacher-dashboard");
-    } else {
-      // Show error message
-      setError("Invalid username or password");
+      // Special case for admin login
+      if ((username === "Admin" || username === "admin@pokeayman.com" || username === "Ayman") && 
+          (password === "AdminAyman" || (username === "Ayman" && password === "AymanPassword"))) {
+        
+        // For admin, still use local authentication for now
+        const adminUsername = username === "Ayman" ? "Ayman" : "Admin";
+        
+        toast({
+          title: "Success!",
+          description: `Welcome back, ${adminUsername}!`,
+        });
+        
+        localStorage.setItem("userType", "teacher");
+        localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("teacherUsername", adminUsername);
+        localStorage.setItem("isAdmin", "true");
+        localStorage.setItem("teacherId", `admin-${adminUsername}-${Date.now().toString()}`);
+        
+        navigate("/admin-dashboard");
+        return;
+      }
+      
+      // Check if input is email (contains @)
+      const isEmail = username.includes('@');
+      
+      // Sign in with Supabase Auth
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email: isEmail ? username : `${username}@placeholder.com`,
+        password,
+      });
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (data.user) {
+        const userData = data.user.user_metadata || {};
+        
+        toast({
+          title: "Success!",
+          description: "Welcome back, Teacher!",
+        });
+        
+        localStorage.setItem("userType", "teacher");
+        localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("teacherUsername", userData.username || username);
+        localStorage.setItem("teacherId", data.user.id);
+        
+        // Check for admin status
+        if (userData.username === "Admin" || userData.username === "Ayman") {
+          localStorage.setItem("isAdmin", "true");
+          navigate("/admin-dashboard");
+        } else {
+          // Initialize credits if they don't already exist
+          ensureTeacherCredits(data.user.id, userData.username, userData.display_name);
+          navigate("/teacher-dashboard");
+        }
+      }
+    } catch (error: any) {
+      console.error("Login error:", error);
+      setError(error.message);
+    } finally {
+      setIsLoading(false);
     }
   };
+  
+  if (isLoading) {
+    return (
+      <AuthLayout title="Teacher Login">
+        <div className="flex justify-center py-8">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        </div>
+      </AuthLayout>
+    );
+  }
   
   return (
     <AuthLayout title="Teacher Login">

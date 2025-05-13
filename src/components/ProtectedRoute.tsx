@@ -1,21 +1,43 @@
 
-import React from "react";
+import React, { useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { isTeacherActivated } from "@/utils/activationService";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useAuth } from "@/hooks/useAuth";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-  const userType = localStorage.getItem("userType");
+  const { isLoggedIn, userType, loading } = useAuth();
   const isActivated = isTeacherActivated();
   const isAdmin = localStorage.getItem("isAdmin") === "true";
   const navigate = useNavigate();
   const { t } = useTranslation();
+
+  // Check for auth in Supabase on initial render
+  useEffect(() => {
+    const checkAuthStatus = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user && userType === 'teacher' && !isLoggedIn) {
+        // Session exists but localStorage doesn't have it - refresh the page
+        window.location.reload();
+      }
+    };
+    
+    checkAuthStatus();
+  }, []);
+
+  // If still loading auth state, show loading indicator
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
 
   // Handle login check
   if (!isLoggedIn) {
@@ -43,5 +65,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   return <>{children}</>;
 };
+
+// Make sure we import supabase client
+import { supabase } from "@/integrations/supabase/client";
 
 export default ProtectedRoute;

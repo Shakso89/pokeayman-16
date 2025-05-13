@@ -1,8 +1,9 @@
 
-// Class management functions with Supabase integration
 import { supabase } from "@/integrations/supabase/client";
+import { v4 as uuidv4 } from "uuid";
+import { getValidUUID } from "@/components/teacher/dashboard/student/studentUtils";
 
-// Define simple interfaces for our class data to avoid deep typing issues
+// Define a simpler interface to avoid excessive type instantiation
 export interface ClassData {
   id: string;
   name: string;
@@ -10,29 +11,28 @@ export interface ClassData {
   teacherId?: string;
 }
 
-// Define explicit interface for what Supabase returns
-export interface SupabaseClassData {
-  id: string;
-  name: string;
-  school_id: string;
-  teacher_id?: string;
-  created_at: string;
-}
-
-// Check if a class exists
+/**
+ * Checks if a class with the same name already exists in the specified school
+ */
 export const classExists = async (classData: ClassData): Promise<boolean> => {
+  // Skip the check if no school ID is provided
+  if (!classData.schoolId) {
+    return false;
+  }
+  
   try {
-    // First try Supabase
+    const teacherId = classData.teacherId || null;
+    // First try to use Supabase
     const { data, error } = await supabase
       .from('classes')
-      .select('id')
+      .select('name')
       .eq('name', classData.name)
-      .eq('school_id', classData.schoolId);
-      
+      .eq('teacher_id', teacherId);
+    
     if (error) {
       console.error("Error checking if class exists in database:", error);
       
-      // Simple inline type with minimal structure to avoid excessive type instantiation
+      // Use direct type annotation to avoid excessive instantiation
       const allClasses: {name: string; schoolId: string}[] = 
         JSON.parse(localStorage.getItem("classes") || "[]");
       
@@ -45,7 +45,7 @@ export const classExists = async (classData: ClassData): Promise<boolean> => {
   } catch (error) {
     console.error("Exception in classExists:", error);
     
-    // Simple inline type with minimal structure to avoid excessive type instantiation
+    // Use direct type annotation to avoid excessive instantiation
     const allClasses: {name: string; schoolId: string}[] = 
       JSON.parse(localStorage.getItem("classes") || "[]");
     
@@ -55,39 +55,44 @@ export const classExists = async (classData: ClassData): Promise<boolean> => {
   }
 };
 
-// Save a class to database and localStorage
-export const saveClass = async (classData: ClassData): Promise<{success: boolean; classId?: string; message?: string}> => {
+/**
+ * Saves a class to the database
+ */
+export const saveClass = async (classData: ClassData): Promise<ClassData> => {
+  // If the class doesn't have an ID, generate a unique ID
+  if (!classData.id) {
+    classData.id = uuidv4();
+  }
+  
+  // Ensure the teacherId is a valid UUID
+  if (classData.teacherId) {
+    classData.teacherId = getValidUUID(classData.teacherId);
+  }
+  
   try {
-    // Check if class already exists
-    const exists = await classExists(classData);
-    if (exists) {
-      return { success: false, message: "A class with this name already exists" };
-    }
-    
-    // Try to save to Supabase
+    // First try to use Supabase
     const { data, error } = await supabase
       .from('classes')
       .insert({
         id: classData.id,
         name: classData.name,
-        school_id: classData.schoolId,
-        teacher_id: classData.teacherId
+        teacher_id: classData.teacherId || null
       })
       .select()
       .single();
-      
+    
     if (error) {
       console.error("Error saving class to database:", error);
       
-      // Define a simple array type directly
+      // Use direct type annotation to avoid excessive instantiation
       const allClasses: ClassData[] = JSON.parse(localStorage.getItem("classes") || "[]");
       allClasses.push(classData);
       localStorage.setItem("classes", JSON.stringify(allClasses));
       
-      return { success: true, classId: classData.id };
+      return classData;
     }
     
-    return { success: true, classId: data.id };
+    return data as unknown as ClassData;
   } catch (error) {
     console.error("Error saving class:", error);
     
@@ -97,80 +102,79 @@ export const saveClass = async (classData: ClassData): Promise<{success: boolean
       allClasses.push(classData);
       localStorage.setItem("classes", JSON.stringify(allClasses));
       
-      return { success: true, classId: classData.id };
-    } catch (error) {
-      console.error("Error saving class to localStorage:", error);
-      return { success: false, message: "Error saving class data" };
+      return classData;
+    } catch (localStorageError) {
+      console.error("Error saving to localStorage:", localStorageError);
+      return classData; // Return original data as a fallback
     }
   }
 };
 
-// Get classes for a school
-export const getClassesForSchool = async (schoolId: string): Promise<ClassData[]> => {
+export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[]> => {
   try {
-    // Try to get from Supabase
+    // First try to use Supabase
     const { data, error } = await supabase
       .from('classes')
       .select('*')
-      .eq('school_id', schoolId);
-      
+      .eq('teacher_id', schoolId);
+    
     if (error) {
       console.error("Error fetching classes from database:", error);
       
-      // Simpler type declaration 
-      type SimpleClass = {
-        id: string; 
-        name: string; 
-        schoolId: string; 
+      // Use a simpler type definition to avoid excessive instantiation
+      interface SimpleClass {
+        id: string;
+        name: string;
+        schoolId: string;
         teacherId?: string;
-      };
+      }
       
       const allClasses: SimpleClass[] = JSON.parse(localStorage.getItem("classes") || "[]");
       return allClasses.filter(cls => cls.schoolId === schoolId);
     }
     
-    // Cast Supabase data to our known type and transform to ClassData format
-    const typedData = data as SupabaseClassData[];
-    
-    return typedData.map((item) => ({
+    // Map Supabase data to ClassData interface
+    return (data || []).map((item: any) => ({
       id: item.id,
       name: item.name,
-      schoolId: item.school_id,
+      schoolId: item.teacher_id || schoolId,
       teacherId: item.teacher_id
     }));
+    
   } catch (error) {
     console.error("Error fetching classes:", error);
     
-    // Simpler type declaration
-    type SimpleClass = {
-      id: string; 
-      name: string; 
-      schoolId: string; 
+    // Use a simpler type definition to avoid excessive instantiation
+    interface SimpleClass {
+      id: string;
+      name: string;
+      schoolId: string;
       teacherId?: string;
-    };
+    }
     
     const allClasses: SimpleClass[] = JSON.parse(localStorage.getItem("classes") || "[]");
     return allClasses.filter(cls => cls.schoolId === schoolId);
   }
 };
 
-// Delete a class
 export const deleteClass = async (classId: string): Promise<boolean> => {
   try {
-    // Try to delete from Supabase
+    // First try to use Supabase
     const { error } = await supabase
       .from('classes')
       .delete()
       .eq('id', classId);
-      
+    
     if (error) {
       console.error("Error deleting class from database:", error);
       
-      // Simple inline type
+      // Use direct type annotation to avoid excessive instantiation
       const allClasses: {id: string}[] = JSON.parse(localStorage.getItem("classes") || "[]");
       
       const updatedClasses = allClasses.filter(cls => cls.id !== classId);
       localStorage.setItem("classes", JSON.stringify(updatedClasses));
+      
+      return true;
     }
     
     return true;
@@ -179,15 +183,15 @@ export const deleteClass = async (classId: string): Promise<boolean> => {
     
     // Fallback to localStorage
     try {
-      // Simple inline type
+      // Use direct type annotation to avoid excessive instantiation
       const allClasses: {id: string}[] = JSON.parse(localStorage.getItem("classes") || "[]");
       
       const updatedClasses = allClasses.filter(cls => cls.id !== classId);
       localStorage.setItem("classes", JSON.stringify(updatedClasses));
       
       return true;
-    } catch (error) {
-      console.error("Error deleting class from localStorage:", error);
+    } catch (localStorageError) {
+      console.error("Error updating localStorage:", localStorageError);
       return false;
     }
   }

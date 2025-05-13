@@ -11,7 +11,7 @@ export const useStudentAuth = () => {
     setIsLoading(true);
     
     try {
-      // Fetch student by username and password
+      // First try to fetch student from Supabase database
       const { data: students, error } = await supabase
         .from('students')
         .select('*')
@@ -42,6 +42,9 @@ export const useStudentAuth = () => {
       localStorage.setItem("studentId", student.id);
       localStorage.setItem("studentUsername", student.username);
       localStorage.setItem("studentDisplayName", student.display_name || student.username);
+      if (student.class_id) {
+        localStorage.setItem("studentClassId", student.class_id);
+      }
       
       // Return success and student data
       return {
@@ -71,6 +74,12 @@ export const useStudentAuth = () => {
     localStorage.removeItem("studentId");
     localStorage.removeItem("studentUsername");
     localStorage.removeItem("studentDisplayName");
+    localStorage.removeItem("studentClassId");
+    
+    toast({
+      title: "Logged out successfully",
+      description: "You have been logged out of your account."
+    });
   };
   
   return {
