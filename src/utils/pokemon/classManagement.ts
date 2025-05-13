@@ -110,6 +110,10 @@ export const saveClass = async (classData: ClassData): Promise<ClassData> => {
   }
 };
 
+/**
+ * Gets all classes for a school by school ID
+ * This is the renamed function (previously getClassesForSchool)
+ */
 export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[]> => {
   try {
     // First try to use Supabase
