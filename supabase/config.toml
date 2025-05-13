@@ -1,2 +1,5 @@
 
 project_id = "bvhqfkagpksbxwhrmipz"
+
+[functions.handle_student_creation]
+verify_jwt = false
