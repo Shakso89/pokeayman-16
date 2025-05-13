@@ -9,6 +9,8 @@ import AvatarSelector from "@/components/signup/AvatarSelector";
 import SignupFormFields from "@/components/signup/SignupFormFields";
 import PokemonDecorations from "@/components/signup/PokemonDecorations";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 const TeacherSignUp: React.FC = () => {
   const navigate = useNavigate();
@@ -18,6 +20,7 @@ const TeacherSignUp: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
+  const [verificationSent, setVerificationSent] = useState(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -31,6 +34,7 @@ const TeacherSignUp: React.FC = () => {
           description: "Please make sure your passwords match.",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
@@ -40,6 +44,7 @@ const TeacherSignUp: React.FC = () => {
           description: "Please enter a username.",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
@@ -51,12 +56,13 @@ const TeacherSignUp: React.FC = () => {
           description: "Please enter a valid email address.",
           variant: "destructive",
         });
+        setIsLoading(false);
         return;
       }
 
       console.log("Starting sign up process for:", email);
       
-      // Register with Supabase Auth
+      // Register with Supabase Auth with email confirmation required
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -66,6 +72,8 @@ const TeacherSignUp: React.FC = () => {
             avatar_url: avatarUrl,
             user_type: "teacher",
           },
+          // This ensures the user gets a confirmation email
+          emailRedirectTo: window.location.origin + "/teacher-login",
         }
       });
       
@@ -92,31 +100,27 @@ const TeacherSignUp: React.FC = () => {
             variant: "destructive",
           });
         }
+        setIsLoading(false);
         return;
       }
       
       if (authData.user) {
         console.log("User created successfully:", authData.user.id);
+        setVerificationSent(true);
         
         toast({
-          title: "Account created",
-          description: "Welcome to PokéAyman! Your account has been created.",
+          title: "Verification email sent",
+          description: "Please check your email to confirm your account.",
         });
         
-        // Wait a moment before redirecting to ensure toast is seen
-        setTimeout(() => {
-          navigate("/teacher-login");
-        }, 1500);
+        // Don't redirect automatically - wait for email confirmation
       } else {
         // This case shouldn't happen normally, but added as a fallback
         toast({
           title: "Something went wrong",
-          description: "Your account may have been created, but we couldn't confirm it. Please try logging in.",
+          description: "Your account may have been created, but we couldn't confirm it. Please check your email for verification.",
           variant: "destructive",
         });
-        setTimeout(() => {
-          navigate("/teacher-login");
-        }, 2000);
       }
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -152,25 +156,47 @@ const TeacherSignUp: React.FC = () => {
           description="Create your account to manage your classes"
           className="bg-black/70 text-white border-gray-800"
         >
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <AvatarSelector 
-              avatarUrl={avatarUrl}
-              setAvatarUrl={setAvatarUrl}
-            />
-            
-            <SignupFormFields
-              username={username}
-              setUsername={setUsername}
-              email={email}
-              setEmail={setEmail}
-              password={password}
-              setPassword={setPassword}
-              confirmPassword={confirmPassword}
-              setConfirmPassword={setConfirmPassword}
-              isLoading={isLoading}
-              onNavigateToLogin={() => navigate("/teacher-login")}
-            />
-          </form>
+          {verificationSent ? (
+            <div className="space-y-6">
+              <Alert variant="default" className="bg-blue-500/20 border-blue-500 text-white">
+                <AlertCircle className="h-5 w-5" />
+                <AlertDescription>
+                  We've sent a verification email to <strong>{email}</strong>. 
+                  Please check your inbox and click the link to verify your account before logging in.
+                </AlertDescription>
+              </Alert>
+              
+              <div className="text-center space-y-4">
+                <p>Didn't receive the email? Check your spam folder or request a new one.</p>
+                <Button
+                  onClick={() => navigate("/teacher-login")}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Go to Login
+                </Button>
+              </div>
+            </div>
+          ) : (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <AvatarSelector 
+                avatarUrl={avatarUrl}
+                setAvatarUrl={setAvatarUrl}
+              />
+              
+              <SignupFormFields
+                username={username}
+                setUsername={setUsername}
+                email={email}
+                setEmail={setEmail}
+                password={password}
+                setPassword={setPassword}
+                confirmPassword={confirmPassword}
+                setConfirmPassword={setConfirmPassword}
+                isLoading={isLoading}
+                onNavigateToLogin={() => navigate("/teacher-login")}
+              />
+            </form>
+          )}
         </AuthLayout>
       </div>
       

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -5,11 +6,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { AuthLayout } from "./AuthLayout";
 import { toast } from "@/hooks/use-toast";
-import { User, Lock } from "lucide-react";
+import { User, Lock, AlertCircle } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { setActivationStatus } from "@/utils/activationService";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface LoginFormProps {
   type: "teacher" | "student";
@@ -27,13 +29,54 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [emailUnverified, setEmailUnverified] = useState(false);
   const { t } = useTranslation();
   
   const navigate = useNavigate();
 
+  const handleResendVerification = async () => {
+    if (!usernameOrEmail.includes('@')) {
+      toast({
+        title: "Email required",
+        description: "Please enter a valid email address to resend verification.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: usernameOrEmail,
+        options: {
+          emailRedirectTo: window.location.origin + "/teacher-login",
+        },
+      });
+
+      if (error) {
+        throw error;
+      }
+
+      toast({
+        title: "Verification email sent",
+        description: "Please check your inbox for the verification link.",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Failed to resend verification",
+        description: error.message || "An error occurred. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setEmailUnverified(false);
 
     try {
       if (type === "teacher") {
@@ -75,6 +118,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         });
 
         if (authError) {
+          // Check if the error is about email not being verified
+          if (authError.message?.includes("Email not confirmed")) {
+            console.log("Email not verified:", usernameOrEmail);
+            setEmailUnverified(true);
+            throw new Error("Please verify your email address before logging in. Check your inbox for a verification link.");
+          }
+          
           // Try fallback for legacy users
           console.log("Auth error:", authError.message);
           
@@ -95,7 +145,8 @@ export const LoginForm: React.FC<LoginFormProps> = ({
                   display_name: teacher.displayName,
                   avatar_url: teacher.avatarUrl,
                   user_type: "teacher",
-                }
+                },
+                emailRedirectTo: window.location.origin + "/teacher-login",
               }
             });
             
@@ -131,6 +182,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             throw new Error("Invalid username/email or password.");
           }
         } else if (authData.user) {
+          // Check if email is verified
+          if (authData.user.email_confirmed_at === null) {
+            console.log("Email not verified:", authData.user.email);
+            setEmailUnverified(true);
+            throw new Error("Please verify your email address before logging in.");
+          }
+          
           // Successfully authenticated with Supabase
           const userMetadata = authData.user.user_metadata;
           
@@ -165,6 +223,12 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           });
           
           if (!authError && authData.user) {
+            // Check if email is verified for students as well
+            if (authData.user.email_confirmed_at === null) {
+              setEmailUnverified(true);
+              throw new Error("Please verify your email address before logging in.");
+            }
+            
             // Student authenticated via Supabase
             isAuthenticated = true;
             
@@ -265,6 +329,23 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-2 rounded-md mb-4">
             {error}
           </div>
+        )}
+        
+        {emailUnverified && (
+          <Alert variant={darkMode ? "default" : "destructive"} className={darkMode ? "bg-yellow-500/20 border-yellow-500 text-white" : ""}>
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Please verify your email address before logging in.
+              <Button 
+                variant="link" 
+                onClick={handleResendVerification} 
+                className={darkMode ? "text-yellow-300 p-0 h-auto ml-1" : "text-red-700 p-0 h-auto ml-1"}
+                disabled={isLoading}
+              >
+                Resend verification email
+              </Button>
+            </AlertDescription>
+          </Alert>
         )}
         
         <div className="space-y-2">
