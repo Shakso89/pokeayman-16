@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -37,7 +36,7 @@ const TeacherSignUp: React.FC = () => {
     }
 
     try {
-      // First, register with Supabase Auth
+      // Register with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -55,46 +54,9 @@ const TeacherSignUp: React.FC = () => {
       }
       
       if (authData.user) {
-        // Create teacher record in localStorage for backward compatibility
-        const teacherId = authData.user.id;
-        
-        // Store user data in localStorage for now (will be replaced with proper DB integration later)
-        const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-        teachers.push({
-          id: teacherId,
-          username,
-          email,
-          password, // In a real app, you would never store plain-text passwords
-          avatarUrl,
-          students: [],
-          isActive: true, // All accounts are active by default now
-          createdAt: new Date().toISOString()
-        });
-        localStorage.setItem("teachers", JSON.stringify(teachers));
-        
-        // Initialize teacher credits
-        const teacherCredits = JSON.parse(localStorage.getItem("teacherCredits") || "[]");
-        teacherCredits.push({
-          teacherId,
-          username,
-          displayName: username,
-          credits: 100, // Start with 100 free credits (updated from 500)
-          usedCredits: 0,
-          transactionHistory: [
-            {
-              id: `tr-${Date.now()}`,
-              teacherId,
-              amount: 100,
-              reason: "Initial free credits",
-              timestamp: new Date().toISOString()
-            }
-          ]
-        });
-        localStorage.setItem("teacherCredits", JSON.stringify(teacherCredits));
-        
         toast({
           title: "Account created",
-          description: "Welcome to TR Ayman! Your account is fully activated with 100 free credits.",
+          description: "Welcome to TR Ayman! Your account has been created and awaiting approval.",
         });
         
         // Sign out the user so they can log in properly
