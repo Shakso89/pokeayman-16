@@ -38,8 +38,19 @@ export {
 // Export sample Pokemon data
 export { samplePokemons } from './sampleData';
 
+// Import Supabase client
+import { supabase } from "@/integrations/supabase/client";
+
+// Define simple interfaces for our class data to avoid deep typing issues
+interface ClassData {
+  id: string;
+  name: string;
+  schoolId: string;
+  teacherId?: string;
+}
+
 // Class management functions with Supabase integration
-export const classExists = async (classData: any) => {
+export const classExists = async (classData: ClassData): Promise<boolean> => {
   try {
     // First try Supabase
     const { data, error } = await supabase
@@ -53,7 +64,7 @@ export const classExists = async (classData: any) => {
       
       // Fallback to localStorage
       const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      return allClasses.some((cls: any) => cls.name === classData.name && cls.schoolId === classData.schoolId);
+      return allClasses.some((cls: ClassData) => cls.name === classData.name && cls.schoolId === classData.schoolId);
     }
     
     return data && data.length > 0;
@@ -62,12 +73,12 @@ export const classExists = async (classData: any) => {
     
     // Fallback to localStorage
     const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    return allClasses.some((cls: any) => cls.name === classData.name && cls.schoolId === classData.schoolId);
+    return allClasses.some((cls: ClassData) => cls.name === classData.name && cls.schoolId === classData.schoolId);
   }
 };
 
 // Save a class to database and localStorage
-export const saveClass = async (classData: any) => {
+export const saveClass = async (classData: ClassData): Promise<{success: boolean; classId?: string; message?: string}> => {
   try {
     // Check if class already exists
     const exists = await classExists(classData);
@@ -117,7 +128,7 @@ export const saveClass = async (classData: any) => {
 };
 
 // Get classes for a school
-export const getClassesForSchool = async (schoolId: string) => {
+export const getClassesForSchool = async (schoolId: string): Promise<ClassData[]> => {
   try {
     // Try to get from Supabase
     const { data, error } = await supabase
@@ -130,7 +141,7 @@ export const getClassesForSchool = async (schoolId: string) => {
       
       // Fallback to localStorage
       const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      return allClasses.filter((cls: any) => cls.schoolId === schoolId);
+      return allClasses.filter((cls: ClassData) => cls.schoolId === schoolId);
     }
     
     return data;
@@ -139,12 +150,12 @@ export const getClassesForSchool = async (schoolId: string) => {
     
     // Fallback to localStorage
     const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    return allClasses.filter((cls: any) => cls.schoolId === schoolId);
+    return allClasses.filter((cls: ClassData) => cls.schoolId === schoolId);
   }
 };
 
 // Delete a class
-export const deleteClass = async (classId: string) => {
+export const deleteClass = async (classId: string): Promise<boolean> => {
   try {
     // Try to delete from Supabase
     const { error } = await supabase
@@ -157,7 +168,7 @@ export const deleteClass = async (classId: string) => {
       
       // Fallback to localStorage
       const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      const updatedClasses = allClasses.filter((cls: any) => cls.id !== classId);
+      const updatedClasses = allClasses.filter((cls: ClassData) => cls.id !== classId);
       localStorage.setItem("classes", JSON.stringify(updatedClasses));
     }
     
@@ -168,7 +179,7 @@ export const deleteClass = async (classId: string) => {
     // Fallback to localStorage
     try {
       const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      const updatedClasses = allClasses.filter((cls: any) => cls.id !== classId);
+      const updatedClasses = allClasses.filter((cls: ClassData) => cls.id !== classId);
       localStorage.setItem("classes", JSON.stringify(updatedClasses));
       
       return true;
@@ -178,6 +189,3 @@ export const deleteClass = async (classId: string) => {
     }
   }
 };
-
-// Import Supabase client
-import { supabase } from "@/integrations/supabase/client";
