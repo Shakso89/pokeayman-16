@@ -32,11 +32,13 @@ export const classExists = async (classData: ClassData): Promise<boolean> => {
     if (error) {
       console.error("Error checking if class exists in database:", error);
       
-      // Fallback to localStorage without referencing ClassData interface
-      const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      return allClasses.some(
-        (cls: { name: string; schoolId: string }) => 
-          cls.name === classData.name && cls.schoolId === classData.schoolId
+      // Use explicit inline type to prevent deep type instantiation
+      const allClasses: Array<{name: string; schoolId: string}> = 
+        JSON.parse(localStorage.getItem("classes") || "[]");
+      
+      // Use direct boolean return to avoid inference issues
+      return allClasses.some(cls => 
+        cls.name === classData.name && cls.schoolId === classData.schoolId
       );
     }
     
@@ -44,11 +46,13 @@ export const classExists = async (classData: ClassData): Promise<boolean> => {
   } catch (error) {
     console.error("Exception in classExists:", error);
     
-    // Fallback to localStorage without referencing ClassData interface
-    const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    return allClasses.some(
-      (cls: { name: string; schoolId: string }) => 
-        cls.name === classData.name && cls.schoolId === classData.schoolId
+    // Use explicit inline type to prevent deep type instantiation
+    const allClasses: Array<{name: string; schoolId: string}> = 
+      JSON.parse(localStorage.getItem("classes") || "[]");
+    
+    // Use direct boolean return to avoid inference issues
+    return allClasses.some(cls => 
+      cls.name === classData.name && cls.schoolId === classData.schoolId
     );
   }
 };
@@ -78,7 +82,7 @@ export const saveClass = async (classData: ClassData): Promise<{success: boolean
       console.error("Error saving class to database:", error);
       
       // Fallback to localStorage
-      const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+      const allClasses: Array<ClassData> = JSON.parse(localStorage.getItem("classes") || "[]");
       allClasses.push(classData);
       localStorage.setItem("classes", JSON.stringify(allClasses));
       
@@ -91,7 +95,7 @@ export const saveClass = async (classData: ClassData): Promise<{success: boolean
     
     // Fallback to localStorage
     try {
-      const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+      const allClasses: Array<ClassData> = JSON.parse(localStorage.getItem("classes") || "[]");
       allClasses.push(classData);
       localStorage.setItem("classes", JSON.stringify(allClasses));
       
@@ -115,9 +119,11 @@ export const getClassesForSchool = async (schoolId: string): Promise<ClassData[]
     if (error) {
       console.error("Error fetching classes from database:", error);
       
-      // Fallback to localStorage without referencing ClassData interface
-      const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      return allClasses.filter((cls: { schoolId: string }) => cls.schoolId === schoolId);
+      // Use explicit type annotation to avoid deep type instantiation
+      const allClasses: Array<{id: string; name: string; schoolId: string; teacherId?: string}> = 
+        JSON.parse(localStorage.getItem("classes") || "[]");
+      
+      return allClasses.filter(cls => cls.schoolId === schoolId);
     }
     
     // Explicitly cast Supabase data to SupabaseClassData and transform to our ClassData format
@@ -132,9 +138,11 @@ export const getClassesForSchool = async (schoolId: string): Promise<ClassData[]
   } catch (error) {
     console.error("Error fetching classes:", error);
     
-    // Fallback to localStorage without referencing ClassData interface
-    const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    return allClasses.filter((cls: { schoolId: string }) => cls.schoolId === schoolId);
+    // Use explicit type annotation to avoid deep type instantiation
+    const allClasses: Array<{id: string; name: string; schoolId: string; teacherId?: string}> = 
+      JSON.parse(localStorage.getItem("classes") || "[]");
+    
+    return allClasses.filter(cls => cls.schoolId === schoolId);
   }
 };
 
@@ -150,9 +158,11 @@ export const deleteClass = async (classId: string): Promise<boolean> => {
     if (error) {
       console.error("Error deleting class from database:", error);
       
-      // Fallback to localStorage without referencing ClassData interface
-      const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      const updatedClasses = allClasses.filter((cls: { id: string }) => cls.id !== classId);
+      // Use explicit type annotation to avoid deep type instantiation
+      const allClasses: Array<{id: string}> = 
+        JSON.parse(localStorage.getItem("classes") || "[]");
+      
+      const updatedClasses = allClasses.filter(cls => cls.id !== classId);
       localStorage.setItem("classes", JSON.stringify(updatedClasses));
     }
     
@@ -162,8 +172,11 @@ export const deleteClass = async (classId: string): Promise<boolean> => {
     
     // Fallback to localStorage
     try {
-      const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      const updatedClasses = allClasses.filter((cls: { id: string }) => cls.id !== classId);
+      // Use explicit type annotation to avoid deep type instantiation
+      const allClasses: Array<{id: string}> = 
+        JSON.parse(localStorage.getItem("classes") || "[]");
+      
+      const updatedClasses = allClasses.filter(cls => cls.id !== classId);
       localStorage.setItem("classes", JSON.stringify(updatedClasses));
       
       return true;
