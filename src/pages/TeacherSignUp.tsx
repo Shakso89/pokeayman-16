@@ -21,6 +21,7 @@ const TeacherSignUp: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [verificationSent, setVerificationSent] = useState(false);
+  const [rateLimitExceeded, setRateLimitExceeded] = useState(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -62,7 +63,7 @@ const TeacherSignUp: React.FC = () => {
 
       console.log("Starting sign up process for:", email);
       
-      // Register with Supabase Auth with email confirmation required
+      // Try regular signup first
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -80,7 +81,34 @@ const TeacherSignUp: React.FC = () => {
       if (authError) {
         console.error("Auth error during signup:", authError);
         
-        // Handle specific error cases
+        // Check if it's a rate limit error
+        if (authError.message?.includes("rate limit") || authError.message?.includes("exceeded")) {
+          console.log("Rate limit exceeded, trying alternative signup method");
+          setRateLimitExceeded(true);
+          
+          // Call our edge function to bypass the rate limit
+          const response = await supabase.functions.invoke("handle_student_creation", {
+            body: { username, email, password, avatarUrl }
+          });
+          
+          if (response.error) {
+            throw new Error(response.error);
+          }
+          
+          toast({
+            title: "Account created successfully",
+            description: "You can now login with your credentials.",
+          });
+          
+          // Redirect to login page as the account is already confirmed
+          setTimeout(() => {
+            navigate("/teacher-login");
+          }, 2000);
+          
+          return;
+        }
+        
+        // Handle other error cases
         if (authError.message?.includes("User already registered")) {
           toast({
             title: "Email already registered",
@@ -174,6 +202,22 @@ const TeacherSignUp: React.FC = () => {
                 >
                   Go to Login
                 </Button>
+              </div>
+            </div>
+          ) : rateLimitExceeded ? (
+            <div className="space-y-6">
+              <Alert variant="default" className="bg-yellow-500/20 border-yellow-500 text-white">
+                <AlertCircle className="h-5 w-5" />
+                <AlertDescription>
+                  Our email service is currently experiencing high traffic. We're using an alternative method to create your account.
+                </AlertDescription>
+              </Alert>
+              
+              <div className="text-center space-y-4">
+                <p>Your account is being created. Please wait...</p>
+                <div className="flex justify-center">
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
+                </div>
               </div>
             </div>
           ) : (
