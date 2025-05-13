@@ -1,4 +1,5 @@
 
+
 // Main entry point to aggregate and export all Pokemon utils
 
 // Export from types.ts
@@ -48,3 +49,4 @@ export {
 
 // Properly export types using 'export type'
 export type { ClassData, SupabaseClassData } from './classManagement';
+
