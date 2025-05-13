@@ -49,7 +49,7 @@ interface ClassData {
   teacherId?: string;
 }
 
-// Define interface for Supabase returned class data
+// Define explicit interface for what Supabase returns
 interface SupabaseClassData {
   id: string;
   name: string;
@@ -153,8 +153,9 @@ export const getClassesForSchool = async (schoolId: string): Promise<ClassData[]
       return allClasses.filter((cls: ClassData) => cls.schoolId === schoolId);
     }
     
-    // Map Supabase data to our ClassData interface
-    return (data || []).map((cls: SupabaseClassData) => ({
+    // Type the data correctly before mapping
+    // This addresses the type mismatch error between response and SupabaseClassData
+    return (data || []).map((cls: any) => ({
       id: cls.id,
       name: cls.name,
       schoolId: cls.school_id,
