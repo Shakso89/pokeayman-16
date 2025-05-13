@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, MessageSquare, User, Home, Medal, Settings } from "lucide-react";
+import { LogOut, MessageSquare, UserCog, Home, Medal } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import UserSettingsModal from "./modals/UserSettingsModal";
@@ -102,19 +102,14 @@ export const NavBar: React.FC<NavBarProps> = ({
                 </div>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleViewProfile}>
-                <User className="mr-2 h-4 w-4" />
-                <span>{t("view-profile")}</span>
-              </DropdownMenuItem>
-              
               <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
-                <Settings className="mr-2 h-4 w-4" />
-                <span>{t("settings")}</span>
+                <UserCog className="mr-2 h-4 w-4" />
+                <span>{t("profile-and-settings")}</span>
               </DropdownMenuItem>
               
               {isAdmin && userType === "teacher" && (
                 <DropdownMenuItem onClick={() => navigate("/admin-dashboard")}>
-                  <User className="mr-2 h-4 w-4" />
+                  <UserCog className="mr-2 h-4 w-4" />
                   <span>{t("admin-dashboard")}</span>
                 </DropdownMenuItem>
               )}

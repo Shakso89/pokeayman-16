@@ -45,11 +45,11 @@ const ContactDialog: React.FC<ContactDialogProps> = ({ isOpen, onClose }) => {
             <div className="flex-1">
               <span className="font-medium text-white">Email:</span>
               <a 
-                href="mailto:ayman.pokeayman.com" 
+                href="mailto:ayman@pokeayman.com" 
                 className="text-blue-300 hover:underline block"
-                onClick={() => copyToClipboard("ayman.pokeayman.com", "Email")}
+                onClick={() => copyToClipboard("ayman@pokeayman.com", "Email")}
               >
-                ayman.pokeayman.com
+                ayman@pokeayman.com
               </a>
             </div>
           </div>

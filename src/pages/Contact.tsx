@@ -87,11 +87,11 @@ const Contact: React.FC = () => {
 
             {/* Email */}
             <a 
-              href="mailto:ayman.pokeayman.com" 
+              href="mailto:ayman@pokeayman.com" 
               className="flex items-center gap-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm p-6 rounded-2xl transition-all transform hover:scale-105"
               onClick={() => {
-                copyToClipboard("ayman.pokeayman.com", "Email");
-                logContact("Email", "ayman.pokeayman.com");
+                copyToClipboard("ayman@pokeayman.com", "Email");
+                logContact("Email", "ayman@pokeayman.com");
               }}
             >
               <div className="bg-blue-500 rounded-full p-4 flex items-center justify-center">
@@ -99,7 +99,7 @@ const Contact: React.FC = () => {
               </div>
               <div>
                 <h3 className="font-bold text-white text-xl">{t("email")}</h3>
-                <p className="text-white/90 text-lg">ayman.pokeayman.com</p>
+                <p className="text-white/90 text-lg">ayman@pokeayman.com</p>
               </div>
             </a>
 

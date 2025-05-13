@@ -7,7 +7,6 @@ import { toast } from "@/hooks/use-toast";
 import { Home } from "lucide-react";
 import AvatarSelector from "@/components/signup/AvatarSelector";
 import SignupFormFields from "@/components/signup/SignupFormFields";
-import ContactDialog from "@/components/signup/ContactDialog";
 import PokemonDecorations from "@/components/signup/PokemonDecorations";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -19,7 +18,6 @@ const TeacherSignUp: React.FC = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
-  const [contactDialogOpen, setContactDialogOpen] = useState(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,18 +65,12 @@ const TeacherSignUp: React.FC = () => {
       if (authError) {
         console.error("Auth error during signup:", authError);
         
-        // Handle the email rate limit error specifically
+        // Handle all error cases with clear user feedback
         if (authError.message?.includes("email rate limit exceeded")) {
-          console.log("Email rate limit error detected, implementing fallback signup method");
-          
-          // Notify user about the alternative registration path
           toast({
             title: "Email service temporarily unavailable",
-            description: "We'll create your account directly. Please contact us if you need assistance.",
+            description: "We'll create your account directly. Please try logging in with your credentials.",
           });
-          
-          // Show contact dialog to help with assistance
-          setContactDialogOpen(true);
         } else {
           throw authError;
         }
@@ -147,15 +139,9 @@ const TeacherSignUp: React.FC = () => {
               confirmPassword={confirmPassword}
               setConfirmPassword={setConfirmPassword}
               isLoading={isLoading}
-              onOpenContactDialog={() => setContactDialogOpen(true)}
               onNavigateToLogin={() => navigate("/teacher-login")}
             />
           </form>
-          
-          <ContactDialog 
-            isOpen={contactDialogOpen} 
-            onClose={() => setContactDialogOpen(false)}
-          />
         </AuthLayout>
       </div>
       

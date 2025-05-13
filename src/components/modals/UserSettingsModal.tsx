@@ -12,12 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Camera, Coins } from "lucide-react";
+import { Camera, Coins, UserCog } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getStudentPokemonCollection } from "@/utils/pokemon";
-import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface UserSettingsModalProps {
   isOpen: boolean;
@@ -31,6 +31,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   userType,
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [avatar, setAvatar] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [userId, setUserId] = useState("");
@@ -182,11 +183,24 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
     }
   };
 
+  const handleViewFullProfile = () => {
+    onClose(); // Close the modal
+    
+    if (userType === "teacher") {
+      navigate(`/teacher/profile/${userId}`);
+    } else {
+      navigate(`/student/profile/${userId}`);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{t("user-settings")}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            <UserCog className="h-5 w-5" />
+            {t("profile-and-settings")}
+          </DialogTitle>
           <DialogDescription>
             {t("user-settings-description")}
           </DialogDescription>
@@ -242,6 +256,14 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
                 </div>
               </div>
             )}
+
+            <Button 
+              className="w-full mt-4" 
+              variant="outline" 
+              onClick={handleViewFullProfile}
+            >
+              {t("view-full-profile")}
+            </Button>
           </TabsContent>
           
           {/* Security Tab */}
