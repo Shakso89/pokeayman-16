@@ -153,14 +153,16 @@ export const getClassesForSchool = async (schoolId: string): Promise<ClassData[]
       return allClasses.filter((cls: ClassData) => cls.schoolId === schoolId);
     }
     
-    // Type the data correctly before mapping
-    // This addresses the type mismatch error between response and SupabaseClassData
-    return (data || []).map((cls: any) => ({
-      id: cls.id,
-      name: cls.name,
-      schoolId: cls.school_id,
-      teacherId: cls.teacher_id
-    }));
+    // Convert the supabase data format to our ClassData interface
+    // Use type assertion to help TypeScript understand the structure
+    return (data || []).map((cls: any) => {
+      return {
+        id: cls.id,
+        name: cls.name,
+        schoolId: cls.school_id,
+        teacherId: cls.teacher_id
+      } as ClassData;
+    });
   } catch (error) {
     console.error("Error fetching classes:", error);
     
