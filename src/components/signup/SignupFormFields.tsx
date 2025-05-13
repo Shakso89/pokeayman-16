@@ -4,6 +4,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { User, Mail, Lock } from "lucide-react";
+import { Checkbox } from "@/components/ui/checkbox";
+import { useState } from "react";
 
 interface SignupFormFieldsProps {
   username: string;
@@ -29,6 +31,7 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
   confirmPassword,
   setConfirmPassword,
   isLoading,
+  onOpenContactDialog,
   onNavigateToLogin
 }) => {
   // Password validation
@@ -100,6 +103,12 @@ const SignupFormFields: React.FC<SignupFormFieldsProps> = ({
           Already have an account?{" "}
           <button type="button" onClick={onNavigateToLogin} className="text-blue-400 hover:underline">
             Sign in
+          </button>
+        </p>
+        <p className="mt-1">
+          Need help?{" "}
+          <button type="button" onClick={onOpenContactDialog} className="text-blue-400 hover:underline">
+            Contact us
           </button>
         </p>
       </div>

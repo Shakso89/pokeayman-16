@@ -1,14 +1,28 @@
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import { Mail, Phone, Instagram } from "lucide-react";
+import { Mail, Phone, Instagram, MessageCircle } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useTranslation } from "@/hooks/useTranslation";
+import { toast } from "@/hooks/use-toast";
 
 const Contact: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+
+  const copyToClipboard = (text: string, type: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied to clipboard",
+      description: `${type} has been copied to your clipboard.`,
+    });
+    console.log(`Contact attempt via ${type}: ${text}`);
+  };
+
+  const logContact = (method: string, value?: string) => {
+    console.log(`Contact attempt via ${method}${value ? `: ${value}` : ''}`);
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 flex flex-col items-center">
@@ -23,6 +37,10 @@ const Contact: React.FC = () => {
             <a 
               href="tel:+886900170038" 
               className="flex items-center gap-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm p-4 rounded-lg transition-all transform hover:scale-105"
+              onClick={() => {
+                copyToClipboard("+886900170038", "Phone number");
+                logContact("Phone", "+886900170038");
+              }}
             >
               <div className="bg-white/80 rounded-full p-3">
                 <Phone className="h-6 w-6 text-blue-600" />
@@ -39,9 +57,10 @@ const Contact: React.FC = () => {
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm p-4 rounded-lg transition-all transform hover:scale-105"
+              onClick={() => logContact("LINE")}
             >
               <div className="bg-white/80 rounded-full p-3 flex items-center justify-center">
-                <span className="text-green-600 font-bold text-xl">L</span>
+                <MessageCircle className="h-6 w-6 text-green-600" />
               </div>
               <div>
                 <h3 className="font-bold text-white">LINE</h3>
@@ -55,6 +74,7 @@ const Contact: React.FC = () => {
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm p-4 rounded-lg transition-all transform hover:scale-105"
+              onClick={() => logContact("WhatsApp", "+886900170038")}
             >
               <div className="bg-white/80 rounded-full p-3 flex items-center justify-center">
                 <span className="text-green-600 font-bold text-xl">W</span>
@@ -67,15 +87,19 @@ const Contact: React.FC = () => {
 
             {/* Email */}
             <a 
-              href="mailto:ayman.soliman.tr@gmail.com" 
+              href="mailto:ayman.pokeayman.com" 
               className="flex items-center gap-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm p-4 rounded-lg transition-all transform hover:scale-105"
+              onClick={() => {
+                copyToClipboard("ayman.pokeayman.com", "Email");
+                logContact("Email", "ayman.pokeayman.com");
+              }}
             >
               <div className="bg-white/80 rounded-full p-3">
                 <Mail className="h-6 w-6 text-blue-600" />
               </div>
               <div>
                 <h3 className="font-bold text-white">{t("email")}</h3>
-                <p className="text-white/90">ayman.soliman.tr@gmail.com</p>
+                <p className="text-white/90">ayman.pokeayman.com</p>
               </div>
             </a>
 
@@ -85,6 +109,7 @@ const Contact: React.FC = () => {
               target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm p-4 rounded-lg transition-all transform hover:scale-105 md:col-span-2"
+              onClick={() => logContact("Instagram", "@shakso")}
             >
               <div className="bg-white/80 rounded-full p-3">
                 <Instagram className="h-6 w-6 text-pink-600" />

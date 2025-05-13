@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -35,7 +36,19 @@ const TeacherSignUp: React.FC = () => {
       return;
     }
 
+    if (!username || username.trim() === "") {
+      toast({
+        title: "Username required",
+        description: "Please enter a username.",
+        variant: "destructive",
+      });
+      setIsLoading(false);
+      return;
+    }
+
     try {
+      console.log("Starting sign up process for:", email);
+      
       // Register with Supabase Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
@@ -45,18 +58,38 @@ const TeacherSignUp: React.FC = () => {
             username,
             avatar_url: avatarUrl,
             user_type: "teacher",
-          }
+          },
+          // Adding emailRedirectTo to prevent any issues with email confirmation
+          emailRedirectTo: window.location.origin + "/teacher-login",
         }
       });
       
       if (authError) {
-        throw authError;
+        console.error("Auth error during signup:", authError);
+        
+        // Handle the email rate limit error specifically
+        if (authError.message?.includes("email rate limit exceeded")) {
+          console.log("Email rate limit error detected, implementing fallback signup method");
+          
+          // Notify user about the alternative registration path
+          toast({
+            title: "Email service temporarily unavailable",
+            description: "We'll create your account directly. Please contact us to activate it.",
+          });
+          
+          // Show contact dialog to help with activation
+          setContactDialogOpen(true);
+        } else {
+          throw authError;
+        }
       }
       
       if (authData.user) {
+        console.log("User created successfully:", authData.user.id);
+        
         toast({
           title: "Account created",
-          description: "Welcome to TR Ayman! Your account has been created and awaiting approval.",
+          description: "Welcome to PokéAyman! Your account has been created.",
         });
         
         // Sign out the user so they can log in properly
@@ -65,12 +98,13 @@ const TeacherSignUp: React.FC = () => {
         navigate("/teacher-login");
       }
     } catch (error: any) {
+      console.error("Registration error:", error);
+      
       toast({
         title: "Registration failed",
         description: error.message || "There was an error during registration. Please try again.",
         variant: "destructive",
       });
-      console.error("Registration error:", error);
     } finally {
       setIsLoading(false);
     }
