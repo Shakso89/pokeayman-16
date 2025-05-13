@@ -7,7 +7,7 @@ interface Student {
   username: string;
   displayName: string;
   avatar?: string;
-  photos?: string[];
+  photos?: string[]; // Ensure photos is defined as optional
   classId?: string;
   pokemonCollection?: { id: string; name: string; image: string }[];
   contactInfo?: string;
@@ -51,7 +51,7 @@ export const useStudentProfile = (studentId: string | undefined) => {
           
           setStudent({
             ...foundStudent,
-            photos: foundStudent.photos || [],
+            photos: foundStudent.photos || [], // Ensure photos is an array
             pokemonCollection: pokemonData?.pokemons || []
           });
           

@@ -14,7 +14,7 @@ interface StudentData {
   displayName: string;
   username: string;
   avatar?: string;
-  photos: string[];
+  photos?: string[]; // Changed photos to be optional
   classId?: string;
   pokemonCollection?: { id: string; name: string; image: string }[];
   contactInfo?: string;

@@ -20,6 +20,7 @@ interface Student {
   displayName: string;
   username: string;
   avatar?: string;
+  classId?: string; // Added classId property to match the expected type
 }
 
 interface StudentsListProps {
