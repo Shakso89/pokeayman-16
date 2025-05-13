@@ -31,6 +31,8 @@ serve(async (req) => {
       }
     );
     
+    console.log(`Creating user with email: ${email}, username: ${username}`);
+    
     // Create user with the Admin API
     const { data: user, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
       email,
@@ -51,6 +53,8 @@ serve(async (req) => {
       });
     }
 
+    console.log("User created successfully:", user);
+    
     // Return the created user
     return new Response(JSON.stringify({ user }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },

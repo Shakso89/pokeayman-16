@@ -22,6 +22,7 @@ const TeacherSignUp: React.FC = () => {
   const [avatarUrl, setAvatarUrl] = useState("");
   const [verificationSent, setVerificationSent] = useState(false);
   const [rateLimitExceeded, setRateLimitExceeded] = useState(false);
+  const [accountCreated, setAccountCreated] = useState(false);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -63,7 +64,37 @@ const TeacherSignUp: React.FC = () => {
 
       console.log("Starting sign up process for:", email);
       
-      // Try regular signup first
+      // First attempt: Try edge function to create user directly with auto-confirmation
+      try {
+        const response = await supabase.functions.invoke("handle_student_creation", {
+          body: { username, email, password, avatarUrl }
+        });
+        
+        console.log("Edge function response:", response);
+        
+        if (response.error) {
+          throw new Error(response.error);
+        }
+        
+        toast({
+          title: "Account created successfully",
+          description: "You can now login with your credentials.",
+        });
+        
+        setAccountCreated(true);
+        
+        // Wait 2 seconds before redirecting to login page
+        setTimeout(() => {
+          navigate("/teacher-login");
+        }, 2000);
+        
+        return;
+      } catch (edgeFunctionError) {
+        console.error("Edge function failed:", edgeFunctionError);
+        // Fall back to regular signup if edge function fails
+      }
+      
+      // Second attempt: Try regular signup
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -73,7 +104,7 @@ const TeacherSignUp: React.FC = () => {
             avatar_url: avatarUrl,
             user_type: "teacher",
           },
-          // This ensures the user gets a confirmation email
+          // Ensure the user gets a confirmation email
           emailRedirectTo: window.location.origin + "/teacher-login",
         }
       });
@@ -83,28 +114,16 @@ const TeacherSignUp: React.FC = () => {
         
         // Check if it's a rate limit error
         if (authError.message?.includes("rate limit") || authError.message?.includes("exceeded")) {
-          console.log("Rate limit exceeded, trying alternative signup method");
+          console.log("Rate limit exceeded, showing rate limit message");
           setRateLimitExceeded(true);
           
-          // Call our edge function to bypass the rate limit
-          const response = await supabase.functions.invoke("handle_student_creation", {
-            body: { username, email, password, avatarUrl }
-          });
-          
-          if (response.error) {
-            throw new Error(response.error);
-          }
-          
           toast({
-            title: "Account created successfully",
-            description: "You can now login with your credentials.",
+            title: "Email sending limit reached",
+            description: "Please try again in a few minutes or contact support.",
+            variant: "destructive",
           });
           
-          // Redirect to login page as the account is already confirmed
-          setTimeout(() => {
-            navigate("/teacher-login");
-          }, 2000);
-          
+          setIsLoading(false);
           return;
         }
         
@@ -140,8 +159,6 @@ const TeacherSignUp: React.FC = () => {
           title: "Verification email sent",
           description: "Please check your email to confirm your account.",
         });
-        
-        // Don't redirect automatically - wait for email confirmation
       } else {
         // This case shouldn't happen normally, but added as a fallback
         toast({
@@ -156,6 +173,53 @@ const TeacherSignUp: React.FC = () => {
       toast({
         title: "Registration failed",
         description: error.message || "There was an error during registration. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleResendVerification = async () => {
+    if (!email || !email.includes('@')) {
+      toast({
+        title: "Invalid email",
+        description: "Please enter a valid email address to resend verification.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email,
+        options: {
+          emailRedirectTo: window.location.origin + "/teacher-login",
+        },
+      });
+
+      if (error) {
+        if (error.message?.includes("rate limit") || error.message?.includes("exceeded")) {
+          toast({
+            title: "Email sending limit reached",
+            description: "Please try again later or contact support.",
+            variant: "destructive",
+          });
+        } else {
+          throw error;
+        }
+      } else {
+        toast({
+          title: "Verification email resent",
+          description: "Please check your inbox for the verification link.",
+        });
+      }
+    } catch (error: any) {
+      toast({
+        title: "Failed to resend verification",
+        description: error.message || "An error occurred. Please try again.",
         variant: "destructive",
       });
     } finally {
@@ -184,7 +248,26 @@ const TeacherSignUp: React.FC = () => {
           description="Create your account to manage your classes"
           className="bg-black/70 text-white border-gray-800"
         >
-          {verificationSent ? (
+          {accountCreated ? (
+            <div className="space-y-6">
+              <Alert variant="default" className="bg-green-500/20 border-green-500 text-white">
+                <AlertCircle className="h-5 w-5" />
+                <AlertDescription>
+                  Your account has been created successfully! You can now log in with your email and password.
+                </AlertDescription>
+              </Alert>
+              
+              <div className="text-center space-y-4">
+                <p>You will be redirected to the login page automatically...</p>
+                <Button
+                  onClick={() => navigate("/teacher-login")}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Go to Login
+                </Button>
+              </div>
+            </div>
+          ) : verificationSent ? (
             <div className="space-y-6">
               <Alert variant="default" className="bg-blue-500/20 border-blue-500 text-white">
                 <AlertCircle className="h-5 w-5" />
@@ -197,8 +280,16 @@ const TeacherSignUp: React.FC = () => {
               <div className="text-center space-y-4">
                 <p>Didn't receive the email? Check your spam folder or request a new one.</p>
                 <Button
+                  onClick={handleResendVerification}
+                  className="bg-blue-600 hover:bg-blue-700 mr-2"
+                  disabled={isLoading}
+                >
+                  {isLoading ? "Sending..." : "Resend Verification Email"}
+                </Button>
+                <Button
                   onClick={() => navigate("/teacher-login")}
-                  className="bg-blue-600 hover:bg-blue-700"
+                  variant="outline"
+                  className="border-blue-600 text-blue-400"
                 >
                   Go to Login
                 </Button>
@@ -209,12 +300,12 @@ const TeacherSignUp: React.FC = () => {
               <Alert variant="default" className="bg-yellow-500/20 border-yellow-500 text-white">
                 <AlertCircle className="h-5 w-5" />
                 <AlertDescription>
-                  Our email service is currently experiencing high traffic. We're using an alternative method to create your account.
+                  Our email service is currently experiencing high traffic. We're trying an alternative method to create your account.
                 </AlertDescription>
               </Alert>
               
               <div className="text-center space-y-4">
-                <p>Your account is being created. Please wait...</p>
+                <p>Please wait a moment while we process your request...</p>
                 <div className="flex justify-center">
                   <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
                 </div>
