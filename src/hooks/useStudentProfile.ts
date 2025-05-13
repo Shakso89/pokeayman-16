@@ -1,76 +1,91 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
-import { useNavigate } from "react-router-dom";
 
-interface StudentProfile {
+interface Student {
   id: string;
-  displayName: string;
   username: string;
+  displayName: string;
   avatar?: string;
-  photos: string[];
+  photos?: string[];
   classId?: string;
   pokemonCollection?: { id: string; name: string; image: string }[];
   contactInfo?: string;
 }
 
 export const useStudentProfile = (studentId: string | undefined) => {
-  const navigate = useNavigate();
-  
-  const [student, setStudent] = useState<StudentProfile | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState<Partial<StudentProfile>>({});
+  const [student, setStudent] = useState<Student | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<Partial<Student>>({});
   const [friendRequestSent, setFriendRequestSent] = useState(false);
   
-  // Check if current user is the owner of this profile
-  const currentUserId = localStorage.getItem("studentId");
-  const isOwner = currentUserId === studentId;
+  const userType = localStorage.getItem("userType");
+  const currentUserId = userType === "teacher" ? 
+    localStorage.getItem("teacherId") : 
+    localStorage.getItem("studentId");
   
-  const loadStudentProfile = () => {
+  // Check if current user is the owner of this profile
+  const isOwner = userType === "student" && localStorage.getItem("studentId") === studentId;
+  
+  useEffect(() => {
+    if (studentId) {
+      loadStudentData();
+      checkFriendshipStatus();
+    }
+  }, [studentId]);
+  
+  const loadStudentData = async () => {
     setIsLoading(true);
-    
     try {
-      // In a real app, this would be an API call
-      const students = JSON.parse(localStorage.getItem("students") || "[]");
-      const foundStudent = students.find((s: any) => s.id === studentId);
-      
-      if (foundStudent) {
-        // Ensure photos array exists
-        const studentData = {
-          ...foundStudent,
-          photos: foundStudent.photos || [],
-          pokemonCollection: foundStudent.pokemonCollection || []
-        };
+      // Try to get student from localStorage
+      const studentsData = localStorage.getItem("students");
+      if (studentsData) {
+        const students = JSON.parse(studentsData);
+        const foundStudent = students.find((s: Student) => s.id === studentId);
         
-        setStudent(studentData);
-        setEditData(studentData);
-      } else {
-        toast.error("Student not found");
-        navigate(-1);
+        if (foundStudent) {
+          // Get Pokémon collection
+          const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
+          const pokemonData = studentPokemons.find((p: any) => p.studentId === studentId);
+          
+          setStudent({
+            ...foundStudent,
+            photos: foundStudent.photos || [],
+            pokemonCollection: pokemonData?.pokemons || []
+          });
+          
+          setEditData({
+            displayName: foundStudent.displayName,
+            photos: foundStudent.photos || [],
+            contactInfo: foundStudent.contactInfo
+          });
+        } else {
+          toast("Student not found");
+        }
       }
     } catch (error) {
       console.error("Error loading student profile:", error);
-      toast.error("Error loading profile");
+      toast("Error loading profile");
     } finally {
       setIsLoading(false);
     }
   };
   
-  const checkFriendRequestStatus = () => {
-    if (!studentId || !currentUserId) return;
+  const checkFriendshipStatus = () => {
+    if (!currentUserId || !studentId) return;
     
-    // Check if friend request exists in localStorage
     const friendRequests = JSON.parse(localStorage.getItem("friendRequests") || "[]");
+    
+    // Check if there's a pending friend request
     const existingRequest = friendRequests.find(
       (request: any) => 
-        (request.senderId === currentUserId && request.receiverId === studentId) ||
-        (request.senderId === studentId && request.receiverId === currentUserId)
+        request.senderId === currentUserId && 
+        request.receiverId === studentId && 
+        request.status === "pending"
     );
     
-    if (existingRequest) {
-      setFriendRequestSent(true);
-    }
+    setFriendRequestSent(!!existingRequest);
   };
   
   const handleSave = () => {
@@ -78,81 +93,86 @@ export const useStudentProfile = (studentId: string | undefined) => {
     
     try {
       const students = JSON.parse(localStorage.getItem("students") || "[]");
-      const index = students.findIndex((s: any) => s.id === studentId);
+      const index = students.findIndex((s: Student) => s.id === studentId);
       
       if (index !== -1) {
         students[index] = {
           ...students[index],
           displayName: editData.displayName || student.displayName,
-          avatar: editData.avatar || student.avatar,
+          contactInfo: editData.contactInfo,
           photos: editData.photos || student.photos,
-          contactInfo: editData.contactInfo
+          avatar: student.avatar
         };
         
         localStorage.setItem("students", JSON.stringify(students));
-        setStudent({...student, ...editData});
+        
+        setStudent({
+          ...student,
+          displayName: editData.displayName || student.displayName,
+          contactInfo: editData.contactInfo,
+          photos: editData.photos || student.photos
+        });
+        
         setIsEditing(false);
-        toast.success("Profile updated successfully");
+        toast("Profile updated successfully!");
       }
     } catch (error) {
       console.error("Error saving profile:", error);
-      toast.error("Failed to save profile changes");
+      toast("Failed to save profile");
     }
   };
   
   const handleCancel = () => {
-    setEditData(student || {});
+    setEditData({
+      displayName: student?.displayName,
+      photos: student?.photos || [],
+      contactInfo: student?.contactInfo
+    });
     setIsEditing(false);
   };
   
   const handleSendMessage = () => {
     if (!student) return;
     
-    // Store the selected contact in localStorage
-    localStorage.setItem("selectedContactId", student.id);
-    localStorage.setItem("selectedContactType", "student");
+    // In a real app, this would navigate to the messaging page
+    // For now we'll just simulate it using localStorage
+    localStorage.setItem("selectedChatUser", JSON.stringify({
+      id: student.id,
+      displayName: student.displayName,
+      avatar: student.avatar
+    }));
     
-    // Navigate to messages page
-    navigate("/student/messages");
+    toast("Message window opened");
   };
   
   const handleAddFriend = () => {
     if (!student || !currentUserId) return;
     
-    const userType = localStorage.getItem("userType");
-    const userName = localStorage.getItem("studentName") || localStorage.getItem("teacherUsername") || "";
+    // Check if request already sent
+    if (friendRequestSent) {
+      toast("Friend request already sent");
+      return;
+    }
     
-    // Create a friend request object
-    const friendRequest = {
+    // Create friend request
+    const newRequest = {
       id: `fr-${Date.now()}`,
       senderId: currentUserId,
       senderType: userType,
-      senderName: userName,
       receiverId: student.id,
-      receiverType: "student",
-      receiverName: student.displayName,
       status: "pending",
       createdAt: new Date().toISOString()
     };
     
     // Save to localStorage
-    const friendRequests = JSON.parse(localStorage.getItem("friendRequests") || "[]");
-    friendRequests.push(friendRequest);
-    localStorage.setItem("friendRequests", JSON.stringify(friendRequests));
+    const requests = JSON.parse(localStorage.getItem("friendRequests") || "[]");
+    requests.push(newRequest);
+    localStorage.setItem("friendRequests", JSON.stringify(requests));
     
-    // Update UI
     setFriendRequestSent(true);
-    toast.success("Friend request sent");
+    toast("Friend request sent");
   };
-
-  useEffect(() => {
-    if (studentId) {
-      loadStudentProfile();
-      // Check if friend request was already sent
-      checkFriendRequestStatus();
-    }
-  }, [studentId]);
-
+  
   return {
     student,
     isLoading,
