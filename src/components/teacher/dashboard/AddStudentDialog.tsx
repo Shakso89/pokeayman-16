@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
+import { supabase } from "@/integrations/supabase/client";
+import { useCredits } from "@/utils/creditService";
 
 interface AddStudentDialogProps {
   isOpen: boolean;
@@ -28,82 +30,122 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
     password: "",
     displayName: "",
   });
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleAddStudent = () => {
+  const handleAddStudent = async () => {
     // Validate student data
     if (!studentData.username || !studentData.password || !studentData.displayName) {
       toast({
         title: "Error",
-        description: t("fill-all-fields")
+        description: t("fill-all-fields"),
+        variant: "destructive"
       });
       return;
     }
     
-    // Create student ID
-    const studentId = "student-" + Date.now().toString();
-    
-    // Get all students
-    const students = JSON.parse(localStorage.getItem("students") || "[]");
-    
-    // Check if username is already taken
-    if (students.some((s: any) => s.username === studentData.username)) {
+    if (!teacherId) {
       toast({
         title: "Error",
-        description: "This username is already in use"
+        description: "Teacher ID is missing",
+        variant: "destructive"
       });
       return;
     }
+
+    setIsLoading(true);
     
-    // Create new student
-    const newStudent = {
-      id: studentId,
-      username: studentData.username,
-      password: studentData.password,
-      displayName: studentData.displayName,
-      teacherId: teacherId,
-      createdAt: new Date().toISOString(),
-      pokemon: []
-    };
-    
-    // Add to students array
-    students.push(newStudent);
-    localStorage.setItem("students", JSON.stringify(students));
-    
-    // Add student to teacher's student list
-    if (teacherData) {
-      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-      const teacherIndex = teachers.findIndex((t: any) => t.id === teacherId);
+    try {
+      // First check if username is already in use
+      const { data: existingStudents, error: checkError } = await supabase
+        .from('students')
+        .select('username')
+        .eq('username', studentData.username)
+        .limit(1);
+        
+      if (checkError) {
+        throw new Error(`Error checking username: ${checkError.message}`);
+      }
+        
+      if (existingStudents && existingStudents.length > 0) {
+        toast({
+          title: "Error",
+          description: "This username is already in use",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        return;
+      }
       
-      if (teacherIndex !== -1) {
-        if (!teachers[teacherIndex].students) {
-          teachers[teacherIndex].students = [];
+      // Create new student in the database
+      // The credit deduction is handled automatically by the database trigger
+      const { data: newStudent, error: insertError } = await supabase
+        .from('students')
+        .insert({
+          username: studentData.username,
+          password: studentData.password, 
+          display_name: studentData.displayName,
+          teacher_id: teacherId
+        })
+        .select()
+        .single();
+        
+      if (insertError) {
+        // If there's an error from Supabase (like insufficient credits)
+        if (insertError.message.includes("insufficient")) {
+          toast({
+            title: "Error",
+            description: "Insufficient credits to create a student account",
+            variant: "destructive"
+          });
+        } else {
+          toast({
+            title: "Error",
+            description: `Failed to create student: ${insertError.message}`,
+            variant: "destructive"
+          });
         }
-        
-        teachers[teacherIndex].students.push(studentId);
-        localStorage.setItem("teachers", JSON.stringify(teachers));
-        
-        // Update local teacher data
-        const updatedTeacherData = {
-          ...teacherData,
-          students: [...(teacherData.students || []), studentId]
-        };
+        setIsLoading(false);
+        return;
+      }
+      
+      // Show success message
+      toast({
+        title: "Success",
+        description: t("student-added")
+      });
+      
+      // Reset form and close dialog
+      setStudentData({
+        username: "",
+        password: "",
+        displayName: "",
+      });
+      
+      // Update local state
+      const updatedTeacherData = { 
+        ...teacherData 
+      };
+      
+      if (!updatedTeacherData.students) {
+        updatedTeacherData.students = [];
+      }
+      
+      if (newStudent) {
+        updatedTeacherData.students.push(newStudent.id);
         onTeacherDataUpdate(updatedTeacherData);
       }
+      
+      onClose();
+    } catch (error: any) {
+      console.error("Error creating student:", error);
+      toast({
+        title: "Error",
+        description: error.message || "Failed to create student",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-    
-    // Show success message
-    toast({
-      title: "Success",
-      description: t("student-added")
-    });
-    
-    // Reset form and close dialog
-    setStudentData({
-      username: "",
-      password: "",
-      displayName: "",
-    });
-    onClose();
   };
 
   return (
@@ -124,6 +166,7 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
               value={studentData.username}
               onChange={(e) => setStudentData({...studentData, username: e.target.value})}
               placeholder={t("student-username")}
+              disabled={isLoading}
             />
           </div>
           
@@ -134,6 +177,7 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
               value={studentData.displayName}
               onChange={(e) => setStudentData({...studentData, displayName: e.target.value})}
               placeholder={t("student-display-name")}
+              disabled={isLoading}
             />
           </div>
           
@@ -145,16 +189,17 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
               value={studentData.password}
               onChange={(e) => setStudentData({...studentData, password: e.target.value})}
               placeholder={t("create-password")}
+              disabled={isLoading}
             />
           </div>
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={onClose} disabled={isLoading}>
             {t("cancel")}
           </Button>
-          <Button onClick={handleAddStudent}>
-            {t("create-account")}
+          <Button onClick={handleAddStudent} disabled={isLoading}>
+            {isLoading ? `${t("creating")}...` : t("create-account")}
           </Button>
         </DialogFooter>
       </DialogContent>
