@@ -9,6 +9,11 @@ export interface ClassData {
   name: string;
   schoolId: string;
   teacherId?: string;
+  students?: string[]; // Add students property
+  isPublic?: boolean;  // Add isPublic property
+  description?: string; // Add description property
+  likes?: string[];     // Add likes property
+  createdAt?: string;   // Add createdAt property
 }
 
 /**
@@ -76,7 +81,12 @@ export const saveClass = async (classData: ClassData): Promise<ClassData> => {
       .insert({
         id: classData.id,
         name: classData.name,
-        teacher_id: classData.teacherId || null
+        teacher_id: classData.teacherId || null,
+        school_id: classData.schoolId || null,
+        description: classData.description || null,
+        students: classData.students || [],
+        is_public: classData.isPublic !== false,
+        likes: classData.likes || []
       })
       .select()
       .single();
@@ -92,7 +102,18 @@ export const saveClass = async (classData: ClassData): Promise<ClassData> => {
       return classData;
     }
     
-    return data as unknown as ClassData;
+    // Convert the Supabase response to our ClassData interface
+    return {
+      id: data.id,
+      name: data.name,
+      schoolId: data.school_id || classData.schoolId,
+      teacherId: data.teacher_id,
+      students: data.students || [],
+      isPublic: data.is_public !== false,
+      description: data.description || '',
+      likes: data.likes || [],
+      createdAt: data.created_at
+    };
   } catch (error) {
     console.error("Error saving class:", error);
     
@@ -120,7 +141,7 @@ export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[
     const { data, error } = await supabase
       .from('classes')
       .select('*')
-      .eq('teacher_id', schoolId);
+      .eq('school_id', schoolId);
     
     if (error) {
       console.error("Error fetching classes from database:", error);
@@ -141,8 +162,13 @@ export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[
     return (data || []).map((item: any) => ({
       id: item.id,
       name: item.name,
-      schoolId: item.teacher_id || schoolId,
-      teacherId: item.teacher_id
+      schoolId: item.school_id || schoolId,
+      teacherId: item.teacher_id,
+      students: item.students || [],
+      isPublic: item.is_public !== false,
+      description: item.description || '',
+      likes: item.likes || [],
+      createdAt: item.created_at
     }));
     
   } catch (error) {

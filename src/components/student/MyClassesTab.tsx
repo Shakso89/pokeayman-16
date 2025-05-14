@@ -67,7 +67,7 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
       // First try to load from database - get all classes that include the student ID
       const { data, error } = await supabase
         .from('classes')
-        .select('id, name, description')
+        .select('id, name, description, students')
         .contains('students', [studentId]);
 
       if (error) {
@@ -75,10 +75,17 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
       }
 
       if (data && data.length > 0) {
-        setClasses(data);
+        // Transform the data to match our interface
+        const formattedClasses = data.map(cls => ({
+          id: cls.id,
+          name: cls.name,
+          description: cls.description || ''
+        }));
+        
+        setClasses(formattedClasses);
         
         // Auto-select the class with matching classId or first class
-        const targetClass = data.find(cls => cls.id === classId) || data[0];
+        const targetClass = formattedClasses.find(cls => cls.id === classId) || formattedClasses[0];
         setSelectedClass(targetClass);
       } else {
         // Fallback to localStorage if no classes found in database

@@ -68,12 +68,13 @@ const StudentsTab: React.FC<StudentsTabProps> = ({
         .eq('id', classId)
         .single();
       
-      if (classError || !classData.students) {
-        throw classError || new Error("No students in class");
+      if (classError) {
+        console.error("Error fetching class data:", classError);
+        throw new Error("Failed to fetch class data");
       }
       
       // Get all students that are in this class
-      const studentIds = classData.students;
+      const studentIds = classData.students || [];
       if (studentIds.length === 0) {
         setStudents([]);
         setIsLoading(false);

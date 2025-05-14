@@ -48,4 +48,3 @@ export {
 
 // Properly export types using 'export type'
 export type { ClassData } from './classManagement';  // Removed SupabaseClassData as it doesn't exist
-
