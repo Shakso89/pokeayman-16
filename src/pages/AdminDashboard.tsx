@@ -66,6 +66,9 @@ const AdminDashboard: React.FC = () => {
           
         if (schoolsError) console.error("Error counting schools:", schoolsError);
         
+        // Properly type the subscription_type to ensure it matches AdminTeacherData
+        const subscriptionType = (teacher.subscription_type || 'trial') as 'trial' | 'monthly' | 'annual';
+        
         return {
           ...teacher,
           numSchools: schoolsCount || 0,
@@ -77,11 +80,11 @@ const AdminDashboard: React.FC = () => {
           lastLogin: teacher.last_login ? new Date(teacher.last_login).toLocaleString() : "Never",
           timeSpent: 0, // Currently not tracked
           expiryDate: teacher.expiry_date ? new Date(teacher.expiry_date).toLocaleDateString() : "-",
-          subscriptionType: teacher.subscription_type || "trial"
+          subscriptionType // Now properly typed as 'trial' | 'monthly' | 'annual'
         };
       }));
       
-      setTeachers(processedTeachers);
+      setTeachers(processedTeachers as AdminTeacherData[]);
       
       // Load students
       const { data: studentsData, error: studentsError } = await supabase

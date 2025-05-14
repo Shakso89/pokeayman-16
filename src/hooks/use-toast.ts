@@ -45,4 +45,4 @@ export const toast = ({ title, description, action, variant, duration }: ToastPr
   });
 };
 
-export type { ToastProps };
+// Remove the duplicate export that was causing the conflict
