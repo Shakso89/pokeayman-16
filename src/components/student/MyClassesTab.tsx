@@ -3,11 +3,13 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronRight, Users, Book, Trophy } from "lucide-react";
+import { ChevronRight, Users, Book, Trophy, Loader2 } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import HomeworkTab from "./HomeworkTab";
 import StudentsTab from "./StudentsTab";
 import ClassRankingTab from "./ClassRankingTab";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface MyClassesTabProps {
   studentId: string;
@@ -32,26 +34,97 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
     description?: string;
   } | null>(null);
   const [activeSubTab, setActiveSubTab] = useState("students");
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadClasses();
+
+    // Subscribe to class changes
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen for all events
+          schema: 'public',
+          table: 'classes'
+        },
+        (payload) => {
+          console.log('Class change detected:', payload);
+          loadClasses();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [classId]);
 
-  const loadClasses = () => {
-    // In a real app, we would fetch from an API
-    // For this demo, we'll use localStorage
-    const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+  const loadClasses = async () => {
+    setIsLoading(true);
+    try {
+      // First try to load from database - get all classes that include the student ID
+      const { data, error } = await supabase
+        .from('classes')
+        .select('id, name, description')
+        .contains('students', [studentId]);
 
-    // Filter classes for this student
-    const studentClasses = allClasses.filter((cls: any) => cls.id === classId || cls.students?.includes(studentId));
-    console.log("Found classes for student:", studentClasses);
-    setClasses(studentClasses);
+      if (error) {
+        throw error;
+      }
 
-    // Auto-select the first class if none is selected
-    if (studentClasses.length > 0 && !selectedClass) {
-      setSelectedClass(studentClasses[0]);
+      if (data && data.length > 0) {
+        setClasses(data);
+        
+        // Auto-select the class with matching classId or first class
+        const targetClass = data.find(cls => cls.id === classId) || data[0];
+        setSelectedClass(targetClass);
+      } else {
+        // Fallback to localStorage if no classes found in database
+        const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+        const studentClasses = allClasses.filter((cls: any) => cls.id === classId || cls.students?.includes(studentId));
+        
+        console.log("Found classes for student in localStorage:", studentClasses);
+        setClasses(studentClasses);
+
+        if (studentClasses.length > 0) {
+          const targetClass = studentClasses.find((cls: any) => cls.id === classId) || studentClasses[0];
+          setSelectedClass(targetClass);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading classes:", error);
+      toast({
+        title: t("error"),
+        description: t("error-loading-classes"),
+        variant: "destructive"
+      });
+      
+      // Fallback to localStorage on error
+      const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+      const studentClasses = allClasses.filter((cls: any) => cls.id === classId || cls.students?.includes(studentId));
+      setClasses(studentClasses);
+      
+      if (studentClasses.length > 0) {
+        const targetClass = studentClasses.find((cls: any) => cls.id === classId) || studentClasses[0];
+        setSelectedClass(targetClass);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center p-12">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p>{t("loading-classes")}</p>
+        </div>
+      </div>
+    );
+  }
 
   return <div>
       <h2 className="text-2xl font-bold mb-6 text-center">{t("my-classes")}</h2>

@@ -7,7 +7,8 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { Card, CardContent } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { ArrowDownAZ, ArrowUpAZ } from "lucide-react";
+import { ArrowDownAZ, ArrowUpAZ, Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface StudentsTabProps {
   classId: string;
@@ -24,129 +25,146 @@ const StudentsTab: React.FC<StudentsTabProps> = ({
   const { t } = useTranslation();
   const { toast } = useToast();
   const [students, setStudents] = useState<StudentWithPokemon[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const navigate = useNavigate();
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
   useEffect(() => {
-    loadStudents();
+    if (classId) {
+      loadStudents();
+    }
+    
+    // Subscribe to student changes
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen for all events
+          schema: 'public',
+          table: 'students'
+        },
+        (payload) => {
+          console.log('Student change detected:', payload);
+          loadStudents();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, [classId]);
 
-  const loadStudents = () => {
+  const loadStudents = async () => {
+    if (!classId) return;
+    
+    setIsLoading(true);
     try {
-      // Get all students from localStorage
-      const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
-
-      // Filter students for this class
-      const classStudents = allStudents.filter((student: Student) => student.classId === classId);
-      console.log(`Found ${classStudents.length} students for class ${classId}`);
-
-      // Get Pokemon counts for each student
+      // First try to fetch the class to get the students array
+      const { data: classData, error: classError } = await supabase
+        .from('classes')
+        .select('students')
+        .eq('id', classId)
+        .single();
+      
+      if (classError || !classData.students) {
+        throw classError || new Error("No students in class");
+      }
+      
+      // Get all students that are in this class
+      const studentIds = classData.students;
+      if (studentIds.length === 0) {
+        setStudents([]);
+        setIsLoading(false);
+        return;
+      }
+      
+      // Fetch student details
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select('*')
+        .in('id', studentIds);
+      
+      if (studentsError) {
+        throw studentsError;
+      }
+      
+      // Add Pokemon count information to each student using localStorage
+      // In a real app, we would fetch this from the database too
       const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
 
       // Add Pokemon count information to each student
-      const studentsWithPokemon = classStudents.map((student: Student) => {
+      const studentsWithPokemon = studentsData.map((student: any) => {
         const pokemonData = studentPokemons.find((p: any) => p.studentId === student.id);
         const pokemonCount = pokemonData ? (pokemonData.pokemons || []).length : 0;
         const coins = pokemonData ? pokemonData.coins : 0;
         return {
           ...student,
+          displayName: student.display_name || student.username,
           pokemonCount,
-          coins
+          coins,
         };
       });
 
       // Sort students by Pokemon count
-      sortStudents(studentsWithPokemon);
+      const sorted = [...studentsWithPokemon].sort((a, b) => {
+        if (sortOrder === "desc") {
+          return b.pokemonCount - a.pokemonCount;
+        } else {
+          return a.pokemonCount - b.pokemonCount;
+        }
+      });
 
-      // Add some sample students if none are found and we're in development mode
-      if (studentsWithPokemon.length === 0 && import.meta.env.DEV) {
-        // This is just for demo purposes - using the correct names as requested
-        const sampleStudents = [{
-          id: "student-1",
-          username: "ariel_waters",
-          displayName: "Ariel",
-          classId: classId,
-          teacherId: "teacher-1",
-          createdAt: new Date().toISOString(),
-          avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Ariel",
-          pokemonCount: 5,
-          coins: 50
-        }, {
-          id: "student-2",
-          username: "brian_smith",
-          displayName: "Brian",
-          classId: classId,
-          teacherId: "teacher-1",
-          createdAt: new Date().toISOString(),
-          avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Brian",
-          pokemonCount: 3,
-          coins: 30
-        }, {
-          id: "student-3",
-          username: "kate_jones",
-          displayName: "Kate",
-          classId: classId,
-          teacherId: "teacher-1",
-          createdAt: new Date().toISOString(),
-          avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Kate",
-          pokemonCount: 4,
-          coins: 40
-        }];
-
-        // Update localStorage with sample students
-        const updatedStudents = [...allStudents];
-        sampleStudents.forEach(sampleStudent => {
-          const existingIndex = updatedStudents.findIndex(s => s.id === sampleStudent.id);
-          if (existingIndex === -1) {
-            // Add the student without pokemonCount and coins properties
-            const {
-              pokemonCount,
-              coins,
-              ...studentWithoutPokemonData
-            } = sampleStudent;
-            updatedStudents.push(studentWithoutPokemonData);
-          }
-        });
-        localStorage.setItem("students", JSON.stringify(updatedStudents));
-
-        // Also make sure these students have Pokemon collections
-        const updatedStudentPokemons = [...studentPokemons];
-
-        // Add sample Pokemon data for these students if they don't have any
-        sampleStudents.forEach(student => {
-          const existingIndex = updatedStudentPokemons.findIndex(sp => sp.studentId === student.id);
-          if (existingIndex === -1) {
-            updatedStudentPokemons.push({
-              studentId: student.id,
-              pokemons: Array(student.pokemonCount).fill(null).map((_, i) => ({
-                id: `pokemon-${student.id}-${i}`,
-                name: `Pokemon ${i + 1}`,
-                image: `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${Math.floor(Math.random() * 150) + 1}.png`,
-                type: "normal",
-                rarity: ["common", "uncommon", "rare", "legendary"][Math.floor(Math.random() * 4)] as "common" | "uncommon" | "rare" | "legendary"
-              })),
-              coins: student.coins
-            });
-          }
-        });
-        localStorage.setItem("studentPokemons", JSON.stringify(updatedStudentPokemons));
-
-        // Update state
-        setStudents(sampleStudents);
-        toast({
-          description: "Sample students added for demonstration"
-        });
-      } else {
-        setStudents(studentsWithPokemon);
-      }
+      setStudents(sorted);
     } catch (error) {
       console.error("Error loading students:", error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load students"
-      });
-      setStudents([]);
+      
+      // Fallback to localStorage
+      try {
+        // Get all students from localStorage
+        const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+
+        // Filter students for this class
+        const classStudents = allStudents.filter((student: Student) => student.classId === classId);
+        console.log(`Found ${classStudents.length} students for class ${classId}`);
+
+        // Get Pokemon counts for each student
+        const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
+
+        // Add Pokemon count information to each student
+        const studentsWithPokemon = classStudents.map((student: Student) => {
+          const pokemonData = studentPokemons.find((p: any) => p.studentId === student.id);
+          const pokemonCount = pokemonData ? (pokemonData.pokemons || []).length : 0;
+          const coins = pokemonData ? pokemonData.coins : 0;
+          return {
+            ...student,
+            pokemonCount,
+            coins
+          };
+        });
+
+        // Sort students by Pokemon count
+        const sorted = [...studentsWithPokemon].sort((a, b) => {
+          if (sortOrder === "desc") {
+            return b.pokemonCount - a.pokemonCount;
+          } else {
+            return a.pokemonCount - b.pokemonCount;
+          }
+        });
+
+        setStudents(sorted);
+      } catch (localError) {
+        console.error("Error with localStorage fallback:", localError);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to load students"
+        });
+        setStudents([]);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -171,6 +189,17 @@ const StudentsTab: React.FC<StudentsTabProps> = ({
     // Navigate to the student profile page
     navigate(`/student/profile/${studentId}`);
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p>{t("loading-students")}</p>
+        </div>
+      </div>
+    );
+  }
 
   if (students.length === 0) {
     return <div className="flex flex-col items-center justify-center py-16 px-4">

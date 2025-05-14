@@ -18,6 +18,18 @@ import { awardCoinsToStudent } from "@/utils/pokemon";
 import ClassFeed from "./ClassFeed";
 import ClassComments from "./ClassComments";
 
+// Import our new synchronization functions
+import { 
+  createClass, 
+  deleteClass, 
+  fetchTeacherClasses, 
+  fetchSchoolClasses,
+  addStudentToClass,
+  removeStudentFromClass,
+  toggleClassLike,
+  subscribeToClassChanges
+} from "@/utils/classSync";
+
 interface ClassManagementProps {
   onBack: () => void;
   schoolId: string;
@@ -60,6 +72,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   const [newClassDescription, setNewClassDescription] = useState("");
   const [isPublic, setIsPublic] = useState(true);
   const [viewMode, setViewMode] = useState<"manage" | "social">("manage");
+  const [isLoading, setIsLoading] = useState(false);
 
   // Student state
   const [students, setStudents] = useState<StudentData[]>([]);
@@ -89,6 +102,16 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   // Load data
   useEffect(() => {
     loadClassesData();
+    
+    // Subscribe to class changes for real-time updates
+    const unsubscribe = subscribeToClassChanges(() => {
+      console.log("Received class update notification");
+      loadClassesData();
+    }, teacherId);
+    
+    return () => {
+      unsubscribe();
+    };
   }, [schoolId, teacherId]);
 
   useEffect(() => {
@@ -98,22 +121,37 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     }
   }, [selectedClass]);
 
-  const loadClassesData = () => {
-    // Get classes from localStorage
-    const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-
-    // Filter classes that belong to this school and teacher
-    const filteredClasses = allClasses.filter((cls: any) => cls.schoolId === schoolId && cls.teacherId === teacherId);
-    setClasses(filteredClasses);
+  const loadClassesData = async () => {
+    setIsLoading(true);
+    try {
+      // Fetch classes from database
+      const teacherClasses = await fetchTeacherClasses(teacherId);
+      setClasses(teacherClasses);
+    } catch (error) {
+      console.error("Error loading classes:", error);
+      toast({
+        title: t("error"),
+        description: t("error-loading-classes"),
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const loadAllClasses = () => {
-    // Get all classes from localStorage
-    const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    
-    // Filter classes that belong to this school
-    const filteredClasses = allClasses.filter((cls: any) => cls.schoolId === schoolId);
-    return filteredClasses;
+  const loadAllClasses = async () => {
+    try {
+      // Fetch all classes for the school
+      return await fetchSchoolClasses(schoolId);
+    } catch (error) {
+      console.error("Error loading all classes:", error);
+      toast({
+        title: t("error"),
+        description: t("error-loading-classes"),
+        variant: "destructive"
+      });
+      return [];
+    }
   };
 
   const loadStudentsData = () => {
@@ -152,7 +190,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     setHomeworkSubmissions(classSubmissions);
   };
 
-  const handleCreateClass = () => {
+  const handleCreateClass = async () => {
     if (!newClassName) {
       toast({
         title: t("error"),
@@ -162,63 +200,73 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       return;
     }
 
-    // Create new class object
-    const newClass = {
-      id: `class-${Date.now()}`,
-      name: newClassName,
-      description: newClassDescription,
-      teacherId,
-      schoolId,
-      students: [],
-      isPublic: isPublic,
-      createdAt: new Date().toISOString(),
-      likes: []
-    };
+    setIsLoading(true);
+    try {
+      // Create new class using our sync function
+      const newClassData = await createClass({
+        name: newClassName,
+        description: newClassDescription,
+        teacherId,
+        schoolId,
+        students: [],
+        isPublic: isPublic,
+        createdAt: new Date().toISOString(),
+        likes: []
+      });
 
-    // Update localStorage
-    const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    const updatedClasses = [...existingClasses, newClass];
-    localStorage.setItem("classes", JSON.stringify(updatedClasses));
-
-    // Update state
-    setClasses([...classes, newClass]);
-    setNewClassName("");
-    setNewClassDescription("");
-    setIsPublic(true);
-    setIsCreateClassDialogOpen(false);
-    toast({
-      title: t("success"),
-      description: t("class-created")
-    });
+      // Update state with the new class
+      setClasses([...classes, newClassData]);
+      setNewClassName("");
+      setNewClassDescription("");
+      setIsPublic(true);
+      setIsCreateClassDialogOpen(false);
+      
+      toast({
+        title: t("success"),
+        description: t("class-created")
+      });
+    } catch (error) {
+      console.error("Error creating class:", error);
+      toast({
+        title: t("error"),
+        description: t("error-creating-class"),
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleDeleteClass = (classId: string) => {
-    // Remove class from localStorage
-    const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    const updatedClasses = existingClasses.filter((cls: any) => cls.id !== classId);
-    localStorage.setItem("classes", JSON.stringify(updatedClasses));
-
-    // Remove class comments
-    const existingComments = JSON.parse(localStorage.getItem("classComments") || "[]");
-    const updatedComments = existingComments.filter((comment: any) => comment.classId !== classId);
-    localStorage.setItem("classComments", JSON.stringify(updatedComments));
-
-    // Remove access requests
-    const existingRequests = JSON.parse(localStorage.getItem("accessRequests") || "[]");
-    const updatedRequests = existingRequests.filter((request: any) => request.classId !== classId);
-    localStorage.setItem("accessRequests", JSON.stringify(updatedRequests));
-
-    // Update state
-    setClasses(classes.filter(cls => cls.id !== classId));
-
-    // If the selected class is deleted, deselect it
-    if (selectedClass && selectedClass.id === classId) {
-      setSelectedClass(null);
+  const handleDeleteClass = async (classId: string) => {
+    setIsLoading(true);
+    try {
+      // Delete class using our sync function
+      const success = await deleteClass(classId);
+      
+      if (success) {
+        // Update state
+        setClasses(classes.filter(cls => cls.id !== classId));
+        
+        // If the selected class is deleted, deselect it
+        if (selectedClass && selectedClass.id === classId) {
+          setSelectedClass(null);
+        }
+        
+        toast({
+          title: t("success"),
+          description: t("class-deleted")
+        });
+      }
+    } catch (error) {
+      console.error("Error deleting class:", error);
+      toast({
+        title: t("error"),
+        description: t("error-deleting-class"),
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-    toast({
-      title: t("success"),
-      description: t("class-deleted")
-    });
   };
 
   const handleClassSelect = (classData: ClassData) => {
@@ -227,37 +275,39 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     setViewMode(classData.teacherId === teacherId ? "manage" : "social");
   };
 
-  const handleToggleLike = (classId: string) => {
-    const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    
-    const updatedClasses = existingClasses.map((cls: ClassData) => {
-      if (cls.id === classId) {
-        const likes = cls.likes || [];
-        const hasLiked = likes.includes(teacherId);
+  const handleToggleLike = async (classId: string) => {
+    setIsLoading(true);
+    try {
+      // Toggle like using our sync function
+      const updatedClass = await toggleClassLike(classId, teacherId);
+      
+      if (updatedClass) {
+        // Update the selected class if it's the one we modified
+        if (selectedClass && selectedClass.id === classId) {
+          setSelectedClass(updatedClass);
+        }
         
-        return {
-          ...cls,
-          likes: hasLiked 
-            ? likes.filter(id => id !== teacherId)
-            : [...likes, teacherId]
-        };
+        // Update the class in our classes array
+        setClasses(prevClasses => prevClasses.map(cls => 
+          cls.id === classId ? updatedClass : cls
+        ));
+        
+        const hasLiked = updatedClass.likes?.includes(teacherId);
+        toast({
+          title: t("success"),
+          description: hasLiked ? t("class-liked") : t("class-unliked")
+        });
       }
-      return cls;
-    });
-    
-    localStorage.setItem("classes", JSON.stringify(updatedClasses));
-    
-    if (selectedClass && selectedClass.id === classId) {
-      const updatedClass = updatedClasses.find((cls: ClassData) => cls.id === classId);
-      setSelectedClass(updatedClass || null);
+    } catch (error) {
+      console.error("Error toggling like:", error);
+      toast({
+        title: t("error"),
+        description: t("error-updating-like"),
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
-    
-    toast({
-      title: t("success"),
-      description: updatedClasses.find((cls: ClassData) => cls.id === classId)?.likes?.includes(teacherId) 
-        ? t("class-liked") 
-        : t("class-unliked")
-    });
   };
 
   const handleRequestAccess = (classId: string) => {
@@ -418,58 +468,99 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       setSearchStudentResults([]);
       return;
     }
+    
+    setIsLoading(true);
     const term = searchStudentTerm.toLowerCase();
-    const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
-
-    // Filter students who aren't already in this class
-    const filteredStudents = allStudents.filter((student: any) => {
-      const isAlreadyInClass = selectedClass?.students?.includes(student.id);
-      const matchesTerm = student.username?.toLowerCase().includes(term) || student.displayName?.toLowerCase().includes(term);
-      return !isAlreadyInClass && matchesTerm;
-    });
-    setSearchStudentResults(filteredStudents);
+    
+    // Use Supabase to search for students
+    const searchStudents = async () => {
+      try {
+        const { data: studentsData, error } = await supabase
+          .from('students')
+          .select('*')
+          .or(`username.ilike.%${term}%,display_name.ilike.%${term}%`);
+        
+        if (error) {
+          console.error("Error searching students:", error);
+          throw error;
+        }
+        
+        // Filter out students who are already in the class
+        const filteredStudents = studentsData.filter(student => 
+          !selectedClass?.students?.includes(student.id)
+        );
+        
+        setSearchStudentResults(filteredStudents);
+      } catch (error) {
+        console.error("Error in student search:", error);
+        
+        // Fallback to localStorage if database query fails
+        const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+        const filteredStudents = allStudents.filter((student: any) => {
+          const isAlreadyInClass = selectedClass?.students?.includes(student.id);
+          const matchesTerm = student.username?.toLowerCase().includes(term) || 
+                             student.displayName?.toLowerCase().includes(term);
+          return !isAlreadyInClass && matchesTerm;
+        });
+        
+        setSearchStudentResults(filteredStudents);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    searchStudents();
   };
 
   // Add student to class
-  const handleAddStudentToClass = (studentId: string) => {
+  const handleAddStudentToClass = async (studentId: string) => {
     if (!selectedClass) return;
-
-    // Update class with new student
-    const updatedClasses = classes.map(cls => {
-      if (cls.id === selectedClass.id) {
-        return {
-          ...cls,
-          students: [...(cls.students || []), studentId]
+    
+    setIsLoading(true);
+    try {
+      // Add student using our sync function
+      const success = await addStudentToClass(selectedClass.id, studentId);
+      
+      if (success) {
+        // Update the selected class with the new student
+        const updatedClass = {
+          ...selectedClass,
+          students: [...(selectedClass.students || []), studentId]
         };
+        
+        setSelectedClass(updatedClass);
+        
+        // Update the class in our classes array
+        setClasses(prevClasses => prevClasses.map(cls => 
+          cls.id === selectedClass.id ? updatedClass : cls
+        ));
+        
+        // Refresh student data
+        loadStudentsData();
+        
+        toast({
+          title: t("success"),
+          description: t("student-added-to-class")
+        });
+        
+        // Clear search
+        setSearchStudentTerm("");
+        setSearchStudentResults([]);
+        setIsAddStudentDialogOpen(false);
       }
-      return cls;
-    });
-
-    // Save to localStorage
-    localStorage.setItem("classes", JSON.stringify(updatedClasses));
-
-    // Update state
-    setClasses(updatedClasses);
-    setSelectedClass({
-      ...selectedClass,
-      students: [...(selectedClass.students || []), studentId]
-    });
-
-    // Refresh student data
-    loadStudentsData();
-    toast({
-      title: t("success"),
-      description: t("student-added-to-class")
-    });
-
-    // Clear search
-    setSearchStudentTerm("");
-    setSearchStudentResults([]);
+    } catch (error) {
+      console.error("Error adding student to class:", error);
+      toast({
+        title: t("error"),
+        description: t("error-adding-student"),
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  // IMPLEMENT THE MISSING FUNCTIONS HERE:
-
-  // 1. Function to handle removing a student from class
+  // Function to handle removing a student from class
   const handleRemoveStudentFromClass = (studentId: string, studentName: string) => {
     setSelectedStudent({
       id: studentId,
@@ -478,41 +569,50 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     setIsConfirmRemoveStudentOpen(true);
   };
 
-  // 2. Function to confirm removing the student from class
-  const confirmRemoveStudent = () => {
+  // Function to confirm removing the student from class
+  const confirmRemoveStudent = async () => {
     if (!selectedStudent || !selectedClass) return;
-
-    // Update class by removing the student
-    const updatedClasses = classes.map(cls => {
-      if (cls.id === selectedClass.id) {
-        return {
-          ...cls,
-          students: (cls.students || []).filter(id => id !== selectedStudent.id)
+    
+    setIsLoading(true);
+    try {
+      // Remove student using our sync function
+      const success = await removeStudentFromClass(selectedClass.id, selectedStudent.id);
+      
+      if (success) {
+        // Update the selected class by removing the student
+        const updatedClass = {
+          ...selectedClass,
+          students: (selectedClass.students || []).filter(id => id !== selectedStudent.id)
         };
+        
+        setSelectedClass(updatedClass);
+        
+        // Update the class in our classes array
+        setClasses(prevClasses => prevClasses.map(cls => 
+          cls.id === selectedClass.id ? updatedClass : cls
+        ));
+        
+        // Refresh student data
+        loadStudentsData();
+        
+        toast({
+          title: t("success"),
+          description: `${selectedStudent.name} ${t("removed-from-class")}`
+        });
       }
-      return cls;
-    });
-
-    // Save to localStorage
-    localStorage.setItem("classes", JSON.stringify(updatedClasses));
-
-    // Update state
-    setClasses(updatedClasses);
-    setSelectedClass({
-      ...selectedClass,
-      students: (selectedClass.students || []).filter(id => id !== selectedStudent.id)
-    });
-
-    // Refresh student data
-    loadStudentsData();
-    toast({
-      title: t("success"),
-      description: `${selectedStudent.name} ${t("removed-from-class")}`
-    });
-
-    // Close dialog and reset selected student
-    setIsConfirmRemoveStudentOpen(false);
-    setSelectedStudent(null);
+    } catch (error) {
+      console.error("Error removing student from class:", error);
+      toast({
+        title: t("error"),
+        description: t("error-removing-student"),
+        variant: "destructive"
+      });
+    } finally {
+      // Close dialog and reset selected student
+      setIsConfirmRemoveStudentOpen(false);
+      setSelectedStudent(null);
+      setIsLoading(false);
+    }
   };
 
   // Filter homework based on expiration
