@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -13,7 +14,7 @@ import { Pokemon } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Trophy, Users } from "lucide-react";
+import { Trophy, Users, Package, Sword } from "lucide-react";
 
 // Import our components
 import StudentHeader from "@/components/student/StudentHeader";
@@ -159,7 +160,7 @@ const StudentDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-100">
       <NavBar userType="student" userName={studentName} userAvatar={avatar || undefined} />
       
       <div className="container mx-auto py-8 px-4">
@@ -168,8 +169,8 @@ const StudentDashboard: React.FC = () => {
         {/* Rankings button */}
         <div className="flex justify-end mt-4">
           <Link to="/student/rankings">
-            <Button variant="outline" className="flex items-center gap-2">
-              <Trophy className="h-4 w-4" />
+            <Button variant="outline" className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg rounded-full shadow-md border-2 border-orange-300 flex items-center gap-2 transform hover:scale-105 transition-all">
+              <Trophy className="h-5 w-5" />
               {t("rankings")}
             </Button>
           </Link>
@@ -177,13 +178,26 @@ const StudentDashboard: React.FC = () => {
         
         <div className="mt-6 relative">
           <Tabs defaultValue="my-pokemons" className="w-full mt-8" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 mb-8">
-              <TabsTrigger value="my-pokemons">{t("my-pokemons")}</TabsTrigger>
-              <TabsTrigger value="mystery-ball">{t("mystery-ball")}</TabsTrigger>
-              <TabsTrigger value="school-pool">{t("school-pool")}</TabsTrigger>
-              <TabsTrigger value="my-classes" className="flex items-center gap-2">
-                <Users className="h-4 w-4" />
-                {t("my-classes")}
+            <TabsList className="grid w-full grid-cols-3 mb-8 bg-blue-200 p-2 rounded-full">
+              <TabsTrigger 
+                value="my-pokemons"
+                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all"
+              >
+                My Pokémon
+              </TabsTrigger>
+              <TabsTrigger 
+                value="mystery-ball"
+                className="data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all flex items-center justify-center gap-2"
+              >
+                <Package className="h-5 w-5" />
+                Mystery Ball
+              </TabsTrigger>
+              <TabsTrigger 
+                value="my-classes" 
+                className="data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all flex items-center justify-center gap-2"
+              >
+                <Users className="h-5 w-5" />
+                My Class
               </TabsTrigger>
             </TabsList>
             
@@ -202,38 +216,6 @@ const StudentDashboard: React.FC = () => {
                 onCoinsWon={handleCoinsWon} 
                 onRefreshPool={handleRefreshPool} 
               />
-            </TabsContent>
-            
-            <TabsContent value="school-pool" className="mt-4">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-2xl font-bold mb-4 text-center">{t("school-pokemon-pool")}</h2>
-                <p className="text-center mb-6 text-gray-600">{t("available-pokemon")}: {schoolPokemons.length}</p>
-                
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 lg:grid-cols-6 gap-4 max-h-[500px] overflow-y-auto p-4 bg-gray-50 rounded-lg">
-                  {schoolPokemons.map(pokemon => (
-                    <div 
-                      key={pokemon.id} 
-                      className="bg-white border rounded-lg p-3 shadow-sm hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => setShowSchoolPool(true)}
-                    >
-                      <img src={pokemon.image} alt={pokemon.name} className="w-full h-24 object-contain mx-auto" />
-                      <div className="mt-2 text-center">
-                        <p className="font-medium text-sm">{pokemon.name}</p>
-                        <p className="text-xs text-gray-500">{pokemon.type}</p>
-                        <span className={`inline-block px-2 py-0.5 mt-1 rounded-full text-xs text-white ${pokemon.rarity === 'legendary' ? 'bg-yellow-500' : pokemon.rarity === 'rare' ? 'bg-purple-500' : pokemon.rarity === 'uncommon' ? 'bg-blue-500' : 'bg-green-500'}`}>
-                          {pokemon.rarity}
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                  
-                  {schoolPokemons.length === 0 && (
-                    <div className="col-span-full text-center py-12 text-gray-500">
-                      {t("no-pokemon-available")}
-                    </div>
-                  )}
-                </div>
-              </div>
             </TabsContent>
             
             <TabsContent value="my-classes" className="mt-4">
