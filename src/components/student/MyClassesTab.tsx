@@ -85,11 +85,15 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
         
         // Auto-select the class with matching classId or first class
         const targetClass = formattedClasses.find(cls => cls.id === classId) || formattedClasses[0];
-        setSelectedClass(targetClass);
+        if (targetClass) {
+          setSelectedClass(targetClass);
+        }
       } else {
         // Fallback to localStorage if no classes found in database
         const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-        const studentClasses = allClasses.filter((cls: any) => cls.id === classId || cls.students?.includes(studentId));
+        const studentClasses = allClasses.filter((cls: any) => 
+          cls.id === classId || (cls.students && cls.students.includes(studentId))
+        );
         
         console.log("Found classes for student in localStorage:", studentClasses);
         setClasses(studentClasses);
@@ -109,7 +113,9 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
       
       // Fallback to localStorage on error
       const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      const studentClasses = allClasses.filter((cls: any) => cls.id === classId || cls.students?.includes(studentId));
+      const studentClasses = allClasses.filter((cls: any) => 
+        cls.id === classId || (cls.students && cls.students.includes(studentId))
+      );
       setClasses(studentClasses);
       
       if (studentClasses.length > 0) {

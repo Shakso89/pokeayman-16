@@ -8,7 +8,7 @@ export interface ClassData {
   id: string;
   name: string;
   schoolId: string;
-  teacherId: string;
+  teacherId: string | null;
   students: string[]; 
   isPublic: boolean;  
   description: string; 
@@ -103,17 +103,21 @@ export const saveClass = async (classData: ClassData): Promise<ClassData> => {
     }
     
     // Return properly structured ClassData
-    return {
-      id: data.id,
-      name: data.name,
-      schoolId: data.school_id || classData.schoolId,
-      teacherId: data.teacher_id || classData.teacherId,
-      students: data.students || [],
-      isPublic: data.is_public !== false,
-      description: data.description || '',
-      likes: data.likes || [],
-      createdAt: data.created_at
-    };
+    if (data) {
+      return {
+        id: data.id,
+        name: data.name,
+        schoolId: data.school_id || classData.schoolId,
+        teacherId: data.teacher_id || classData.teacherId,
+        students: data.students || [],
+        isPublic: data.is_public !== false,
+        description: data.description || '',
+        likes: data.likes || [],
+        createdAt: data.created_at
+      };
+    } else {
+      return classData;
+    }
   } catch (error) {
     console.error("Error saving class:", error);
     
@@ -156,7 +160,7 @@ export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[
           id: cls.id,
           name: cls.name,
           schoolId: cls.schoolId,
-          teacherId: cls.teacherId || '',
+          teacherId: cls.teacherId || null,
           students: cls.students || [],
           isPublic: cls.isPublic !== false,
           description: cls.description || '',
@@ -170,7 +174,7 @@ export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[
       id: item.id,
       name: item.name,
       schoolId: item.school_id || schoolId,
-      teacherId: item.teacher_id || '',
+      teacherId: item.teacher_id || null,
       students: item.students || [],
       isPublic: item.is_public !== false,
       description: item.description || '',
@@ -190,7 +194,7 @@ export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[
         id: cls.id,
         name: cls.name,
         schoolId: cls.schoolId,
-        teacherId: cls.teacherId || '',
+        teacherId: cls.teacherId || null,
         students: cls.students || [],
         isPublic: cls.isPublic !== false,
         description: cls.description || '',

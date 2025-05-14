@@ -162,8 +162,7 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
         description: classData.description || null,
         is_public: classData.isPublic !== false,
         students: classData.students || [],
-        likes: classData.likes || [],
-        created_at: new Date().toISOString()
+        likes: classData.likes || []
       })
       .select()
       .single();
@@ -306,7 +305,7 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
     }
     
     // Prepare updated students array
-    const currentStudents = classData?.students || [];
+    const currentStudents = classData && classData.students ? classData.students : [];
     if (currentStudents.includes(studentId)) {
       return true; // Student already in class
     }
@@ -397,7 +396,7 @@ export const removeStudentFromClass = async (classId: string, studentId: string)
     }
     
     // Prepare updated students array
-    const currentStudents = classData?.students || [];
+    const currentStudents = classData && classData.students ? classData.students : [];
     const updatedStudents = currentStudents.filter(id => id !== studentId);
     
     // Update the class with the new students array
@@ -482,7 +481,7 @@ export const toggleClassLike = async (classId: string, teacherId: string): Promi
     }
     
     // Prepare updated likes array
-    const currentLikes = classData?.likes || [];
+    const currentLikes = classData && classData.likes ? classData.likes : [];
     const hasLiked = currentLikes.includes(teacherId);
     
     const updatedLikes = hasLiked

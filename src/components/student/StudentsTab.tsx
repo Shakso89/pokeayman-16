@@ -73,7 +73,7 @@ const StudentsTab: React.FC<StudentsTabProps> = ({
       }
       
       // Get all students that are in this class
-      const studentIds = classData?.students || [];
+      const studentIds = classData && classData.students ? classData.students : [];
       if (studentIds.length === 0) {
         setStudents([]);
         setIsLoading(false);
