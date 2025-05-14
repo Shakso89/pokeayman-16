@@ -80,6 +80,7 @@ serve(async (req) => {
     }
     
     // If no credit info exists, create it
+    let credits = { credits: 10, used_credits: 0 };
     if (!creditInfo) {
       const { error: insertCreditError } = await supabaseAdmin
         .from('teacher_credits')
@@ -96,12 +97,11 @@ serve(async (req) => {
           status: 400,
         });
       }
-      
-      // Set credit info for the checks below
-      creditInfo = { credits: 10, used_credits: 0 };
+    } else {
+      credits = creditInfo;
     }
     
-    if (creditInfo.credits < 2) {
+    if (credits.credits < 2) {
       return new Response(JSON.stringify({ error: "Insufficient credits to create a student account" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
@@ -135,11 +135,11 @@ serve(async (req) => {
     }
 
     // Update teacher credits (deduct 2 credits)
-    const usedCredits = creditInfo.used_credits || 0;
+    const usedCredits = credits.used_credits || 0;
     const { error: updateError } = await supabaseAdmin
       .from('teacher_credits')
       .update({ 
-        credits: creditInfo.credits - 2,
+        credits: credits.credits - 2,
         used_credits: usedCredits + 2
       })
       .eq('teacher_id', teacherId);

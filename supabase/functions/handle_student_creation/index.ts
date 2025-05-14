@@ -47,7 +47,7 @@ serve(async (req) => {
       password,
       email_confirm: true, // Auto-confirm the email
       user_metadata: {
-        username,
+        username: username || email.split('@')[0],
         avatar_url: avatarUrl || '',
         user_type: "teacher",
       }
