@@ -52,7 +52,7 @@ serve(async (req) => {
       }
     );
     
-    console.log(`Creating user with email: ${email}, username: ${username}`);
+    console.log(`Creating teacher with email: ${email}, username: ${username}`);
     
     // Create user with the Admin API
     const { data: user, error: createUserError } = await supabaseAdmin.auth.admin.createUser({
@@ -67,19 +67,19 @@ serve(async (req) => {
     });
 
     if (createUserError) {
-      console.error("Error creating user:", createUserError);
+      console.error("Error creating teacher:", createUserError);
       return new Response(JSON.stringify({ error: createUserError.message }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 400,
       });
     }
 
-    console.log("User created successfully:", user);
+    console.log("Teacher auth user created successfully:", user);
     
     // Create a corresponding record in the teachers table
     if (user?.user) {
       try {
-        const { error: teacherInsertError } = await supabaseAdmin
+        const { data: teacherData, error: teacherInsertError } = await supabaseAdmin
           .from('teachers')
           .insert({
             id: user.user.id,
@@ -90,37 +90,65 @@ serve(async (req) => {
             created_at: new Date().toISOString(),
             is_active: true,
             subscription_type: 'trial'
-          });
+          })
+          .select()
+          .single();
         
         if (teacherInsertError) {
           console.error("Error creating teacher record:", teacherInsertError);
-          // We don't want to fail the whole operation just because of this
-          // The user was still created in auth.users
+          // We don't want to roll back the auth user creation
+          return new Response(JSON.stringify({ 
+            user: user,
+            warning: "Teacher account created but database record failed. Please try logging in."
+          }), {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+            status: 200, // Still return 200 since the auth user was created
+          });
         } else {
-          console.log("Teacher record created successfully in teachers table");
+          console.log("Teacher record created successfully in teachers table:", teacherData);
           
           // Initialize teacher credits
-          const { error: creditsError } = await supabaseAdmin
+          const { data: creditsData, error: creditsError } = await supabaseAdmin
             .from('teacher_credits')
             .insert({
               teacher_id: user.user.id,
               credits: 10, // Starting credits
               used_credits: 0
-            });
+            })
+            .select()
+            .single();
             
           if (creditsError) {
             console.error("Error initializing teacher credits:", creditsError);
+            return new Response(JSON.stringify({ 
+              user: user,
+              teacher: teacherData,
+              warning: "Teacher credits could not be initialized."
+            }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 200, // Still return 200 since the teacher was created
+            });
           } else {
-            console.log("Teacher credits initialized successfully");
+            console.log("Teacher credits initialized successfully:", creditsData);
           }
         }
       } catch (dbError) {
         console.error("Database operation error:", dbError);
+        return new Response(JSON.stringify({ 
+          user: user,
+          error: "Database error, but auth account was created."
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 200,
+        });
       }
     }
     
     // Return the created user
-    return new Response(JSON.stringify({ user }), {
+    return new Response(JSON.stringify({ 
+      success: true,
+      user 
+    }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 200,
     });

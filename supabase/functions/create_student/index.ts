@@ -1,3 +1,4 @@
+
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.26.0";
 
@@ -74,7 +75,7 @@ serve(async (req) => {
       }
     }
     
-    // First check if username is already in use
+    // Check if username is already in use
     const { data: existingStudents, error: checkError } = await supabaseAdmin
       .from('students')
       .select('username')
@@ -96,62 +97,27 @@ serve(async (req) => {
       });
     }
 
-    let creditsInfo;
-    
     try {
-      // Check teacher credits before creating the student
-      const { data: creditData, error: creditError } = await supabaseAdmin
-        .from('teacher_credits')
-        .select('credits, used_credits')
-        .eq('teacher_id', validTeacherId)
-        .maybeSingle();
-      
-      if (creditError) {
-        console.error("Error checking credits:", creditError);
-        return new Response(JSON.stringify({ error: `Error checking credits: ${creditError.message}` }), {
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-          status: 400,
-        });
-      }
-      
-      // If no credit info exists, create it
-      if (!creditData) {
-        console.log("No credit record found, creating one");
-        const { data: newCredit, error: insertCreditError } = await supabaseAdmin
-          .from('teacher_credits')
-          .insert({
-            teacher_id: validTeacherId,
-            credits: 10, // Starting with 10 credits
-            used_credits: 0
-          })
-          .select()
-          .single();
-          
-        if (insertCreditError) {
-          console.error("Error creating teacher credits:", insertCreditError);
-          return new Response(JSON.stringify({ error: `Error creating credits: ${insertCreditError.message}` }), {
+      // First verify that the teacher exists
+      const { data: teacherData, error: teacherError } = await supabaseAdmin
+        .from('teachers')
+        .select('id')
+        .eq('id', validTeacherId)
+        .single();
+        
+      if (teacherError) {
+        console.error("Error checking teacher:", teacherError);
+        if (teacherError.code === 'PGRST116') {
+          return new Response(JSON.stringify({ error: "Teacher not found" }), {
             headers: { ...corsHeaders, "Content-Type": "application/json" },
-            status: 400,
+            status: 404,
           });
         }
-        
-        creditsInfo = newCredit;
-      } else {
-        creditsInfo = creditData;
-      }
-      
-      console.log("Teacher credits info:", creditsInfo);
-      
-      // Uncomment this if you want to enforce credit restrictions
-      // Student creation no longer requires credits based on user requirements
-      /*
-      if (creditsInfo.credits < 2) {
-        return new Response(JSON.stringify({ error: "Insufficient credits to create a student account" }), {
+        return new Response(JSON.stringify({ error: `Error checking teacher: ${teacherError.message}` }), {
           headers: { ...corsHeaders, "Content-Type": "application/json" },
           status: 400,
         });
       }
-      */
       
       // Generate a UUID for the student
       const studentId = crypto.randomUUID();
@@ -180,23 +146,6 @@ serve(async (req) => {
       }
 
       console.log("Student created successfully:", newStudent);
-
-      // No longer deducting credits for student creation
-      // But we'll keep the transaction recording functionality
-      
-      // Record the credit transaction for tracking purposes
-      const { error: transactionError } = await supabaseAdmin
-        .from('credit_transactions')
-        .insert({
-          teacher_id: validTeacherId,
-          amount: 0, // No credits used
-          reason: `Create student account: ${displayName}`
-        });
-      
-      if (transactionError) {
-        console.error("Error recording transaction:", transactionError);
-        // Also not failing if transaction recording fails
-      }
       
       // Return the created student
       return new Response(JSON.stringify({ 
@@ -207,7 +156,7 @@ serve(async (req) => {
         status: 200,
       });
     } catch (error) {
-      console.error("Error in credit/student creation process:", error);
+      console.error("Error in student creation process:", error);
       throw error; // Re-throw to be caught by outer catch
     }
     

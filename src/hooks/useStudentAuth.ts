@@ -33,7 +33,7 @@ export const useStudentAuth = () => {
       // Update last login time
       await supabase
         .from('students')
-        .update({ last_login: new Date().toISOString() } as Partial<Student>)
+        .update({ last_login: new Date().toISOString() })
         .eq('id', student.id);
       
       // Store student session in localStorage

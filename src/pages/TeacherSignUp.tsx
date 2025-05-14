@@ -21,7 +21,6 @@ const TeacherSignUp: React.FC = () => {
   const [isLoading, setIsLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState("");
   const [verificationSent, setVerificationSent] = useState(false);
-  const [rateLimitExceeded, setRateLimitExceeded] = useState(false);
   const [accountCreated, setAccountCreated] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
@@ -66,7 +65,7 @@ const TeacherSignUp: React.FC = () => {
 
       console.log("Starting sign up process for:", email);
       
-      // Try edge function to create user directly with auto-confirmation
+      // Try edge function to create teacher directly with auto-confirmation
       try {
         const { data: response, error: edgeFunctionError } = await supabase.functions.invoke("handle_student_creation", {
           body: { username, email, password, avatarUrl }
@@ -76,27 +75,31 @@ const TeacherSignUp: React.FC = () => {
         
         if (edgeFunctionError) {
           console.error("Edge function error:", edgeFunctionError);
-          throw new Error(edgeFunctionError.message);
+          throw new Error(edgeFunctionError.message || "Edge function error");
         }
         
         if (response?.error) {
           console.error("Response contains error:", response.error);
           throw new Error(response.error);
         }
-        
-        toast({
-          title: "Account created successfully",
-          description: "You can now login with your credentials.",
-        });
-        
-        setAccountCreated(true);
-        
-        // Wait 2 seconds before redirecting to login page
-        setTimeout(() => {
-          navigate("/teacher-login");
-        }, 2000);
-        
-        return;
+
+        if (response?.success && response?.user) {
+          toast({
+            title: "Account created successfully",
+            description: "You can now login with your credentials.",
+          });
+          
+          setAccountCreated(true);
+          
+          // Wait 2 seconds before redirecting to login page
+          setTimeout(() => {
+            navigate("/teacher-login");
+          }, 2000);
+          
+          return;
+        } else {
+          throw new Error("Failed to create teacher account. Please try again.");
+        }
       } catch (edgeFunctionError: any) {
         console.error("Edge function failed:", edgeFunctionError);
         
@@ -105,7 +108,7 @@ const TeacherSignUp: React.FC = () => {
         setErrorMessage(`Edge function error: ${edgeFunctionError.message || "Unknown error"}`);
       }
       
-      // Direct signup attempt
+      // Direct signup attempt as fallback
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -121,57 +124,66 @@ const TeacherSignUp: React.FC = () => {
       
       if (authError) {
         console.error("Auth error during signup:", authError);
+        throw authError;
+      }
+      
+      if (authData.user) {
+        console.log("User created successfully:", authData.user.id);
         
-        // Check if it's a rate limit error
-        if (authError.message?.includes("rate limit") || authError.message?.includes("exceeded")) {
-          console.log("Rate limit exceeded, showing rate limit message");
-          setRateLimitExceeded(true);
-          
-          toast({
-            title: "Email sending limit reached",
-            description: "Please try again in a few minutes or contact support.",
-            variant: "destructive",
-          });
-          
-          setErrorMessage(`Rate limit error: ${authError.message}`);
-          setIsLoading(false);
-          return;
-        }
-        
-        // Handle other error cases
-        if (authError.message?.includes("User already registered")) {
+        if (authData.user.identities?.length === 0) {
           toast({
             title: "Email already registered",
             description: "This email is already in use. Please try logging in instead.",
             variant: "destructive",
           });
-        } else if (authError.message?.includes("Password should be")) {
-          toast({
-            title: "Password requirements",
-            description: authError.message,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Signup failed",
-            description: authError.message || "An error occurred during signup.",
-            variant: "destructive",
-          });
+          setErrorMessage("Email already registered");
+          setIsLoading(false);
+          return;
         }
         
-        setErrorMessage(authError.message || "Sign up failed");
-        setIsLoading(false);
-        return;
-      }
-      
-      if (authData.user) {
-        console.log("User created successfully:", authData.user.id);
-        setVerificationSent(true);
-        
-        toast({
-          title: "Verification email sent",
-          description: "Please check your email to confirm your account.",
-        });
+        // Check if email confirmation is required
+        if (authData.user.email_confirmed_at === null) {
+          setVerificationSent(true);
+          
+          toast({
+            title: "Verification email sent",
+            description: "Please check your email to confirm your account.",
+          });
+        } else {
+          // Email already confirmed
+          setAccountCreated(true);
+          
+          toast({
+            title: "Account created successfully",
+            description: "You can now login with your credentials.",
+          });
+          
+          // Create teacher record in the database
+          try {
+            const { error: teacherError } = await supabase
+              .from('teachers')
+              .insert({
+                id: authData.user.id,
+                username: username,
+                email: email,
+                display_name: username,
+                password: '***',
+                is_active: true,
+                subscription_type: 'trial'
+              });
+              
+            if (teacherError) {
+              console.error("Error creating teacher record:", teacherError);
+            }
+          } catch (dbError) {
+            console.error("Database error:", dbError);
+          }
+          
+          // Wait 2 seconds before redirecting to login page
+          setTimeout(() => {
+            navigate("/teacher-login");
+          }, 2000);
+        }
       } else {
         // This case shouldn't happen normally, but added as a fallback
         toast({
@@ -218,21 +230,13 @@ const TeacherSignUp: React.FC = () => {
       });
 
       if (error) {
-        if (error.message?.includes("rate limit") || error.message?.includes("exceeded")) {
-          toast({
-            title: "Email sending limit reached",
-            description: "Please try again later or contact support.",
-            variant: "destructive",
-          });
-        } else {
-          throw error;
-        }
-      } else {
-        toast({
-          title: "Verification email resent",
-          description: "Please check your inbox for the verification link.",
-        });
+        throw error;
       }
+      
+      toast({
+        title: "Verification email resent",
+        description: "Please check your inbox for the verification link.",
+      });
     } catch (error: any) {
       toast({
         title: "Failed to resend verification",
@@ -319,22 +323,6 @@ const TeacherSignUp: React.FC = () => {
                 >
                   Go to Login
                 </Button>
-              </div>
-            </div>
-          ) : rateLimitExceeded ? (
-            <div className="space-y-6">
-              <Alert variant="default" className="bg-yellow-500/20 border-yellow-500 text-white">
-                <AlertCircle className="h-5 w-5" />
-                <AlertDescription>
-                  Our email service is currently experiencing high traffic. We're trying an alternative method to create your account.
-                </AlertDescription>
-              </Alert>
-              
-              <div className="text-center space-y-4">
-                <p>Please wait a moment while we process your request...</p>
-                <div className="flex justify-center">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-500"></div>
-                </div>
               </div>
             </div>
           ) : (

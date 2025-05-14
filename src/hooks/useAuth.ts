@@ -18,13 +18,16 @@ export const useAuth = () => {
 
   // Check authentication status on mount
   useEffect(() => {
-    // First, set up auth state change listener to avoid race conditions
+    // First, set up auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       (event, newSession) => {
-        // Only use synchronous state updates here
+        console.log("Auth state changed:", event);
+        
+        // Update session state
         setSession(newSession);
         
         if (event === 'SIGNED_IN' && newSession) {
+          console.log("User signed in:", newSession.user);
           const { user } = newSession;
           const userData = user.user_metadata || {};
           
@@ -43,14 +46,9 @@ export const useAuth = () => {
             setIsLoggedIn(true);
             setUserType('teacher');
             setUserId(user.id);
-            
-            // Use setTimeout to avoid calling Supabase inside the callback
-            setTimeout(() => {
-              // Initialize teacher credits if needed, but don't block the auth flow
-              console.log("Checking teacher credits for", user.id);
-            }, 0);
           }
         } else if (event === 'SIGNED_OUT') {
+          console.log("User signed out");
           // Clear auth state
           localStorage.removeItem('isLoggedIn');
           localStorage.removeItem('userType');
@@ -71,11 +69,11 @@ export const useAuth = () => {
     // Then check for existing session
     const checkAuth = async () => {
       try {
+        setLoading(true);
         const { data: { session: existingSession }, error } = await supabase.auth.getSession();
         
         if (error) {
           console.error('Error fetching session:', error);
-          setLoading(false);
           return;
         }
         
@@ -84,6 +82,7 @@ export const useAuth = () => {
         
         // If session exists and we don't have local storage set, update local storage
         if (existingSession?.user && !isLoggedIn) {
+          console.log("Found existing session for user:", existingSession.user.id);
           const { user } = existingSession;
           const userData = user.user_metadata || {};
           
