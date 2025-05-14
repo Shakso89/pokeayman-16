@@ -1,10 +1,11 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Trash2, AlertTriangle } from "lucide-react";
+import { Trash2, AlertTriangle, Loader2 } from "lucide-react";
 import { Teacher } from "@/types/database";
 
 // Renaming the interface to avoid conflicts with AdminDashboard
@@ -31,10 +32,18 @@ interface TeachersTabProps {
 }
 
 const TeachersTab: React.FC<TeachersTabProps> = ({ teachers, setTeachers, t }) => {
+  const [processingIds, setProcessingIds] = useState<Record<string, 'toggle' | 'delete'>>({});
+  const [isClearingAccounts, setIsClearingAccounts] = useState(false);
+
   const handleToggleAccount = async (userId: string) => {
     try {
+      // Set processing state
+      setProcessingIds(prev => ({ ...prev, [userId]: 'toggle' }));
+      
       const teacher = teachers.find(t => t.id === userId);
-      if (!teacher) return;
+      if (!teacher) {
+        throw new Error("Teacher not found");
+      }
       
       const newIsActive = !teacher.isActive;
       
@@ -70,11 +79,26 @@ const TeachersTab: React.FC<TeachersTabProps> = ({ teachers, setTeachers, t }) =
         description: error.message || "Failed to update teacher account",
         variant: "destructive"
       });
+    } finally {
+      // Clear processing state
+      setProcessingIds(prev => {
+        const updated = { ...prev };
+        delete updated[userId];
+        return updated;
+      });
     }
   };
 
   const handleDeleteAccount = async (userId: string) => {
     try {
+      // Confirm deletion
+      if (!window.confirm(t("confirm-delete-teacher") || "Are you sure you want to delete this teacher account? This action cannot be undone.")) {
+        return;
+      }
+      
+      // Set processing state
+      setProcessingIds(prev => ({ ...prev, [userId]: 'delete' }));
+      
       // Delete from Supabase
       const { error } = await supabase
         .from('teachers')
@@ -98,6 +122,13 @@ const TeachersTab: React.FC<TeachersTabProps> = ({ teachers, setTeachers, t }) =
         description: error.message || "Failed to delete teacher account",
         variant: "destructive"
       });
+    } finally {
+      // Clear processing state
+      setProcessingIds(prev => {
+        const updated = { ...prev };
+        delete updated[userId];
+        return updated;
+      });
     }
   };
 
@@ -107,6 +138,8 @@ const TeachersTab: React.FC<TeachersTabProps> = ({ teachers, setTeachers, t }) =
     }
     
     try {
+      setIsClearingAccounts(true);
+      
       // First delete all students
       const { error: studentsError } = await supabase
         .from('students')
@@ -140,6 +173,8 @@ const TeachersTab: React.FC<TeachersTabProps> = ({ teachers, setTeachers, t }) =
         description: error.message || "Failed to clear accounts",
         variant: "destructive"
       });
+    } finally {
+      setIsClearingAccounts(false);
     }
   };
 
@@ -158,9 +193,13 @@ const TeachersTab: React.FC<TeachersTabProps> = ({ teachers, setTeachers, t }) =
             variant="destructive"
             className="bg-red-600 hover:bg-red-700"
             onClick={clearAllNonAdminAccounts}
+            disabled={isClearingAccounts}
           >
-            <Trash2 className="mr-2 h-4 w-4" />
-            {t("clear-all-accounts") || "Clear All Non-Admin Accounts"}
+            {isClearingAccounts ? (
+              <><Loader2 className="mr-2 h-4 w-4 animate-spin" /> {t("processing") || "Processing..."}</>
+            ) : (
+              <><Trash2 className="mr-2 h-4 w-4" /> {t("clear-all-accounts") || "Clear All Non-Admin Accounts"}</>
+            )}
           </Button>
         </CardContent>
       </Card>
@@ -215,15 +254,25 @@ const TeachersTab: React.FC<TeachersTabProps> = ({ teachers, setTeachers, t }) =
                 <Button 
                   onClick={() => handleToggleAccount(teacher.id)} 
                   variant={teacher.isActive ? "destructive" : "default"}
+                  disabled={!!processingIds[teacher.id]}
                 >
-                  {teacher.isActive ? t("freeze-account") || "Freeze Account" : t("unfreeze-account") || "Unfreeze Account"}
+                  {processingIds[teacher.id] === 'toggle' ? (
+                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> {t("processing") || "Processing..."}</>
+                  ) : (
+                    teacher.isActive ? t("freeze-account") || "Freeze Account" : t("unfreeze-account") || "Unfreeze Account"
+                  )}
                 </Button>
                 <Button 
                   onClick={() => handleDeleteAccount(teacher.id)} 
                   variant="outline" 
                   className="text-red-500 border-red-500 hover:bg-red-50"
+                  disabled={!!processingIds[teacher.id]}
                 >
-                  {t("delete-account") || "Delete Account"}
+                  {processingIds[teacher.id] === 'delete' ? (
+                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> {t("processing") || "Processing..."}</>
+                  ) : (
+                    t("delete-account") || "Delete Account"
+                  )}
                 </Button>
               </div>
             )}

@@ -1,10 +1,12 @@
-import React from "react";
+
+import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { Student } from "@/types/database";
+import { Loader2 } from "lucide-react";
 
 interface StudentData {
   id: string;
@@ -24,11 +26,18 @@ interface StudentsTabProps {
 }
 
 const StudentsTab: React.FC<StudentsTabProps> = ({ students, setStudents, t }) => {
+  const [processingIds, setProcessingIds] = useState<Record<string, 'toggle' | 'delete'>>({});
+
   const handleToggleAccount = async (userId: string) => {
     try {
+      // Set processing state
+      setProcessingIds(prev => ({ ...prev, [userId]: 'toggle' }));
+      
       // Find the current student in state
       const student = students.find(s => s.id === userId);
-      if (!student) return;
+      if (!student) {
+        throw new Error("Student not found");
+      }
       
       const newIsActive = !student.is_active;
       
@@ -64,11 +73,26 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ students, setStudents, t }) =
         description: error.message || "Failed to update student account",
         variant: "destructive"
       });
+    } finally {
+      // Clear processing state
+      setProcessingIds(prev => {
+        const updated = { ...prev };
+        delete updated[userId];
+        return updated;
+      });
     }
   };
 
   const handleDeleteAccount = async (userId: string) => {
     try {
+      // Confirm deletion
+      if (!window.confirm(t("confirm-delete-student") || "Are you sure you want to delete this student account? This action cannot be undone.")) {
+        return;
+      }
+      
+      // Set processing state
+      setProcessingIds(prev => ({ ...prev, [userId]: 'delete' }));
+      
       // Delete from Supabase
       const { error } = await supabase
         .from('students')
@@ -91,6 +115,13 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ students, setStudents, t }) =
         title: "Error",
         description: error.message || "Failed to delete student account",
         variant: "destructive"
+      });
+    } finally {
+      // Clear processing state
+      setProcessingIds(prev => {
+        const updated = { ...prev };
+        delete updated[userId];
+        return updated;
       });
     }
   };
@@ -131,15 +162,25 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ students, setStudents, t }) =
               <Button 
                 onClick={() => handleToggleAccount(student.id)} 
                 variant={student.is_active ? "destructive" : "default"}
+                disabled={!!processingIds[student.id]}
               >
-                {student.is_active ? t("freeze-account") || "Freeze Account" : t("unfreeze-account") || "Unfreeze Account"}
+                {processingIds[student.id] === 'toggle' ? (
+                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> {t("processing") || "Processing..."}</>
+                ) : (
+                  student.is_active ? t("freeze-account") || "Freeze Account" : t("unfreeze-account") || "Unfreeze Account"
+                )}
               </Button>
               <Button 
                 onClick={() => handleDeleteAccount(student.id)} 
                 variant="outline" 
                 className="text-red-500 border-red-500 hover:bg-red-50"
+                disabled={!!processingIds[student.id]}
               >
-                {t("delete-account") || "Delete Account"}
+                {processingIds[student.id] === 'delete' ? (
+                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> {t("processing") || "Processing..."}</>
+                ) : (
+                  t("delete-account") || "Delete Account"
+                )}
               </Button>
             </div>
           </CardContent>

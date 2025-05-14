@@ -5,11 +5,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { NavBar } from "@/components/NavBar";
 import { useTranslation } from "@/hooks/useTranslation";
 import AdminHeader from "@/components/admin/AdminHeader";
-import TeachersTab, { AdminTeacherData } from "@/components/admin/TeachersTab"; // Updated import with type
+import TeachersTab, { AdminTeacherData } from "@/components/admin/TeachersTab";
 import StudentsTab from "@/components/admin/StudentsTab";
 import CreditManagement from "@/components/admin/CreditManagement";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { Loader2 } from "lucide-react";
 
 // Type for student data
 interface StudentData {
@@ -36,71 +37,80 @@ const AdminDashboard: React.FC = () => {
   const username = localStorage.getItem("teacherUsername") || "";
   const isAdmin = username === "Admin" || username === "Ayman";
 
-  useEffect(() => {
-    // Load data from Supabase
-    const loadData = async () => {
-      setIsLoading(true);
-      try {
-        // Load teachers
-        const { data: teachersData, error: teachersError } = await supabase
-          .from('teachers')
-          .select('*');
-          
-        if (teachersError) throw teachersError;
+  // Function to refresh the dashboard data from Supabase
+  const refreshData = async () => {
+    setIsLoading(true);
+    try {
+      // Load teachers
+      const { data: teachersData, error: teachersError } = await supabase
+        .from('teachers')
+        .select('*');
         
-        // Process teacher data
-        const processedTeachers = await Promise.all((teachersData || []).map(async (teacher) => {
-          // Get teacher students count
-          const { count: studentsCount, error: countError } = await supabase
-            .from('students')
-            .select('*', { count: 'exact', head: true })
-            .eq('teacher_id', teacher.id);
-            
-          if (countError) console.error("Error counting students:", countError);
-          
-          // Get teacher schools count
-          const { count: schoolsCount, error: schoolsError } = await supabase
-            .from('schools')
-            .select('*', { count: 'exact', head: true })
-            .eq('created_by', teacher.id);
-            
-          if (schoolsError) console.error("Error counting schools:", schoolsError);
-          
-          return {
-            ...teacher,
-            numSchools: schoolsCount || 0,
-            numStudents: studentsCount || 0,
-            // Map Supabase fields to our interface
-            displayName: teacher.display_name || teacher.username,
-            createdAt: teacher.created_at,
-            isActive: teacher.is_active !== false, // Default to true if not specified
-          };
-        }));
-        
-        setTeachers(processedTeachers);
-        
-        // Load students
-        const { data: studentsData, error: studentsError } = await supabase
+      if (teachersError) throw teachersError;
+      
+      // Process teacher data
+      const processedTeachers = await Promise.all((teachersData || []).map(async (teacher) => {
+        // Get teacher students count
+        const { count: studentsCount, error: countError } = await supabase
           .from('students')
-          .select('*');
+          .select('*', { count: 'exact', head: true })
+          .eq('teacher_id', teacher.id);
+          
+        if (countError) console.error("Error counting students:", countError);
         
-        if (studentsError) throw studentsError;
+        // Get teacher schools count
+        const { count: schoolsCount, error: schoolsError } = await supabase
+          .from('schools')
+          .select('*', { count: 'exact', head: true })
+          .eq('created_by', teacher.id);
+          
+        if (schoolsError) console.error("Error counting schools:", schoolsError);
         
-        setStudents(studentsData || []);
-      } catch (error: any) {
-        console.error("Error loading data:", error);
-        toast({
-          title: "Error",
-          description: "Failed to load dashboard data",
-          variant: "destructive"
-        });
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    
+        return {
+          ...teacher,
+          numSchools: schoolsCount || 0,
+          numStudents: studentsCount || 0,
+          // Map Supabase fields to our interface
+          displayName: teacher.display_name || teacher.username,
+          createdAt: teacher.created_at,
+          isActive: teacher.is_active !== false, // Default to true if not specified
+          lastLogin: teacher.last_login ? new Date(teacher.last_login).toLocaleString() : "Never",
+          timeSpent: 0, // Currently not tracked
+          expiryDate: teacher.expiry_date ? new Date(teacher.expiry_date).toLocaleDateString() : "-",
+          subscriptionType: teacher.subscription_type || "trial"
+        };
+      }));
+      
+      setTeachers(processedTeachers);
+      
+      // Load students
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select('*');
+      
+      if (studentsError) throw studentsError;
+      
+      const processedStudents = (studentsData || []).map(student => ({
+        ...student,
+        time_spent: 0, // Currently not tracked
+      }));
+      
+      setStudents(processedStudents);
+    } catch (error: any) {
+      console.error("Error loading data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load dashboard data",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  useEffect(() => {
     if (isLoggedIn && isAdmin) {
-      loadData();
+      refreshData();
     }
   }, [isLoggedIn, isAdmin]);
 
@@ -125,7 +135,10 @@ const AdminDashboard: React.FC = () => {
           
           <TabsContent value="teachers" className="mt-0">
             {isLoading ? (
-              <div className="text-center py-8">Loading teachers...</div>
+              <div className="text-center py-8 flex flex-col items-center">
+                <Loader2 className="h-8 w-8 mb-2 animate-spin text-blue-500" />
+                <p>Loading teachers...</p>
+              </div>
             ) : (
               <TeachersTab teachers={teachers} setTeachers={setTeachers} t={t} />
             )}
@@ -133,7 +146,10 @@ const AdminDashboard: React.FC = () => {
           
           <TabsContent value="students" className="mt-0">
             {isLoading ? (
-              <div className="text-center py-8">Loading students...</div>
+              <div className="text-center py-8 flex flex-col items-center">
+                <Loader2 className="h-8 w-8 mb-2 animate-spin text-blue-500" />
+                <p>Loading students...</p>
+              </div>
             ) : (
               <StudentsTab students={students} setStudents={setStudents} t={t} />
             )}
