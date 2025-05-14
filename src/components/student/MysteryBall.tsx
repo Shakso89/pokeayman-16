@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Pokemon } from "@/types/pokemon";
@@ -7,7 +6,6 @@ import { assignRandomPokemonToStudent, useStudentCoin } from "@/utils/pokemon";
 import MysteryBallResult from "./MysteryBallResult";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { v4 as uuidv4 } from "uuid";
-
 interface MysteryBallProps {
   studentId: string;
   schoolId: string;
@@ -18,7 +16,6 @@ interface MysteryBallProps {
   dailyAttemptUsed: boolean;
   setDailyAttemptUsed: (used: boolean) => void;
 }
-
 const MysteryBall: React.FC<MysteryBallProps> = ({
   studentId,
   schoolId,
@@ -34,12 +31,13 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
   const [wonPokemon, setWonPokemon] = useState<Pokemon | null>(null);
   const [wonCoins, setWonCoins] = useState<number>(0);
   const [showResult, setShowResult] = useState(false);
-  const { toast } = useToast();
+  const {
+    toast
+  } = useToast();
   const isMobile = useIsMobile();
 
   // Free daily chance
   const [usedFreeChance, setUsedFreeChance] = useState(dailyAttemptUsed);
-  
   useEffect(() => {
     setUsedFreeChance(dailyAttemptUsed);
   }, [dailyAttemptUsed]);
@@ -64,17 +62,16 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
 
       // Get existing history or create new array
       const existingHistory = JSON.parse(localStorage.getItem(`mysteryBallHistory_${studentId}`) || "[]");
-      
+
       // Add new item to history
       existingHistory.push(historyItem);
-      
+
       // Save to localStorage
       localStorage.setItem(`mysteryBallHistory_${studentId}`, JSON.stringify(existingHistory));
     } catch (error) {
       console.error("Error saving to history:", error);
     }
   };
-  
   const handleOpenMysteryBall = () => {
     // Check if there are any Pokémon available
     if (schoolPokemons.length === 0) {
@@ -90,7 +87,6 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
     const isFreeChance = !usedFreeChance;
     const requiredCoins = 2; // Updated: Now costs 2 coins instead of 1
     const hasCoins = coins >= requiredCoins;
-    
     if (!isFreeChance && !hasCoins) {
       toast({
         title: "Not Enough Coins",
@@ -128,14 +124,13 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
         // Get a random Pokémon index
         const randomIndex = Math.floor(Math.random() * schoolPokemons.length);
         const pokemon = schoolPokemons[randomIndex];
-        
+
         // Check that we have valid IDs before proceeding
         if (!schoolId) {
           console.error("Missing school ID for Pokemon assignment");
           handleCoinReward(); // Fall back to coin reward
           return;
         }
-
         console.log("Attempting to assign Pokemon with:", {
           schoolId,
           studentId,
@@ -151,7 +146,7 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
           setWonPokemon(pokemon);
           // Call the parent component's callback
           onPokemonWon(pokemon);
-          
+
           // Save to history
           saveToHistory("pokemon", pokemon);
         } else {
@@ -170,7 +165,6 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
       setShowResult(true);
     }, 2000);
   };
-  
   const handleCoinReward = () => {
     // Award between 1-5 coins
     const coinAmount = Math.floor(Math.random() * 5) + 1;
@@ -178,53 +172,34 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
     setWonCoins(coinAmount);
     // Call the parent component's callback
     onCoinsWon(coinAmount);
-    
+
     // Save to history
     saveToHistory("coins", undefined, coinAmount);
   };
-  
   const handleCloseResult = () => {
     setShowResult(false);
     setResult(null);
     setWonPokemon(null);
     setWonCoins(0);
   };
-  
-  return (
-    <div className="flex flex-col items-center">
+  return <div className="flex flex-col items-center">
       {/* Mystery Ball Image - clickable */}
       <div className="relative">
-        <img 
-          src="/lovable-uploads/3a4dc6ae-afe6-4fab-bde5-073d7f16e48a.png" 
-          alt="Mystery Pokémon Ball" 
-          className={`w-40 h-40 cursor-pointer ${isAnimating ? 'animate-bounce' : 'hover:scale-110 transition-transform'}`} 
-          onClick={handleOpenMysteryBall}
-          style={{ filter: isAnimating ? 'brightness(1.2)' : 'none' }}
-        />
+        <img alt="Mystery Pokémon Ball" onClick={handleOpenMysteryBall} style={{
+        filter: isAnimating ? 'brightness(1.2)' : 'none'
+      }} className="" src="/lovable-uploads/37428b9b-1c97-48af-9ecb-20160dc93ccf.png" />
       </div>
 
       {/* Button below the ball (only show if not on mobile or if user wants a clearer button) */}
-      <Button 
-        onClick={handleOpenMysteryBall} 
-        disabled={isAnimating || (usedFreeChance && coins < 2)} 
-        className="mt-4 bg-blue-500 hover:bg-blue-600"
-      >
+      <Button onClick={handleOpenMysteryBall} disabled={isAnimating || usedFreeChance && coins < 2} className="mt-4 bg-blue-500 hover:bg-blue-600">
         {isAnimating ? "Opening..." : usedFreeChance ? `Open (2 coins)` : "Open (Free)"}
       </Button>
       
       {/* Result Modal */}
-      <MysteryBallResult 
-        isOpen={showResult} 
-        onClose={handleCloseResult} 
-        result={{
-          type: result || "nothing",
-          data: result === "pokemon" ? wonPokemon : result === "coins" ? wonCoins : undefined
-        }} 
-        pokemon={wonPokemon} 
-        coins={wonCoins} 
-      />
-    </div>
-  );
+      <MysteryBallResult isOpen={showResult} onClose={handleCloseResult} result={{
+      type: result || "nothing",
+      data: result === "pokemon" ? wonPokemon : result === "coins" ? wonCoins : undefined
+    }} pokemon={wonPokemon} coins={wonCoins} />
+    </div>;
 };
-
 export default MysteryBall;
