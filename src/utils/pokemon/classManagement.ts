@@ -8,12 +8,12 @@ export interface ClassData {
   id: string;
   name: string;
   schoolId: string;
-  teacherId?: string;
-  students?: string[]; // Add students property
-  isPublic?: boolean;  // Add isPublic property
-  description?: string; // Add description property
-  likes?: string[];     // Add likes property
-  createdAt?: string;   // Add createdAt property
+  teacherId: string;
+  students: string[]; 
+  isPublic: boolean;  
+  description: string; 
+  likes: string[];     
+  createdAt?: string;   
 }
 
 /**
@@ -102,12 +102,12 @@ export const saveClass = async (classData: ClassData): Promise<ClassData> => {
       return classData;
     }
     
-    // Convert the Supabase response to our ClassData interface
+    // Return properly structured ClassData
     return {
       id: data.id,
       name: data.name,
       schoolId: data.school_id || classData.schoolId,
-      teacherId: data.teacher_id,
+      teacherId: data.teacher_id || classData.teacherId,
       students: data.students || [],
       isPublic: data.is_public !== false,
       description: data.description || '',
@@ -146,16 +146,23 @@ export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[
     if (error) {
       console.error("Error fetching classes from database:", error);
       
-      // Use a simpler type definition to avoid excessive instantiation
-      interface SimpleClass {
-        id: string;
-        name: string;
-        schoolId: string;
-        teacherId?: string;
-      }
+      // Fallback to localStorage
+      const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
       
-      const allClasses: SimpleClass[] = JSON.parse(localStorage.getItem("classes") || "[]");
-      return allClasses.filter(cls => cls.schoolId === schoolId);
+      // Convert the localStorage data to the proper ClassData type
+      return allClasses
+        .filter((cls: any) => cls.schoolId === schoolId)
+        .map((cls: any) => ({
+          id: cls.id,
+          name: cls.name,
+          schoolId: cls.schoolId,
+          teacherId: cls.teacherId || '',
+          students: cls.students || [],
+          isPublic: cls.isPublic !== false,
+          description: cls.description || '',
+          likes: cls.likes || [],
+          createdAt: cls.createdAt
+        }));
     }
     
     // Map Supabase data to ClassData interface
@@ -163,7 +170,7 @@ export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[
       id: item.id,
       name: item.name,
       schoolId: item.school_id || schoolId,
-      teacherId: item.teacher_id,
+      teacherId: item.teacher_id || '',
       students: item.students || [],
       isPublic: item.is_public !== false,
       description: item.description || '',
@@ -174,16 +181,22 @@ export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[
   } catch (error) {
     console.error("Error fetching classes:", error);
     
-    // Use a simpler type definition to avoid excessive instantiation
-    interface SimpleClass {
-      id: string;
-      name: string;
-      schoolId: string;
-      teacherId?: string;
-    }
+    // Fallback to localStorage with proper type conversion
+    const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
     
-    const allClasses: SimpleClass[] = JSON.parse(localStorage.getItem("classes") || "[]");
-    return allClasses.filter(cls => cls.schoolId === schoolId);
+    return allClasses
+      .filter((cls: any) => cls.schoolId === schoolId)
+      .map((cls: any) => ({
+        id: cls.id,
+        name: cls.name,
+        schoolId: cls.schoolId,
+        teacherId: cls.teacherId || '',
+        students: cls.students || [],
+        isPublic: cls.isPublic !== false,
+        description: cls.description || '',
+        likes: cls.likes || [],
+        createdAt: cls.createdAt
+      }));
   }
 };
 

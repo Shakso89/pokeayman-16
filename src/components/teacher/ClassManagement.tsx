@@ -17,6 +17,7 @@ import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
 import { awardCoinsToStudent } from "@/utils/pokemon";
 import ClassFeed from "./ClassFeed";
 import ClassComments from "./ClassComments";
+import { supabase } from "@/integrations/supabase/client";
 
 // Import our new synchronization functions
 import { 
@@ -42,10 +43,10 @@ interface ClassData {
   teacherId: string;
   schoolId: string;
   students: string[];
-  isPublic?: boolean;
+  isPublic: boolean;
+  description: string;
+  likes: string[];
   createdAt?: string;
-  likes?: string[];
-  description?: string;
 }
 
 interface StudentData {
@@ -126,7 +127,21 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     try {
       // Fetch classes from database
       const teacherClasses = await fetchTeacherClasses(teacherId);
-      setClasses(teacherClasses);
+      
+      // Convert to the local interface to ensure type compatibility
+      const formattedClasses: ClassData[] = teacherClasses.map(cls => ({
+        id: cls.id,
+        name: cls.name,
+        schoolId: cls.schoolId,
+        teacherId: cls.teacherId || teacherId,
+        students: cls.students || [],
+        isPublic: cls.isPublic !== false,
+        description: cls.description || '',
+        likes: cls.likes || [],
+        createdAt: cls.createdAt
+      }));
+      
+      setClasses(formattedClasses);
     } catch (error) {
       console.error("Error loading classes:", error);
       toast({
@@ -213,9 +228,22 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         createdAt: new Date().toISOString(),
         likes: []
       });
+      
+      // Format for local ClassData interface
+      const formattedClass: ClassData = {
+        id: newClassData.id,
+        name: newClassData.name,
+        teacherId: newClassData.teacherId || teacherId,
+        schoolId: newClassData.schoolId,
+        students: newClassData.students || [],
+        isPublic: newClassData.isPublic !== false,
+        description: newClassData.description || '',
+        likes: newClassData.likes || [],
+        createdAt: newClassData.createdAt
+      };
 
       // Update state with the new class
-      setClasses([...classes, newClassData]);
+      setClasses([...classes, formattedClass]);
       setNewClassName("");
       setNewClassDescription("");
       setIsPublic(true);
@@ -270,9 +298,22 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   };
 
   const handleClassSelect = (classData: ClassData) => {
-    setSelectedClass(classData);
+    // Ensure the class data conforms to our local interface
+    const formattedClass: ClassData = {
+      id: classData.id,
+      name: classData.name,
+      teacherId: classData.teacherId || teacherId,
+      schoolId: classData.schoolId,
+      students: classData.students || [],
+      isPublic: classData.isPublic !== false,
+      description: classData.description || '',
+      likes: classData.likes || [],
+      createdAt: classData.createdAt
+    };
+    
+    setSelectedClass(formattedClass);
     setSelectedTab("students"); // Default to students tab
-    setViewMode(classData.teacherId === teacherId ? "manage" : "social");
+    setViewMode(formattedClass.teacherId === teacherId ? "manage" : "social");
   };
 
   const handleToggleLike = async (classId: string) => {
@@ -282,17 +323,30 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       const updatedClass = await toggleClassLike(classId, teacherId);
       
       if (updatedClass) {
+        // Format for local ClassData interface
+        const formattedClass: ClassData = {
+          id: updatedClass.id,
+          name: updatedClass.name,
+          teacherId: updatedClass.teacherId || teacherId,
+          schoolId: updatedClass.schoolId,
+          students: updatedClass.students || [],
+          isPublic: updatedClass.isPublic !== false,
+          description: updatedClass.description || '',
+          likes: updatedClass.likes || [],
+          createdAt: updatedClass.createdAt
+        };
+        
         // Update the selected class if it's the one we modified
         if (selectedClass && selectedClass.id === classId) {
-          setSelectedClass(updatedClass);
+          setSelectedClass(formattedClass);
         }
         
         // Update the class in our classes array
         setClasses(prevClasses => prevClasses.map(cls => 
-          cls.id === classId ? updatedClass : cls
+          cls.id === classId ? formattedClass : cls
         ));
         
-        const hasLiked = updatedClass.likes?.includes(teacherId);
+        const hasLiked = formattedClass.likes.includes(teacherId);
         toast({
           title: t("success"),
           description: hasLiked ? t("class-liked") : t("class-unliked")

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ClassData } from "@/utils/pokemon/classManagement";
 import { toast } from "@/hooks/use-toast";
@@ -52,11 +51,16 @@ export const fetchTeacherClasses = async (teacherId: string): Promise<ClassData[
       throw error;
     }
     
-    // Map database response to ClassData interface
-    return (data || []).map((item: any) => ({
+    if (!Array.isArray(data)) {
+      console.error("Unexpected response from database:", data);
+      return [];
+    }
+    
+    // Map database response to ClassData interface with proper type safety
+    return data.map((item: any) => ({
       id: item.id,
       name: item.name,
-      teacherId: item.teacher_id,
+      teacherId: item.teacher_id || teacherId,
       schoolId: item.school_id || teacherId, // Fallback to teacherId if no school_id
       students: item.students || [],
       isPublic: item.is_public !== false,
@@ -68,7 +72,20 @@ export const fetchTeacherClasses = async (teacherId: string): Promise<ClassData[
     console.error("Error in fetchTeacherClasses:", error);
     // Fallback to localStorage for offline capability
     const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    return allClasses.filter((cls: any) => cls.teacherId === teacherId);
+    
+    return allClasses
+      .filter((cls: any) => cls.teacherId === teacherId)
+      .map((cls: any) => ({
+        id: cls.id,
+        name: cls.name,
+        teacherId: cls.teacherId || teacherId,
+        schoolId: cls.schoolId,
+        students: cls.students || [],
+        isPublic: cls.isPublic !== false,
+        createdAt: cls.createdAt,
+        description: cls.description || '',
+        likes: cls.likes || []
+      }));
   }
 };
 
@@ -87,11 +104,16 @@ export const fetchSchoolClasses = async (schoolId: string): Promise<ClassData[]>
       throw error;
     }
     
-    // Map database response to ClassData interface
-    return (data || []).map((item: any) => ({
+    if (!Array.isArray(data)) {
+      console.error("Unexpected response from database:", data);
+      return [];
+    }
+    
+    // Map database response to ClassData interface with proper type safety
+    return data.map((item: any) => ({
       id: item.id,
       name: item.name,
-      teacherId: item.teacher_id,
+      teacherId: item.teacher_id || '',
       schoolId: item.school_id || schoolId,
       students: item.students || [],
       isPublic: item.is_public !== false,
@@ -103,7 +125,20 @@ export const fetchSchoolClasses = async (schoolId: string): Promise<ClassData[]>
     console.error("Error in fetchSchoolClasses:", error);
     // Fallback to localStorage
     const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    return allClasses.filter((cls: any) => cls.schoolId === schoolId);
+    
+    return allClasses
+      .filter((cls: any) => cls.schoolId === schoolId)
+      .map((cls: any) => ({
+        id: cls.id,
+        name: cls.name,
+        teacherId: cls.teacherId || '',
+        schoolId: cls.schoolId,
+        students: cls.students || [],
+        isPublic: cls.isPublic !== false,
+        createdAt: cls.createdAt,
+        description: cls.description || '',
+        likes: cls.likes || []
+      }));
   }
 };
 
@@ -138,11 +173,16 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
       throw error;
     }
     
+    if (!data) {
+      console.error("No data returned from database after class creation");
+      throw new Error("Failed to create class");
+    }
+    
     // Map response to our ClassData interface
     const newClass: ClassData = {
       id: data.id,
       name: data.name,
-      teacherId: data.teacher_id,
+      teacherId: data.teacher_id || classData.teacherId,
       schoolId: data.school_id || classData.schoolId,
       students: data.students || [],
       isPublic: data.is_public !== false,
@@ -157,9 +197,15 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
     
     // Fallback to localStorage if database operation fails
     const classId = `class-${Date.now()}`;
-    const newClass = {
+    const newClass: ClassData = {
       id: classId,
-      ...classData,
+      name: classData.name,
+      teacherId: classData.teacherId,
+      schoolId: classData.schoolId,
+      students: classData.students || [],
+      isPublic: classData.isPublic !== false,
+      description: classData.description || '',
+      likes: classData.likes || [],
       createdAt: new Date().toISOString()
     };
     
@@ -167,7 +213,7 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
     const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
     localStorage.setItem("classes", JSON.stringify([...existingClasses, newClass]));
     
-    return newClass as ClassData;
+    return newClass;
   }
 };
 
@@ -460,8 +506,8 @@ export const toggleClassLike = async (classId: string, teacherId: string): Promi
     return {
       id: updatedClass.id,
       name: updatedClass.name,
-      teacherId: updatedClass.teacher_id,
-      schoolId: updatedClass.school_id,
+      teacherId: updatedClass.teacher_id || '',
+      schoolId: updatedClass.school_id || '',
       students: updatedClass.students || [],
       isPublic: updatedClass.is_public !== false,
       createdAt: updatedClass.created_at,

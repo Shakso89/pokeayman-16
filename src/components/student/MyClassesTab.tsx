@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -74,7 +73,7 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
         throw error;
       }
 
-      if (data && data.length > 0) {
+      if (data && Array.isArray(data) && data.length > 0) {
         // Transform the data to match our interface
         const formattedClasses = data.map(cls => ({
           id: cls.id,
