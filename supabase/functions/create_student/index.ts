@@ -67,9 +67,9 @@ serve(async (req) => {
     // Check teacher credits before creating the student
     const { data: creditInfo, error: creditError } = await supabaseAdmin
       .from('teacher_credits')
-      .select('credits')
+      .select('credits, used_credits')
       .eq('teacher_id', teacherId)
-      .single();
+      .maybeSingle();
     
     if (creditError) {
       console.error("Error checking credits:", creditError);
@@ -79,6 +79,28 @@ serve(async (req) => {
       });
     }
     
+    // If no credit info exists, create it
+    if (!creditInfo) {
+      const { error: insertCreditError } = await supabaseAdmin
+        .from('teacher_credits')
+        .insert({
+          teacher_id: teacherId,
+          credits: 10, // Starting with 10 credits
+          used_credits: 0
+        });
+        
+      if (insertCreditError) {
+        console.error("Error creating teacher credits:", insertCreditError);
+        return new Response(JSON.stringify({ error: `Error creating credits: ${insertCreditError.message}` }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+      
+      // Set credit info for the checks below
+      creditInfo = { credits: 10, used_credits: 0 };
+    }
+    
     if (creditInfo.credits < 2) {
       return new Response(JSON.stringify({ error: "Insufficient credits to create a student account" }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -86,14 +108,20 @@ serve(async (req) => {
       });
     }
     
+    // Generate a UUID for the student
+    const studentId = crypto.randomUUID();
+
     // Create new student in the database using the service role (bypasses RLS)
     const { data: newStudent, error: insertError } = await supabaseAdmin
       .from('students')
       .insert({
+        id: studentId,
         username: username,
         password: password, 
         display_name: displayName,
-        teacher_id: teacherId
+        teacher_id: teacherId,
+        is_active: true,
+        created_at: new Date().toISOString()
       })
       .select()
       .single();
@@ -107,11 +135,12 @@ serve(async (req) => {
     }
 
     // Update teacher credits (deduct 2 credits)
+    const usedCredits = creditInfo.used_credits || 0;
     const { error: updateError } = await supabaseAdmin
       .from('teacher_credits')
       .update({ 
         credits: creditInfo.credits - 2,
-        used_credits: creditInfo.used_credits + 2 || 2
+        used_credits: usedCredits + 2
       })
       .eq('teacher_id', teacherId);
     

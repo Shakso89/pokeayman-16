@@ -38,9 +38,38 @@ export const createStudent = async (
   // Get a valid UUID for the teacher ID
   const validTeacherId = getValidUUID(teacherId);
   
-  // Try using the edge function to create the student
   try {
-    // Insert directly into Supabase using the client
+    // First approach: use the edge function to create the student
+    const { data: createResponse, error: edgeFunctionError } = await supabase.functions.invoke("create_student", {
+      body: {
+        username: studentData.username,
+        password: studentData.password, 
+        displayName: studentData.displayName,
+        teacherId: validTeacherId
+      }
+    });
+    
+    if (edgeFunctionError) {
+      console.error("Edge function error:", edgeFunctionError);
+      throw new Error(`Edge function error: ${edgeFunctionError.message}`);
+    }
+    
+    if (createResponse?.error) {
+      console.error("Create student error:", createResponse.error);
+      throw new Error(createResponse.error);
+    }
+
+    // If edge function successful, return the response
+    if (createResponse?.student) {
+      toast({
+        title: "Student Created",
+        description: `Successfully created student account for ${studentData.displayName}`
+      });
+      return createResponse;
+    }
+
+    // Fallback approach if edge function didn't return a student
+    console.log("Falling back to direct database insert");
     const { data, error } = await supabase
       .from('students')
       .insert({
@@ -63,24 +92,16 @@ export const createStudent = async (
       student: data
     };
   } catch (error: any) {
-    // Fallback to edge function if direct insertion fails
-    const { data: createResponse, error: edgeFunctionError } = await supabase.functions.invoke("create_student", {
-      body: {
-        username: studentData.username,
-        password: studentData.password, 
-        displayName: studentData.displayName,
-        teacherId: validTeacherId
-      }
+    console.error("Student creation error:", error);
+    
+    // Show toast with error message
+    toast({
+      title: "Error Creating Student",
+      description: error.message || "An error occurred while creating the student",
+      variant: "destructive"
     });
     
-    if (edgeFunctionError) {
-      throw new Error(`Edge function error: ${edgeFunctionError.message}`);
-    }
-    
-    if (createResponse?.error) {
-      throw new Error(createResponse.error);
-    }
-
-    return createResponse;
+    // Re-throw the error to be handled by the caller
+    throw error;
   }
 };

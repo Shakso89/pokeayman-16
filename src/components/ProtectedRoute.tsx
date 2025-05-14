@@ -5,6 +5,7 @@ import { isTeacherActivated } from "@/utils/activationService";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAuth } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -27,7 +28,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
       }
     };
     
-    checkAuthStatus();
+    if (userType === 'teacher') {
+      checkAuthStatus();
+    }
   }, []);
 
   // If still loading auth state, show loading indicator
@@ -65,8 +68,5 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   return <>{children}</>;
 };
-
-// Make sure we import supabase client
-import { supabase } from "@/integrations/supabase/client";
 
 export default ProtectedRoute;

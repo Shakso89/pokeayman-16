@@ -11,7 +11,7 @@ export const useStudentAuth = () => {
     setIsLoading(true);
     
     try {
-      // First try to fetch student from Supabase database
+      // Try to fetch student from Supabase database
       const { data: students, error } = await supabase
         .from('students')
         .select('*')
@@ -45,6 +45,9 @@ export const useStudentAuth = () => {
       if (student.class_id) {
         localStorage.setItem("studentClassId", student.class_id);
       }
+      if (student.teacher_id) {
+        localStorage.setItem("teacherId", student.teacher_id);
+      }
       
       // Return success and student data
       return {
@@ -75,6 +78,7 @@ export const useStudentAuth = () => {
     localStorage.removeItem("studentUsername");
     localStorage.removeItem("studentDisplayName");
     localStorage.removeItem("studentClassId");
+    localStorage.removeItem("teacherId");
     
     toast({
       title: "Logged out successfully",

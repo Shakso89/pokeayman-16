@@ -19,6 +19,14 @@ serve(async (req) => {
   try {
     const { username, email, password, avatarUrl } = await req.json();
 
+    // Input validation
+    if (!email || !password) {
+      return new Response(JSON.stringify({ error: "Email and password are required" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+
     // Create a Supabase client with the Auth admin key
     const supabaseAdmin = createClient(
       Deno.env.get("SUPABASE_URL") ?? "",
@@ -40,7 +48,7 @@ serve(async (req) => {
       email_confirm: true, // Auto-confirm the email
       user_metadata: {
         username,
-        avatar_url: avatarUrl,
+        avatar_url: avatarUrl || '',
         user_type: "teacher",
       }
     });
@@ -54,6 +62,45 @@ serve(async (req) => {
     }
 
     console.log("User created successfully:", user);
+    
+    // Create a corresponding record in the teachers table
+    if (user?.user) {
+      const { error: teacherInsertError } = await supabaseAdmin
+        .from('teachers')
+        .insert({
+          id: user.user.id,
+          username: username || email.split('@')[0],
+          email: email,
+          display_name: username || email.split('@')[0],
+          password: '***', // We don't store the actual password in this table
+          created_at: new Date().toISOString(),
+          is_active: true,
+          subscription_type: 'trial'
+        });
+      
+      if (teacherInsertError) {
+        console.error("Error creating teacher record:", teacherInsertError);
+        // We don't want to fail the whole operation just because of this
+        // The user was still created in auth.users
+      } else {
+        console.log("Teacher record created successfully in teachers table");
+        
+        // Initialize teacher credits
+        const { error: creditsError } = await supabaseAdmin
+          .from('teacher_credits')
+          .insert({
+            teacher_id: user.user.id,
+            credits: 10, // Starting credits
+            used_credits: 0
+          });
+          
+        if (creditsError) {
+          console.error("Error initializing teacher credits:", creditsError);
+        } else {
+          console.log("Teacher credits initialized successfully");
+        }
+      }
+    }
     
     // Return the created user
     return new Response(JSON.stringify({ user }), {
