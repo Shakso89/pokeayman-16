@@ -3,3 +3,4 @@ project_id = "ffhwrbrzyphuwvkkmoxd"
 
 [auth]
 site_url = "https://4cd708ba-99c0-44bd-9450-d8e397e4084b.lovableproject.com"
+additional_redirect_urls = ["https://4cd708ba-99c0-44bd-9450-d8e397e4084b.lovableproject.com/teacher-login", "https://4cd708ba-99c0-44bd-9450-d8e397e4084b.lovableproject.com/callback"]

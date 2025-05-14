@@ -17,7 +17,20 @@ serve(async (req) => {
   }
 
   try {
-    const { username, email, password, avatarUrl } = await req.json();
+    // Parse request body
+    let body;
+    try {
+      body = await req.json();
+    } catch (e) {
+      console.error("Error parsing request body:", e);
+      return new Response(JSON.stringify({ error: "Invalid request body" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 400,
+      });
+    }
+    
+    const { username, email, password, avatarUrl } = body;
+    console.log("Request received for:", email, "username:", username);
 
     // Input validation
     if (!email || !password) {
@@ -65,40 +78,44 @@ serve(async (req) => {
     
     // Create a corresponding record in the teachers table
     if (user?.user) {
-      const { error: teacherInsertError } = await supabaseAdmin
-        .from('teachers')
-        .insert({
-          id: user.user.id,
-          username: username || email.split('@')[0],
-          email: email,
-          display_name: username || email.split('@')[0],
-          password: '***', // We don't store the actual password in this table
-          created_at: new Date().toISOString(),
-          is_active: true,
-          subscription_type: 'trial'
-        });
-      
-      if (teacherInsertError) {
-        console.error("Error creating teacher record:", teacherInsertError);
-        // We don't want to fail the whole operation just because of this
-        // The user was still created in auth.users
-      } else {
-        console.log("Teacher record created successfully in teachers table");
-        
-        // Initialize teacher credits
-        const { error: creditsError } = await supabaseAdmin
-          .from('teacher_credits')
+      try {
+        const { error: teacherInsertError } = await supabaseAdmin
+          .from('teachers')
           .insert({
-            teacher_id: user.user.id,
-            credits: 10, // Starting credits
-            used_credits: 0
+            id: user.user.id,
+            username: username || email.split('@')[0],
+            email: email,
+            display_name: username || email.split('@')[0],
+            password: '***', // We don't store the actual password in this table
+            created_at: new Date().toISOString(),
+            is_active: true,
+            subscription_type: 'trial'
           });
-          
-        if (creditsError) {
-          console.error("Error initializing teacher credits:", creditsError);
+        
+        if (teacherInsertError) {
+          console.error("Error creating teacher record:", teacherInsertError);
+          // We don't want to fail the whole operation just because of this
+          // The user was still created in auth.users
         } else {
-          console.log("Teacher credits initialized successfully");
+          console.log("Teacher record created successfully in teachers table");
+          
+          // Initialize teacher credits
+          const { error: creditsError } = await supabaseAdmin
+            .from('teacher_credits')
+            .insert({
+              teacher_id: user.user.id,
+              credits: 10, // Starting credits
+              used_credits: 0
+            });
+            
+          if (creditsError) {
+            console.error("Error initializing teacher credits:", creditsError);
+          } else {
+            console.log("Teacher credits initialized successfully");
+          }
         }
+      } catch (dbError) {
+        console.error("Database operation error:", dbError);
       }
     }
     
@@ -109,7 +126,7 @@ serve(async (req) => {
     });
   } catch (error) {
     console.error("Server error:", error);
-    return new Response(JSON.stringify({ error: "Internal Server Error" }), {
+    return new Response(JSON.stringify({ error: "Internal Server Error", details: error.message }), {
       headers: { ...corsHeaders, "Content-Type": "application/json" },
       status: 500,
     });

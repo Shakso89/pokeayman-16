@@ -23,10 +23,12 @@ const TeacherSignUp: React.FC = () => {
   const [verificationSent, setVerificationSent] = useState(false);
   const [rateLimitExceeded, setRateLimitExceeded] = useState(false);
   const [accountCreated, setAccountCreated] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setErrorMessage(null);
     
     try {
       // Validation
@@ -64,15 +66,21 @@ const TeacherSignUp: React.FC = () => {
 
       console.log("Starting sign up process for:", email);
       
-      // First attempt: Try edge function to create user directly with auto-confirmation
+      // Try edge function to create user directly with auto-confirmation
       try {
-        const response = await supabase.functions.invoke("handle_student_creation", {
+        const { data: response, error: edgeFunctionError } = await supabase.functions.invoke("handle_student_creation", {
           body: { username, email, password, avatarUrl }
         });
         
         console.log("Edge function response:", response);
         
-        if (response.error) {
+        if (edgeFunctionError) {
+          console.error("Edge function error:", edgeFunctionError);
+          throw new Error(edgeFunctionError.message);
+        }
+        
+        if (response?.error) {
+          console.error("Response contains error:", response.error);
           throw new Error(response.error);
         }
         
@@ -89,12 +97,15 @@ const TeacherSignUp: React.FC = () => {
         }, 2000);
         
         return;
-      } catch (edgeFunctionError) {
+      } catch (edgeFunctionError: any) {
         console.error("Edge function failed:", edgeFunctionError);
+        
         // Fall back to regular signup if edge function fails
+        console.log("Falling back to direct signup method");
+        setErrorMessage(`Edge function error: ${edgeFunctionError.message || "Unknown error"}`);
       }
       
-      // Second attempt: Try regular signup
+      // Direct signup attempt
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email,
         password,
@@ -104,7 +115,6 @@ const TeacherSignUp: React.FC = () => {
             avatar_url: avatarUrl,
             user_type: "teacher",
           },
-          // Ensure the user gets a confirmation email
           emailRedirectTo: window.location.origin + "/teacher-login",
         }
       });
@@ -123,6 +133,7 @@ const TeacherSignUp: React.FC = () => {
             variant: "destructive",
           });
           
+          setErrorMessage(`Rate limit error: ${authError.message}`);
           setIsLoading(false);
           return;
         }
@@ -147,6 +158,8 @@ const TeacherSignUp: React.FC = () => {
             variant: "destructive",
           });
         }
+        
+        setErrorMessage(authError.message || "Sign up failed");
         setIsLoading(false);
         return;
       }
@@ -166,6 +179,8 @@ const TeacherSignUp: React.FC = () => {
           description: "Your account may have been created, but we couldn't confirm it. Please check your email for verification.",
           variant: "destructive",
         });
+        
+        setErrorMessage("Account creation status unknown. Please check your email.");
       }
     } catch (error: any) {
       console.error("Registration error:", error);
@@ -175,6 +190,8 @@ const TeacherSignUp: React.FC = () => {
         description: error.message || "There was an error during registration. Please try again.",
         variant: "destructive",
       });
+      
+      setErrorMessage(error.message || "Registration error occurred");
     } finally {
       setIsLoading(false);
     }
@@ -248,6 +265,15 @@ const TeacherSignUp: React.FC = () => {
           description="Create your account to manage your classes"
           className="bg-black/70 text-white border-gray-800"
         >
+          {errorMessage && (
+            <Alert variant="destructive" className="mb-4 bg-red-500/20 border-red-500 text-white">
+              <AlertCircle className="h-5 w-5" />
+              <AlertDescription>
+                {errorMessage}
+              </AlertDescription>
+            </Alert>
+          )}
+          
           {accountCreated ? (
             <div className="space-y-6">
               <Alert variant="default" className="bg-green-500/20 border-green-500 text-white">
