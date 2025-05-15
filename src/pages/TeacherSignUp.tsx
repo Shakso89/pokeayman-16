@@ -67,8 +67,14 @@ const TeacherSignUp: React.FC = () => {
       
       // Try edge function to create teacher directly with auto-confirmation
       try {
+        // Check the correct edge function name and parameters
         const { data: response, error: edgeFunctionError } = await supabase.functions.invoke("handle_student_creation", {
-          body: { username, email, password, avatarUrl }
+          body: { 
+            username, 
+            email, 
+            password, 
+            avatarUrl 
+          }
         });
         
         console.log("Edge function response:", response);
