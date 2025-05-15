@@ -4,12 +4,12 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import PokemonOrbit from "@/components/PokemonOrbit"; // Fixed import
+import PokemonOrbit from "@/components/PokemonOrbit"; 
 import { useStudentAuth } from "@/hooks/useStudentAuth";
 import { toast } from "@/hooks/use-toast";
 
 const StudentLogin: React.FC = () => {
-  const [username, setUsername] = useState("");
+  const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const { loginStudent, isLoading } = useStudentAuth();
   const navigate = useNavigate();
@@ -27,16 +27,16 @@ const StudentLogin: React.FC = () => {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!username || !password) {
+    if (!usernameOrEmail || !password) {
       toast({
         title: "Error",
-        description: "Please enter your username and password",
+        description: "Please enter your username/email and password",
         variant: "destructive",
       });
       return;
     }
     
-    const result = await loginStudent(username, password);
+    const result = await loginStudent(usernameOrEmail, password);
     
     if (result.success) {
       toast({
@@ -60,14 +60,14 @@ const StudentLogin: React.FC = () => {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="username" className="text-sm font-medium">
-                Username
+              <label htmlFor="usernameOrEmail" className="text-sm font-medium">
+                Username or Email
               </label>
               <Input
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                placeholder="Enter your username"
+                id="usernameOrEmail"
+                value={usernameOrEmail}
+                onChange={(e) => setUsernameOrEmail(e.target.value)}
+                placeholder="Enter your username or email"
                 disabled={isLoading}
               />
             </div>

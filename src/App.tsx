@@ -21,6 +21,7 @@ import RankingPage from "./pages/RankingPage";
 import ProtectedRoute from "./components/ProtectedRoute";
 import LogoutPage from "./pages/LogoutPage";
 import { supabase } from "@/integrations/supabase/client";
+import { enableRealtimeForTables } from "@/utils/classSync/classSubscription";
 
 function App() {
   // Check for any Supabase session recovery on load
@@ -39,6 +40,9 @@ function App() {
         }
       }
     });
+
+    // Enable realtime for all relevant tables
+    enableRealtimeForTables();
     
     return () => {
       subscription.unsubscribe();

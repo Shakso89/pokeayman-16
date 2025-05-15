@@ -3,6 +3,7 @@ export type Student = {
   id: string;
   username: string;
   password: string;
+  email?: string; // Added email field
   display_name: string | null;
   teacher_id: string | null;
   class_id: string | null;

@@ -7,15 +7,18 @@ import { Student } from "@/types/database";
 export const useStudentAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   
-  const loginStudent = async (username: string, password: string) => {
+  const loginStudent = async (usernameOrEmail: string, password: string) => {
     setIsLoading(true);
     
     try {
+      // Check if input is an email (contains @)
+      const isEmail = usernameOrEmail.includes('@');
+      
       // Try to fetch student from Supabase database
       const { data: students, error } = await supabase
         .from('students')
         .select('*')
-        .eq('username', username)
+        .eq(isEmail ? 'email' : 'username', usernameOrEmail)
         .eq('password', password)
         .eq('is_active', true) // Only active students can login
         .limit(1);
@@ -25,7 +28,7 @@ export const useStudentAuth = () => {
       }
       
       if (!students || students.length === 0) {
-        throw new Error("Invalid username or password");
+        throw new Error("Invalid username/email or password");
       }
       
       const student = students[0] as Student;
