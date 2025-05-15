@@ -107,8 +107,10 @@ export const subscribeToSchoolChanges = (
  */
 export const enableRealtimeForTables = async () => {
   try {
+    const tables = ['students', 'classes', 'schools', 'teachers'];
+    
     const { error } = await supabase.rpc('enable_realtime', {
-      table_names: ['students', 'classes', 'schools', 'teachers']
+      table_names: tables
     });
     
     if (error) {
