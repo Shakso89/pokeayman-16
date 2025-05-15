@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -73,7 +74,7 @@ const StudentsTab: React.FC<StudentsTabProps> = ({
       }
       
       // Get all students that are in this class
-      const studentIds = classData && classData.students ? classData.students : [];
+      const studentIds = classData && Array.isArray(classData.students) ? classData.students : [];
       if (studentIds.length === 0) {
         setStudents([]);
         setIsLoading(false);

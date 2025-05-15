@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { ClassData } from "@/utils/pokemon/classManagement";
 import { toast } from "@/hooks/use-toast";

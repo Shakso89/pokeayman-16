@@ -12,23 +12,45 @@ export type Database = {
       classes: {
         Row: {
           created_at: string
+          description: string | null
           id: string
+          is_public: boolean | null
+          likes: string[] | null
           name: string
+          school_id: string | null
+          students: string[] | null
           teacher_id: string | null
         }
         Insert: {
           created_at?: string
+          description?: string | null
           id?: string
+          is_public?: boolean | null
+          likes?: string[] | null
           name: string
+          school_id?: string | null
+          students?: string[] | null
           teacher_id?: string | null
         }
         Update: {
           created_at?: string
+          description?: string | null
           id?: string
+          is_public?: boolean | null
+          likes?: string[] | null
           name?: string
+          school_id?: string | null
+          students?: string[] | null
           teacher_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "classes_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "classes_teacher_id_fkey"
             columns: ["teacher_id"]

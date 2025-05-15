@@ -31,11 +31,11 @@ export type Class = {
   id: string;
   name: string;
   teacher_id: string | null;
-  school_id?: string | null;
-  students?: string[];
-  is_public?: boolean;
-  description?: string;
-  likes?: string[];
+  school_id: string | null;
+  students: string[];
+  is_public: boolean;
+  description: string | null;
+  likes: string[];
   created_at: string;
 };
 
