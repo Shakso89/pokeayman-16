@@ -107,10 +107,10 @@ export const subscribeToSchoolChanges = (
  */
 export const enableRealtimeForTables = async () => {
   try {
-    // Define the tables array as a simple string array
+    // Define the table names explicitly as an array of strings
     const tables: string[] = ['students', 'classes', 'schools', 'teachers'];
     
-    // Now we're passing a string array to the RPC call
+    // Pass the properly typed array to the RPC call
     const { error } = await supabase.rpc('enable_realtime', {
       table_names: tables
     });
