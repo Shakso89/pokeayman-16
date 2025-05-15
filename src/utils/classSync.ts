@@ -1,6 +1,29 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { ClassData } from "@/utils/pokemon/classManagement";
 import { toast } from "@/hooks/use-toast";
+import { Class } from "@/integrations/supabase/custom-types";
+
+// Helper function to safely handle database errors and responses
+const handleDatabaseError = <T>(error: any, fallback: T): T => {
+  console.error("Database error:", error);
+  return fallback;
+};
+
+// Helper function to convert database class to ClassData format
+const mapDbClassToClassData = (dbClass: any): ClassData => {
+  return {
+    id: dbClass.id,
+    name: dbClass.name,
+    teacherId: dbClass.teacher_id || null,
+    schoolId: dbClass.school_id || '',
+    students: dbClass.students || [],
+    isPublic: dbClass.is_public !== false,
+    description: dbClass.description || '',
+    likes: dbClass.likes || [],
+    createdAt: dbClass.created_at
+  };
+};
 
 /**
  * Creates a real-time subscription to class changes
@@ -47,8 +70,20 @@ export const fetchTeacherClasses = async (teacherId: string): Promise<ClassData[
       .eq('teacher_id', teacherId);
     
     if (error) {
-      console.error("Error fetching classes from database:", error);
-      throw error;
+      return handleDatabaseError(error, JSON.parse(localStorage.getItem("classes") || "[]")
+        .filter((cls: any) => cls.teacherId === teacherId)
+        .map((cls: any) => ({
+          id: cls.id,
+          name: cls.name,
+          teacherId: cls.teacherId || teacherId,
+          schoolId: cls.schoolId || '',
+          students: cls.students || [],
+          isPublic: cls.isPublic !== false,
+          createdAt: cls.createdAt || '',
+          description: cls.description || '',
+          likes: cls.likes || []
+        }))
+      );
     }
     
     if (!Array.isArray(data)) {
@@ -57,17 +92,7 @@ export const fetchTeacherClasses = async (teacherId: string): Promise<ClassData[
     }
     
     // Map database response to ClassData interface with proper type safety
-    return data.map((item: any) => ({
-      id: item.id,
-      name: item.name,
-      teacherId: item.teacher_id || teacherId,
-      schoolId: item.school_id || teacherId, // Fallback to teacherId if no school_id
-      students: item.students || [],
-      isPublic: item.is_public !== false,
-      createdAt: item.created_at,
-      description: item.description || '',
-      likes: item.likes || []
-    }));
+    return data.map(mapDbClassToClassData);
   } catch (error) {
     console.error("Error in fetchTeacherClasses:", error);
     // Fallback to localStorage for offline capability
@@ -79,10 +104,10 @@ export const fetchTeacherClasses = async (teacherId: string): Promise<ClassData[
         id: cls.id,
         name: cls.name,
         teacherId: cls.teacherId || teacherId,
-        schoolId: cls.schoolId,
+        schoolId: cls.schoolId || '',
         students: cls.students || [],
         isPublic: cls.isPublic !== false,
-        createdAt: cls.createdAt,
+        createdAt: cls.createdAt || '',
         description: cls.description || '',
         likes: cls.likes || []
       }));
@@ -100,8 +125,20 @@ export const fetchSchoolClasses = async (schoolId: string): Promise<ClassData[]>
       .eq('school_id', schoolId);
     
     if (error) {
-      console.error("Error fetching school classes from database:", error);
-      throw error;
+      return handleDatabaseError(error, JSON.parse(localStorage.getItem("classes") || "[]")
+        .filter((cls: any) => cls.schoolId === schoolId)
+        .map((cls: any) => ({
+          id: cls.id,
+          name: cls.name,
+          teacherId: cls.teacherId || '',
+          schoolId: cls.schoolId || schoolId,
+          students: cls.students || [],
+          isPublic: cls.isPublic !== false,
+          createdAt: cls.createdAt || '',
+          description: cls.description || '',
+          likes: cls.likes || []
+        }))
+      );
     }
     
     if (!Array.isArray(data)) {
@@ -110,17 +147,7 @@ export const fetchSchoolClasses = async (schoolId: string): Promise<ClassData[]>
     }
     
     // Map database response to ClassData interface with proper type safety
-    return data.map((item: any) => ({
-      id: item.id,
-      name: item.name,
-      teacherId: item.teacher_id || '',
-      schoolId: item.school_id || schoolId,
-      students: item.students || [],
-      isPublic: item.is_public !== false,
-      createdAt: item.created_at,
-      description: item.description || '',
-      likes: item.likes || []
-    }));
+    return data.map(mapDbClassToClassData);
   } catch (error) {
     console.error("Error in fetchSchoolClasses:", error);
     // Fallback to localStorage
@@ -132,10 +159,10 @@ export const fetchSchoolClasses = async (schoolId: string): Promise<ClassData[]>
         id: cls.id,
         name: cls.name,
         teacherId: cls.teacherId || '',
-        schoolId: cls.schoolId,
+        schoolId: cls.schoolId || schoolId,
         students: cls.students || [],
         isPublic: cls.isPublic !== false,
-        createdAt: cls.createdAt,
+        createdAt: cls.createdAt || '',
         description: cls.description || '',
         likes: cls.likes || []
       }));
@@ -169,28 +196,30 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
     
     if (error) {
       console.error("Error creating class in database:", error);
-      throw error;
-    }
-    
-    if (!data) {
-      console.error("No data returned from database after class creation");
-      throw new Error("Failed to create class");
+      
+      // Fallback to localStorage if database operation fails
+      const classId = `class-${Date.now()}`;
+      const newClass: ClassData = {
+        id: classId,
+        name: classData.name,
+        teacherId: classData.teacherId,
+        schoolId: classData.schoolId,
+        students: classData.students || [],
+        isPublic: classData.isPublic !== false,
+        description: classData.description || '',
+        likes: classData.likes || [],
+        createdAt: new Date().toISOString()
+      };
+      
+      // Update localStorage
+      const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+      localStorage.setItem("classes", JSON.stringify([...existingClasses, newClass]));
+      
+      return newClass;
     }
     
     // Map response to our ClassData interface
-    const newClass: ClassData = {
-      id: data.id,
-      name: data.name,
-      teacherId: data.teacher_id || classData.teacherId,
-      schoolId: data.school_id || classData.schoolId,
-      students: data.students || [],
-      isPublic: data.is_public !== false,
-      createdAt: data.created_at,
-      description: data.description || '',
-      likes: data.likes || []
-    };
-    
-    return newClass;
+    return mapDbClassToClassData(data);
   } catch (error) {
     console.error("Error in createClass:", error);
     
@@ -237,7 +266,16 @@ export const updateClass = async (classData: ClassData): Promise<ClassData> => {
     
     if (error) {
       console.error("Error updating class in database:", error);
-      throw error;
+      
+      // Fallback to localStorage
+      const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+      const updatedClasses = existingClasses.map((cls: any) => {
+        if (cls.id === classData.id) {
+          return classData;
+        }
+        return cls;
+      });
+      localStorage.setItem("classes", JSON.stringify(updatedClasses));
     }
     
     return classData;
@@ -270,8 +308,12 @@ export const deleteClass = async (classId: string): Promise<boolean> => {
       .eq('id', classId);
     
     if (error) {
-      console.error("Error deleting class from database:", error);
-      throw error;
+      return handleDatabaseError(error, (() => {
+        const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+        const updatedClasses = existingClasses.filter((cls: any) => cls.id !== classId);
+        localStorage.setItem("classes", JSON.stringify(updatedClasses));
+        return true;
+      })());
     }
     
     return true;
@@ -300,12 +342,12 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
       .single();
     
     if (fetchError) {
-      console.error("Error fetching class data:", fetchError);
-      throw fetchError;
+      return handleDatabaseError(fetchError, false);
     }
     
     // Prepare updated students array
-    const currentStudents = classData && classData.students ? classData.students : [];
+    const currentStudents = classData && Array.isArray(classData.students) ? classData.students : [];
+    
     if (currentStudents.includes(studentId)) {
       return true; // Student already in class
     }
@@ -319,8 +361,7 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
       .eq('id', classId);
     
     if (updateError) {
-      console.error("Error updating class with new student:", updateError);
-      throw updateError;
+      return handleDatabaseError(updateError, false);
     }
     
     // Also update the student's class_id field
@@ -391,12 +432,11 @@ export const removeStudentFromClass = async (classId: string, studentId: string)
       .single();
     
     if (fetchError) {
-      console.error("Error fetching class data:", fetchError);
-      throw fetchError;
+      return handleDatabaseError(fetchError, false);
     }
     
     // Prepare updated students array
-    const currentStudents = classData && classData.students ? classData.students : [];
+    const currentStudents = classData && Array.isArray(classData.students) ? classData.students : [];
     const updatedStudents = currentStudents.filter(id => id !== studentId);
     
     // Update the class with the new students array
@@ -406,8 +446,7 @@ export const removeStudentFromClass = async (classId: string, studentId: string)
       .eq('id', classId);
     
     if (updateError) {
-      console.error("Error removing student from class:", updateError);
-      throw updateError;
+      return handleDatabaseError(updateError, false);
     }
     
     // Also update the student's class_id field to null
@@ -476,12 +515,11 @@ export const toggleClassLike = async (classId: string, teacherId: string): Promi
       .single();
     
     if (fetchError) {
-      console.error("Error fetching class data:", fetchError);
-      throw fetchError;
+      return handleDatabaseError(fetchError, null);
     }
     
     // Prepare updated likes array
-    const currentLikes = classData && classData.likes ? classData.likes : [];
+    const currentLikes = classData && Array.isArray(classData.likes) ? classData.likes : [];
     const hasLiked = currentLikes.includes(teacherId);
     
     const updatedLikes = hasLiked
@@ -497,22 +535,11 @@ export const toggleClassLike = async (classId: string, teacherId: string): Promi
       .single();
     
     if (updateError) {
-      console.error("Error updating class likes:", updateError);
-      throw updateError;
+      return handleDatabaseError(updateError, null);
     }
     
     // Map to our ClassData interface
-    return {
-      id: updatedClass.id,
-      name: updatedClass.name,
-      teacherId: updatedClass.teacher_id || '',
-      schoolId: updatedClass.school_id || '',
-      students: updatedClass.students || [],
-      isPublic: updatedClass.is_public !== false,
-      createdAt: updatedClass.created_at,
-      description: updatedClass.description || '',
-      likes: updatedClass.likes || []
-    };
+    return mapDbClassToClassData(updatedClass);
   } catch (error) {
     console.error("Error in toggleClassLike:", error);
     

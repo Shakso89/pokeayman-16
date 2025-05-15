@@ -122,38 +122,73 @@ const StudentsTab: React.FC<StudentsTabProps> = ({
       
       // Fallback to localStorage
       try {
-        // Get all students from localStorage
-        const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
-
-        // Filter students for this class
-        const classStudents = allStudents.filter((student: Student) => student.classId === classId);
-        console.log(`Found ${classStudents.length} students for class ${classId}`);
-
-        // Get Pokemon counts for each student
-        const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
-
-        // Add Pokemon count information to each student
-        const studentsWithPokemon = classStudents.map((student: Student) => {
-          const pokemonData = studentPokemons.find((p: any) => p.studentId === student.id);
-          const pokemonCount = pokemonData ? (pokemonData.pokemons || []).length : 0;
-          const coins = pokemonData ? pokemonData.coins : 0;
-          return {
-            ...student,
-            pokemonCount,
-            coins
-          };
-        });
-
-        // Sort students by Pokemon count
-        const sorted = [...studentsWithPokemon].sort((a, b) => {
-          if (sortOrder === "desc") {
-            return b.pokemonCount - a.pokemonCount;
-          } else {
-            return a.pokemonCount - b.pokemonCount;
-          }
-        });
-
-        setStudents(sorted);
+        // Try to get student IDs for this class first
+        const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+        const currentClass = allClasses.find((cls: any) => cls.id === classId);
+        const studentIds = currentClass && currentClass.students ? currentClass.students : [];
+        
+        // If we have student IDs, get their details
+        if (studentIds.length > 0) {
+          const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+          const classStudents = allStudents.filter((student: Student) => 
+            studentIds.includes(student.id)
+          );
+          
+          // Add Pokemon count information
+          const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
+          
+          const studentsWithPokemon = classStudents.map((student: Student) => {
+            const pokemonData = studentPokemons.find((p: any) => p.studentId === student.id);
+            const pokemonCount = pokemonData ? (pokemonData.pokemons || []).length : 0;
+            const coins = pokemonData ? pokemonData.coins : 0;
+            return {
+              ...student,
+              pokemonCount,
+              coins
+            };
+          });
+          
+          // Sort students
+          const sorted = [...studentsWithPokemon].sort((a, b) => {
+            if (sortOrder === "desc") {
+              return b.pokemonCount - a.pokemonCount;
+            } else {
+              return a.pokemonCount - b.pokemonCount;
+            }
+          });
+          
+          setStudents(sorted);
+        } else {
+          // Fallback to class ID matching (older approach)
+          const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+          const classStudents = allStudents.filter((student: Student) => student.classId === classId);
+          console.log(`Found ${classStudents.length} students for class ${classId}`);
+          
+          // Add Pokemon count information
+          const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
+          
+          const studentsWithPokemon = classStudents.map((student: Student) => {
+            const pokemonData = studentPokemons.find((p: any) => p.studentId === student.id);
+            const pokemonCount = pokemonData ? (pokemonData.pokemons || []).length : 0;
+            const coins = pokemonData ? pokemonData.coins : 0;
+            return {
+              ...student,
+              pokemonCount,
+              coins
+            };
+          });
+          
+          // Sort students
+          const sorted = [...studentsWithPokemon].sort((a, b) => {
+            if (sortOrder === "desc") {
+              return b.pokemonCount - a.pokemonCount;
+            } else {
+              return a.pokemonCount - b.pokemonCount;
+            }
+          });
+          
+          setStudents(sorted);
+        }
       } catch (localError) {
         console.error("Error with localStorage fallback:", localError);
         toast({

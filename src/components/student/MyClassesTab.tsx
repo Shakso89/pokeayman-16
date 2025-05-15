@@ -76,8 +76,8 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
       if (data && Array.isArray(data) && data.length > 0) {
         // Transform the data to match our interface
         const formattedClasses = data.map(cls => ({
-          id: cls.id,
-          name: cls.name,
+          id: cls.id || '',
+          name: cls.name || '',
           description: cls.description || ''
         }));
         

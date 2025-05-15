@@ -27,6 +27,18 @@ export type School = {
   updated_at: string;
 };
 
+export type Class = {
+  id: string;
+  name: string;
+  teacher_id: string | null;
+  school_id?: string | null;
+  students?: string[];
+  is_public?: boolean;
+  description?: string;
+  likes?: string[];
+  created_at: string;
+};
+
 // Extended database interface for use with custom types
 export interface CustomDatabase {
   public: {
@@ -56,6 +68,14 @@ export interface CustomDatabase {
           updated_at?: string;
         };
         Update: Partial<Omit<School, 'id'>>;
+      };
+      classes: {
+        Row: Class;
+        Insert: Omit<Class, 'id' | 'created_at'> & {
+          id?: string;
+          created_at?: string;
+        };
+        Update: Partial<Omit<Class, 'id'>>;
       };
     };
   };

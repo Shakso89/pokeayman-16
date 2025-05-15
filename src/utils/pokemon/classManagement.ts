@@ -2,6 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { getValidUUID } from "@/components/teacher/dashboard/student/studentUtils";
+import { Class } from "@/integrations/supabase/custom-types";
 
 // Define a simpler interface to avoid excessive type instantiation
 export interface ClassData {
@@ -15,6 +16,12 @@ export interface ClassData {
   likes: string[];     
   createdAt?: string;   
 }
+
+// Helper function to safely handle Supabase error responses
+const handleSupabaseError = (error: any, fallback: any) => {
+  console.error("Supabase error:", error);
+  return fallback;
+};
 
 /**
  * Checks if a class with the same name already exists in the specified school
@@ -35,15 +42,8 @@ export const classExists = async (classData: ClassData): Promise<boolean> => {
       .eq('teacher_id', teacherId);
     
     if (error) {
-      console.error("Error checking if class exists in database:", error);
-      
-      // Use direct type annotation to avoid excessive instantiation
-      const allClasses: {name: string; schoolId: string}[] = 
-        JSON.parse(localStorage.getItem("classes") || "[]");
-      
-      return allClasses.some(cls => 
-        cls.name === classData.name && cls.schoolId === classData.schoolId
-      );
+      return handleSupabaseError(error, JSON.parse(localStorage.getItem("classes") || "[]")
+        .some((cls: any) => cls.name === classData.name && cls.schoolId === classData.schoolId));
     }
     
     return data && data.length > 0;
@@ -58,6 +58,23 @@ export const classExists = async (classData: ClassData): Promise<boolean> => {
       cls.name === classData.name && cls.schoolId === classData.schoolId
     );
   }
+};
+
+/**
+ * Maps database class format to application ClassData format
+ */
+const mapDatabaseClassToClassData = (dbClass: any): ClassData => {
+  return {
+    id: dbClass.id,
+    name: dbClass.name,
+    schoolId: dbClass.school_id || '',
+    teacherId: dbClass.teacher_id || null,
+    students: dbClass.students || [],
+    isPublic: dbClass.is_public !== false,
+    description: dbClass.description || '',
+    likes: dbClass.likes || [],
+    createdAt: dbClass.created_at
+  };
 };
 
 /**
@@ -94,7 +111,7 @@ export const saveClass = async (classData: ClassData): Promise<ClassData> => {
     if (error) {
       console.error("Error saving class to database:", error);
       
-      // Use direct type annotation to avoid excessive instantiation
+      // Fallback to localStorage
       const allClasses: ClassData[] = JSON.parse(localStorage.getItem("classes") || "[]");
       allClasses.push(classData);
       localStorage.setItem("classes", JSON.stringify(allClasses));
@@ -104,17 +121,7 @@ export const saveClass = async (classData: ClassData): Promise<ClassData> => {
     
     // Return properly structured ClassData
     if (data) {
-      return {
-        id: data.id,
-        name: data.name,
-        schoolId: data.school_id || classData.schoolId,
-        teacherId: data.teacher_id || classData.teacherId,
-        students: data.students || [],
-        isPublic: data.is_public !== false,
-        description: data.description || '',
-        likes: data.likes || [],
-        createdAt: data.created_at
-      };
+      return mapDatabaseClassToClassData(data);
     } else {
       return classData;
     }
@@ -148,13 +155,7 @@ export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[
       .eq('school_id', schoolId);
     
     if (error) {
-      console.error("Error fetching classes from database:", error);
-      
-      // Fallback to localStorage
-      const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      
-      // Convert the localStorage data to the proper ClassData type
-      return allClasses
+      return handleSupabaseError(error, JSON.parse(localStorage.getItem("classes") || "[]")
         .filter((cls: any) => cls.schoolId === schoolId)
         .map((cls: any) => ({
           id: cls.id,
@@ -166,21 +167,11 @@ export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[
           description: cls.description || '',
           likes: cls.likes || [],
           createdAt: cls.createdAt
-        }));
+        })));
     }
     
     // Map Supabase data to ClassData interface
-    return (data || []).map((item: any) => ({
-      id: item.id,
-      name: item.name,
-      schoolId: item.school_id || schoolId,
-      teacherId: item.teacher_id || null,
-      students: item.students || [],
-      isPublic: item.is_public !== false,
-      description: item.description || '',
-      likes: item.likes || [],
-      createdAt: item.created_at
-    }));
+    return (data || []).map(mapDatabaseClassToClassData);
     
   } catch (error) {
     console.error("Error fetching classes:", error);
@@ -213,15 +204,12 @@ export const deleteClass = async (classId: string): Promise<boolean> => {
       .eq('id', classId);
     
     if (error) {
-      console.error("Error deleting class from database:", error);
-      
-      // Use direct type annotation to avoid excessive instantiation
-      const allClasses: {id: string}[] = JSON.parse(localStorage.getItem("classes") || "[]");
-      
-      const updatedClasses = allClasses.filter(cls => cls.id !== classId);
-      localStorage.setItem("classes", JSON.stringify(updatedClasses));
-      
-      return true;
+      return handleSupabaseError(error, (() => {
+        const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+        const updatedClasses = allClasses.filter((cls: any) => cls.id !== classId);
+        localStorage.setItem("classes", JSON.stringify(updatedClasses));
+        return true;
+      })());
     }
     
     return true;
@@ -230,12 +218,9 @@ export const deleteClass = async (classId: string): Promise<boolean> => {
     
     // Fallback to localStorage
     try {
-      // Use direct type annotation to avoid excessive instantiation
-      const allClasses: {id: string}[] = JSON.parse(localStorage.getItem("classes") || "[]");
-      
-      const updatedClasses = allClasses.filter(cls => cls.id !== classId);
+      const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+      const updatedClasses = allClasses.filter((cls: any) => cls.id !== classId);
       localStorage.setItem("classes", JSON.stringify(updatedClasses));
-      
       return true;
     } catch (localStorageError) {
       console.error("Error updating localStorage:", localStorageError);
