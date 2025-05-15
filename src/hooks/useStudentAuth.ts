@@ -4,11 +4,12 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Student } from "@/types/database";
 
-export type StudentAuthResult = {
+// Define the result type explicitly outside any function
+export interface StudentAuthResult {
   success: boolean;
   student?: Student;
   error?: string;
-};
+}
 
 export const useStudentAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
