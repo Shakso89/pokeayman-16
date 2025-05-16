@@ -1,57 +1,46 @@
-
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "@/hooks/useTranslation";
-
 const Index: React.FC = () => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const {
+    t
+  } = useTranslation();
 
   // Check if user is already logged in using Supabase Auth
   useEffect(() => {
     const checkAuthStatus = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
+      const {
+        data: {
+          session
+        }
+      } = await supabase.auth.getSession();
       if (session) {
         // Check if user is a teacher or student
-        const { data: teacher } = await supabase
-          .from('teachers')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle();
-          
+        const {
+          data: teacher
+        } = await supabase.from('teachers').select('*').eq('id', session.user.id).maybeSingle();
         if (teacher) {
           navigate("/teacher-dashboard");
           return;
         }
-        
-        const { data: student } = await supabase
-          .from('students')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle();
-          
+        const {
+          data: student
+        } = await supabase.from('students').select('*').eq('id', session.user.id).maybeSingle();
         if (student) {
           navigate("/student-dashboard");
         }
       }
     };
-    
     checkAuthStatus();
   }, [navigate]);
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 flex flex-col">
+  return <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 flex flex-col">
       {/* Navigation Header */}
       <header className="w-full p-4 flex justify-between items-center">
         <div className="flex items-center">
-          <img 
-            src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" 
-            alt="PokéAyman Logo" 
-            className="h-12 w-auto"
-          />
+          <img src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" alt="PokéAyman Logo" className="h-12 w-auto" />
         </div>
         
         <div className="flex items-center gap-4 text-white">
@@ -68,25 +57,16 @@ const Index: React.FC = () => {
             </button>
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
               <div className="py-1">
-                <button 
-                  onClick={() => navigate("/teacher-login")}
-                  className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100"
-                >
+                <button onClick={() => navigate("/teacher-login")} className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100">
                   Teacher Login
                 </button>
-                <button 
-                  onClick={() => navigate("/student-login")}
-                  className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100"
-                >
+                <button onClick={() => navigate("/student-login")} className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100">
                   Student Login
                 </button>
               </div>
             </div>
           </div>
-          <button 
-            onClick={() => navigate("/contact")}
-            className="hover:underline"
-          >
+          <button onClick={() => navigate("/contact")} className="hover:underline">
             Contact Us
           </button>
         </div>
@@ -106,63 +86,37 @@ const Index: React.FC = () => {
         <div className="w-1/2 flex flex-col justify-center items-center px-16 relative">
           <h1 className="text-6xl font-bold text-white mb-12">Gotta Catch 'Em All</h1>
           
-          <img 
-            src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" 
-            alt="PokéAyman Logo" 
-            className="h-32 w-auto mb-12"
-          />
+          <img src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" alt="PokéAyman Logo" className="h-32 w-auto mb-12" />
           
           <div className="flex flex-col gap-4 w-full max-w-md">
-            <Button 
-              onClick={() => navigate("/teacher-login")} 
-              className="bg-red-500 hover:bg-red-600 text-white text-lg py-6 rounded-full font-bold"
-            >
+            <Button onClick={() => navigate("/teacher-login")} className="bg-red-500 hover:bg-red-600 text-white text-lg py-6 rounded-full font-bold">
               {t('teacher-login')}
             </Button>
             
-            <Button 
-              onClick={() => navigate("/student-login")} 
-              className="bg-blue-600 hover:bg-blue-700 text-white text-lg py-6 rounded-full font-bold"
-            >
+            <Button onClick={() => navigate("/student-login")} className="bg-blue-600 hover:bg-blue-700 text-white text-lg py-6 rounded-full font-bold">
               {t('student-login')}
             </Button>
             
-            <button 
-              onClick={() => navigate("/contact")}
-              className="text-white mt-4 hover:underline"
-            >
+            <button onClick={() => navigate("/contact")} className="text-white mt-4 hover:underline">
               join-community
             </button>
           </div>
           
           {/* Ash and Pikachu Image */}
           <div className="absolute bottom-0 right-0">
-            <img 
-              src="/lovable-uploads/463ff2eb-f43a-40df-9403-9f3de73005fd.png" 
-              alt="Ash and Pikachu" 
-              className="h-80 w-auto"
-            />
+            <img src="/lovable-uploads/463ff2eb-f43a-40df-9403-9f3de73005fd.png" alt="Ash and Pikachu" className="h-80 w-auto" />
           </div>
         </div>
       </main>
 
       {/* Footer */}
       <footer className="py-6 text-center text-white">
-        <img 
-          src="/lovable-uploads/df7b9259-e876-46a6-9b71-00aa60971cbf.png" 
-          alt="Jigglypuff" 
-          className="h-16 w-auto mx-auto mb-2"
-        />
+        <img alt="Jigglypuff" className="h-16 w-auto mx-auto mb-2" src="/lovable-uploads/80af40fc-49c4-4da9-a3a8-813841541122.png" />
         <p>© 2025 PokéAyman. All rights reserved</p>
-        <button 
-          onClick={() => navigate("/contact")}
-          className="text-white mt-2 hover:underline"
-        >
+        <button onClick={() => navigate("/contact")} className="text-white mt-2 hover:underline">
           Contact Us
         </button>
       </footer>
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
