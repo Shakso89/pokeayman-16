@@ -31,8 +31,8 @@ export const useAuth = () => {
           const { user } = newSession;
           const userData = user.user_metadata || {};
           
-          // Check for admin accounts
-          const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com']; // Added the fixed email
+          // List of admin emails
+          const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@pokeayman.com', 'admin@example.com'];
           const isAdminEmail = adminEmails.includes(user.email?.toLowerCase() || '');
           
           if (userData.user_type === 'teacher' || user.email) {
@@ -42,7 +42,7 @@ export const useAuth = () => {
             localStorage.setItem('teacherId', user.id);
             localStorage.setItem('teacherUsername', userData.username || user.email?.split('@')[0] || '');
             
-            // Check for admin status
+            // Check for admin status - include email check
             if (isAdminEmail || userData.username === "Admin" || userData.username === "Ayman") {
               localStorage.setItem("isAdmin", "true");
             }
@@ -85,13 +85,13 @@ export const useAuth = () => {
         setSession(existingSession);
         
         // If session exists and we don't have local storage set, update local storage
-        if (existingSession?.user && !isLoggedIn) {
+        if (existingSession?.user) {
           console.log("Found existing session for user:", existingSession.user.id);
           const { user } = existingSession;
           const userData = user.user_metadata || {};
           
-          // Check for admin accounts
-          const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com']; // Added the fixed email
+          // List of admin emails
+          const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@pokeayman.com', 'admin@example.com'];
           const isAdminEmail = adminEmails.includes(user.email?.toLowerCase() || '');
           
           if (userData.user_type === 'teacher' || user.email) {
@@ -101,6 +101,7 @@ export const useAuth = () => {
             localStorage.setItem('teacherId', user.id);
             localStorage.setItem('teacherUsername', userData.username || user.email?.split('@')[0] || '');
             
+            // Check for admin status - include email check
             if (isAdminEmail || userData.username === "Admin" || userData.username === "Ayman") {
               localStorage.setItem("isAdmin", "true");
             }

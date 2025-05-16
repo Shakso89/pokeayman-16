@@ -80,12 +80,15 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
     try {
       if (type === "teacher") {
-        // Special case for admin login - Added "Ayman" as admin
-        if ((usernameOrEmail === "Admin" || usernameOrEmail === "admin@pokeayman.com" || usernameOrEmail === "Ayman") && 
+        // Special case for admin login - Added "Ayman" and ayman.soliman.cc@gmail.com as admin
+        if ((usernameOrEmail === "Admin" || 
+             usernameOrEmail === "admin@pokeayman.com" || 
+             usernameOrEmail === "Ayman" ||
+             usernameOrEmail === "ayman.soliman.cc@gmail.com") && 
             (password === "AdminAyman" || (usernameOrEmail === "Ayman" && password === "AymanPassword"))) {
           
           // For admin, still use local authentication for now, but can be migrated to proper admin roles later
-          const adminUsername = usernameOrEmail === "Ayman" ? "Ayman" : "Admin";
+          const adminUsername = usernameOrEmail === "Ayman" || usernameOrEmail === "ayman.soliman.cc@gmail.com" ? "Ayman" : "Admin";
           
           toast({
             title: "Success!",

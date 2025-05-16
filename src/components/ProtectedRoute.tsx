@@ -26,6 +26,16 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         // Session exists but localStorage doesn't have it - refresh the page
         window.location.reload();
       }
+      
+      // Additional check for admin based on email
+      if (data.session?.user) {
+        const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@pokeayman.com', 'admin@example.com'];
+        const isAdminEmail = adminEmails.includes(data.session.user.email?.toLowerCase() || '');
+        
+        if (isAdminEmail && !isAdmin) {
+          localStorage.setItem("isAdmin", "true");
+        }
+      }
     };
     
     if (userType === 'teacher') {

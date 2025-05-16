@@ -20,6 +20,10 @@ const TeacherLogin = () => {
       if (session) {
         const userData = session.user.user_metadata || {};
         
+        // Check for admin status by email
+        const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@pokeayman.com', 'admin@example.com'];
+        const isAdminEmail = adminEmails.includes(session.user.email?.toLowerCase() || '');
+        
         // If already logged in, redirect to dashboard
         localStorage.setItem("isLoggedIn", "true");
         localStorage.setItem("userType", "teacher");
@@ -27,11 +31,12 @@ const TeacherLogin = () => {
         localStorage.setItem("teacherUsername", userData.username || session.user.email?.split('@')[0] || '');
         
         // Check for admin status
-        if (userData.username === "Admin" || userData.username === "Ayman") {
+        if (isAdminEmail || userData.username === "Admin" || userData.username === "Ayman") {
           localStorage.setItem("isAdmin", "true");
+          navigate("/admin-dashboard");
+        } else {
+          navigate("/teacher-dashboard");
         }
-        
-        navigate("/teacher-dashboard");
       }
       setIsLoading(false);
     };
@@ -45,11 +50,12 @@ const TeacherLogin = () => {
       setError("");
       
       // Special case for admin login
-      if ((username === "Admin" || username === "admin@pokeayman.com" || username === "Ayman") && 
+      if ((username === "Admin" || username === "admin@pokeayman.com" || username === "Ayman" || 
+           username === "ayman.soliman.cc@gmail.com") && 
           (password === "AdminAyman" || (username === "Ayman" && password === "AymanPassword"))) {
         
         // For admin, still use local authentication for now
-        const adminUsername = username === "Ayman" ? "Ayman" : "Admin";
+        const adminUsername = username === "Ayman" || username === "ayman.soliman.cc@gmail.com" ? "Ayman" : "Admin";
         
         toast({
           title: "Success!",
@@ -82,6 +88,10 @@ const TeacherLogin = () => {
       if (data.user) {
         const userData = data.user.user_metadata || {};
         
+        // Check for admin status by email
+        const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@pokeayman.com', 'admin@example.com'];
+        const isAdminEmail = adminEmails.includes(data.user.email?.toLowerCase() || '');
+        
         toast({
           title: "Success!",
           description: "Welcome back, Teacher!",
@@ -93,7 +103,7 @@ const TeacherLogin = () => {
         localStorage.setItem("teacherId", data.user.id);
         
         // Check for admin status
-        if (userData.username === "Admin" || userData.username === "Ayman") {
+        if (isAdminEmail || userData.username === "Admin" || userData.username === "Ayman") {
           localStorage.setItem("isAdmin", "true");
           navigate("/admin-dashboard");
         } else {
