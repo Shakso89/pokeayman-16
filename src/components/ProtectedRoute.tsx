@@ -21,32 +21,33 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   // Check for auth in Supabase on initial render
   useEffect(() => {
     const checkAuthStatus = async () => {
-      const { data } = await supabase.auth.getSession();
-      
-      // If session doesn't exist but localStorage thinks we're logged in,
-      // clear localStorage and redirect to login
-      if (!data.session && isLoggedIn) {
-        console.log("Session expired or invalid - redirecting to login");
-        localStorage.removeItem('isLoggedIn');
-        localStorage.removeItem('userType');
-        localStorage.removeItem('teacherId');
-        localStorage.removeItem('studentId');
-        localStorage.removeItem('teacherUsername');
-        localStorage.removeItem('studentDisplayName');
-        localStorage.removeItem('isAdmin');
-        localStorage.removeItem('studentClassId');
+      try {
+        const { data } = await supabase.auth.getSession();
         
-        navigate(userType === 'teacher' ? "/teacher-login" : "/student-login");
-        return;
-      }
-      
-      // If session exists but localStorage doesn't have it - refresh the page
-      if (data.session?.user && userType === 'teacher' && !isLoggedIn) {
-        window.location.reload();
+        // If session doesn't exist but localStorage thinks we're logged in,
+        // clear localStorage and redirect to login
+        if (!data.session && isLoggedIn) {
+          console.log("Session expired or invalid - redirecting to login");
+          localStorage.removeItem('isLoggedIn');
+          localStorage.removeItem('userType');
+          localStorage.removeItem('teacherId');
+          localStorage.removeItem('studentId');
+          localStorage.removeItem('teacherUsername');
+          localStorage.removeItem('studentDisplayName');
+          localStorage.removeItem('isAdmin');
+          localStorage.removeItem('studentClassId');
+          
+          const loginPath = userType === 'teacher' ? "/teacher-login" : "/student-login";
+          navigate(loginPath, { replace: true });
+        }
+      } catch (error) {
+        console.error("Auth status check failed:", error);
       }
     };
     
-    checkAuthStatus();
+    if (isLoggedIn) {
+      checkAuthStatus();
+    }
   }, [navigate, isLoggedIn, userType]);
 
   // If still loading auth state, show loading indicator
@@ -60,7 +61,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   // Handle login check
   if (!isLoggedIn) {
-    return <Navigate to={userType === "teacher" ? "/teacher-login" : "/student-login"} />;
+    return <Navigate to={userType === "teacher" ? "/teacher-login" : "/student-login"} replace />;
   }
 
   // For teachers who are frozen (not activated), render a simple placeholder

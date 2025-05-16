@@ -51,7 +51,6 @@ const LogoutPage: React.FC = () => {
     performLogout();
   }, [navigate, logout]);
   
-  // Show a loading spinner while logging out
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
       <div className="text-center">

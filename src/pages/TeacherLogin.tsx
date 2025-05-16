@@ -17,7 +17,7 @@ const TeacherLogin = () => {
       setIsLoading(true);
       const { data: { session } } = await supabase.auth.getSession();
       
-      if (session) {
+      if (session?.user) {
         const userData = session.user.user_metadata || {};
         
         // If already logged in, redirect to dashboard
@@ -31,9 +31,9 @@ const TeacherLogin = () => {
         if (userData.username === "Admin" || userData.username === "Ayman" || 
             adminEmails.includes(session.user.email?.toLowerCase() || '')) {
           localStorage.setItem("isAdmin", "true");
-          navigate("/admin-dashboard");
+          navigate("/admin-dashboard", { replace: true });
         } else {
-          navigate("/teacher-dashboard");
+          navigate("/teacher-dashboard", { replace: true });
         }
       }
       setIsLoading(false);
@@ -51,10 +51,50 @@ const TeacherLogin = () => {
       const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com', 'ayman.soliman.cc@gmial.com'];
       
       if ((username === "Admin" || username === "admin@pokeayman.com" || username === "Ayman" || 
-           adminEmails.includes(username)) && 
+           adminEmails.includes(username.toLowerCase())) && 
           (password === "AdminAyman" || (username === "Ayman" && password === "AymanPassword"))) {
         
-        // For admin, still use local authentication for now
+        // For admin, we'll use Supabase auth to ensure session persistence
+        let adminEmail = username;
+        if (!adminEmail.includes('@')) {
+          adminEmail = 'admin@pokeayman.com'; // Default email for admin
+        }
+        
+        // Try to sign in with Supabase (this creates a proper session)
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: adminEmail,
+          password: password,
+        });
+        
+        if (error) {
+          // If login fails, create a new account for the admin
+          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+            email: adminEmail,
+            password: password,
+            options: {
+              data: {
+                username: username === "Ayman" ? "Ayman" : "Admin",
+                user_type: "teacher",
+                is_admin: true
+              }
+            }
+          });
+          
+          if (signUpError) {
+            throw new Error("Could not create admin account: " + signUpError.message);
+          }
+          
+          // Try to sign in again
+          const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
+            email: adminEmail,
+            password: password,
+          });
+          
+          if (loginError) {
+            throw loginError;
+          }
+        }
+        
         const adminUsername = username === "Ayman" ? "Ayman" : "Admin";
         
         toast({
@@ -66,9 +106,9 @@ const TeacherLogin = () => {
         localStorage.setItem("isLoggedIn", "true");
         localStorage.setItem("teacherUsername", adminUsername);
         localStorage.setItem("isAdmin", "true");
-        localStorage.setItem("teacherId", `admin-${adminUsername}-${Date.now().toString()}`);
+        localStorage.setItem("teacherId", data?.user?.id || `admin-${Date.now()}`);
         
-        navigate("/admin-dashboard");
+        navigate("/admin-dashboard", { replace: true });
         return;
       }
       
@@ -104,9 +144,9 @@ const TeacherLogin = () => {
         if (userData.username === "Admin" || userData.username === "Ayman" || 
             adminEmails.includes(userEmail)) {
           localStorage.setItem("isAdmin", "true");
-          navigate("/admin-dashboard");
+          navigate("/admin-dashboard", { replace: true });
         } else {
-          navigate("/teacher-dashboard");
+          navigate("/teacher-dashboard", { replace: true });
         }
       }
     } catch (error: any) {

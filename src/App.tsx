@@ -28,9 +28,13 @@ function App() {
   useEffect(() => {
     // Check for any Supabase session recovery
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      if (session?.user && !localStorage.getItem("isLoggedIn")) {
-        // We have a session but no local storage - probably returning from a redirect
+      if (event === 'SIGNED_IN' && session?.user) {
+        // We have a fresh session from sign-in
         const userData = session.user.user_metadata || {};
+        
+        // Check for admin accounts
+        const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com', 'ayman.soliman.cc@gmial.com'];
+        const isAdminEmail = adminEmails.includes(session.user.email?.toLowerCase() || '');
         
         if (userData.user_type === 'teacher' || session.user.email) {
           // This is a teacher
@@ -38,6 +42,10 @@ function App() {
           localStorage.setItem('userType', 'teacher');
           localStorage.setItem('teacherId', session.user.id);
           localStorage.setItem('teacherUsername', userData.username || session.user.email?.split('@')[0] || '');
+          
+          if (isAdminEmail || userData.username === "Admin" || userData.username === "Ayman") {
+            localStorage.setItem("isAdmin", "true");
+          }
         }
       }
     });

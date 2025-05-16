@@ -85,14 +85,14 @@ export const useAuth = () => {
         // Update state with the session
         setSession(existingSession);
         
-        // If session exists and we don't have local storage set, update local storage
-        if (existingSession?.user && !isLoggedIn) {
+        // If session exists but we don't have local storage set, update local storage
+        if (existingSession?.user) {
           console.log("Found existing session for user:", existingSession.user.id);
           const { user } = existingSession;
           const userData = user.user_metadata || {};
           
           // Check for admin accounts
-          const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com', 'ayman.soliman.cc@gmial.com']; // Added both versions of the email
+          const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com', 'ayman.soliman.cc@gmial.com']; 
           const isAdminEmail = adminEmails.includes(user.email?.toLowerCase() || '');
           
           if (userData.user_type === 'teacher' || user.email) {
@@ -110,6 +110,21 @@ export const useAuth = () => {
             setUserType('teacher');
             setUserId(user.id);
           }
+        } else if (!existingSession && localStorage.getItem('isLoggedIn')) {
+          // No session but localStorage says logged in - need to clear localStorage
+          console.log("No valid session found but localStorage indicates logged in - clearing state");
+          localStorage.removeItem('isLoggedIn');
+          localStorage.removeItem('userType');
+          localStorage.removeItem('teacherId');
+          localStorage.removeItem('studentId');
+          localStorage.removeItem('teacherUsername');
+          localStorage.removeItem('studentDisplayName');
+          localStorage.removeItem('isAdmin');
+          localStorage.removeItem('studentClassId');
+          
+          setIsLoggedIn(false);
+          setUserType(null);
+          setUserId(null);
         }
       } catch (error) {
         console.error('Auth check error:', error);
