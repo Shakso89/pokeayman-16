@@ -52,7 +52,16 @@ const StudentLogin: React.FC = () => {
       {/* Animated Pokemon background with updated props */}
       <PokemonOrbit count={12} />
       
-      <Card className="w-full max-w-md shadow-xl relative z-10 backdrop-blur-sm bg-white/80 border-white/20">
+      <div className="flex flex-col items-center mb-8 absolute top-10">
+        <img 
+          src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" 
+          alt="PokéAyman Logo" 
+          className="h-24 w-auto mb-2"
+          style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.7))' }}
+        />
+      </div>
+      
+      <Card className="w-full max-w-md shadow-xl relative z-10 backdrop-blur-sm bg-white/80 border-white/20 mt-20">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Student Login</CardTitle>
           <CardDescription>Enter your login details to continue</CardDescription>

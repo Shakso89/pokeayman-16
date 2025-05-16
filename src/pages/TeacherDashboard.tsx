@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -7,7 +8,6 @@ import { useTranslation } from "@/hooks/useTranslation";
 import ClassManagement from "@/components/teacher/ClassManagement";
 import SchoolCollaboration from "@/components/teacher/SchoolCollaboration";
 import SchoolManagement from "@/components/teacher/SchoolManagement";
-import { initializeTeacherCredits, getTeacherCredits } from "@/utils/creditService";
 import DashboardHeader from "@/components/teacher/dashboard/DashboardHeader";
 import AddStudentDialog from "@/components/teacher/dashboard/AddStudentDialog";
 import MainDashboard from "@/components/teacher/dashboard/MainDashboard";
@@ -21,7 +21,6 @@ const TeacherDashboard: React.FC = () => {
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [teacherData, setTeacherData] = useState<any>(null);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
-  const [creditInfo, setCreditInfo] = useState<any>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { t } = useTranslation();
   
@@ -58,26 +57,6 @@ const TeacherDashboard: React.FC = () => {
         }
         
         setTeacherData(teacher);
-        
-        // Initialize teacher credits
-        const displayName = teacher.display_name || username;
-        await initializeTeacherCredits(teacherId, username, displayName);
-        
-        // Get teacher credits
-        const { data: creditData, error: creditError } = await supabase
-          .from('teacher_credits')
-          .select('*')
-          .eq('teacher_id', teacherId)
-          .single();
-          
-        if (creditError) {
-          console.error("Error loading credits:", creditError);
-          // Fall back to local credit service
-          const credits = await getTeacherCredits(teacherId);
-          setCreditInfo(credits);
-        } else {
-          setCreditInfo(creditData);
-        }
       } catch (error: any) {
         console.error("Error loading teacher data:", error);
         toast({
@@ -122,7 +101,6 @@ const TeacherDashboard: React.FC = () => {
               onAddStudent={() => setIsAddStudentOpen(true)}
               onManageClasses={() => setCurrentView("classes")}
               teacherId={teacherId}
-              creditInfo={creditInfo}
               isAdmin={isAdmin}
             />
           </>

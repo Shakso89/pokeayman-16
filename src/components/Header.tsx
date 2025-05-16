@@ -5,7 +5,6 @@ import {
   NavigationMenu,
   NavigationMenuContent,
   NavigationMenuItem,
-  NavigationMenuLink,
   NavigationMenuList,
   NavigationMenuTrigger,
   navigationMenuTriggerStyle
@@ -26,7 +25,8 @@ const Header: React.FC = () => {
         <img 
           src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" 
           alt="PokéAyman" 
-          className="h-10 w-auto"
+          className="h-14 w-auto"
+          style={{ filter: 'drop-shadow(0 0 6px rgba(255,255,255,0.5))' }}
         />
       </div>
       
@@ -98,3 +98,15 @@ const Header: React.FC = () => {
 };
 
 export default Header;
+
+interface NavigationMenuLinkProps {
+  asChild: boolean;
+  children: React.ReactNode;
+}
+
+const NavigationMenuLink: React.FC<NavigationMenuLinkProps> = ({
+  asChild,
+  children
+}) => {
+  return <>{children}</>;
+};

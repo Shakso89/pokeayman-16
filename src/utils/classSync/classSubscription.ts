@@ -1,126 +1,127 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 /**
- * Creates a real-time subscription to class changes
- * @param callback Function to call when class data changes
- * @param teacherId Optional teacher ID to filter changes by
+ * Subscribes to changes on student tables for a specific class
+ * @param classId The class ID to subscribe to
+ * @param onStudentChange Callback function triggered when a student record changes
  * @returns Cleanup function to unsubscribe
  */
 export const subscribeToClassChanges = (
-  callback: () => void,
-  teacherId?: string
+  classId: string,
+  onStudentChange: (payload: any) => void
 ) => {
-  // Set up channel for real-time updates
+  console.log(`Setting up subscription for class ${classId}`);
+
+  // Define a channel for students in this class
   const channel = supabase
-    .channel('schema-db-changes')
+    .channel(`class_${classId}_changes`)
     .on(
-      'postgres_changes',
+      "postgres_changes",
       {
-        event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
-        schema: 'public',
-        table: 'classes'
+        event: "*", // Listen to all events (INSERT, UPDATE, DELETE)
+        schema: "public",
+        table: "students",
+        filter: `class_id=eq.${classId}`, // Only for students in this class
       },
       (payload) => {
-        console.log('Class change detected:', payload);
-        // Call the callback to refresh data
-        callback();
+        console.log("Student change detected:", payload);
+        onStudentChange(payload);
       }
     )
-    .subscribe();
+    .subscribe((status) => {
+      console.log(`Realtime subscription status for class ${classId}:`, status);
+      
+      if (status === "SUBSCRIBED") {
+        toast({
+          title: "Class Sync Active",
+          description: "You'll receive real-time updates for this class",
+        });
+      } else if (status === "CHANNEL_ERROR") {
+        toast({
+          title: "Sync Error",
+          description: "Could not establish real-time connection",
+          variant: "destructive",
+        });
+      }
+    });
 
   // Return cleanup function
   return () => {
+    console.log(`Cleaning up subscription for class ${classId}`);
     supabase.removeChannel(channel);
   };
 };
 
 /**
- * Creates a real-time subscription to student changes
- * @param callback Function to call when student data changes
- * @param classId Optional class ID to filter changes by
+ * Subscribes to student homework completion events
+ * @param teacherId The teacher ID to subscribe to events for
+ * @param onHomeworkChange Callback function triggered when a homework record changes
  * @returns Cleanup function to unsubscribe
  */
-export const subscribeToStudentChanges = (
-  callback: () => void,
-  classId?: string
+export const subscribeToHomeworkChanges = (
+  teacherId: string,
+  onHomeworkChange: (payload: any) => void
 ) => {
-  // Set up channel for real-time updates
+  console.log(`Setting up homework subscription for teacher ${teacherId}`);
+
+  // Define a channel for homework changes
   const channel = supabase
-    .channel('student-db-changes')
+    .channel(`teacher_${teacherId}_homework`)
     .on(
-      'postgres_changes',
+      "postgres_changes",
       {
-        event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
-        schema: 'public',
-        table: 'students'
+        event: "*", // Listen to all events
+        schema: "public",
+        table: "homework_submissions",
       },
       (payload) => {
-        console.log('Student change detected:', payload);
-        // Call the callback to refresh data
-        callback();
+        console.log("Homework submission change detected:", payload);
+        onHomeworkChange(payload);
       }
     )
-    .subscribe();
+    .subscribe((status) => {
+      console.log(`Homework subscription status:`, status);
+    });
 
   // Return cleanup function
   return () => {
+    console.log(`Cleaning up homework subscription for teacher ${teacherId}`);
     supabase.removeChannel(channel);
   };
 };
 
 /**
- * Creates a real-time subscription to school changes
- * @param callback Function to call when school data changes
- * @returns Cleanup function to unsubscribe
- */
-export const subscribeToSchoolChanges = (
-  callback: () => void
-) => {
-  // Set up channel for real-time updates
-  const channel = supabase
-    .channel('school-db-changes')
-    .on(
-      'postgres_changes',
-      {
-        event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
-        schema: 'public',
-        table: 'schools'
-      },
-      (payload) => {
-        console.log('School change detected:', payload);
-        // Call the callback to refresh data
-        callback();
-      }
-    )
-    .subscribe();
-
-  // Return cleanup function
-  return () => {
-    supabase.removeChannel(channel);
-  };
-};
-
-/**
- * Enable realtime functionality on tables
- * Call this function once at app initialization
+ * Enables realtime functionality for database tables
+ * This is a one-time operation to make sure tables can be subscribed to
  */
 export const enableRealtimeForTables = async () => {
   try {
-    // Define the table names explicitly as an array of strings
-    const tables: string[] = ['students', 'classes', 'schools', 'teachers'];
+    // Define which tables should have realtime enabled
+    const tables: string[] = [
+      'students',
+      'classes',
+      'schools',
+      'teachers',
+      'homework',
+      'homework_submissions'
+    ];
     
-    // Pass the properly typed array to the RPC call
-    const { error } = await supabase.rpc('enable_realtime', {
-      table_names: tables
-    });
+    console.log("Enabling realtime for tables:", tables);
+    
+    // Call the database function to enable realtime
+    const { error } = await supabase.rpc('enable_realtime', { table_names: tables });
     
     if (error) {
-      console.error('Error enabling realtime for tables:', error);
-    } else {
-      console.log('Realtime enabled for tables');
+      console.error("Error enabling realtime:", error);
+      return false;
     }
+    
+    console.log("Realtime enabled successfully for tables");
+    return true;
   } catch (err) {
-    console.error('Failed to enable realtime:', err);
+    console.error("Exception enabling realtime:", err);
+    return false;
   }
 };

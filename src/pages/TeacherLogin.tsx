@@ -3,7 +3,6 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { AuthLayout } from "@/components/AuthLayout";
 import { LoginForm } from "@/components/LoginForm";
-import { ensureTeacherCredits } from "@/utils/creditService";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -31,9 +30,6 @@ const TeacherLogin = () => {
         if (userData.username === "Admin" || userData.username === "Ayman") {
           localStorage.setItem("isAdmin", "true");
         }
-        
-        // Initialize credits if they don't already exist
-        ensureTeacherCredits(session.user.id, userData.username, userData.display_name);
         
         navigate("/teacher-dashboard");
       }
@@ -101,8 +97,6 @@ const TeacherLogin = () => {
           localStorage.setItem("isAdmin", "true");
           navigate("/admin-dashboard");
         } else {
-          // Initialize credits if they don't already exist
-          ensureTeacherCredits(data.user.id, userData.username, userData.display_name);
           navigate("/teacher-dashboard");
         }
       }
@@ -126,6 +120,15 @@ const TeacherLogin = () => {
   
   return (
     <AuthLayout title="Teacher Login">
+      <div className="flex justify-center mb-8">
+        <img 
+          src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" 
+          alt="PokéAyman Logo" 
+          className="h-24 w-auto"
+          style={{ filter: 'drop-shadow(0 0 8px rgba(255,255,255,0.5))' }}
+        />
+      </div>
+      
       <LoginForm
         type="teacher"
         onLoginSuccess={handleLogin}

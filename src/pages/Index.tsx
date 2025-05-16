@@ -4,7 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import PokemonOrbit from "@/components/PokemonOrbit"; // Fixed import
+import PokemonOrbit from "@/components/PokemonOrbit";
 import { useTranslation } from "@/hooks/useTranslation";
 
 const Index: React.FC = () => {
@@ -27,39 +27,58 @@ const Index: React.FC = () => {
       <Header />
 
       <div className="flex-1 flex flex-col md:flex-row items-center justify-between w-full max-w-6xl p-6">
-        {/* Left Side - Description */}
-        <div className="md:w-1/2 text-left mb-8 md:mb-0 md:pr-8 py-px my-0 px-[15px] mx-[8px]">
-          <h2 className="text-3xl font-bold text-white mb-4 text-center">Why PokéAyman?</h2>
-          <p className="text-xl text-white/90 text-center px-0 mx-0 my-0 py-0">
-            Turn everyday lessons into exciting adventures! Use Pokémon, challenges, and rewards 
-            to boost student motivation and make learning unforgettable. Join a new wave of 
-            gamified education.
-          </p>
+        {/* Logo Section - Prominently Displayed */}
+        <div className="w-full text-center mb-8 md:mb-12">
+          <img 
+            src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" 
+            alt="PokéAyman Logo" 
+            className="mx-auto h-32 md:h-36 w-auto animate-pulse"
+            style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.6))' }}
+          />
         </div>
 
-        {/* Right Side - Main Content */}
-        <div className="md:w-1/2 flex flex-col items-center">
-          <div className="text-center mb-4">
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Gotta Catch 'Em All</h1>
-            
-            {/* PokéAyman logo under heading */}
-            <img src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" alt="PokéAyman Logo" className="mx-auto h-20 w-auto mb-6" />
-          </div>
-          
-          {/* Pokemon orbit animation in the middle */}
-          <div className="my-4 flex justify-center w-full">
-            <PokemonOrbit />
-          </div>
-          
-          {/* Call to action */}
-          <div className="text-center mt-4">
-            <Button onClick={() => navigate("/student-login")} className="pokemon-button text-white font-bold text-xl px-10 py-6 rounded-full shadow-lg hover:shadow-xl transform transition-all hover:scale-105 animate-pulse">
-              {t('get-started')}
-            </Button>
-            
-            <p className="text-white mt-4">
-              {t('join-community')}
+        <div className="flex-1 flex flex-col md:flex-row items-center justify-between w-full">
+          {/* Left Side - Description */}
+          <div className="md:w-1/2 text-left mb-8 md:mb-0 md:pr-8 py-px px-[15px] mx-[8px]">
+            <h2 className="text-3xl font-bold text-white mb-4 text-center">Why PokéAyman?</h2>
+            <p className="text-xl text-white/90 text-center">
+              Turn everyday lessons into exciting adventures! Use Pokémon, challenges, and rewards 
+              to boost student motivation and make learning unforgettable. Join a new wave of 
+              gamified education.
             </p>
+          </div>
+
+          {/* Right Side - Main Content */}
+          <div className="md:w-1/2 flex flex-col items-center">
+            <div className="text-center mb-4">
+              <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Gotta Catch 'Em All</h1>
+            </div>
+            
+            {/* Pokemon orbit animation in the middle */}
+            <div className="my-4 flex justify-center w-full">
+              <PokemonOrbit />
+            </div>
+            
+            {/* Call to action */}
+            <div className="text-center mt-4 space-y-4">
+              <Button 
+                onClick={() => navigate("/teacher-login")} 
+                className="pokemon-button text-white font-bold text-xl px-8 py-5 rounded-full shadow-lg hover:shadow-xl transform transition-all hover:scale-105 bg-blue-600 hover:bg-blue-700 w-full md:w-auto mb-3"
+              >
+                {t('teacher-login')}
+              </Button>
+              
+              <Button 
+                onClick={() => navigate("/student-login")} 
+                className="pokemon-button text-white font-bold text-xl px-8 py-5 rounded-full shadow-lg hover:shadow-xl transform transition-all hover:scale-105 bg-green-600 hover:bg-green-700 w-full md:w-auto"
+              >
+                {t('student-login')}
+              </Button>
+              
+              <p className="text-white mt-4">
+                {t('join-community')}
+              </p>
+            </div>
           </div>
         </div>
 
