@@ -5,52 +5,108 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import PokemonOrbit from "@/components/PokemonOrbit"; 
-import { useStudentAuth } from "@/hooks/useStudentAuth";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 const StudentLogin: React.FC = () => {
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { loginStudent, isLoading } = useStudentAuth();
+  const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
   
-  // Check if already logged in
+  // Check if already logged in using Supabase
   useEffect(() => {
-    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-    const userType = localStorage.getItem("userType");
+    const checkAuthStatus = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (session) {
+        // Check if user is a student
+        const { data: student } = await supabase
+          .from('students')
+          .select('*')
+          .eq('id', session.user.id)
+          .maybeSingle();
+          
+        if (student) {
+          navigate("/student-dashboard");
+        }
+      }
+    };
     
-    if (isLoggedIn && userType === "student") {
-      navigate("/student-dashboard");
-    }
+    checkAuthStatus();
   }, [navigate]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setIsLoading(true);
     
-    if (!usernameOrEmail || !password) {
-      toast({
-        title: "Error",
-        description: "Please enter your username/email and password",
-        variant: "destructive",
+    try {
+      if (!usernameOrEmail || !password) {
+        toast({
+          title: "Error",
+          description: "Please enter your username/email and password",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // First, check if the username/email and password match in the students table
+      const { data: student, error } = await supabase
+        .from('students')
+        .select('*')
+        .or(`username.eq.${usernameOrEmail},email.eq.${usernameOrEmail}`)
+        .eq('password', password)
+        .maybeSingle();
+      
+      if (error) {
+        throw error;
+      }
+      
+      if (!student) {
+        toast({
+          title: "Login Failed",
+          description: "Invalid username/email or password",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      // Update last login time
+      await supabase
+        .from('students')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', student.id);
+      
+      // Store student session
+      await supabase.auth.signInWithPassword({
+        email: student.email || `${student.username}@pokeayman.com`,
+        password: student.password
       });
-      return;
-    }
-    
-    const result = await loginStudent(usernameOrEmail, password);
-    
-    if (result.success) {
+      
       toast({
         title: "Welcome back!",
-        description: `Logged in as ${result.student.display_name || result.student.username}`,
+        description: `Logged in as ${student.display_name || student.username}`,
       });
+      
       navigate("/student-dashboard");
+    } catch (error: any) {
+      console.error("Login error:", error);
+      toast({
+        title: "Login Error",
+        description: error.message || "An error occurred during login",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-400 to-purple-600 flex items-center justify-center p-4 relative overflow-hidden">
-      {/* Animated Pokemon background with updated props */}
-      <PokemonOrbit count={12} />
+      {/* Animated Pokemon background */}
+      <div className="absolute inset-0 pointer-events-none">
+        <PokemonOrbit count={8} />
+      </div>
       
       <div className="flex flex-col items-center mb-8 absolute top-10">
         <img 

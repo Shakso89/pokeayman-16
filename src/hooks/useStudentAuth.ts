@@ -1,6 +1,7 @@
 
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Student {
   id: string;
@@ -8,8 +9,8 @@ interface Student {
   display_name: string;
   avatar?: string;
   photos?: string[];
-  classId?: string;
-  schoolId?: string;
+  class_id?: string;
+  school_id?: string;
   teacher_name?: string;
   school_name?: string;
 }
@@ -27,16 +28,26 @@ export const useStudentAuth = () => {
     setIsLoading(true);
     
     try {
-      // In a real app, this would be an API call to verify credentials
-      const students = JSON.parse(localStorage.getItem("students") || "[]");
-      const student = students.find(
-        (s: any) => 
-          (s.username === usernameOrEmail || s.email === usernameOrEmail) && 
-          s.password === password
-      );
+      // Check if the username/email and password match in the students table
+      const { data: student, error } = await supabase
+        .from('students')
+        .select(`
+          id,
+          username,
+          display_name,
+          class_id,
+          school_id,
+          teacher_id
+        `)
+        .or(`username.eq.${usernameOrEmail},email.eq.${usernameOrEmail}`)
+        .eq('password', password)
+        .maybeSingle();
+      
+      if (error) {
+        throw error;
+      }
       
       if (!student) {
-        // Failed login
         toast({
           title: "Login Failed",
           description: "Invalid username/email or password",
@@ -45,23 +56,56 @@ export const useStudentAuth = () => {
         return { success: false, student: {} as Student, message: "Invalid credentials" };
       }
       
-      // Successful login - store user data in localStorage
-      localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("userType", "student");
-      localStorage.setItem("studentId", student.id);
-      localStorage.setItem("studentName", student.display_name || student.username);
-      localStorage.setItem("studentClassId", student.classId || "");
-      localStorage.setItem("studentSchoolId", student.schoolId || "");
+      // Get teacher and school details if available
+      let teacherName = "Unknown";
+      let schoolName = "Unknown";
+      
+      if (student.teacher_id) {
+        const { data: teacher } = await supabase
+          .from('teachers')
+          .select('display_name')
+          .eq('id', student.teacher_id)
+          .maybeSingle();
+          
+        if (teacher) {
+          teacherName = teacher.display_name;
+        }
+      }
+      
+      if (student.school_id) {
+        const { data: school } = await supabase
+          .from('schools')
+          .select('name')
+          .eq('id', student.school_id)
+          .maybeSingle();
+          
+        if (school) {
+          schoolName = school.name;
+        }
+      }
+      
+      // Update last login time
+      await supabase
+        .from('students')
+        .update({ last_login: new Date().toISOString() })
+        .eq('id', student.id);
+      
+      // Set session data
+      const studentData = {
+        ...student,
+        teacher_name: teacherName,
+        school_name: schoolName
+      };
       
       return { 
         success: true, 
-        student: student 
+        student: studentData as Student
       };
-    } catch (error) {
+    } catch (error: any) {
       console.error("Login error:", error);
       toast({
         title: "Login Error",
-        description: "An error occurred during login",
+        description: error.message || "An error occurred during login",
         variant: "destructive",
       });
       return { success: false, student: {} as Student, message: "Login error" };
