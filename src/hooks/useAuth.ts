@@ -32,7 +32,7 @@ export const useAuth = () => {
           const userData = user.user_metadata || {};
           
           // Check for admin accounts
-          const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com']; // Added the fixed email
+          const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com', 'ayman.soliman.cc@gmial.com']; // Added both versions of the email
           const isAdminEmail = adminEmails.includes(user.email?.toLowerCase() || '');
           
           if (userData.user_type === 'teacher' || user.email) {
@@ -61,6 +61,7 @@ export const useAuth = () => {
           localStorage.removeItem('teacherUsername');
           localStorage.removeItem('studentDisplayName');
           localStorage.removeItem('isAdmin');
+          localStorage.removeItem('studentClassId');
           
           setIsLoggedIn(false);
           setUserType(null);
@@ -91,7 +92,7 @@ export const useAuth = () => {
           const userData = user.user_metadata || {};
           
           // Check for admin accounts
-          const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com']; // Added the fixed email
+          const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com', 'ayman.soliman.cc@gmial.com']; // Added both versions of the email
           const isAdminEmail = adminEmails.includes(user.email?.toLowerCase() || '');
           
           if (userData.user_type === 'teacher' || user.email) {
@@ -144,6 +145,7 @@ export const useAuth = () => {
       localStorage.removeItem('teacherUsername');
       localStorage.removeItem('studentDisplayName');
       localStorage.removeItem('isAdmin');
+      localStorage.removeItem('studentClassId');
       
       setIsLoggedIn(false);
       setUserType(null);

@@ -27,11 +27,14 @@ const TeacherLogin = () => {
         localStorage.setItem("teacherUsername", userData.username || session.user.email?.split('@')[0] || '');
         
         // Check for admin status
-        if (userData.username === "Admin" || userData.username === "Ayman") {
+        const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com', 'ayman.soliman.cc@gmial.com'];
+        if (userData.username === "Admin" || userData.username === "Ayman" || 
+            adminEmails.includes(session.user.email?.toLowerCase() || '')) {
           localStorage.setItem("isAdmin", "true");
+          navigate("/admin-dashboard");
+        } else {
+          navigate("/teacher-dashboard");
         }
-        
-        navigate("/teacher-dashboard");
       }
       setIsLoading(false);
     };
@@ -45,7 +48,10 @@ const TeacherLogin = () => {
       setError("");
       
       // Special case for admin login
-      if ((username === "Admin" || username === "admin@pokeayman.com" || username === "Ayman") && 
+      const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com', 'ayman.soliman.cc@gmial.com'];
+      
+      if ((username === "Admin" || username === "admin@pokeayman.com" || username === "Ayman" || 
+           adminEmails.includes(username)) && 
           (password === "AdminAyman" || (username === "Ayman" && password === "AymanPassword"))) {
         
         // For admin, still use local authentication for now
@@ -81,6 +87,7 @@ const TeacherLogin = () => {
       
       if (data.user) {
         const userData = data.user.user_metadata || {};
+        const userEmail = data.user.email?.toLowerCase() || '';
         
         toast({
           title: "Success!",
@@ -93,7 +100,9 @@ const TeacherLogin = () => {
         localStorage.setItem("teacherId", data.user.id);
         
         // Check for admin status
-        if (userData.username === "Admin" || userData.username === "Ayman") {
+        const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com', 'ayman.soliman.cc@gmial.com'];
+        if (userData.username === "Admin" || userData.username === "Ayman" || 
+            adminEmails.includes(userEmail)) {
           localStorage.setItem("isAdmin", "true");
           navigate("/admin-dashboard");
         } else {

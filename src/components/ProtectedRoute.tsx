@@ -22,16 +22,32 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   useEffect(() => {
     const checkAuthStatus = async () => {
       const { data } = await supabase.auth.getSession();
+      
+      // If session doesn't exist but localStorage thinks we're logged in,
+      // clear localStorage and redirect to login
+      if (!data.session && isLoggedIn) {
+        console.log("Session expired or invalid - redirecting to login");
+        localStorage.removeItem('isLoggedIn');
+        localStorage.removeItem('userType');
+        localStorage.removeItem('teacherId');
+        localStorage.removeItem('studentId');
+        localStorage.removeItem('teacherUsername');
+        localStorage.removeItem('studentDisplayName');
+        localStorage.removeItem('isAdmin');
+        localStorage.removeItem('studentClassId');
+        
+        navigate(userType === 'teacher' ? "/teacher-login" : "/student-login");
+        return;
+      }
+      
+      // If session exists but localStorage doesn't have it - refresh the page
       if (data.session?.user && userType === 'teacher' && !isLoggedIn) {
-        // Session exists but localStorage doesn't have it - refresh the page
         window.location.reload();
       }
     };
     
-    if (userType === 'teacher') {
-      checkAuthStatus();
-    }
-  }, []);
+    checkAuthStatus();
+  }, [navigate, isLoggedIn, userType]);
 
   // If still loading auth state, show loading indicator
   if (loading) {

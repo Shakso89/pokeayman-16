@@ -25,18 +25,11 @@ export const NavBar: React.FC<NavBarProps> = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem("userType");
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("studentName");
-    localStorage.removeItem("teacherUsername");
-    localStorage.removeItem("isAdmin");
-    localStorage.removeItem("studentId");
-    localStorage.removeItem("teacherId");
-    localStorage.removeItem("studentClassId");
-    navigate("/");
+    // Use the dedicated logout page to ensure proper logout
+    navigate("/logout");
   };
 
-  const isAdmin = localStorage.getItem("teacherUsername") === "Admin";
+  const isAdmin = localStorage.getItem("isAdmin") === "true";
   
   const handleCloseSettings = () => {
     setIsSettingsOpen(false);
@@ -102,6 +95,10 @@ export const NavBar: React.FC<NavBarProps> = ({
                 </div>
               </div>
               <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={handleViewProfile}>
+                <UserCog className="mr-2 h-4 w-4" />
+                <span>{t("view-profile")}</span>
+              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
                 <UserCog className="mr-2 h-4 w-4" />
                 <span>{t("profile-and-settings")}</span>
