@@ -86,7 +86,7 @@ const Index: React.FC = () => {
         <div className="w-1/2 flex flex-col justify-center items-center px-16 relative">
           <h1 className="text-6xl font-bold text-white mb-12">Gotta Catch 'Em All</h1>
           
-          <img src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" alt="PokéAyman Logo" className="h-32 w-auto mb-12" />
+          <img src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" alt="PokéAyman Logo" className="h-32 w-auto mb-12 object-scale-down" />
           
           <div className="flex flex-col gap-4 w-full max-w-md">
             <Button onClick={() => navigate("/teacher-login")} className="bg-red-500 hover:bg-red-600 text-white text-lg py-6 rounded-full font-bold">
