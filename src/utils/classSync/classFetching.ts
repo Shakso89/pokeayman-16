@@ -1,7 +1,8 @@
 
 import { supabase } from "@/integrations/supabase/client";
 import { handleDatabaseError } from "./errorHandling";
-import { ClassData, StudentData } from "./types";
+import { ClassData, StudentData, DatabaseClassData, DatabaseStudentData } from "./types";
+import { formatClassesData, formatStudentsData } from "./mappers";
 
 // Get all students in a class
 export const getStudentsInClass = async (classId: string): Promise<StudentData[]> => {
@@ -12,11 +13,10 @@ export const getStudentsInClass = async (classId: string): Promise<StudentData[]
       .eq("class_id", classId);
     
     if (error) {
-      handleDatabaseError(error);
-      return [];
+      return handleDatabaseError(error, [] as StudentData[]);
     }
     
-    return data as StudentData[];
+    return formatStudentsData(data as DatabaseStudentData[]);
   } catch (error) {
     console.error("Error fetching students:", error);
     return [];
@@ -32,11 +32,10 @@ export const fetchTeacherClasses = async (teacherId: string): Promise<ClassData[
       .eq("teacher_id", teacherId);
     
     if (error) {
-      handleDatabaseError(error);
-      return [];
+      return handleDatabaseError(error, [] as ClassData[]);
     }
     
-    return data as ClassData[];
+    return formatClassesData(data as DatabaseClassData[]);
   } catch (error) {
     console.error("Error fetching teacher classes:", error);
     return [];

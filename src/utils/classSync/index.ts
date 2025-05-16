@@ -6,14 +6,14 @@ import { subscribeToClass, subscribeToStudent, subscribeToTables, enableRealtime
 // Correct the import names from classFetching
 import { getStudentsInClass as getAllStudentsForClass, fetchTeacherClasses as getTeacherClasses } from './classFetching';
 // Correct the import names from mappers
-import { formatClassData as mapClassData, formatClassesData as mapClassesData } from './mappers';
-import { handleDatabaseError } from './errorHandling';
+import { formatClassData as mapClassData, formatClassesData as mapClassesData, formatStudentData as mapStudentData, formatStudentsData as mapStudentsData } from './mappers';
+import { handleDatabaseError, showDatabaseError } from './errorHandling';
 
 export {
   addClass, updateClass, deleteClass, getClass,
   addStudentToClass, removeStudentFromClass,
   subscribeToClass, subscribeToStudent, subscribeToTables, enableRealtimeForTables,
   getAllStudentsForClass, getTeacherClasses,
-  mapClassData, mapClassesData,
-  handleDatabaseError
+  mapClassData, mapClassesData, mapStudentData, mapStudentsData,
+  handleDatabaseError, showDatabaseError
 };
