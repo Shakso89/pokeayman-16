@@ -3,7 +3,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { getValidUUID } from "@/components/teacher/dashboard/student/studentUtils";
 // Remove the Class import since it's not exported from custom-types
-// import { Class } from "@/integrations/supabase/custom-types";
 
 // Define a simpler interface to avoid excessive type instantiation
 export interface ClassData {
@@ -80,16 +79,18 @@ const mapDatabaseClassToClassData = (dbClass: any): ClassData => {
 
 /**
  * Saves a class to the database
+ * Updated to accept partial ClassData without requiring id
  */
-export const saveClass = async (classData: ClassData): Promise<ClassData> => {
-  // If the class doesn't have an ID, generate a unique ID
-  if (!classData.id) {
-    classData.id = uuidv4();
-  }
+export const saveClass = async (classData: Omit<ClassData, "id">): Promise<ClassData> => {
+  // Create a complete ClassData with a new UUID
+  const completeClassData: ClassData = {
+    ...classData,
+    id: uuidv4()
+  };
   
   // Ensure the teacherId is a valid UUID
-  if (classData.teacherId) {
-    classData.teacherId = getValidUUID(classData.teacherId);
+  if (completeClassData.teacherId) {
+    completeClassData.teacherId = getValidUUID(completeClassData.teacherId);
   }
   
   try {
@@ -97,14 +98,14 @@ export const saveClass = async (classData: ClassData): Promise<ClassData> => {
     const { data, error } = await supabase
       .from('classes')
       .insert({
-        id: classData.id,
-        name: classData.name,
-        teacher_id: classData.teacherId || null,
-        school_id: classData.schoolId || null,
-        description: classData.description || null,
-        students: classData.students || [],
-        is_public: classData.isPublic !== false,
-        likes: classData.likes || []
+        id: completeClassData.id,
+        name: completeClassData.name,
+        teacher_id: completeClassData.teacherId || null,
+        school_id: completeClassData.schoolId || null,
+        description: completeClassData.description || null,
+        students: completeClassData.students || [],
+        is_public: completeClassData.isPublic !== false,
+        likes: completeClassData.likes || []
       })
       .select()
       .single();
@@ -114,17 +115,17 @@ export const saveClass = async (classData: ClassData): Promise<ClassData> => {
       
       // Fallback to localStorage
       const allClasses: ClassData[] = JSON.parse(localStorage.getItem("classes") || "[]");
-      allClasses.push(classData);
+      allClasses.push(completeClassData);
       localStorage.setItem("classes", JSON.stringify(allClasses));
       
-      return classData;
+      return completeClassData;
     }
     
     // Return properly structured ClassData
     if (data) {
       return mapDatabaseClassToClassData(data);
     } else {
-      return classData;
+      return completeClassData;
     }
   } catch (error) {
     console.error("Error saving class:", error);
@@ -132,13 +133,13 @@ export const saveClass = async (classData: ClassData): Promise<ClassData> => {
     // Fallback to localStorage with direct typing
     try {
       const allClasses: ClassData[] = JSON.parse(localStorage.getItem("classes") || "[]");
-      allClasses.push(classData);
+      allClasses.push(completeClassData);
       localStorage.setItem("classes", JSON.stringify(allClasses));
       
-      return classData;
+      return completeClassData;
     } catch (localStorageError) {
       console.error("Error saving to localStorage:", localStorageError);
-      return classData; // Return original data as a fallback
+      return completeClassData; // Return original data as a fallback
     }
   }
 };
