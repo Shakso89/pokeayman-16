@@ -104,7 +104,7 @@ const Index: React.FC = () => {
           
           {/* Ash and Pikachu Image */}
           <div className="absolute bottom-0 right-0">
-            <img src="/lovable-uploads/463ff2eb-f43a-40df-9403-9f3de73005fd.png" alt="Ash and Pikachu" className="h-44 w-auto object-fill" />
+            <img src="/lovable-uploads/463ff2eb-f43a-40df-9403-9f3de73005fd.png" alt="Ash and Pikachu" className="h-60 w-auto object-fill" />
           </div>
         </div>
       </main>
