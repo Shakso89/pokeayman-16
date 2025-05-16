@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { getValidUUID } from "@/components/teacher/dashboard/student/studentUtils";
@@ -25,9 +26,9 @@ const handleSupabaseError = (error: any, fallback: any) => {
 /**
  * Checks if a class with the same name already exists in the specified school
  */
-export const classExists = async (classData: ClassData): Promise<boolean> => {
-  // Skip the check if no school ID is provided
-  if (!classData.schoolId) {
+export const classExists = async (classData: Partial<ClassData>): Promise<boolean> => {
+  // Skip the check if no school ID or name is provided
+  if (!classData.schoolId || !classData.name) {
     return false;
   }
   

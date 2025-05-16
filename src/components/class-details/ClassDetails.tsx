@@ -4,9 +4,20 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, Loader2 } from "lucide-react";
+import { ChevronLeft, Loader2, Trash2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { deleteClass } from "@/utils/pokemon/classManagement";
 
 const ClassDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -14,7 +25,15 @@ const ClassDetails = () => {
   const [classData, setClassData] = useState<any>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const { t } = useTranslation();
+  const [isAdmin, setIsAdmin] = useState(false);
+
+  // Check if user is admin
+  useEffect(() => {
+    const username = localStorage.getItem("teacherUsername") || "";
+    setIsAdmin(username === "Admin" || username === "Ayman");
+  }, []);
 
   useEffect(() => {
     if (!id) return;
@@ -98,6 +117,31 @@ const ClassDetails = () => {
     fetchClassDetails();
   }, [id, t]);
 
+  const handleDeleteClass = async () => {
+    if (!id) return;
+    
+    try {
+      const success = await deleteClass(id);
+      
+      if (success) {
+        toast({
+          title: t("success"),
+          description: t("class-deleted-successfully")
+        });
+        navigate("/teacher-dashboard");
+      } else {
+        throw new Error("Failed to delete class");
+      }
+    } catch (error) {
+      console.error("Error deleting class:", error);
+      toast({
+        title: t("error"),
+        description: t("failed-to-delete-class"),
+        variant: "destructive"
+      });
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -124,16 +168,29 @@ const ClassDetails = () => {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <div className="flex items-center mb-6">
-        <Button
-          variant="outline"
-          onClick={() => navigate("/teacher-dashboard")}
-          className="mr-4"
-        >
-          <ChevronLeft className="h-4 w-4 mr-1" />
-          {t("back-to-dashboard")}
-        </Button>
-        <h1 className="text-2xl font-bold">{t("class-details")}</h1>
+      <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center">
+          <Button
+            variant="outline"
+            onClick={() => navigate("/teacher-dashboard")}
+            className="mr-4"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            {t("back-to-dashboard")}
+          </Button>
+          <h1 className="text-2xl font-bold">{t("class-details")}</h1>
+        </div>
+        
+        {isAdmin && (
+          <Button
+            variant="destructive"
+            onClick={() => setDeleteDialogOpen(true)}
+            size="sm"
+          >
+            <Trash2 className="h-4 w-4 mr-1" />
+            {t("delete-class")}
+          </Button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -188,6 +245,24 @@ const ClassDetails = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Delete Class Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("delete-class")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("delete-class-confirmation")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteClass} className="bg-red-600 hover:bg-red-700">
+              {t("delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
