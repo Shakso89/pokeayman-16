@@ -7,11 +7,12 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import PokemonOrbit from "@/components/PokemonOrbit"; 
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { useStudentAuth } from "@/hooks/useStudentAuth";
 
 const StudentLogin: React.FC = () => {
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const { isLoading, loginStudent } = useStudentAuth();
   const navigate = useNavigate();
   
   // Check if already logged in using Supabase
@@ -38,57 +39,50 @@ const StudentLogin: React.FC = () => {
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setIsLoading(true);
     
     try {
       if (!usernameOrEmail || !password) {
         toast({
           title: "Error",
-          description: "Please enter your username/email and password",
+          description: "Please enter your username and password",
           variant: "destructive",
         });
         return;
       }
       
-      // First, check if the username/email and password match in the students table
-      const { data: student, error } = await supabase
-        .from('students')
-        .select('*')
-        .or(`username.eq.${usernameOrEmail},email.eq.${usernameOrEmail}`)
-        .eq('password', password)
-        .maybeSingle();
+      const result = await loginStudent(usernameOrEmail, password);
       
-      if (error) {
-        throw error;
-      }
-      
-      if (!student) {
+      if (result.success && result.student) {
+        // Store student info in local storage for now (will be replaced with proper session management)
+        localStorage.setItem('isLoggedIn', 'true');
+        localStorage.setItem('userType', 'student');
+        localStorage.setItem('studentId', result.student.id);
+        localStorage.setItem('studentName', result.student.display_name || result.student.username);
+        if (result.student.class_id) {
+          localStorage.setItem('studentClassId', result.student.class_id);
+        }
+        
+        // Try to sign in with Supabase Auth
+        // For now, we'll use a generated email if none is provided
+        const generatedEmail = `${result.student.username}@pokeayman.com`;
+        
+        try {
+          await supabase.auth.signInWithPassword({
+            email: generatedEmail,
+            password: password
+          });
+        } catch (authError) {
+          console.error("Supabase auth error:", authError);
+          // Continue anyway since we're using local storage for now
+        }
+        
         toast({
-          title: "Login Failed",
-          description: "Invalid username/email or password",
-          variant: "destructive",
+          title: "Welcome back!",
+          description: `Logged in as ${result.student.display_name || result.student.username}`,
         });
-        return;
+        
+        navigate("/student-dashboard");
       }
-      
-      // Update last login time
-      await supabase
-        .from('students')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', student.id);
-      
-      // Store student session
-      await supabase.auth.signInWithPassword({
-        email: student.email || `${student.username}@pokeayman.com`,
-        password: student.password
-      });
-      
-      toast({
-        title: "Welcome back!",
-        description: `Logged in as ${student.display_name || student.username}`,
-      });
-      
-      navigate("/student-dashboard");
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
@@ -96,8 +90,6 @@ const StudentLogin: React.FC = () => {
         description: error.message || "An error occurred during login",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
   
@@ -126,13 +118,13 @@ const StudentLogin: React.FC = () => {
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
               <label htmlFor="usernameOrEmail" className="text-sm font-medium">
-                Username or Email
+                Username
               </label>
               <Input
                 id="usernameOrEmail"
                 value={usernameOrEmail}
                 onChange={(e) => setUsernameOrEmail(e.target.value)}
-                placeholder="Enter your username or email"
+                placeholder="Enter your username"
                 disabled={isLoading}
               />
             </div>
