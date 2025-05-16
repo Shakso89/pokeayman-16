@@ -77,9 +77,8 @@ const Index: React.FC = () => {
         {/* Left Section - Why PokéAyman */}
         <div className="w-1/2 flex flex-col justify-center px-16">
           <h1 className="text-4xl font-bold text-white mb-4">Why PokéAyman?</h1>
-          <p className="text-white text-lg leading-relaxed">
-            Turn everyday lessons into exciting adventures! Use Pokémon, challenges, and rewards to boost student motivation and make learning unforgettable. Join a new wave of gamified education.
-          </p>
+          <p className="text-white text-lg leading-relaxed text-center">Turn everyday lessons into exciting adventures! Use Pokémon, challenges, and rewards to boost student motivation and make learning unforgettable. 
+Join a new wave of gamified education.</p>
         </div>
         
         {/* Right Section - Call to Action */}
