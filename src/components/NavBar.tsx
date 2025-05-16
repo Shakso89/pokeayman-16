@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import UserSettingsModal from "./modals/UserSettingsModal";
 import NotificationBadge from "./NotificationBadge";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useAuth } from "@/hooks/useAuth";
 
 interface NavBarProps {
   userType: "teacher" | "student";
@@ -23,10 +24,15 @@ export const NavBar: React.FC<NavBarProps> = ({
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const { logout } = useAuth();
 
-  const handleLogout = () => {
-    // Use the dedicated logout page to ensure proper logout
-    navigate("/logout");
+  const handleLogout = async () => {
+    // Use the logout method from useAuth
+    const success = await logout();
+    if (success) {
+      // Use the dedicated logout page to ensure proper logout
+      navigate("/logout", { replace: true });
+    }
   };
 
   const isAdmin = localStorage.getItem("isAdmin") === "true";

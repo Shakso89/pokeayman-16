@@ -1,19 +1,19 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 
 const LogoutPage: React.FC = () => {
-  const { logout, loading } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(true);
   
   useEffect(() => {
     const performLogout = async () => {
       try {
-        // Sign out from Supabase Auth
-        await supabase.auth.signOut();
+        setIsLoggingOut(true);
         
         // Clear all local storage items related to authentication
         localStorage.removeItem('isLoggedIn');
@@ -25,17 +25,23 @@ const LogoutPage: React.FC = () => {
         localStorage.removeItem('isAdmin');
         localStorage.removeItem('studentClassId');
         
+        // Sign out from Supabase Auth
+        await supabase.auth.signOut();
+        
         // Call the logout function from useAuth to make sure everything is cleared
         await logout();
         
-        // Show toast notification
-        toast({
-          title: "Logged out successfully",
-          description: "You have been signed out of your account."
-        });
-        
-        // Redirect to home page after logout
-        navigate('/', { replace: true });
+        // Short delay to ensure state updates have propagated
+        setTimeout(() => {
+          // Show toast notification
+          toast({
+            title: "Logged out successfully",
+            description: "You have been signed out of your account."
+          });
+          
+          // Redirect to home page after logout
+          navigate('/', { replace: true });
+        }, 100);
       } catch (error) {
         console.error('Logout error:', error);
         toast({
@@ -45,11 +51,17 @@ const LogoutPage: React.FC = () => {
         });
         // Still redirect to home page
         navigate('/', { replace: true });
+      } finally {
+        setIsLoggingOut(false);
       }
     };
     
     performLogout();
   }, [navigate, logout]);
+  
+  if (!isLoggingOut) {
+    return null; // Don't render anything if we're not logging out anymore
+  }
   
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">

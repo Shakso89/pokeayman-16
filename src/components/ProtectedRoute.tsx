@@ -12,7 +12,7 @@ interface ProtectedRouteProps {
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isLoggedIn, userType, loading } = useAuth();
+  const { isLoggedIn, userType, loading, initialized } = useAuth();
   const isActivated = isTeacherActivated();
   const isAdmin = localStorage.getItem("isAdmin") === "true";
   const navigate = useNavigate();
@@ -26,8 +26,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         
         // If session doesn't exist but localStorage thinks we're logged in,
         // clear localStorage and redirect to login
-        if (!data.session && isLoggedIn) {
+        if (!data.session && localStorage.getItem('isLoggedIn') === 'true') {
           console.log("Session expired or invalid - redirecting to login");
+          
+          // Clear all auth-related localStorage items
           localStorage.removeItem('isLoggedIn');
           localStorage.removeItem('userType');
           localStorage.removeItem('teacherId');
@@ -50,8 +52,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     }
   }, [navigate, isLoggedIn, userType]);
 
-  // If still loading auth state, show loading indicator
-  if (loading) {
+  // Wait for auth initialization and loading to complete
+  if (loading || !initialized) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>

@@ -13,11 +13,19 @@ const TeacherLogin = () => {
   
   // Check if already logged in
   useEffect(() => {
+    let mounted = true;
+    
     const checkSession = async () => {
       setIsLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
+      const { data: { session }, error } = await supabase.auth.getSession();
       
-      if (session?.user) {
+      if (error) {
+        console.error("Session check error:", error);
+        if (mounted) setIsLoading(false);
+        return;
+      }
+      
+      if (session?.user && mounted) {
         const userData = session.user.user_metadata || {};
         
         // If already logged in, redirect to dashboard
@@ -35,11 +43,16 @@ const TeacherLogin = () => {
         } else {
           navigate("/teacher-dashboard", { replace: true });
         }
+      } else if (mounted) {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
     
     checkSession();
+    
+    return () => {
+      mounted = false;
+    };
   }, [navigate]);
   
   const handleLogin = async (username: string, password: string) => {
@@ -55,12 +68,9 @@ const TeacherLogin = () => {
           (password === "AdminAyman" || (username === "Ayman" && password === "AymanPassword"))) {
         
         // For admin, we'll use Supabase auth to ensure session persistence
-        let adminEmail = username;
-        if (!adminEmail.includes('@')) {
-          adminEmail = 'admin@pokeayman.com'; // Default email for admin
-        }
+        const adminEmail = username.includes('@') ? username : 'admin@pokeayman.com';
         
-        // Try to sign in with Supabase (this creates a proper session)
+        // Try to sign in with Supabase
         const { data, error } = await supabase.auth.signInWithPassword({
           email: adminEmail,
           password: password,
@@ -102,13 +112,17 @@ const TeacherLogin = () => {
           description: `Welcome back, ${adminUsername}!`,
         });
         
+        // Set localStorage after successful auth
         localStorage.setItem("userType", "teacher");
         localStorage.setItem("isLoggedIn", "true");
         localStorage.setItem("teacherUsername", adminUsername);
         localStorage.setItem("isAdmin", "true");
         localStorage.setItem("teacherId", data?.user?.id || `admin-${Date.now()}`);
         
-        navigate("/admin-dashboard", { replace: true });
+        // Short delay to ensure session is saved
+        setTimeout(() => {
+          navigate("/admin-dashboard", { replace: true });
+        }, 100);
         return;
       }
       
@@ -134,6 +148,7 @@ const TeacherLogin = () => {
           description: "Welcome back, Teacher!",
         });
         
+        // Update local storage after auth confirmed
         localStorage.setItem("userType", "teacher");
         localStorage.setItem("isLoggedIn", "true");
         localStorage.setItem("teacherUsername", userData.username || username);
@@ -144,9 +159,16 @@ const TeacherLogin = () => {
         if (userData.username === "Admin" || userData.username === "Ayman" || 
             adminEmails.includes(userEmail)) {
           localStorage.setItem("isAdmin", "true");
-          navigate("/admin-dashboard", { replace: true });
+          
+          // Short delay to ensure session is saved
+          setTimeout(() => {
+            navigate("/admin-dashboard", { replace: true });
+          }, 100);
         } else {
-          navigate("/teacher-dashboard", { replace: true });
+          // Short delay to ensure session is saved
+          setTimeout(() => {
+            navigate("/teacher-dashboard", { replace: true });
+          }, 100);
         }
       }
     } catch (error: any) {
