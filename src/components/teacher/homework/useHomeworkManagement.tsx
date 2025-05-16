@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -108,6 +109,7 @@ export const useHomeworkManagement = (teacherId: string) => {
     selectedStudent,
     setSelectedStudent,
     selectedClassId,
+    selectedClassName,
     setSelectedClassName,
     handleHomeworkCreated,
     handleGiveCoins,
