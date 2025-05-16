@@ -111,7 +111,7 @@ const Index: React.FC = () => {
 
       {/* Footer */}
       <footer className="py-6 text-center text-white">
-        <img alt="Jigglypuff" className="h-16 w-auto mx-auto mb-2" src="/lovable-uploads/80af40fc-49c4-4da9-a3a8-813841541122.png" />
+        <img alt="Jigglypuff" src="/lovable-uploads/80af40fc-49c4-4da9-a3a8-813841541122.png" className="h-60 w-auto mx-auto mb-2" />
         <p>© 2025 PokéAyman. All rights reserved</p>
         <button onClick={() => navigate("/contact")} className="text-white mt-2 hover:underline">
           Contact Us
