@@ -25,7 +25,7 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
     
     const { data, error } = await supabase
       .from("classes")
-      .insert(dbClassData)
+      .insert(dbClassData as { name: string }) // Explicitly cast with required name property
       .select()
       .single();
     
@@ -45,9 +45,12 @@ export const updateClassDetails = async (classId: string, updates: Partial<Class
   try {
     const dbUpdates = toDbFormat(updates);
     
+    // Make sure we have an object that Supabase can handle
+    const supabaseUpdates = Object.keys(dbUpdates).length > 0 ? dbUpdates : { updated_at: new Date().toISOString() };
+    
     const { error } = await supabase
       .from("classes")
-      .update(dbUpdates)
+      .update(supabaseUpdates)
       .eq("id", classId);
     
     if (error) {
