@@ -7,10 +7,12 @@ import PokemonOrbit from "@/components/PokemonOrbit";
 
 interface AuthLayoutProps {
   title: string;
+  description?: string; // Made description optional
   children: ReactNode;
+  className?: string;
 }
 
-export const AuthLayout = ({ title, children }: AuthLayoutProps) => {
+export const AuthLayout = ({ title, description, children, className }: AuthLayoutProps) => {
   const navigate = useNavigate();
 
   return (
@@ -28,9 +30,10 @@ export const AuthLayout = ({ title, children }: AuthLayoutProps) => {
           Back to Home
         </Button>
       
-        <Card className="backdrop-blur-sm bg-white/90 border-white/20 shadow-xl">
+        <Card className={`backdrop-blur-sm bg-white/90 border-white/20 shadow-xl ${className || ""}`}>
           <CardContent className="pt-6">
             <h1 className="text-2xl font-bold text-center mb-6">{title}</h1>
+            {description && <p className="text-center text-gray-600 mb-6">{description}</p>}
             {children}
           </CardContent>
         </Card>
