@@ -1,52 +1,36 @@
-
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { AuthLayout } from "@/components/AuthLayout";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 
 const TeacherLogin = () => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { isLoggedIn, isAdmin, loading } = useAuth();
   const [error, setError] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [loginInProgress, setLoginInProgress] = useState(false);
   
   // Check if already logged in
   useEffect(() => {
-    const checkSession = async () => {
-      setIsLoading(true);
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      if (session) {
-        const userData = session.user.user_metadata || {};
-        
-        // Check for admin status by email
-        const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@pokeayman.com', 'admin@example.com'];
-        const isAdminEmail = adminEmails.includes(session.user.email?.toLowerCase() || '');
-        
-        // If already logged in, redirect to dashboard
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("userType", "teacher");
-        localStorage.setItem("teacherId", session.user.id);
-        localStorage.setItem("teacherUsername", userData.username || session.user.email?.split('@')[0] || '');
-        
-        // Check for admin status
-        if (isAdminEmail || userData.username === "Admin" || userData.username === "Ayman") {
-          localStorage.setItem("isAdmin", "true");
-          navigate("/admin-dashboard");
-        } else {
-          navigate("/teacher-dashboard");
-        }
+    if (isLoggedIn && !loginInProgress) {
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectPath) {
+        sessionStorage.removeItem('redirectAfterLogin');
+        navigate(redirectPath);
+      } else if (isAdmin) {
+        navigate("/admin-dashboard");
+      } else {
+        navigate("/teacher-dashboard");
       }
-      setIsLoading(false);
-    };
-    
-    checkSession();
-  }, [navigate]);
+    }
+  }, [isLoggedIn, isAdmin, navigate, loginInProgress]);
   
   const handleLogin = async (username: string, password: string) => {
     try {
-      setIsLoading(true);
+      setLoginInProgress(true);
       setError("");
       
       // Special case for admin login
@@ -54,7 +38,33 @@ const TeacherLogin = () => {
            username === "ayman.soliman.cc@gmail.com") && 
           (password === "AdminAyman" || (username === "Ayman" && password === "AymanPassword"))) {
         
-        // For admin, still use local authentication for now
+        // For admin users, try to sign in with Supabase first using email if provided
+        if (username === "ayman.soliman.cc@gmail.com" || username === "admin@pokeayman.com") {
+          try {
+            const { data, error } = await supabase.auth.signInWithPassword({
+              email: username,
+              password: password
+            });
+            
+            if (error) {
+              console.error("Admin Supabase login error:", error);
+              // Fall back to local auth if Supabase fails
+            } else if (data.user) {
+              toast({
+                title: "Success!",
+                description: `Welcome back, Admin!`,
+              });
+              
+              // Redirect will be handled by useEffect when auth state updates
+              return;
+            }
+          } catch (err) {
+            console.error("Error during admin Supabase auth:", err);
+            // Continue with local auth fallback
+          }
+        }
+        
+        // Local authentication fallback for admin
         const adminUsername = username === "Ayman" || username === "ayman.soliman.cc@gmail.com" ? "Ayman" : "Admin";
         
         toast({
@@ -68,7 +78,11 @@ const TeacherLogin = () => {
         localStorage.setItem("isAdmin", "true");
         localStorage.setItem("teacherId", `admin-${adminUsername}-${Date.now().toString()}`);
         
-        navigate("/admin-dashboard");
+        // Short delay to allow state to update
+        setTimeout(() => {
+          navigate("/admin-dashboard");
+        }, 100);
+        
         return;
       }
       
@@ -97,6 +111,8 @@ const TeacherLogin = () => {
           description: "Welcome back, Teacher!",
         });
         
+        // Redirect will be handled by useEffect when auth state updates
+        // We're keeping these for backward compatibility
         localStorage.setItem("userType", "teacher");
         localStorage.setItem("isLoggedIn", "true");
         localStorage.setItem("teacherUsername", userData.username || username);
@@ -105,20 +121,17 @@ const TeacherLogin = () => {
         // Check for admin status
         if (isAdminEmail || userData.username === "Admin" || userData.username === "Ayman") {
           localStorage.setItem("isAdmin", "true");
-          navigate("/admin-dashboard");
-        } else {
-          navigate("/teacher-dashboard");
         }
       }
     } catch (error: any) {
       console.error("Login error:", error);
       setError(error.message);
     } finally {
-      setIsLoading(false);
+      setLoginInProgress(false);
     }
   };
   
-  if (isLoading) {
+  if (loading && !loginInProgress) {
     return (
       <AuthLayout title="Teacher Login">
         <div className="flex justify-center py-8">

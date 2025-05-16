@@ -1,50 +1,33 @@
 
-import React, { useEffect } from "react";
-import { Navigate, useNavigate } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { Navigate, useLocation } from "react-router-dom";
 import { isTeacherActivated } from "@/utils/activationService";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useAuth } from "@/hooks/useAuth";
-import { supabase } from "@/integrations/supabase/client";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
 }
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
-  const { isLoggedIn, userType, loading } = useAuth();
+  const { isLoggedIn, userType, loading, isAdmin } = useAuth();
   const isActivated = isTeacherActivated();
-  const isAdmin = localStorage.getItem("isAdmin") === "true";
-  const navigate = useNavigate();
   const { t } = useTranslation();
+  const location = useLocation();
+  const [initialCheckDone, setInitialCheckDone] = useState(false);
 
-  // Check for auth in Supabase on initial render
+  // Add a slight delay to prevent flickering during auth check
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      const { data } = await supabase.auth.getSession();
-      if (data.session?.user && userType === 'teacher' && !isLoggedIn) {
-        // Session exists but localStorage doesn't have it - refresh the page
-        window.location.reload();
-      }
-      
-      // Additional check for admin based on email
-      if (data.session?.user) {
-        const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@pokeayman.com', 'admin@example.com'];
-        const isAdminEmail = adminEmails.includes(data.session.user.email?.toLowerCase() || '');
-        
-        if (isAdminEmail && !isAdmin) {
-          localStorage.setItem("isAdmin", "true");
-        }
-      }
-    };
+    const timer = setTimeout(() => {
+      setInitialCheckDone(true);
+    }, 300);
     
-    if (userType === 'teacher') {
-      checkAuthStatus();
-    }
+    return () => clearTimeout(timer);
   }, []);
 
   // If still loading auth state, show loading indicator
-  if (loading) {
+  if (loading || !initialCheckDone) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -54,7 +37,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   // Handle login check
   if (!isLoggedIn) {
-    return <Navigate to={userType === "teacher" ? "/teacher-login" : "/student-login"} />;
+    // Store the attempted URL to redirect back after login
+    if (location.pathname !== '/teacher-login' && location.pathname !== '/student-login') {
+      sessionStorage.setItem('redirectAfterLogin', location.pathname);
+    }
+    return <Navigate to={userType === "teacher" ? "/teacher-login" : "/student-login"} replace />;
   }
 
   // For teachers who are frozen (not activated), render a simple placeholder
@@ -66,7 +53,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
           <h2 className="text-2xl font-bold mb-4">{t("account-frozen")}</h2>
           <p className="mb-6">{t("account-frozen-message")}</p>
           <Button 
-            onClick={() => navigate("/contact")}
+            onClick={() => window.location.href = "/contact"}
             className="bg-blue-600 hover:bg-blue-700 text-white"
           >
             {t("contact-us")}
@@ -74,6 +61,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
         </div>
       </div>
     );
+  }
+
+  // Clear redirect info after successful login and protection check
+  if (sessionStorage.getItem('redirectAfterLogin')) {
+    sessionStorage.removeItem('redirectAfterLogin');
   }
 
   return <>{children}</>;

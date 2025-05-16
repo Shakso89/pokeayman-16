@@ -10,12 +10,18 @@ const LogoutPage: React.FC = () => {
   useEffect(() => {
     const performLogout = async () => {
       await logout();
-      // Redirect to home page after logout
-      navigate('/', { replace: true });
+      // Clear any additional state or cookies if needed
+      localStorage.clear(); // Ensure all local storage is cleared
+      sessionStorage.clear(); // Clear any session storage
+      
+      // Add a small delay before redirecting to ensure logout completes
+      setTimeout(() => {
+        navigate('/', { replace: true });
+      }, 300);
     };
     
     performLogout();
-  }, []);
+  }, [logout, navigate]);
   
   // Show a loading spinner while logging out
   return (
