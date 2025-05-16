@@ -22,6 +22,18 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import LogoutPage from "./pages/LogoutPage";
 import { supabase } from "@/integrations/supabase/client";
 import { enableRealtimeForTables } from "@/utils/classSync/classSubscription";
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+
+// Create a client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 60000, // 1 minute
+      retry: 1,
+      refetchOnWindowFocus: false
+    },
+  },
+});
 
 function App() {
   // Initialize Supabase realtime and check for session on load
@@ -29,7 +41,7 @@ function App() {
     // Enable realtime functionality for tables (will apply RLS policies)
     enableRealtimeForTables();
     
-    // Set up a realtime channel to ensure the connection is established
+    // Set up a system channel to ensure the connection is established
     const channel = supabase.channel('system')
       .on('system', { event: 'extension' }, (payload) => {
         console.log('Supabase extension event:', payload);
@@ -38,72 +50,104 @@ function App() {
         console.log('Realtime connection status:', status);
       });
     
+    // Set up a presence channel for online users
+    const presence = supabase.channel('online-users')
+      .on('presence', { event: 'sync' }, () => {
+        // Get a list of all online users
+        const state = presence.presenceState();
+        console.log('Online users state:', state);
+      })
+      .on('presence', { event: 'join' }, ({ key, newPresences }) => {
+        console.log('User joined:', key, newPresences);
+      })
+      .on('presence', { event: 'leave' }, ({ key, leftPresences }) => {
+        console.log('User left:', key, leftPresences);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          // Get the user ID from localStorage
+          const userId = localStorage.getItem('teacherId') || localStorage.getItem('studentId');
+          if (userId) {
+            // Track this user's online presence
+            const trackStatus = await presence.track({
+              user_id: userId,
+              online_at: new Date().toISOString(),
+              user_type: localStorage.getItem('userType') || 'unknown'
+            });
+            console.log('Presence tracking status:', trackStatus);
+          }
+        }
+      });
+    
     return () => {
       // Clean up subscriptions
       supabase.removeChannel(channel);
+      supabase.removeChannel(presence);
     };
   }, []);
 
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        <Route path="/student-dashboard" element={
-          <ProtectedRoute>
-            <StudentDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/teacher-dashboard" element={
-          <ProtectedRoute>
-            <TeacherDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/teacher-login" element={<TeacherLogin />} />
-        <Route path="/student-login" element={<StudentLogin />} />
-        <Route path="/teacher-signup" element={<TeacherSignUp />} />
-        <Route path="/logout" element={<LogoutPage />} />
-        <Route path="/admin-dashboard" element={
-          <ProtectedRoute>
-            <AdminDashboard />
-          </ProtectedRoute>
-        } />
-        <Route path="/teacher/messages" element={
-          <ProtectedRoute>
-            <MessagesPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/student/messages" element={
-          <ProtectedRoute>
-            <MessagesPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/teacher/reports" element={
-          <ProtectedRoute>
-            <ReportsPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/teacher/student/:studentId" element={
-          <ProtectedRoute>
-            <StudentDetailPage />
-          </ProtectedRoute>
-        } />
-        <Route path="/student/profile/:studentId" element={
-          <ProtectedRoute>
-            <StudentProfilePage />
-          </ProtectedRoute>
-        } />
-        <Route path="/teacher/profile/:teacherId" element={
-          <ProtectedRoute>
-            <TeacherProfilePage />
-          </ProtectedRoute>
-        } />
-        <Route path="/student/rankings" element={<RankingPage />} />
-        <Route path="/teacher/rankings" element={<RankingPage />} />
-        <Route path="/contact" element={<Contact />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
-      <Toaster />
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Index />} />
+          <Route path="/student-dashboard" element={
+            <ProtectedRoute>
+              <StudentDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/teacher-dashboard" element={
+            <ProtectedRoute>
+              <TeacherDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/teacher-login" element={<TeacherLogin />} />
+          <Route path="/student-login" element={<StudentLogin />} />
+          <Route path="/teacher-signup" element={<TeacherSignUp />} />
+          <Route path="/logout" element={<LogoutPage />} />
+          <Route path="/admin-dashboard" element={
+            <ProtectedRoute>
+              <AdminDashboard />
+            </ProtectedRoute>
+          } />
+          <Route path="/teacher/messages" element={
+            <ProtectedRoute>
+              <MessagesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/student/messages" element={
+            <ProtectedRoute>
+              <MessagesPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/teacher/reports" element={
+            <ProtectedRoute>
+              <ReportsPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/teacher/student/:studentId" element={
+            <ProtectedRoute>
+              <StudentDetailPage />
+            </ProtectedRoute>
+          } />
+          <Route path="/student/profile/:studentId" element={
+            <ProtectedRoute>
+              <StudentProfilePage />
+            </ProtectedRoute>
+          } />
+          <Route path="/teacher/profile/:teacherId" element={
+            <ProtectedRoute>
+              <TeacherProfilePage />
+            </ProtectedRoute>
+          } />
+          <Route path="/student/rankings" element={<RankingPage />} />
+          <Route path="/teacher/rankings" element={<RankingPage />} />
+          <Route path="/contact" element={<Contact />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+        <Toaster />
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 

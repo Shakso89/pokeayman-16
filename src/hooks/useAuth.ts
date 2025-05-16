@@ -15,6 +15,7 @@ export const useAuth = () => {
   );
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isAdmin, setIsAdmin] = useState<boolean>(localStorage.getItem('isAdmin') === 'true');
 
   // Check authentication status on mount
   useEffect(() => {
@@ -34,6 +35,7 @@ export const useAuth = () => {
           // List of admin emails
           const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@pokeayman.com', 'admin@example.com'];
           const isAdminEmail = adminEmails.includes(user.email?.toLowerCase() || '');
+          const isAdminUser = isAdminEmail || userData.username === "Admin" || userData.username === "Ayman";
           
           if (userData.user_type === 'teacher' || user.email) {
             // This is a teacher
@@ -43,8 +45,12 @@ export const useAuth = () => {
             localStorage.setItem('teacherUsername', userData.username || user.email?.split('@')[0] || '');
             
             // Check for admin status - include email check
-            if (isAdminEmail || userData.username === "Admin" || userData.username === "Ayman") {
+            if (isAdminUser) {
               localStorage.setItem("isAdmin", "true");
+              setIsAdmin(true);
+            } else {
+              localStorage.removeItem("isAdmin");
+              setIsAdmin(false);
             }
             
             setIsLoggedIn(true);
@@ -66,6 +72,7 @@ export const useAuth = () => {
           setUserType(null);
           setUserId(null);
           setSession(null);
+          setIsAdmin(false);
         }
       }
     );
@@ -93,6 +100,7 @@ export const useAuth = () => {
           // List of admin emails
           const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@pokeayman.com', 'admin@example.com'];
           const isAdminEmail = adminEmails.includes(user.email?.toLowerCase() || '');
+          const isAdminUser = isAdminEmail || userData.username === "Admin" || userData.username === "Ayman";
           
           if (userData.user_type === 'teacher' || user.email) {
             // This is a teacher
@@ -102,8 +110,12 @@ export const useAuth = () => {
             localStorage.setItem('teacherUsername', userData.username || user.email?.split('@')[0] || '');
             
             // Check for admin status - include email check
-            if (isAdminEmail || userData.username === "Admin" || userData.username === "Ayman") {
+            if (isAdminUser) {
               localStorage.setItem("isAdmin", "true");
+              setIsAdmin(true);
+            } else {
+              localStorage.removeItem("isAdmin");
+              setIsAdmin(false);
             }
             
             setIsLoggedIn(true);
@@ -150,6 +162,7 @@ export const useAuth = () => {
       setUserType(null);
       setUserId(null);
       setSession(null);
+      setIsAdmin(false);
       
       toast({
         title: "Logged out successfully",
@@ -172,6 +185,7 @@ export const useAuth = () => {
     userId,
     session,
     loading,
+    isAdmin,
     logout
   };
 };
