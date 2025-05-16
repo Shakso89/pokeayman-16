@@ -78,6 +78,25 @@ function App() {
           }
         }
       });
+
+    // Enable realtime specifically for user activities table
+    const enableUserActivitiesRealtime = async () => {
+      try {
+        const { data, error } = await supabase.rpc('enable_realtime', {
+          table_names: ['user_activities']
+        });
+        
+        if (error) {
+          console.error("Error enabling realtime for user activities:", error);
+        } else {
+          console.log("Realtime enabled for user activities");
+        }
+      } catch (err) {
+        console.error("Failed to enable realtime for user activities:", err);
+      }
+    };
+    
+    enableUserActivitiesRealtime();
     
     return () => {
       // Clean up subscriptions
