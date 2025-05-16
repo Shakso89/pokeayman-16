@@ -45,16 +45,38 @@ const StudentForm: React.FC<StudentFormProps> = ({
       
       setIsLoadingSchools(true);
       try {
+        // Attempt to fetch from Supabase first
         const { data, error } = await supabase
           .from('schools')
-          .select('id, name')
-          .eq('created_by', teacherId);
+          .select('id, name');
           
         if (error) throw error;
         
-        setSchools(data || []);
+        if (data && data.length > 0) {
+          setSchools(data);
+        } else {
+          // Fallback to localStorage if no schools found in DB
+          const savedSchools = localStorage.getItem("schools");
+          if (savedSchools) {
+            const parsedSchools = JSON.parse(savedSchools);
+            setSchools(parsedSchools.map((school: any) => ({
+              id: school.id,
+              name: school.name
+            })));
+          }
+        }
       } catch (error) {
         console.error("Error fetching schools:", error);
+        
+        // Fallback to localStorage on error
+        const savedSchools = localStorage.getItem("schools");
+        if (savedSchools) {
+          const parsedSchools = JSON.parse(savedSchools);
+          setSchools(parsedSchools.map((school: any) => ({
+            id: school.id,
+            name: school.name
+          })));
+        }
       } finally {
         setIsLoadingSchools(false);
       }

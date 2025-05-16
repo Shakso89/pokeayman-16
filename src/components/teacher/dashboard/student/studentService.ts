@@ -127,6 +127,19 @@ export const getSchoolName = async (schoolId: string): Promise<string> => {
     return data.name;
   } catch (error) {
     console.error("Error fetching school name:", error);
+    
+    // Fallback to localStorage
+    try {
+      const schoolsData = localStorage.getItem("schools");
+      if (schoolsData) {
+        const schools = JSON.parse(schoolsData);
+        const school = schools.find((s: any) => s.id === schoolId);
+        if (school) return school.name;
+      }
+    } catch (e) {
+      console.error("Error reading from localStorage:", e);
+    }
+    
     return "Unknown School";
   }
 };
