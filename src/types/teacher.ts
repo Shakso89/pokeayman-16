@@ -4,4 +4,5 @@ export interface TeacherProfile {
   username: string;
   displayName?: string;
   createdAt?: string;
+  email?: string; // Add email field
 }

@@ -31,6 +31,10 @@ export const useAuth = () => {
           const { user } = newSession;
           const userData = user.user_metadata || {};
           
+          // Check for admin accounts
+          const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com']; // Added the fixed email
+          const isAdminEmail = adminEmails.includes(user.email?.toLowerCase() || '');
+          
           if (userData.user_type === 'teacher' || user.email) {
             // This is a teacher
             localStorage.setItem('isLoggedIn', 'true');
@@ -39,7 +43,7 @@ export const useAuth = () => {
             localStorage.setItem('teacherUsername', userData.username || user.email?.split('@')[0] || '');
             
             // Check for admin status
-            if (userData.username === "Admin" || userData.username === "Ayman") {
+            if (isAdminEmail || userData.username === "Admin" || userData.username === "Ayman") {
               localStorage.setItem("isAdmin", "true");
             }
             
@@ -86,6 +90,10 @@ export const useAuth = () => {
           const { user } = existingSession;
           const userData = user.user_metadata || {};
           
+          // Check for admin accounts
+          const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com']; // Added the fixed email
+          const isAdminEmail = adminEmails.includes(user.email?.toLowerCase() || '');
+          
           if (userData.user_type === 'teacher' || user.email) {
             // This is a teacher
             localStorage.setItem('isLoggedIn', 'true');
@@ -93,7 +101,7 @@ export const useAuth = () => {
             localStorage.setItem('teacherId', user.id);
             localStorage.setItem('teacherUsername', userData.username || user.email?.split('@')[0] || '');
             
-            if (userData.username === "Admin" || userData.username === "Ayman") {
+            if (isAdminEmail || userData.username === "Admin" || userData.username === "Ayman") {
               localStorage.setItem("isAdmin", "true");
             }
             

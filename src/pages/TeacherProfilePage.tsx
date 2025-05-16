@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -12,6 +11,7 @@ import { Label } from "@/components/ui/label";
 import Footer from "@/components/Footer";
 import { PhotoGrid } from "@/components/profile/PhotoGrid";
 import { ProfileSidebar } from "@/components/student-profile/ProfileSidebar";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SocialLinks {
   line?: string;
@@ -53,40 +53,73 @@ export default function TeacherProfilePage() {
     }
   }, [teacherId]);
   
-  const loadTeacherProfile = () => {
+  const loadTeacherProfile = async () => {
     setIsLoading(true);
     
     try {
-      // In a real app, this would be an API call
-      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-      const foundTeacher = teachers.find((t: any) => t.id === teacherId);
+      // First try to get teacher from Supabase
+      const { data, error } = await supabase
+        .from('teachers')
+        .select('*')
+        .eq('id', teacherId)
+        .single();
       
-      if (foundTeacher) {
-        // Ensure photos array exists
-        const teacherData = {
-          ...foundTeacher,
-          photos: foundTeacher.photos || [],
-          socialLinks: foundTeacher.socialLinks || {}
+      if (data) {
+        // Teacher found in Supabase
+        const teacherData: TeacherProfile = {
+          id: data.id,
+          displayName: data.display_name || data.username,
+          username: data.username,
+          email: data.email || '',
+          photos: [],
+          classes: [],
+          socialLinks: {}
         };
         
         setTeacher(teacherData);
         setEditData(teacherData);
         
-        // Count students
-        const classes = JSON.parse(localStorage.getItem("classes") || "[]");
-        const teacherClasses = classes.filter((c: any) => 
-          foundTeacher.classes?.includes(c.id)
-        );
-        
-        let totalStudents = 0;
-        teacherClasses.forEach((cls: any) => {
-          totalStudents += cls.students?.length || 0;
-        });
-        
-        setStudentCount(totalStudents);
+        // Get number of students
+        const { count } = await supabase
+          .from('students')
+          .select('*', { count: 'exact', head: true })
+          .eq('teacher_id', teacherId);
+          
+        setStudentCount(count || 0);
       } else {
-        toast.error("Teacher not found");
-        navigate(-1);
+        // Fallback to localStorage if not found in Supabase
+        console.log("Teacher not found in Supabase, falling back to localStorage");
+        
+        const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+        const foundTeacher = teachers.find((t: any) => t.id === teacherId);
+        
+        if (foundTeacher) {
+          // Ensure photos array exists
+          const teacherData = {
+            ...foundTeacher,
+            photos: foundTeacher.photos || [],
+            socialLinks: foundTeacher.socialLinks || {}
+          };
+          
+          setTeacher(teacherData);
+          setEditData(teacherData);
+          
+          // Count students
+          const classes = JSON.parse(localStorage.getItem("classes") || "[]");
+          const teacherClasses = classes.filter((c: any) => 
+            foundTeacher.classes?.includes(c.id)
+          );
+          
+          let totalStudents = 0;
+          teacherClasses.forEach((cls: any) => {
+            totalStudents += cls.students?.length || 0;
+          });
+          
+          setStudentCount(totalStudents);
+        } else {
+          toast.error("Teacher not found");
+          navigate(-1);
+        }
       }
     } catch (error) {
       console.error("Error loading teacher profile:", error);
