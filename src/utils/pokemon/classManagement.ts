@@ -1,7 +1,9 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { getValidUUID } from "@/components/teacher/dashboard/student/studentUtils";
-import { Class } from "@/integrations/supabase/custom-types";
+// Remove the Class import since it's not exported from custom-types
+// import { Class } from "@/integrations/supabase/custom-types";
 
 // Define a simpler interface to avoid excessive type instantiation
 export interface ClassData {

@@ -1,6 +1,7 @@
+
 import { useEffect, useState } from 'react';
 import { supabase } from '@/integrations/supabase/client';
-import { RealtimeChannel } from '@supabase/supabase-js';
+import { RealtimeChannel, RealtimePostgresChangesPayload } from '@supabase/supabase-js';
 
 type SubscriptionEvent = 'INSERT' | 'UPDATE' | 'DELETE' | '*';
 
@@ -36,14 +37,14 @@ export function useRealtimeSubscription<T = any>({
     
     const subscription = realtimeChannel
       .on(
-        'postgres_changes', 
+        'postgres_changes', // This is the correct event name for Supabase's realtime PostgreSQL changes
         { 
           event, 
           schema, 
           table,
           ...(filter ? { filter } : {}) 
         }, 
-        (payload) => {
+        (payload: RealtimePostgresChangesPayload<T>) => {
           console.log(`Realtime change on ${table}:`, payload);
           
           // If we have a custom handler, use it
