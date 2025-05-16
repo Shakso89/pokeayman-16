@@ -1,34 +1,26 @@
+
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "@/hooks/useTranslation";
+
 const Index: React.FC = () => {
   const navigate = useNavigate();
-  const {
-    t
-  } = useTranslation();
+  const { t } = useTranslation();
 
   // Check if user is already logged in using Supabase Auth
   useEffect(() => {
     const checkAuthStatus = async () => {
-      const {
-        data: {
-          session
-        }
-      } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       if (session) {
         // Check if user is a teacher or student
-        const {
-          data: teacher
-        } = await supabase.from('teachers').select('*').eq('id', session.user.id).maybeSingle();
+        const { data: teacher } = await supabase.from('teachers').select('*').eq('id', session.user.id).maybeSingle();
         if (teacher) {
           navigate("/teacher-dashboard");
           return;
         }
-        const {
-          data: student
-        } = await supabase.from('students').select('*').eq('id', session.user.id).maybeSingle();
+        const { data: student } = await supabase.from('students').select('*').eq('id', session.user.id).maybeSingle();
         if (student) {
           navigate("/student-dashboard");
         }
@@ -36,7 +28,9 @@ const Index: React.FC = () => {
     };
     checkAuthStatus();
   }, [navigate]);
-  return <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 flex flex-col">
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 flex flex-col">
       {/* Navigation Header */}
       <header className="w-full p-4 flex justify-between items-center">
         <div className="flex items-center">
@@ -77,7 +71,7 @@ const Index: React.FC = () => {
         {/* Left Section - Why PokéAyman */}
         <div className="w-1/2 flex flex-col justify-center px-16">
           <h1 className="text-4xl font-bold text-white mb-4">Why PokéAyman?</h1>
-          <p className="text-white text-lg leading-relaxed text-center">Turn everyday lessons into exciting adventures! Use Pokémon, challenges, and rewards to boost student motivation and make learning unforgettable. 
+          <p className="text-white text-lg leading-relaxed text-center">Turn everyday lessons into exciting adventures! Use Pokémon, challenges, and rewards to boost student motivation and make learning unforgettable. 
 Join a new wave of gamified education.</p>
         </div>
         
@@ -116,6 +110,8 @@ Join a new wave of gamified education.</p>
           Contact Us
         </button>
       </footer>
-    </div>;
+    </div>
+  );
 };
+
 export default Index;

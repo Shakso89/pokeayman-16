@@ -42,9 +42,9 @@ export { samplePokemons } from './sampleData';
 export {
   classExists,
   saveClass,
-  getClassesBySchoolId,  // Changed from getClassesForSchool to match actual function name
+  getClassesBySchoolId,
   deleteClass
 } from './classManagement';
 
 // Properly export types using 'export type'
-export type { ClassData } from './classManagement';  // Removed SupabaseClassData as it doesn't exist
+export type { ClassData } from './classManagement';

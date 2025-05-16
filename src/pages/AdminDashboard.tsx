@@ -7,7 +7,6 @@ import { useTranslation } from "@/hooks/useTranslation";
 import AdminHeader from "@/components/admin/AdminHeader";
 import TeachersTab, { AdminTeacherData } from "@/components/admin/TeachersTab";
 import StudentsTab from "@/components/admin/StudentsTab";
-import CreditManagement from "@/components/admin/CreditManagement";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
@@ -133,7 +132,6 @@ const AdminDashboard: React.FC = () => {
           <TabsList className="mb-6 w-full md:w-auto">
             <TabsTrigger value="teachers">{t("teachers") || "Teachers"}</TabsTrigger>
             <TabsTrigger value="students">{t("students") || "Students"}</TabsTrigger>
-            <TabsTrigger value="credits">{t("credits") || "Credits"}</TabsTrigger>
           </TabsList>
           
           <TabsContent value="teachers" className="mt-0">
@@ -156,10 +154,6 @@ const AdminDashboard: React.FC = () => {
             ) : (
               <StudentsTab students={students} setStudents={setStudents} t={t} />
             )}
-          </TabsContent>
-          
-          <TabsContent value="credits" className="mt-0">
-            <CreditManagement />
           </TabsContent>
         </Tabs>
       </div>

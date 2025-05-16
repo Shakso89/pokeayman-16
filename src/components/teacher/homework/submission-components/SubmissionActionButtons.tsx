@@ -3,7 +3,7 @@ import React, { useRef } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkSubmission } from "@/types/homework";
 import { Button } from "@/components/ui/button";
-import { Check, X, Coins, User, FileAudio, FileImage, Play, Headphones, Pause } from "lucide-react";
+import { Check, X, Coins, User, Play, Pause } from "lucide-react";
 
 interface SubmissionActionButtonsProps {
   submission: HomeworkSubmission;
@@ -78,7 +78,7 @@ export const SubmissionActionButtons: React.FC<SubmissionActionButtonsProps> = (
               className="bg-green-50 text-green-700 border-green-200 hover:bg-green-100"
               onClick={() => setShowImage(true)}
             >
-              <FileImage className="mr-1 h-4 w-4" /> View Image
+              View Image
             </Button>
           )}
           
