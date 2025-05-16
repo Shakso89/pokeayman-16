@@ -13,19 +13,11 @@ const TeacherLogin = () => {
   
   // Check if already logged in
   useEffect(() => {
-    let mounted = true;
-    
     const checkSession = async () => {
       setIsLoading(true);
-      const { data: { session }, error } = await supabase.auth.getSession();
+      const { data: { session } } = await supabase.auth.getSession();
       
-      if (error) {
-        console.error("Session check error:", error);
-        if (mounted) setIsLoading(false);
-        return;
-      }
-      
-      if (session?.user && mounted) {
+      if (session) {
         const userData = session.user.user_metadata || {};
         
         // If already logged in, redirect to dashboard
@@ -35,24 +27,16 @@ const TeacherLogin = () => {
         localStorage.setItem("teacherUsername", userData.username || session.user.email?.split('@')[0] || '');
         
         // Check for admin status
-        const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com', 'ayman.soliman.cc@gmial.com'];
-        if (userData.username === "Admin" || userData.username === "Ayman" || 
-            adminEmails.includes(session.user.email?.toLowerCase() || '')) {
+        if (userData.username === "Admin" || userData.username === "Ayman") {
           localStorage.setItem("isAdmin", "true");
-          navigate("/admin-dashboard", { replace: true });
-        } else {
-          navigate("/teacher-dashboard", { replace: true });
         }
-      } else if (mounted) {
-        setIsLoading(false);
+        
+        navigate("/teacher-dashboard");
       }
+      setIsLoading(false);
     };
     
     checkSession();
-    
-    return () => {
-      mounted = false;
-    };
   }, [navigate]);
   
   const handleLogin = async (username: string, password: string) => {
@@ -61,50 +45,10 @@ const TeacherLogin = () => {
       setError("");
       
       // Special case for admin login
-      const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com', 'ayman.soliman.cc@gmial.com'];
-      
-      if ((username === "Admin" || username === "admin@pokeayman.com" || username === "Ayman" || 
-           adminEmails.includes(username.toLowerCase())) && 
+      if ((username === "Admin" || username === "admin@pokeayman.com" || username === "Ayman") && 
           (password === "AdminAyman" || (username === "Ayman" && password === "AymanPassword"))) {
         
-        // For admin, we'll use Supabase auth to ensure session persistence
-        const adminEmail = username.includes('@') ? username : 'admin@pokeayman.com';
-        
-        // Try to sign in with Supabase
-        const { data, error } = await supabase.auth.signInWithPassword({
-          email: adminEmail,
-          password: password,
-        });
-        
-        if (error) {
-          // If login fails, create a new account for the admin
-          const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-            email: adminEmail,
-            password: password,
-            options: {
-              data: {
-                username: username === "Ayman" ? "Ayman" : "Admin",
-                user_type: "teacher",
-                is_admin: true
-              }
-            }
-          });
-          
-          if (signUpError) {
-            throw new Error("Could not create admin account: " + signUpError.message);
-          }
-          
-          // Try to sign in again
-          const { data: loginData, error: loginError } = await supabase.auth.signInWithPassword({
-            email: adminEmail,
-            password: password,
-          });
-          
-          if (loginError) {
-            throw loginError;
-          }
-        }
-        
+        // For admin, still use local authentication for now
         const adminUsername = username === "Ayman" ? "Ayman" : "Admin";
         
         toast({
@@ -112,17 +56,13 @@ const TeacherLogin = () => {
           description: `Welcome back, ${adminUsername}!`,
         });
         
-        // Set localStorage after successful auth
         localStorage.setItem("userType", "teacher");
         localStorage.setItem("isLoggedIn", "true");
         localStorage.setItem("teacherUsername", adminUsername);
         localStorage.setItem("isAdmin", "true");
-        localStorage.setItem("teacherId", data?.user?.id || `admin-${Date.now()}`);
+        localStorage.setItem("teacherId", `admin-${adminUsername}-${Date.now().toString()}`);
         
-        // Short delay to ensure session is saved
-        setTimeout(() => {
-          navigate("/admin-dashboard", { replace: true });
-        }, 100);
+        navigate("/admin-dashboard");
         return;
       }
       
@@ -141,34 +81,23 @@ const TeacherLogin = () => {
       
       if (data.user) {
         const userData = data.user.user_metadata || {};
-        const userEmail = data.user.email?.toLowerCase() || '';
         
         toast({
           title: "Success!",
           description: "Welcome back, Teacher!",
         });
         
-        // Update local storage after auth confirmed
         localStorage.setItem("userType", "teacher");
         localStorage.setItem("isLoggedIn", "true");
         localStorage.setItem("teacherUsername", userData.username || username);
         localStorage.setItem("teacherId", data.user.id);
         
         // Check for admin status
-        const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@example.com', 'ayman.soliman.cc@gmial.com'];
-        if (userData.username === "Admin" || userData.username === "Ayman" || 
-            adminEmails.includes(userEmail)) {
+        if (userData.username === "Admin" || userData.username === "Ayman") {
           localStorage.setItem("isAdmin", "true");
-          
-          // Short delay to ensure session is saved
-          setTimeout(() => {
-            navigate("/admin-dashboard", { replace: true });
-          }, 100);
+          navigate("/admin-dashboard");
         } else {
-          // Short delay to ensure session is saved
-          setTimeout(() => {
-            navigate("/teacher-dashboard", { replace: true });
-          }, 100);
+          navigate("/teacher-dashboard");
         }
       }
     } catch (error: any) {

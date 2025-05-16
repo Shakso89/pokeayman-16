@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Index from "./pages/Index";
 import StudentDashboard from "./pages/StudentDashboard";
@@ -24,47 +24,43 @@ import { supabase } from "@/integrations/supabase/client";
 import { enableRealtimeForTables } from "@/utils/classSync/classSubscription";
 
 function App() {
-  const [appReady, setAppReady] = useState(false);
-  
   // Initialize Supabase realtime and check for session on load
   useEffect(() => {
-    const initApp = async () => {
-      try {
-        // Set up realtime functionality for tables (will apply RLS policies)
-        enableRealtimeForTables();
+    // Check for any Supabase session recovery
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (session?.user && !localStorage.getItem("isLoggedIn")) {
+        // We have a session but no local storage - probably returning from a redirect
+        const userData = session.user.user_metadata || {};
         
-        // Set up a realtime channel to ensure the connection is established
-        const channel = supabase.channel('system')
-          .on('system', { event: 'extension' }, (payload) => {
-            console.log('Supabase extension event:', payload);
-          })
-          .subscribe((status) => {
-            console.log('Realtime connection status:', status);
-          });
-          
-        // Mark app as ready
-        setAppReady(true);
-        
-        return () => {
-          // Clean up subscriptions
-          supabase.removeChannel(channel);
-        };
-      } catch (error) {
-        console.error("Error initializing app:", error);
-        setAppReady(true); // Still mark as ready so UI renders
+        if (userData.user_type === 'teacher' || session.user.email) {
+          // This is a teacher
+          localStorage.setItem('isLoggedIn', 'true');
+          localStorage.setItem('userType', 'teacher');
+          localStorage.setItem('teacherId', session.user.id);
+          localStorage.setItem('teacherUsername', userData.username || session.user.email?.split('@')[0] || '');
+        }
       }
-    };
-    
-    initApp();
-  }, []);
+    });
 
-  if (!appReady) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-      </div>
-    );
-  }
+    // Enable realtime functionality for tables (will apply RLS policies)
+    // This function will try to execute the enable_realtime RPC on the database
+    enableRealtimeForTables();
+    
+    // Set up a realtime channel to ensure the connection is established
+    const channel = supabase.channel('system')
+      .on('system', { event: 'extension' }, (payload) => {
+        console.log('Supabase extension event:', payload);
+      })
+      .subscribe((status) => {
+        console.log('Realtime connection status:', status);
+      });
+    
+    return () => {
+      // Clean up subscriptions
+      subscription.unsubscribe();
+      supabase.removeChannel(channel);
+    };
+  }, []);
 
   return (
     <BrowserRouter>

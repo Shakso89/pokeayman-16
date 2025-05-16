@@ -2,13 +2,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, MessageSquare, UserCog, Home } from "lucide-react";
+import { LogOut, MessageSquare, UserCog, Home, Medal } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import UserSettingsModal from "./modals/UserSettingsModal";
 import NotificationBadge from "./NotificationBadge";
 import { useTranslation } from "@/hooks/useTranslation";
-import { useAuth } from "@/hooks/useAuth";
 
 interface NavBarProps {
   userType: "teacher" | "student";
@@ -24,18 +23,20 @@ export const NavBar: React.FC<NavBarProps> = ({
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const { logout } = useAuth();
 
-  const handleLogout = async () => {
-    // Use the logout method from useAuth
-    const success = await logout();
-    if (success) {
-      // Use the dedicated logout page to ensure proper logout
-      navigate("/logout", { replace: true });
-    }
+  const handleLogout = () => {
+    localStorage.removeItem("userType");
+    localStorage.removeItem("isLoggedIn");
+    localStorage.removeItem("studentName");
+    localStorage.removeItem("teacherUsername");
+    localStorage.removeItem("isAdmin");
+    localStorage.removeItem("studentId");
+    localStorage.removeItem("teacherId");
+    localStorage.removeItem("studentClassId");
+    navigate("/");
   };
 
-  const isAdmin = localStorage.getItem("isAdmin") === "true";
+  const isAdmin = localStorage.getItem("teacherUsername") === "Admin";
   
   const handleCloseSettings = () => {
     setIsSettingsOpen(false);
@@ -101,10 +102,6 @@ export const NavBar: React.FC<NavBarProps> = ({
                 </div>
               </div>
               <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleViewProfile}>
-                <UserCog className="mr-2 h-4 w-4" />
-                <span>{t("view-profile")}</span>
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
                 <UserCog className="mr-2 h-4 w-4" />
                 <span>{t("profile-and-settings")}</span>
