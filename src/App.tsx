@@ -24,8 +24,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { enableRealtimeForTables } from "@/utils/classSync/classSubscription";
 
 function App() {
-  // Check for any Supabase session recovery on load
+  // Initialize Supabase realtime and check for session on load
   useEffect(() => {
+    // Check for any Supabase session recovery
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session?.user && !localStorage.getItem("isLoggedIn")) {
         // We have a session but no local storage - probably returning from a redirect
@@ -41,11 +42,23 @@ function App() {
       }
     });
 
-    // Enable realtime for all relevant tables
+    // Enable realtime functionality for tables (will apply RLS policies)
+    // This function will try to execute the enable_realtime RPC on the database
     enableRealtimeForTables();
     
+    // Set up a realtime channel to ensure the connection is established
+    const channel = supabase.channel('system')
+      .on('system', { event: 'extension' }, (payload) => {
+        console.log('Supabase extension event:', payload);
+      })
+      .subscribe((status) => {
+        console.log('Realtime connection status:', status);
+      });
+    
     return () => {
+      // Clean up subscriptions
       subscription.unsubscribe();
+      supabase.removeChannel(channel);
     };
   }, []);
 
