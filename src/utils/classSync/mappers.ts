@@ -1,18 +1,21 @@
 
-import { ClassData } from "@/utils/pokemon/classManagement";
-import { DbClassResponse } from "./types";
+import { ClassData } from "./types";
 
-// Helper function to convert database class to ClassData format
-export const mapDbClassToClassData = (dbClass: DbClassResponse): ClassData => {
+// Format single class data
+export const formatClassData = (classData: any): ClassData => {
   return {
-    id: dbClass.id,
-    name: dbClass.name,
-    teacherId: dbClass.teacher_id || null,
-    schoolId: dbClass.school_id || '',
-    students: dbClass.students || [],
-    isPublic: dbClass.is_public !== false,
-    description: dbClass.description || '',
-    likes: dbClass.likes || [],
-    createdAt: dbClass.created_at
+    id: classData.id,
+    name: classData.name,
+    description: classData.description || "",
+    teacherId: classData.teacher_id,
+    schoolId: classData.school_id,
+    createdAt: classData.created_at,
+    updatedAt: classData.updated_at,
+    additionalInfo: classData.additional_info || {}
   };
+};
+
+// Format multiple classes data
+export const formatClassesData = (classesData: any[]): ClassData[] => {
+  return classesData.map(formatClassData);
 };

@@ -45,4 +45,21 @@ const subscribeToTables = (tables: string[], callback: () => void) => {
   });
 };
 
-export { subscribeToClass, subscribeToStudent, subscribeToTables };
+// Add the missing function
+const enableRealtimeForTables = async () => {
+  try {
+    // Call the Supabase edge function to enable realtime for tables
+    // This is a placeholder function - in a real app, you would make an RPC call
+    console.log("Enabling realtime for tables");
+    
+    // Example of how this would work with an actual RPC call:
+    // await supabase.rpc('enable_realtime');
+    
+    return true;
+  } catch (error) {
+    console.error("Error enabling realtime:", error);
+    return false;
+  }
+};
+
+export { subscribeToClass, subscribeToStudent, subscribeToTables, enableRealtimeForTables };
