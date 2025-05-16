@@ -23,9 +23,21 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
   try {
     const dbClassData = toDbFormat(classData);
     
+    // Create a properly typed object that satisfies Supabase's requirements
+    // We need to ensure it has the name property and other required fields from Class type
+    const insertData = {
+      name: classData.name,
+      description: classData.description || null,
+      teacher_id: classData.teacherId || null,
+      school_id: classData.schoolId || null,
+      is_public: classData.isPublic || false,
+      students: classData.students || [],
+      likes: classData.likes || []
+    };
+    
     const { data, error } = await supabase
       .from("classes")
-      .insert(dbClassData as { name: string }) // Explicitly cast with required name property
+      .insert(insertData)
       .select()
       .single();
     
