@@ -193,14 +193,49 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         .update({ students: updatedStudents })
         .eq('id', selectedClassId);
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error updating class in Supabase:", error);
+        // Fallback to localStorage
+        const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+        const updatedClasses = allClasses.map((cls: any) => {
+          if (cls.id === selectedClassId) {
+            return {
+              ...cls,
+              students: updatedStudents
+            };
+          }
+          return cls;
+        });
+        localStorage.setItem("classes", JSON.stringify(updatedClasses));
+        
+        // Also update in-memory classes
+        setClasses(classes.map(cls => 
+          cls.id === selectedClassId ? { ...cls, students: updatedStudents } : cls
+        ));
+      }
       
       // Also update student class_id fields
       for (const studentId of selectedStudents) {
-        await supabase
-          .from('students')
-          .update({ class_id: selectedClassId })
-          .eq('id', studentId);
+        try {
+          await supabase
+            .from('students')
+            .update({ class_id: selectedClassId })
+            .eq('id', studentId);
+        } catch (error) {
+          console.error(`Error updating student ${studentId} class_id:`, error);
+          // Fallback to localStorage for this student
+          const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+          const updatedStudents = allStudents.map((student: any) => {
+            if (student.id === studentId) {
+              return {
+                ...student,
+                classId: selectedClassId
+              };
+            }
+            return student;
+          });
+          localStorage.setItem("students", JSON.stringify(updatedStudents));
+        }
       }
       
       toast({

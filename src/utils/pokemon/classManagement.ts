@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { getValidUUID } from "@/components/teacher/dashboard/student/studentUtils";
@@ -206,12 +205,37 @@ export const deleteClass = async (classId: string): Promise<boolean> => {
       .eq('id', classId);
     
     if (error) {
-      return handleSupabaseError(error, (() => {
-        const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-        const updatedClasses = allClasses.filter((cls: any) => cls.id !== classId);
-        localStorage.setItem("classes", JSON.stringify(updatedClasses));
-        return true;
-      })());
+      console.error("Supabase error in deleteClass:", error);
+      // Fallback to localStorage
+      const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+      const updatedClasses = allClasses.filter((cls: any) => cls.id !== classId);
+      localStorage.setItem("classes", JSON.stringify(updatedClasses));
+      
+      // Also update any students that were in this class
+      const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+      const updatedStudents = allStudents.map((student: any) => {
+        if (student.classId === classId) {
+          return { ...student, classId: null };
+        }
+        return student;
+      });
+      localStorage.setItem("students", JSON.stringify(updatedStudents));
+      
+      return true;
+    }
+    
+    // If Supabase deletion was successful, also update any students in localStorage
+    try {
+      const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+      const updatedStudents = allStudents.map((student: any) => {
+        if (student.classId === classId) {
+          return { ...student, classId: null };
+        }
+        return student;
+      });
+      localStorage.setItem("students", JSON.stringify(updatedStudents));
+    } catch (e) {
+      console.error("Error updating students in localStorage:", e);
     }
     
     return true;
@@ -223,6 +247,17 @@ export const deleteClass = async (classId: string): Promise<boolean> => {
       const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
       const updatedClasses = allClasses.filter((cls: any) => cls.id !== classId);
       localStorage.setItem("classes", JSON.stringify(updatedClasses));
+      
+      // Also update any students that were in this class
+      const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+      const updatedStudents = allStudents.map((student: any) => {
+        if (student.classId === classId) {
+          return { ...student, classId: null };
+        }
+        return student;
+      });
+      localStorage.setItem("students", JSON.stringify(updatedStudents));
+      
       return true;
     } catch (localStorageError) {
       console.error("Error updating localStorage:", localStorageError);
