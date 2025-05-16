@@ -153,7 +153,7 @@ export const useAuth = () => {
     session,
     user,
     loading,
-    isAdmin,
+    isAdmin, // Make sure this is included in the return value
     logout
   };
 };
