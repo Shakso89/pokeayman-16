@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Index from "./pages/Index";
@@ -34,6 +33,9 @@ const queryClient = new QueryClient({
     },
   },
 });
+
+// Add this import for our new component
+import ClassDetails from "./components/class-details/ClassDetails";
 
 function App() {
   // Initialize Supabase realtime and check for session on load
@@ -162,6 +164,7 @@ function App() {
           <Route path="/student/rankings" element={<RankingPage />} />
           <Route path="/teacher/rankings" element={<RankingPage />} />
           <Route path="/contact" element={<Contact />} />
+          <Route path="/class-details/:id" element={<ClassDetails />} />
           <Route path="*" element={<NotFound />} />
         </Routes>
         <Toaster />

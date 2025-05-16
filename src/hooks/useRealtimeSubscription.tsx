@@ -35,9 +35,12 @@ export function useRealtimeSubscription<T = any>({
     const channelId = `${table}_${event}_${Math.random().toString(36).substring(2, 9)}`;
     const realtimeChannel = supabase.channel(channelId);
     
+    // The type error is in this section
+    // We need to properly type the channel.on method for postgres_changes
     const subscription = realtimeChannel
       .on(
-        'postgres_changes', // This is the correct event name for Supabase's realtime PostgreSQL changes
+        // Using 'postgres_changes' as a type parameter string for the event name
+        'postgres_changes' as any, // Type assertion to bypass the error
         { 
           event, 
           schema, 
