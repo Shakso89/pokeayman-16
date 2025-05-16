@@ -2,11 +2,8 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
-import PokemonOrbit from "@/components/PokemonOrbit";
-import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from "@/hooks/useTranslation";
 
 const Index: React.FC = () => {
   const navigate = useNavigate();
@@ -44,70 +41,126 @@ const Index: React.FC = () => {
     
     checkAuthStatus();
   }, [navigate]);
-  
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 flex flex-col items-center">
-      <Header />
 
-      <div className="flex-1 flex flex-col items-center justify-center w-full max-w-6xl p-6">
-        <div className="w-full flex flex-col md:flex-row items-center justify-between gap-8">
-          {/* Logo Section - Scaled to 1/4 of the vertical screen space */}
-          <div className="w-full md:w-1/4 flex items-center justify-center mb-8 md:mb-0">
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 flex flex-col">
+      {/* Navigation Header */}
+      <header className="w-full p-4 flex justify-between items-center">
+        <div className="flex items-center">
+          <img 
+            src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" 
+            alt="PokéAyman Logo" 
+            className="h-12 w-auto"
+          />
+        </div>
+        
+        <div className="flex items-center gap-4 text-white">
+          <a href="/" className="hover:underline">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+            </svg>
+          </a>
+          <div className="relative group">
+            <button className="flex items-center gap-1 hover:underline">
+              Sign In <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+              </svg>
+            </button>
+            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 z-50">
+              <div className="py-1">
+                <button 
+                  onClick={() => navigate("/teacher-login")}
+                  className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100"
+                >
+                  Teacher Login
+                </button>
+                <button 
+                  onClick={() => navigate("/student-login")}
+                  className="block w-full text-left px-4 py-2 text-gray-800 hover:bg-gray-100"
+                >
+                  Student Login
+                </button>
+              </div>
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate("/contact")}
+            className="hover:underline"
+          >
+            Contact Us
+          </button>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 flex">
+        {/* Left Section - Why PokéAyman */}
+        <div className="w-1/2 flex flex-col justify-center px-16">
+          <h1 className="text-4xl font-bold text-white mb-4">Why PokéAyman?</h1>
+          <p className="text-white text-lg leading-relaxed">
+            Turn everyday lessons into exciting adventures! Use Pokémon, challenges, and rewards to boost student motivation and make learning unforgettable. Join a new wave of gamified education.
+          </p>
+        </div>
+        
+        {/* Right Section - Call to Action */}
+        <div className="w-1/2 flex flex-col justify-center items-center px-16 relative">
+          <h1 className="text-6xl font-bold text-white mb-12">Gotta Catch 'Em All</h1>
+          
+          <img 
+            src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" 
+            alt="PokéAyman Logo" 
+            className="h-32 w-auto mb-12"
+          />
+          
+          <div className="flex flex-col gap-4 w-full max-w-md">
+            <Button 
+              onClick={() => navigate("/teacher-login")} 
+              className="bg-red-500 hover:bg-red-600 text-white text-lg py-6 rounded-full font-bold"
+            >
+              {t('teacher-login')}
+            </Button>
+            
+            <Button 
+              onClick={() => navigate("/student-login")} 
+              className="bg-blue-600 hover:bg-blue-700 text-white text-lg py-6 rounded-full font-bold"
+            >
+              {t('student-login')}
+            </Button>
+            
+            <button 
+              onClick={() => navigate("/contact")}
+              className="text-white mt-4 hover:underline"
+            >
+              join-community
+            </button>
+          </div>
+          
+          {/* Ash and Pikachu Image */}
+          <div className="absolute bottom-0 right-0">
             <img 
-              src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" 
-              alt="PokéAyman Logo" 
-              className="max-h-24 md:max-h-32 w-auto object-contain"
-              style={{ filter: 'drop-shadow(0 0 10px rgba(255,255,255,0.6))' }}
+              src="/lovable-uploads/463ff2eb-f43a-40df-9403-9f3de73005fd.png" 
+              alt="Ash and Pikachu" 
+              className="h-80 w-auto"
             />
           </div>
-
-          {/* Main Content - Taking 2/4 of the space */}
-          <div className="w-full md:w-2/4 flex flex-col">
-            <div className="text-center mb-4">
-              <h1 className="text-3xl md:text-4xl font-bold text-white mb-2">Gotta Catch 'Em All</h1>
-              <p className="text-xl text-white/90">
-                Turn everyday lessons into exciting adventures with Pokémon!
-              </p>
-            </div>
-            
-            {/* Pokemon orbit animation */}
-            <div className="relative h-32 md:h-40 my-4">
-              <PokemonOrbit />
-            </div>
-            
-            {/* Call to action */}
-            <div className="text-center mt-4 space-y-4">
-              <Button onClick={() => navigate("/teacher-login")} className="pokemon-button text-white font-bold text-lg px-6 py-3 rounded-full shadow-lg hover:shadow-xl transform transition-all hover:scale-105 bg-blue-600 hover:bg-blue-700 w-full md:w-auto mb-3">
-                {t('teacher-login')}
-              </Button>
-              
-              <Button onClick={() => navigate("/student-login")} className="pokemon-button text-white font-bold text-lg px-6 py-3 rounded-full shadow-lg hover:shadow-xl transform transition-all hover:scale-105 bg-green-600 hover:bg-green-700 w-full md:w-auto">
-                {t('student-login')}
-              </Button>
-              
-              <p className="text-white mt-4">
-                {t('join-community')}
-              </p>
-            </div>
-          </div>
-
-          {/* Why PokéAyman - Taking remaining space */}
-          <div className="w-full md:w-1/4 bg-white/10 backdrop-blur-md p-4 rounded-lg">
-            <h2 className="text-xl font-bold text-white mb-2 text-center">Why PokéAyman?</h2>
-            <p className="text-white/90 text-sm">
-              Boost student motivation with Pokémon, challenges, and rewards.
-              Join a new wave of gamified education that makes learning unforgettable!
-            </p>
-          </div>
         </div>
+      </main>
 
-        {/* Bottom right corner image */}
-        <div className="absolute bottom-20 right-4 md:bottom-24 md:right-6 z-10">
-          <img src="/lovable-uploads/463ff2eb-f43a-40df-9403-9f3de73005fd.png" alt="Ash and Pikachu" className="h-32 md:h-40 w-auto" />
-        </div>
-      </div>
-      
-      <Footer />
+      {/* Footer */}
+      <footer className="py-6 text-center text-white">
+        <img 
+          src="/lovable-uploads/df7b9259-e876-46a6-9b71-00aa60971cbf.png" 
+          alt="Jigglypuff" 
+          className="h-16 w-auto mx-auto mb-2"
+        />
+        <p>© 2025 PokéAyman. All rights reserved</p>
+        <button 
+          onClick={() => navigate("/contact")}
+          className="text-white mt-2 hover:underline"
+        >
+          Contact Us
+        </button>
+      </footer>
     </div>
   );
 };
