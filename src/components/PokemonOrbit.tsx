@@ -13,7 +13,7 @@ const PokemonOrbit: React.FC<PokemonOrbitProps> = ({ count = 12, className }) =>
     <motion.div
       key={i}
       className={cn(
-        "absolute w-8 h-8 md:w-12 md:h-12 rounded-full bg-contain bg-center bg-no-repeat",
+        "absolute w-8 h-8 md:w-10 md:h-10 rounded-full bg-contain bg-center bg-no-repeat",
         className
       )}
       style={{
@@ -22,12 +22,12 @@ const PokemonOrbit: React.FC<PokemonOrbitProps> = ({ count = 12, className }) =>
         left: `${Math.random() * 100}%`,
       }}
       animate={{
-        x: [0, Math.random() * 40 - 20, 0],
-        y: [0, Math.random() * 40 - 20, 0],
+        x: [0, Math.random() * 30 - 15, 0],
+        y: [0, Math.random() * 30 - 15, 0],
         rotate: [0, Math.random() * 360, 0],
       }}
       transition={{
-        duration: 3 + Math.random() * 7,
+        duration: 2 + Math.random() * 3,
         repeat: Infinity,
         ease: "easeInOut",
       }}
@@ -35,7 +35,7 @@ const PokemonOrbit: React.FC<PokemonOrbitProps> = ({ count = 12, className }) =>
   ));
 
   return (
-    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+    <div className="relative w-full h-full overflow-hidden pointer-events-none">
       {pokemonIcons}
     </div>
   );
