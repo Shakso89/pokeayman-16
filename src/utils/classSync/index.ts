@@ -1,13 +1,16 @@
 
-// Export all functionality from the refactored modules
-export * from "./types";
-export * from "./mappers";
-export * from "./errorHandling";
-export * from "./classSubscription";
-export * from "./classFetching";
-export * from "./classOperations";
-export * from "./studentOperations";
+import { addClass, updateClass, deleteClass, getClass } from './classOperations';
+import { addStudentToClass, removeStudentFromClass } from './studentOperations';
+import { subscribeToClass, subscribeToStudent, subscribeToTables } from './classSubscription';
+import { getAllStudentsForClass, getTeacherClasses } from './classFetching';
+import { mapClassData, mapClassesData } from './mappers';
+import { handleDatabaseError } from './errorHandling';
 
-// Initialize realtime subscriptions when this module is imported
-import { enableRealtimeForTables } from "./classSubscription";
-enableRealtimeForTables();
+export {
+  addClass, updateClass, deleteClass, getClass,
+  addStudentToClass, removeStudentFromClass,
+  subscribeToClass, subscribeToStudent, subscribeToTables,
+  getAllStudentsForClass, getTeacherClasses,
+  mapClassData, mapClassesData,
+  handleDatabaseError
+};
