@@ -1,9 +1,19 @@
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
+interface ClassManagementProps {
+  onBack: () => void;
+  schoolId: string;
+  teacherId: string;
+}
+
 // This is a temporary placeholder file to fix the build error
-// We need to see the actual file to properly fix it
-const ClassManagement: React.FC = () => {
+const ClassManagement: React.FC<ClassManagementProps> = ({ 
+  onBack, 
+  schoolId, 
+  teacherId 
+}) => {
   const navigate = useNavigate();
   
   // Fix line 108 where a function was passed instead of a string
@@ -16,6 +26,9 @@ const ClassManagement: React.FC = () => {
     <div>
       <h1>Class Management</h1>
       <button onClick={handleNavigation}>Navigate</button>
+      <button onClick={onBack}>Back</button>
+      <p>School ID: {schoolId}</p>
+      <p>Teacher ID: {teacherId}</p>
     </div>
   );
 };
