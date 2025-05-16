@@ -29,8 +29,8 @@ serve(async (req) => {
       });
     }
     
-    const { username, password, displayName, teacherId } = body;
-    console.log(`Request received: username=${username}, displayName=${displayName}, teacherId=${teacherId}`);
+    const { username, password, displayName, teacherId, schoolId } = body;
+    console.log(`Request received: username=${username}, displayName=${displayName}, teacherId=${teacherId}, schoolId=${schoolId || "none"}`);
 
     if (!username || !password || !displayName || !teacherId) {
       return new Response(JSON.stringify({ 
@@ -86,6 +86,14 @@ serve(async (req) => {
         validTeacherId = "00000000-0000-0000-0000-000000000000";
       }
     }
+
+    // Validate schoolId if provided
+    let validSchoolId = schoolId;
+    if (schoolId && !isValidUUID(schoolId)) {
+      console.warn(`SchoolId ${schoolId} is not a valid UUID format`);
+      // Don't use the invalid school ID
+      validSchoolId = undefined;
+    }
     
     // Check if username is already in use
     const { data: existingStudents, error: checkError } = await supabaseAdmin
@@ -130,6 +138,27 @@ serve(async (req) => {
           status: 400,
         });
       }
+
+      // Verify the school exists if a school ID was provided
+      if (validSchoolId) {
+        const { data: schoolData, error: schoolError } = await supabaseAdmin
+          .from('schools')
+          .select('id')
+          .eq('id', validSchoolId)
+          .single();
+          
+        if (schoolError) {
+          console.error("Error checking school:", schoolError);
+          if (schoolError.code === 'PGRST116') {
+            return new Response(JSON.stringify({ error: "School not found" }), {
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+              status: 404,
+            });
+          }
+          // Continue without school ID if there was an error
+          validSchoolId = undefined;
+        }
+      }
       
       // Generate a UUID for the student
       const studentId = crypto.randomUUID();
@@ -143,6 +172,7 @@ serve(async (req) => {
           password: password, 
           display_name: displayName,
           teacher_id: validTeacherId,
+          school_id: validSchoolId,
           is_active: true,
           created_at: new Date().toISOString()
         })

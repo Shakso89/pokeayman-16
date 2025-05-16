@@ -9,6 +9,7 @@ interface StudentData {
   username: string;
   password: string;
   displayName: string;
+  schoolId?: string;
 }
 
 export const createStudent = async (
@@ -45,7 +46,8 @@ export const createStudent = async (
         username: studentData.username,
         password: studentData.password, 
         displayName: studentData.displayName,
-        teacherId: validTeacherId
+        teacherId: validTeacherId,
+        schoolId: studentData.schoolId
       }
     });
     
@@ -77,6 +79,7 @@ export const createStudent = async (
         password: studentData.password,
         display_name: studentData.displayName,
         teacher_id: validTeacherId,
+        school_id: studentData.schoolId,
         is_active: true,
         created_at: new Date().toISOString()
       } as Student)
@@ -103,5 +106,49 @@ export const createStudent = async (
     
     // Re-throw the error to be handled by the caller
     throw error;
+  }
+};
+
+// Function to get school details
+export const getSchoolName = async (schoolId: string): Promise<string> => {
+  if (!schoolId) return "Unknown School";
+  
+  try {
+    const { data, error } = await supabase
+      .from('schools')
+      .select('name')
+      .eq('id', schoolId)
+      .single();
+      
+    if (error || !data) {
+      throw error || new Error("School not found");
+    }
+    
+    return data.name;
+  } catch (error) {
+    console.error("Error fetching school name:", error);
+    return "Unknown School";
+  }
+};
+
+// Function to get teacher details
+export const getTeacherName = async (teacherId: string): Promise<string> => {
+  if (!teacherId) return "Unknown Teacher";
+  
+  try {
+    const { data, error } = await supabase
+      .from('teachers')
+      .select('display_name, username')
+      .eq('id', teacherId)
+      .single();
+      
+    if (error || !data) {
+      throw error || new Error("Teacher not found");
+    }
+    
+    return data.display_name || data.username;
+  } catch (error) {
+    console.error("Error fetching teacher name:", error);
+    return "Unknown Teacher";
   }
 };

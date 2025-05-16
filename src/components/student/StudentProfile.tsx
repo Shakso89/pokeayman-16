@@ -1,13 +1,13 @@
-
-import React, { useRef } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Coins, Camera, MessageSquare, UserPlus, Settings } from "lucide-react";
+import { Coins, Camera, MessageSquare, UserPlus, Settings, School, User } from "lucide-react";
 import { Student } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
+import { getSchoolName, getTeacherName } from "@/components/teacher/dashboard/student/studentService";
 
 interface StudentProfileProps {
   student: Student;
@@ -36,6 +36,19 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
   const isOwnProfile = currentStudentId === student.id;
   
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [schoolName, setSchoolName] = useState<string>("Loading...");
+  const [teacherName, setTeacherName] = useState<string>("Loading...");
+  
+  useEffect(() => {
+    // Fetch school and teacher information
+    if (student.schoolId) {
+      getSchoolName(student.schoolId).then(setSchoolName);
+    }
+    
+    if (student.teacherId) {
+      getTeacherName(student.teacherId).then(setTeacherName);
+    }
+  }, [student.schoolId, student.teacherId]);
   
   const handleAvatarClick = () => {
     if (isOwnProfile) {
@@ -164,6 +177,23 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
             <p className="text-sm font-medium text-gray-500">{t("username")}:</p>
             <p>{student.username}</p>
           </div>
+
+          {/* Teacher information */}
+          <div>
+            <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
+              <User size={14} className="text-blue-500" /> {t("teacher")}:
+            </p>
+            <p>{teacherName}</p>
+          </div>
+
+          {/* School information */}
+          <div>
+            <p className="text-sm font-medium text-gray-500 flex items-center gap-1">
+              <School size={14} className="text-blue-500" /> {t("school")}:
+            </p>
+            <p>{schoolName}</p>
+          </div>
+          
           <div className="flex justify-between">
             <div>
               <p className="text-sm font-medium text-gray-500">{t("current-coins")}:</p>
@@ -177,6 +207,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
               <p>{spentCoins}</p>
             </div>
           </div>
+          
           <div>
             <p className="text-sm font-medium text-gray-500">{t("pokemon-count")}:</p>
             <p>{pokemonCount}</p>

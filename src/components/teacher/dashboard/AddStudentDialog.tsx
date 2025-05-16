@@ -27,6 +27,7 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
     username: "",
     password: "",
     displayName: "",
+    schoolId: ""
   });
   const [isLoading, setIsLoading] = useState(false);
 
@@ -47,6 +48,7 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
         username: "",
         password: "",
         displayName: "",
+        schoolId: ""
       });
       
       // Update local state
@@ -91,6 +93,7 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
           studentData={studentData}
           setStudentData={setStudentData}
           isLoading={isLoading}
+          teacherId={teacherId}
         />
         
         <DialogFooter>

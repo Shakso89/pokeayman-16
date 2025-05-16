@@ -7,6 +7,7 @@ export type Student = {
   display_name: string | null;
   teacher_id: string | null;
   class_id: string | null;
+  school_id?: string | null; // Added school_id field
   is_active: boolean;
   created_at: string;
   last_login: string | null;

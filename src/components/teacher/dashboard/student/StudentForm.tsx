@@ -1,29 +1,67 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "@/hooks/useTranslation";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { supabase } from "@/integrations/supabase/client";
+
+interface School {
+  id: string;
+  name: string;
+}
 
 interface StudentFormProps {
   studentData: {
     username: string;
     password: string;
     displayName: string;
+    schoolId?: string;
   };
   setStudentData: React.Dispatch<React.SetStateAction<{
     username: string;
     password: string;
     displayName: string;
+    schoolId?: string;
   }>>;
   isLoading: boolean;
+  teacherId: string | null;
 }
 
 const StudentForm: React.FC<StudentFormProps> = ({
   studentData,
   setStudentData,
-  isLoading
+  isLoading,
+  teacherId
 }) => {
   const { t } = useTranslation();
+  const [schools, setSchools] = useState<School[]>([]);
+  const [isLoadingSchools, setIsLoadingSchools] = useState(false);
+
+  // Fetch available schools for this teacher
+  useEffect(() => {
+    const fetchSchools = async () => {
+      if (!teacherId) return;
+      
+      setIsLoadingSchools(true);
+      try {
+        const { data, error } = await supabase
+          .from('schools')
+          .select('id, name')
+          .eq('created_by', teacherId);
+          
+        if (error) throw error;
+        
+        setSchools(data || []);
+      } catch (error) {
+        console.error("Error fetching schools:", error);
+      } finally {
+        setIsLoadingSchools(false);
+      }
+    };
+    
+    fetchSchools();
+  }, [teacherId]);
 
   return (
     <div className="grid gap-4 py-4">
@@ -59,6 +97,31 @@ const StudentForm: React.FC<StudentFormProps> = ({
           placeholder={t("create-password")}
           disabled={isLoading}
         />
+      </div>
+      
+      <div className="space-y-2">
+        <Label htmlFor="studentSchool">{t("school")}</Label>
+        <Select 
+          disabled={isLoading || isLoadingSchools} 
+          value={studentData.schoolId}
+          onValueChange={(value) => setStudentData({...studentData, schoolId: value})}
+        >
+          <SelectTrigger>
+            <SelectValue placeholder={isLoadingSchools ? "Loading schools..." : "Select a school"} />
+          </SelectTrigger>
+          <SelectContent>
+            {schools.map((school) => (
+              <SelectItem key={school.id} value={school.id}>
+                {school.name}
+              </SelectItem>
+            ))}
+            {schools.length === 0 && !isLoadingSchools && (
+              <SelectItem value="none" disabled>
+                No schools available
+              </SelectItem>
+            )}
+          </SelectContent>
+        </Select>
       </div>
     </div>
   );
