@@ -25,18 +25,11 @@ export const NavBar: React.FC<NavBarProps> = ({
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
 
   const handleLogout = () => {
-    localStorage.removeItem("userType");
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("studentName");
-    localStorage.removeItem("teacherUsername");
-    localStorage.removeItem("isAdmin");
-    localStorage.removeItem("studentId");
-    localStorage.removeItem("teacherId");
-    localStorage.removeItem("studentClassId");
-    navigate("/");
+    // Navigate to logout page which will handle the full logout process
+    navigate("/logout");
   };
 
-  const isAdmin = localStorage.getItem("teacherUsername") === "Admin";
+  const isAdmin = localStorage.getItem("isAdmin") === "true";
   
   const handleCloseSettings = () => {
     setIsSettingsOpen(false);
