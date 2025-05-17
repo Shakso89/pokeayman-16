@@ -2,7 +2,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { v4 as uuidv4 } from "uuid";
 import { getValidUUID } from "@/components/teacher/dashboard/student/studentUtils";
-// Remove the Class import since it's not exported from custom-types
 
 // Define a simpler interface to avoid excessive type instantiation
 export interface ClassData {
@@ -39,7 +38,7 @@ export const classExists = async (classData: Partial<ClassData>): Promise<boolea
       .from('classes')
       .select('name')
       .eq('name', classData.name)
-      .eq('teacher_id', teacherId);
+      .eq('school_id', classData.schoolId);
     
     if (error) {
       return handleSupabaseError(error, JSON.parse(localStorage.getItem("classes") || "[]")
@@ -146,7 +145,6 @@ export const saveClass = async (classData: Omit<ClassData, "id">): Promise<Class
 
 /**
  * Gets all classes for a school by school ID
- * This is the renamed function (previously getClassesForSchool)
  */
 export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[]> => {
   try {
@@ -157,7 +155,10 @@ export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[
       .eq('school_id', schoolId);
     
     if (error) {
-      return handleSupabaseError(error, JSON.parse(localStorage.getItem("classes") || "[]")
+      console.error("Error fetching classes from Supabase:", error);
+      // Fallback to localStorage
+      const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+      return allClasses
         .filter((cls: any) => cls.schoolId === schoolId)
         .map((cls: any) => ({
           id: cls.id,
@@ -169,7 +170,7 @@ export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[
           description: cls.description || '',
           likes: cls.likes || [],
           createdAt: cls.createdAt
-        })));
+        }));
     }
     
     // Map Supabase data to ClassData interface
@@ -199,6 +200,8 @@ export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[
 
 export const deleteClass = async (classId: string): Promise<boolean> => {
   try {
+    console.log(`Attempting to delete class with ID: ${classId}`);
+    
     // First try to use Supabase
     const { error } = await supabase
       .from('classes')
@@ -207,15 +210,25 @@ export const deleteClass = async (classId: string): Promise<boolean> => {
     
     if (error) {
       console.error("Supabase error in deleteClass:", error);
+      
       // Fallback to localStorage
+      console.log("Falling back to localStorage for class deletion");
       const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+      
+      // Log class info before deletion
+      const classToDelete = allClasses.find((cls: any) => cls.id === classId);
+      console.log("Class to delete:", classToDelete);
+      
       const updatedClasses = allClasses.filter((cls: any) => cls.id !== classId);
+      console.log(`Classes before: ${allClasses.length}, after: ${updatedClasses.length}`);
+      
       localStorage.setItem("classes", JSON.stringify(updatedClasses));
       
       // Also update any students that were in this class
       const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
       const updatedStudents = allStudents.map((student: any) => {
         if (student.classId === classId) {
+          console.log(`Updating student ${student.id} to remove class reference`);
           return { ...student, classId: null };
         }
         return student;
@@ -239,6 +252,7 @@ export const deleteClass = async (classId: string): Promise<boolean> => {
       console.error("Error updating students in localStorage:", e);
     }
     
+    console.log(`Successfully deleted class with ID: ${classId}`);
     return true;
   } catch (error) {
     console.error("Error deleting class:", error);

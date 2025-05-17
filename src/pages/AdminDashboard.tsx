@@ -45,42 +45,61 @@ const AdminDashboard: React.FC = () => {
         .from('teachers')
         .select('*');
         
-      if (teachersError) throw teachersError;
+      if (teachersError) {
+        console.error("Error loading teachers:", teachersError);
+        throw teachersError;
+      }
       
       // Process teacher data
       const processedTeachers = await Promise.all((teachersData || []).map(async (teacher) => {
-        // Get teacher students count
-        const { count: studentsCount, error: countError } = await supabase
-          .from('students')
-          .select('*', { count: 'exact', head: true })
-          .eq('teacher_id', teacher.id);
+        try {
+          // Get teacher students count
+          const { count: studentsCount, error: countError } = await supabase
+            .from('students')
+            .select('*', { count: 'exact', head: true })
+            .eq('teacher_id', teacher.id);
+            
+          if (countError) console.error("Error counting students:", countError);
           
-        if (countError) console.error("Error counting students:", countError);
-        
-        // Get teacher schools count
-        const { count: schoolsCount, error: schoolsError } = await supabase
-          .from('schools')
-          .select('*', { count: 'exact', head: true })
-          .eq('created_by', teacher.id);
+          // Get teacher schools count
+          const { count: schoolsCount, error: schoolsError } = await supabase
+            .from('schools')
+            .select('*', { count: 'exact', head: true })
+            .eq('created_by', teacher.id);
+            
+          if (schoolsError) console.error("Error counting schools:", schoolsError);
           
-        if (schoolsError) console.error("Error counting schools:", schoolsError);
-        
-        // Properly type the subscription_type to ensure it matches AdminTeacherData
-        const subscriptionType = (teacher.subscription_type || 'trial') as 'trial' | 'monthly' | 'annual';
-        
-        return {
-          ...teacher,
-          numSchools: schoolsCount || 0,
-          numStudents: studentsCount || 0,
-          // Map Supabase fields to our interface
-          displayName: teacher.display_name || teacher.username,
-          createdAt: teacher.created_at,
-          isActive: teacher.is_active !== false, // Default to true if not specified
-          lastLogin: teacher.last_login ? new Date(teacher.last_login).toLocaleString() : "Never",
-          timeSpent: 0, // Currently not tracked
-          expiryDate: teacher.expiry_date ? new Date(teacher.expiry_date).toLocaleDateString() : "-",
-          subscriptionType // Now properly typed as 'trial' | 'monthly' | 'annual'
-        };
+          // Properly type the subscription_type to ensure it matches AdminTeacherData
+          const subscriptionType = (teacher.subscription_type || 'trial') as 'trial' | 'monthly' | 'annual';
+          
+          return {
+            ...teacher,
+            numSchools: schoolsCount || 0,
+            numStudents: studentsCount || 0,
+            // Map Supabase fields to our interface
+            displayName: teacher.display_name || teacher.username,
+            createdAt: teacher.created_at,
+            isActive: teacher.is_active !== false, // Default to true if not specified
+            lastLogin: teacher.last_login ? new Date(teacher.last_login).toLocaleString() : "Never",
+            timeSpent: 0, // Currently not tracked
+            expiryDate: teacher.expiry_date ? new Date(teacher.expiry_date).toLocaleDateString() : "-",
+            subscriptionType // Now properly typed as 'trial' | 'monthly' | 'annual'
+          };
+        } catch (e) {
+          console.error("Error processing teacher data:", e);
+          return {
+            ...teacher,
+            numSchools: 0,
+            numStudents: 0,
+            displayName: teacher.display_name || teacher.username,
+            createdAt: teacher.created_at,
+            isActive: teacher.is_active !== false,
+            lastLogin: teacher.last_login ? new Date(teacher.last_login).toLocaleString() : "Never",
+            timeSpent: 0,
+            expiryDate: teacher.expiry_date ? new Date(teacher.expiry_date).toLocaleDateString() : "-",
+            subscriptionType: (teacher.subscription_type || 'trial') as 'trial' | 'monthly' | 'annual'
+          };
+        }
       }));
       
       setTeachers(processedTeachers as AdminTeacherData[]);
@@ -90,7 +109,10 @@ const AdminDashboard: React.FC = () => {
         .from('students')
         .select('*');
       
-      if (studentsError) throw studentsError;
+      if (studentsError) {
+        console.error("Error loading students:", studentsError);
+        throw studentsError;
+      }
       
       const processedStudents = (studentsData || []).map(student => ({
         ...student,
@@ -100,9 +122,40 @@ const AdminDashboard: React.FC = () => {
       setStudents(processedStudents);
     } catch (error: any) {
       console.error("Error loading data:", error);
+      
+      // Try loading from localStorage as a fallback
+      try {
+        const localTeachers = localStorage.getItem('teachers');
+        const localStudents = localStorage.getItem('students');
+        
+        if (localTeachers) {
+          const parsedTeachers = JSON.parse(localTeachers);
+          const processedTeachers = parsedTeachers.map((teacher: any) => ({
+            ...teacher,
+            numSchools: 0,
+            numStudents: 0,
+            displayName: teacher.displayName || teacher.username,
+            createdAt: teacher.createdAt,
+            isActive: teacher.isActive !== false,
+            lastLogin: "Unknown",
+            timeSpent: 0,
+            expiryDate: "-",
+            subscriptionType: (teacher.subscriptionType || 'trial') as 'trial' | 'monthly' | 'annual'
+          }));
+          setTeachers(processedTeachers);
+        }
+        
+        if (localStudents) {
+          const parsedStudents = JSON.parse(localStudents);
+          setStudents(parsedStudents);
+        }
+      } catch (localError) {
+        console.error("Error loading from localStorage:", localError);
+      }
+      
       toast({
         title: "Error",
-        description: "Failed to load dashboard data",
+        description: "Failed to load dashboard data. Using cached data if available.",
         variant: "destructive"
       });
     } finally {

@@ -128,64 +128,68 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ students, setStudents, t }) =
 
   return (
     <div className="grid gap-4">
-      {students.map(student => (
-        <Card key={student.id}>
-          <CardHeader>
-            <CardTitle className="flex justify-between">
-              <span>{student.display_name || student.username} ({student.username})</span>
-              <Badge className={student.is_active ? "bg-green-500" : "bg-red-500"}>
-                {student.is_active ? t("active") || "Active" : t("frozen") || "Frozen"}
-              </Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div>
-                <p className="text-sm text-gray-500">{t("teacher-id") || "Teacher ID"}</p>
-                <p>{student.teacher_id}</p>
+      {students.length === 0 ? (
+        <p className="text-center py-8 text-gray-500">No students found</p>
+      ) : (
+        students.map(student => (
+          <Card key={student.id}>
+            <CardHeader>
+              <CardTitle className="flex justify-between">
+                <span>{student.display_name || student.username} ({student.username})</span>
+                <Badge className={student.is_active ? "bg-green-500" : "bg-red-500"}>
+                  {student.is_active ? t("active") || "Active" : t("frozen") || "Frozen"}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                <div>
+                  <p className="text-sm text-gray-500">{t("teacher-id") || "Teacher ID"}</p>
+                  <p>{student.teacher_id}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">{t("created") || "Created"}</p>
+                  <p>{new Date(student.created_at).toLocaleDateString()}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">{t("last-login") || "Last Login"}</p>
+                  <p>{student.last_login ? new Date(student.last_login).toLocaleString() : "Never"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500">{t("time-spent") || "Time Spent"}</p>
+                  <p>{student.time_spent || 0} {t("minutes") || "minutes"}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm text-gray-500">{t("created") || "Created"}</p>
-                <p>{new Date(student.created_at).toLocaleDateString()}</p>
+              
+              <div className="flex gap-2">
+                <Button 
+                  onClick={() => handleToggleAccount(student.id)} 
+                  variant={student.is_active ? "destructive" : "default"}
+                  disabled={!!processingIds[student.id]}
+                >
+                  {processingIds[student.id] === 'toggle' ? (
+                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> {t("processing") || "Processing..."}</>
+                  ) : (
+                    student.is_active ? t("freeze-account") || "Freeze Account" : t("unfreeze-account") || "Unfreeze Account"
+                  )}
+                </Button>
+                <Button 
+                  onClick={() => handleDeleteAccount(student.id)} 
+                  variant="outline" 
+                  className="text-red-500 border-red-500 hover:bg-red-50"
+                  disabled={!!processingIds[student.id]}
+                >
+                  {processingIds[student.id] === 'delete' ? (
+                    <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> {t("processing") || "Processing..."}</>
+                  ) : (
+                    t("delete-account") || "Delete Account"
+                  )}
+                </Button>
               </div>
-              <div>
-                <p className="text-sm text-gray-500">{t("last-login") || "Last Login"}</p>
-                <p>{student.last_login ? new Date(student.last_login).toLocaleString() : "Never"}</p>
-              </div>
-              <div>
-                <p className="text-sm text-gray-500">{t("time-spent") || "Time Spent"}</p>
-                <p>{student.time_spent || 0} {t("minutes") || "minutes"}</p>
-              </div>
-            </div>
-            
-            <div className="flex gap-2">
-              <Button 
-                onClick={() => handleToggleAccount(student.id)} 
-                variant={student.is_active ? "destructive" : "default"}
-                disabled={!!processingIds[student.id]}
-              >
-                {processingIds[student.id] === 'toggle' ? (
-                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> {t("processing") || "Processing..."}</>
-                ) : (
-                  student.is_active ? t("freeze-account") || "Freeze Account" : t("unfreeze-account") || "Unfreeze Account"
-                )}
-              </Button>
-              <Button 
-                onClick={() => handleDeleteAccount(student.id)} 
-                variant="outline" 
-                className="text-red-500 border-red-500 hover:bg-red-50"
-                disabled={!!processingIds[student.id]}
-              >
-                {processingIds[student.id] === 'delete' ? (
-                  <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> {t("processing") || "Processing..."}</>
-                ) : (
-                  t("delete-account") || "Delete Account"
-                )}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        ))
+      )}
     </div>
   );
 };
