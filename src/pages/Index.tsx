@@ -1,24 +1,19 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import Footer from "@/components/Footer";
-
 const Index: React.FC = () => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
-
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400">
+  const {
+    t
+  } = useTranslation();
+  return <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400">
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center mb-12">
-          <img 
-            src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" 
-            alt="PokéAyman Logo" 
-            className="h-32 md:h-40 w-auto"
-            style={{ filter: "drop-shadow(0 0 10px rgba(255,255,255,0.6))" }}
-          />
+          <img src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" alt="PokéAyman Logo" className="h-32 md:h-40 w-auto" style={{
+          filter: "drop-shadow(0 0 10px rgba(255,255,255,0.6))"
+        }} />
         </div>
         
         <div className="text-center mb-12">
@@ -31,20 +26,11 @@ const Index: React.FC = () => {
         </div>
         
         <div className="flex flex-col items-center gap-4 md:flex-row md:justify-center mb-16">
-          <Button 
-            size="lg" 
-            onClick={() => navigate("/teacher-login")} 
-            className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg"
-          >
+          <Button size="lg" onClick={() => navigate("/teacher-login")} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg">
             {t("teacher-login")}
           </Button>
           
-          <Button 
-            size="lg" 
-            variant="outline" 
-            onClick={() => navigate("/student-login")} 
-            className="bg-white/10 backdrop-blur-sm hover:bg-white/20 text-white border-white px-8 py-6 text-lg"
-          >
+          <Button size="lg" variant="outline" onClick={() => navigate("/student-login")} className="backdrop-blur-sm text-white border-white px-8 py-6 text-lg bg-purple-800 hover:bg-purple-700">
             {t("student-login")}
           </Button>
         </div>
@@ -75,30 +61,19 @@ const Index: React.FC = () => {
 
         {/* Pokémon image showcase */}
         <div className="flex justify-center flex-wrap gap-8 mb-16">
-          <img 
-            src="/lovable-uploads/6b6ad061-baa5-438e-a631-131fbfe0eafc.png" 
-            alt="Pikachu" 
-            className="h-48 w-auto drop-shadow-lg animate-bounce" 
-            style={{ animationDuration: "3s" }}
-          />
-          <img 
-            src="/lovable-uploads/2c72122a-ed62-4276-b90f-0f0688bf9693.png" 
-            alt="Charizard" 
-            className="h-64 w-auto drop-shadow-lg animate-pulse" 
-            style={{ animationDuration: "4s" }}
-          />
-          <img 
-            src="/lovable-uploads/d1c806ec-9607-4d94-af2a-bdbb8d2cb0c6.png" 
-            alt="Bulbasaur" 
-            className="h-48 w-auto drop-shadow-lg animate-bounce" 
-            style={{ animationDuration: "3.5s" }}
-          />
+          <img src="/lovable-uploads/6b6ad061-baa5-438e-a631-131fbfe0eafc.png" alt="Pikachu" className="h-48 w-auto drop-shadow-lg animate-bounce" style={{
+          animationDuration: "3s"
+        }} />
+          <img src="/lovable-uploads/2c72122a-ed62-4276-b90f-0f0688bf9693.png" alt="Charizard" className="h-64 w-auto drop-shadow-lg animate-pulse" style={{
+          animationDuration: "4s"
+        }} />
+          <img src="/lovable-uploads/d1c806ec-9607-4d94-af2a-bdbb8d2cb0c6.png" alt="Bulbasaur" className="h-48 w-auto drop-shadow-lg animate-bounce" style={{
+          animationDuration: "3.5s"
+        }} />
         </div>
       </div>
       
       <Footer />
-    </div>
-  );
+    </div>;
 };
-
 export default Index;
