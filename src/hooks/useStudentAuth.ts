@@ -44,7 +44,7 @@ export const useStudentAuth = () => {
       
       if (error) {
         console.error("Database query error:", error);
-        throw error;
+        throw new Error(`Database error: ${error.message}`);
       }
       
       if (!student) {
@@ -87,6 +87,26 @@ export const useStudentAuth = () => {
         school_name: schoolName
       };
       
+      // Try to establish a Supabase session
+      try {
+        // Create a "fake" email based on username for Supabase auth
+        const generatedEmail = `${student.username}@pokeayman.com`;
+        
+        // Try to sign in with Supabase Auth
+        const { error: authError } = await supabase.auth.signInWithPassword({
+          email: generatedEmail,
+          password: password
+        });
+        
+        if (authError) {
+          console.log("Could not establish Supabase session:", authError);
+          // Continue anyway using localStorage fallback
+        }
+      } catch (e) {
+        console.error("Error setting up Supabase session:", e);
+        // Continue with localStorage fallback
+      }
+      
       return { 
         success: true, 
         student: studentData
@@ -98,7 +118,7 @@ export const useStudentAuth = () => {
         description: error.message || "An error occurred during login",
         variant: "destructive",
       });
-      return { success: false, student: null, message: "Login error" };
+      return { success: false, student: null, message: error.message || "Login error" };
     } finally {
       setIsLoading(false);
     }

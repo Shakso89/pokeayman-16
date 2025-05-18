@@ -1,5 +1,5 @@
 
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
 import { Loader2 } from 'lucide-react';
@@ -7,20 +7,25 @@ import { Loader2 } from 'lucide-react';
 const LogoutPage: React.FC = () => {
   const { logout, loading } = useAuth();
   const navigate = useNavigate();
+  const [logoutError, setLogoutError] = useState<string | null>(null);
   
   useEffect(() => {
     const performLogout = async () => {
       try {
-        await logout();
+        const success = await logout();
         
         // Add a small delay before redirecting to ensure logout completes
         setTimeout(() => {
           navigate('/', { replace: true });
-        }, 500);
-      } catch (error) {
+        }, success ? 500 : 0);
+      } catch (error: any) {
         console.error("Logout error:", error);
-        // If logout fails, still redirect to home
-        navigate('/', { replace: true });
+        setLogoutError(error?.message || "An error occurred during logout");
+        
+        // If logout fails, still redirect to home after a longer delay
+        setTimeout(() => {
+          navigate('/', { replace: true });
+        }, 2000);
       }
     };
     
@@ -34,6 +39,12 @@ const LogoutPage: React.FC = () => {
         <Loader2 className="h-12 w-12 animate-spin text-blue-500 mx-auto mb-4" />
         <h2 className="text-xl font-semibold">Logging out...</h2>
         <p className="text-gray-500 mt-2">Please wait while we securely sign you out</p>
+        
+        {logoutError && (
+          <div className="mt-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-md">
+            {logoutError}
+          </div>
+        )}
       </div>
     </div>
   );

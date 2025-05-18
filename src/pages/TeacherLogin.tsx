@@ -9,13 +9,24 @@ import { useAuth } from "@/hooks/useAuth";
 const TeacherLogin = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isLoggedIn, isAdmin, loading } = useAuth();
+  const { isLoggedIn, isAdmin, loading, userType } = useAuth();
   const [error, setError] = useState("");
   const [loginInProgress, setLoginInProgress] = useState(false);
   
   // Check if already logged in
   useEffect(() => {
+    if (loading) return; // Wait until auth state is loaded
+    
     if (isLoggedIn && !loginInProgress) {
+      console.log("Already logged in as:", userType, "isAdmin:", isAdmin);
+      
+      // If logged in as student, redirect to student dashboard
+      if (userType === 'student') {
+        navigate('/student-dashboard');
+        return;
+      }
+      
+      // Otherwise handle as teacher/admin
       const redirectPath = sessionStorage.getItem('redirectAfterLogin');
       if (redirectPath) {
         sessionStorage.removeItem('redirectAfterLogin');
@@ -26,7 +37,7 @@ const TeacherLogin = () => {
         navigate("/teacher-dashboard");
       }
     }
-  }, [isLoggedIn, isAdmin, navigate, loginInProgress]);
+  }, [isLoggedIn, isAdmin, userType, navigate, loginInProgress, loading]);
   
   const handleLogin = async (username: string, password: string) => {
     try {
@@ -111,7 +122,6 @@ const TeacherLogin = () => {
           description: "Welcome back, Teacher!",
         });
         
-        // Redirect will be handled by useEffect when auth state updates
         // We're keeping these for backward compatibility
         localStorage.setItem("userType", "teacher");
         localStorage.setItem("isLoggedIn", "true");
@@ -122,6 +132,8 @@ const TeacherLogin = () => {
         if (isAdminEmail || userData.username === "Admin" || userData.username === "Ayman") {
           localStorage.setItem("isAdmin", "true");
         }
+        
+        // Let the auth hook handle the redirect
       }
     } catch (error: any) {
       console.error("Login error:", error);

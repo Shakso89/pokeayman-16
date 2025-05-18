@@ -72,30 +72,66 @@ export const useAuth = () => {
 
   // Helper function to handle session data
   const handleSession = async (newSession: Session) => {
-    const newUser = newSession.user;
-    setSession(newSession);
-    setUser(newUser);
-    
-    if (newUser) {
-      const userData = newUser.user_metadata || {};
-      // Check for admin status by email
-      const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@pokeayman.com', 'admin@example.com'];
-      const isAdminEmail = adminEmails.includes(newUser.email?.toLowerCase() || '');
-      const isAdminUser = isAdminEmail || userData.username === "Admin" || userData.username === "Ayman";
+    try {
+      const newUser = newSession.user;
+      setSession(newSession);
+      setUser(newUser);
       
-      setIsLoggedIn(true);
-      setUserType('teacher'); // Assuming Supabase auth is only for teachers for now
-      setUserId(newUser.id);
-      setIsAdmin(isAdminUser);
-      
-      // Update localStorage for compatibility with existing code
-      localStorage.setItem('isLoggedIn', 'true');
-      localStorage.setItem('userType', 'teacher');
-      localStorage.setItem('teacherId', newUser.id);
-      localStorage.setItem('teacherUsername', userData.username || newUser.email?.split('@')[0] || '');
-      
-      if (isAdminUser) {
-        localStorage.setItem('isAdmin', 'true');
+      if (newUser) {
+        const userData = newUser.user_metadata || {};
+        // Check for admin status by email
+        const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@pokeayman.com', 'admin@example.com'];
+        const isAdminEmail = adminEmails.includes(newUser.email?.toLowerCase() || '');
+        const isAdminUser = isAdminEmail || userData.username === "Admin" || userData.username === "Ayman";
+        
+        // Determine if this is a teacher or student account
+        // Try to find if this is a student account first
+        const { data: studentData } = await supabase
+          .from('students')
+          .select('*')
+          .eq('id', newUser.id)
+          .maybeSingle();
+          
+        if (studentData) {
+          // This is a student account
+          setIsLoggedIn(true);
+          setUserType('student');
+          setUserId(newUser.id);
+          setIsAdmin(false);
+          
+          // Update localStorage for compatibility with existing code
+          localStorage.setItem('isLoggedIn', 'true');
+          localStorage.setItem('userType', 'student');
+          localStorage.setItem('studentId', newUser.id);
+          localStorage.setItem('studentDisplayName', studentData.display_name || studentData.username);
+          if (studentData.class_id) {
+            localStorage.setItem('studentClassId', studentData.class_id);
+          }
+        } else {
+          // Assume teacher account if not found as student
+          setIsLoggedIn(true);
+          setUserType('teacher');
+          setUserId(newUser.id);
+          setIsAdmin(isAdminUser);
+          
+          // Update localStorage for compatibility with existing code
+          localStorage.setItem('isLoggedIn', 'true');
+          localStorage.setItem('userType', 'teacher');
+          localStorage.setItem('teacherId', newUser.id);
+          localStorage.setItem('teacherUsername', userData.username || newUser.email?.split('@')[0] || '');
+          
+          if (isAdminUser) {
+            localStorage.setItem('isAdmin', 'true');
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error in handleSession:", error);
+      // If there's an error, still try to process with available data
+      if (newUser) {
+        setIsLoggedIn(true);
+        setUserType('teacher'); // Default to teacher if error
+        setUserId(newUser.id);
       }
     }
   };
@@ -136,12 +172,15 @@ export const useAuth = () => {
         title: "Logged out successfully",
         description: "You have been logged out of your account."
       });
+      return true;
     } catch (error: any) {
+      console.error("Logout error:", error);
       toast({
         title: "Logout failed",
         description: error.message,
         variant: "destructive"
       });
+      return false;
     } finally {
       setLoading(false);
     }

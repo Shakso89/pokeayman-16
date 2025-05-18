@@ -8,55 +8,47 @@ import PokemonOrbit from "@/components/PokemonOrbit";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useStudentAuth } from "@/hooks/useStudentAuth";
+import { useAuth } from "@/hooks/useAuth";
 
 const StudentLogin: React.FC = () => {
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
-  const { isLoading, loginStudent } = useStudentAuth();
+  const { isLoading: studentAuthLoading, loginStudent } = useStudentAuth();
+  const { isLoggedIn, userType, loading: authLoading } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const [isProcessing, setIsProcessing] = useState(false);
   
   // Check if already logged in using Supabase or localStorage
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      
-      // Check Supabase session first
-      if (session) {
-        // Check if user is a student
-        const { data: student } = await supabase
-          .from('students')
-          .select('*')
-          .eq('id', session.user.id)
-          .maybeSingle();
-          
-        if (student) {
-          navigate("/student-dashboard");
-          return;
-        }
-      }
-      
-      // If no Supabase session, check localStorage
-      const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-      const userType = localStorage.getItem('userType');
-      
-      if (isLoggedIn && userType === 'student') {
-        // Redirect to saved path or student dashboard
-        const redirectPath = sessionStorage.getItem('redirectAfterLogin');
-        if (redirectPath) {
-          sessionStorage.removeItem('redirectAfterLogin');
-          navigate(redirectPath);
-        } else {
-          navigate('/student-dashboard');
-        }
-      }
-    };
+    if (authLoading) return; // Wait until auth state is loaded
     
-    checkAuthStatus();
-  }, [navigate]);
+    if (isLoggedIn) {
+      console.log("Already logged in as:", userType);
+      
+      // If logged in as teacher, redirect to teacher dashboard
+      if (userType === 'teacher') {
+        navigate('/teacher-dashboard');
+        return;
+      }
+      
+      // If logged in as student, redirect to student dashboard
+      // Redirect to saved path or student dashboard
+      const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+      if (redirectPath) {
+        sessionStorage.removeItem('redirectAfterLogin');
+        navigate(redirectPath);
+      } else {
+        navigate('/student-dashboard');
+      }
+    }
+  }, [isLoggedIn, userType, navigate, authLoading]);
   
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (isProcessing) return;
+    setIsProcessing(true);
     
     try {
       if (!usernameOrEmail || !password) {
@@ -75,7 +67,7 @@ const StudentLogin: React.FC = () => {
         localStorage.setItem('isLoggedIn', 'true');
         localStorage.setItem('userType', 'student');
         localStorage.setItem('studentId', result.student.id);
-        localStorage.setItem('studentName', result.student.display_name || result.student.username);
+        localStorage.setItem('studentDisplayName', result.student.display_name || result.student.username);
         if (result.student.class_id) {
           localStorage.setItem('studentClassId', result.student.class_id);
         }
@@ -115,8 +107,21 @@ const StudentLogin: React.FC = () => {
         description: error.message || "An error occurred during login",
         variant: "destructive",
       });
+    } finally {
+      setIsProcessing(false);
     }
   };
+  
+  if (authLoading) {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-pink-400 to-purple-600 flex items-center justify-center p-4">
+        <div className="bg-white/80 backdrop-blur-sm p-8 rounded-lg shadow-xl">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-purple-500 mx-auto"></div>
+          <p className="text-center mt-4">Checking authentication status...</p>
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-gradient-to-br from-pink-400 to-purple-600 flex items-center justify-center p-4 relative overflow-hidden">
@@ -150,7 +155,7 @@ const StudentLogin: React.FC = () => {
                 value={usernameOrEmail}
                 onChange={(e) => setUsernameOrEmail(e.target.value)}
                 placeholder="Enter your username"
-                disabled={isLoading}
+                disabled={studentAuthLoading || isProcessing}
               />
             </div>
             <div className="space-y-2">
@@ -163,16 +168,16 @@ const StudentLogin: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                disabled={isLoading}
+                disabled={studentAuthLoading || isProcessing}
               />
             </div>
             
             <Button 
               type="submit" 
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              disabled={isLoading}
+              disabled={studentAuthLoading || isProcessing}
             >
-              {isLoading ? "Logging in..." : "Login"}
+              {studentAuthLoading || isProcessing ? "Logging in..." : "Login"}
             </Button>
           </form>
         </CardContent>

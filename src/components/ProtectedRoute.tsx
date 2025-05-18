@@ -41,7 +41,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     if (location.pathname !== '/teacher-login' && location.pathname !== '/student-login') {
       sessionStorage.setItem('redirectAfterLogin', location.pathname);
     }
-    return <Navigate to={userType === "teacher" ? "/teacher-login" : "/student-login"} replace />;
+    
+    // Direct to appropriate login based on path context
+    if (location.pathname.includes('student')) {
+      return <Navigate to="/student-login" replace />;
+    } else {
+      return <Navigate to="/teacher-login" replace />;
+    }
   }
 
   // For teachers who are frozen (not activated), render a simple placeholder
