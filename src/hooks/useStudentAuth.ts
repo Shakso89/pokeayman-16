@@ -5,21 +5,22 @@ import { supabase } from "@/integrations/supabase/client";
 import bcrypt from "bcryptjs";
 import { Student } from "@/types/database";
 
-interface Student {
+// Define StudentData interface for the return type that differs from database Student type
+interface StudentData {
   id: string;
   username: string;
-  display_name: string;
+  display_name: string | null;
   avatar?: string;
   photos?: string[];
-  class_id?: string;
-  teacher_id?: string;
+  class_id?: string | null;
+  teacher_id?: string | null;
   teacher_name?: string;
   school_name?: string;
 }
 
 interface LoginResult {
   success: boolean;
-  student: Student | null;
+  student: StudentData | null;
   message?: string;
 }
 
@@ -39,7 +40,9 @@ export const useStudentAuth = () => {
           password_hash,
           display_name,
           class_id,
-          teacher_id
+          teacher_id,
+          is_active,
+          created_at
         `)
         .eq('username', username)
         .maybeSingle();
@@ -113,7 +116,7 @@ export const useStudentAuth = () => {
         .eq('id', student.id);
       
       // Set student data
-      const studentData: Student = {
+      const studentData: StudentData = {
         id: student.id,
         username: student.username,
         display_name: student.display_name || '',
@@ -167,17 +170,22 @@ export const useStudentAuth = () => {
         // Hash the password for security
         const hashedPassword = await bcrypt.hash(password, 10);
         
+        // Create a DB student object that satisfies the Student type
+        const newStudent = {
+          id: student.id,
+          username: student.username,
+          password_hash: hashedPassword,
+          display_name: student.display_name || student.username,
+          teacher_id: student.teacherId,
+          class_id: student.classId,
+          is_active: true,
+          created_at: new Date().toISOString(),
+          last_login: new Date().toISOString()
+        };
+        
         const { data, error } = await supabase
           .from('students')
-          .insert({
-            id: student.id,
-            username: student.username,
-            password_hash: hashedPassword, // Store the hashed password
-            display_name: student.display_name || student.username,
-            teacher_id: student.teacherId,
-            class_id: student.classId,
-            last_login: new Date().toISOString()
-          })
+          .insert(newStudent)
           .select();
         
         if (!error && data) {

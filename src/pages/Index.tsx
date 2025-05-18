@@ -3,7 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
-import { Footer } from "@/components/Footer";
+import Footer from "@/components/Footer";
 
 const Index: React.FC = () => {
   const navigate = useNavigate();

@@ -269,17 +269,22 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             
             // Try to migrate student to database
             try {
+              // Create a properly typed student object for insertion
+              const newStudent: Omit<Student, 'last_login'> & { last_login: string } = {
+                id: student.id,
+                username: student.username,
+                password_hash: student.password, // Will migrate to hashed later
+                display_name: student.displayName || student.username,
+                teacher_id: student.teacherId,
+                class_id: student.classId,
+                is_active: true,
+                created_at: new Date().toISOString(),
+                last_login: new Date().toISOString()
+              };
+              
               const { data, error } = await supabase
                 .from('students')
-                .insert({
-                  id: student.id,
-                  username: student.username,
-                  password: student.password, // In real app, never store plaintext passwords
-                  display_name: student.displayName || student.username,
-                  teacher_id: student.teacherId,
-                  class_id: student.classId,
-                  last_login: new Date().toISOString()
-                } as Student)
+                .insert(newStudent)
                 .select();
               
               if (!error) {
