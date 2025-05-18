@@ -3,6 +3,7 @@ import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import bcrypt from "bcryptjs";
+import { Student } from "@/types/database";
 
 interface Student {
   id: string;
@@ -115,7 +116,7 @@ export const useStudentAuth = () => {
       const studentData: Student = {
         id: student.id,
         username: student.username,
-        display_name: student.display_name,
+        display_name: student.display_name || '',
         class_id: student.class_id,
         teacher_id: student.teacher_id,
         teacher_name: teacherName,
