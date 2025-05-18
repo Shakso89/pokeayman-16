@@ -43,6 +43,26 @@ export default function StudentProfilePage() {
     );
   }
   
+  // Create a compatible student object that has required displayName property
+  const sidebarStudent = {
+    id: student.id,
+    username: student.username,
+    displayName: student.display_name || student.displayName || student.username, // Ensure displayName is available
+    avatar: student.avatar
+  };
+  
+  // Create a compatible student object for the tabs component
+  const tabsStudent = {
+    id: student.id,
+    username: student.username,
+    displayName: student.display_name || student.displayName || student.username, // Ensure displayName is available
+    avatar: student.avatar,
+    photos: student.photos,
+    classId: student.class_id || student.classId,
+    pokemonCollection: student.pokemonCollection,
+    contactInfo: student.contactInfo
+  };
+  
   return (
     <div className="min-h-screen bg-gray-100 flex flex-col">
       <NavBar 
@@ -57,7 +77,7 @@ export default function StudentProfilePage() {
           {/* Profile Card */}
           <div className="col-span-1">
             <ProfileSidebar
-              student={student}
+              student={sidebarStudent}
               isOwner={isOwner}
               isEditing={isEditing}
               friendRequestSent={friendRequestSent}
@@ -75,7 +95,7 @@ export default function StudentProfilePage() {
           {/* Main Content */}
           <div className="col-span-1 lg:col-span-3">
             <ProfileTabs 
-              student={student}
+              student={tabsStudent}
               isEditing={isEditing}
               editData={editData}
               onEditDataChange={setEditData}
