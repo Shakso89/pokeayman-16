@@ -29,8 +29,8 @@ serve(async (req) => {
       });
     }
     
-    const { username, password, displayName, teacherId, schoolId } = body;
-    console.log(`Request received: username=${username}, displayName=${displayName}, teacherId=${teacherId}, schoolId=${schoolId || "none"}`);
+    const { username, password, displayName, teacherId } = body;
+    console.log(`Request received: username=${username}, displayName=${displayName}, teacherId=${teacherId}`);
 
     if (!username || !password || !displayName || !teacherId) {
       return new Response(JSON.stringify({ 
@@ -86,14 +86,6 @@ serve(async (req) => {
         validTeacherId = "00000000-0000-0000-0000-000000000000";
       }
     }
-
-    // Validate schoolId if provided
-    let validSchoolId = schoolId;
-    if (schoolId && !isValidUUID(schoolId)) {
-      console.warn(`SchoolId ${schoolId} is not a valid UUID format`);
-      // Don't use the invalid school ID
-      validSchoolId = undefined;
-    }
     
     // Check if username is already in use
     const { data: existingStudents, error: checkError } = await supabaseAdmin
@@ -121,8 +113,7 @@ serve(async (req) => {
       // Generate a UUID for the student
       const studentId = crypto.randomUUID();
 
-      // Skip teacher verification as it might be causing issues
-      // Create new student in the database using the service role (bypasses RLS)
+      // Create new student in the database without school_id
       const { data: newStudent, error: insertError } = await supabaseAdmin
         .from('students')
         .insert({
@@ -131,7 +122,6 @@ serve(async (req) => {
           password: password, 
           display_name: displayName,
           teacher_id: validTeacherId,
-          school_id: validSchoolId,
           is_active: true,
           created_at: new Date().toISOString()
         })

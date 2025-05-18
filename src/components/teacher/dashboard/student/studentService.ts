@@ -65,7 +65,7 @@ export const createStudent = async (
     
     console.log("Creating student in database with teacherId:", validTeacherId);
     
-    // Direct database approach first (more reliable than edge function in this case)
+    // Create student without the school_id field which is causing issues
     const { data, error } = await supabase
       .from('students')
       .insert({
@@ -73,7 +73,6 @@ export const createStudent = async (
         password_hash: password_hash,
         display_name: studentData.displayName,
         teacher_id: validTeacherId,
-        school_id: studentData.schoolId || null,
         is_active: true,
         created_at: new Date().toISOString()
       })

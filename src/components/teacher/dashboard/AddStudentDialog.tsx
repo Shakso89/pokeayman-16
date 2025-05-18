@@ -29,7 +29,7 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
     username: "",
     password: "",
     displayName: "",
-    schoolId: ""
+    schoolId: ""  // Keeping this to maintain interface compatibility but we won't use it
   });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

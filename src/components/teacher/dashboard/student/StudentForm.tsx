@@ -1,18 +1,11 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "@/hooks/useTranslation";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { AlertCircle } from "lucide-react";
 import { validateStudentData } from "./studentUtils";
-
-interface School {
-  id: string;
-  name: string;
-}
 
 interface ValidationErrors {
   username?: string;
@@ -44,63 +37,8 @@ const StudentForm: React.FC<StudentFormProps> = ({
   teacherId
 }) => {
   const { t } = useTranslation();
-  const [schools, setSchools] = useState<School[]>([]);
-  const [isLoadingSchools, setIsLoadingSchools] = useState(false);
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
-
-  // Fetch available schools for this teacher
-  useEffect(() => {
-    const fetchSchools = async () => {
-      if (!teacherId) return;
-      
-      setIsLoadingSchools(true);
-      try {
-        console.log("Fetching schools for teacher:", teacherId);
-        
-        // Attempt to fetch from Supabase first
-        const { data, error } = await supabase
-          .from('schools')
-          .select('id, name');
-          
-        if (error) throw error;
-        
-        if (data && data.length > 0) {
-          setSchools(data);
-          console.log("Found schools in database:", data.length);
-        } else {
-          // Fallback to localStorage if no schools found in DB
-          const savedSchools = localStorage.getItem("schools");
-          if (savedSchools) {
-            const parsedSchools = JSON.parse(savedSchools);
-            setSchools(parsedSchools.map((school: any) => ({
-              id: school.id,
-              name: school.name
-            })));
-            console.log("Found schools in localStorage:", parsedSchools.length);
-          } else {
-            console.log("No schools found");
-          }
-        }
-      } catch (error) {
-        console.error("Error fetching schools:", error);
-        
-        // Fallback to localStorage on error
-        const savedSchools = localStorage.getItem("schools");
-        if (savedSchools) {
-          const parsedSchools = JSON.parse(savedSchools);
-          setSchools(parsedSchools.map((school: any) => ({
-            id: school.id,
-            name: school.name
-          })));
-        }
-      } finally {
-        setIsLoadingSchools(false);
-      }
-    };
-    
-    fetchSchools();
-  }, [teacherId]);
 
   // Validate form field when value changes
   const validateField = (name: string, value: string) => {
@@ -197,31 +135,6 @@ const StudentForm: React.FC<StudentFormProps> = ({
         {validationErrors.password && touched.password && (
           <p className="text-sm text-red-500 mt-1">{validationErrors.password}</p>
         )}
-      </div>
-      
-      <div className="space-y-2">
-        <Label htmlFor="studentSchool">{t("school")}</Label>
-        <Select 
-          disabled={isLoading || isLoadingSchools} 
-          value={studentData.schoolId}
-          onValueChange={(value) => setStudentData({...studentData, schoolId: value})}
-        >
-          <SelectTrigger>
-            <SelectValue placeholder={isLoadingSchools ? "Loading schools..." : "Select a school"} />
-          </SelectTrigger>
-          <SelectContent>
-            {schools.map((school) => (
-              <SelectItem key={school.id} value={school.id}>
-                {school.name}
-              </SelectItem>
-            ))}
-            {schools.length === 0 && !isLoadingSchools && (
-              <SelectItem value="none" disabled>
-                No schools available
-              </SelectItem>
-            )}
-          </SelectContent>
-        </Select>
       </div>
 
       {Object.values(validationErrors).some(error => !!error) && (
