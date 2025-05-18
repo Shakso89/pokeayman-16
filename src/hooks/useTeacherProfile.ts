@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { TeacherProfile } from "@/types/teacher";
@@ -162,3 +163,67 @@ export function useTeacherProfile(teacherId?: string) {
   const handleCancel = () => {
     setEditData(teacher || {});
     setIsEditing(false);
+  };
+
+  const handleAddFriend = async () => {
+    if (!currentUserId || !teacherId) return;
+    
+    try {
+      // Check if we're already friends or have a pending request
+      if (friendRequestSent) {
+        toast.info("Friend request already sent");
+        return;
+      }
+      
+      // Create a friend request
+      const friendRequest = {
+        id: crypto.randomUUID(),
+        senderId: currentUserId,
+        receiverId: teacherId,
+        status: "pending",
+        createdAt: new Date().toISOString()
+      };
+      
+      // Store in localStorage for demo
+      const friendRequests = getLocalItem("friendRequests", []);
+      friendRequests.push(friendRequest);
+      localStorage.setItem("friendRequests", JSON.stringify(friendRequests));
+      
+      setFriendRequestSent(true);
+      toast.success("Friend request sent");
+    } catch (error) {
+      console.error("Error sending friend request:", error);
+      toast.error("Failed to send friend request");
+    }
+  };
+
+  const updateSocialLink = (platform: keyof SocialLinks, value: string) => {
+    if (!teacher) return;
+    
+    const updatedSocialLinks = {
+      ...(editData.socialLinks || teacher.socialLinks || {}),
+      [platform]: value
+    };
+    
+    setEditData({
+      ...editData,
+      socialLinks: updatedSocialLinks
+    });
+  };
+
+  return {
+    teacher,
+    isLoading,
+    isEditing,
+    setIsEditing,
+    editData,
+    setEditData,
+    isOwner,
+    studentCount,
+    friendRequestSent,
+    handleSave,
+    handleCancel,
+    handleAddFriend,
+    updateSocialLink
+  };
+}
