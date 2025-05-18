@@ -19,12 +19,12 @@ export const useAuth = () => {
   useEffect(() => {
     // First set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, newSession) => {
+      async (event, newSession) => {
         console.log("Auth state changed:", event);
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (newSession) {
-            handleSession(newSession);
+            await handleSession(newSession);
           }
         } else if (event === 'SIGNED_OUT') {
           clearAuthState();
@@ -39,7 +39,7 @@ export const useAuth = () => {
         const { data: { session: existingSession } } = await supabase.auth.getSession();
         
         if (existingSession) {
-          handleSession(existingSession);
+          await handleSession(existingSession);
         } else {
           // No session found, check localStorage as fallback for backward compatibility
           const localIsLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
@@ -71,7 +71,7 @@ export const useAuth = () => {
   }, []);
 
   // Helper function to handle session data
-  const handleSession = (newSession: Session) => {
+  const handleSession = async (newSession: Session) => {
     const newUser = newSession.user;
     setSession(newSession);
     setUser(newUser);
@@ -117,6 +117,7 @@ export const useAuth = () => {
     localStorage.removeItem('teacherUsername');
     localStorage.removeItem('studentDisplayName');
     localStorage.removeItem('isAdmin');
+    localStorage.removeItem('studentClassId');
   };
   
   const logout = async () => {
@@ -153,7 +154,7 @@ export const useAuth = () => {
     session,
     user,
     loading,
-    isAdmin, // Make sure this is included in the return value
+    isAdmin,
     logout
   };
 };

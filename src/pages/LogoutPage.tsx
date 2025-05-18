@@ -10,12 +10,18 @@ const LogoutPage: React.FC = () => {
   
   useEffect(() => {
     const performLogout = async () => {
-      await logout();
-      
-      // Add a small delay before redirecting to ensure logout completes
-      setTimeout(() => {
+      try {
+        await logout();
+        
+        // Add a small delay before redirecting to ensure logout completes
+        setTimeout(() => {
+          navigate('/', { replace: true });
+        }, 500);
+      } catch (error) {
+        console.error("Logout error:", error);
+        // If logout fails, still redirect to home
         navigate('/', { replace: true });
-      }, 500);
+      }
     };
     
     performLogout();

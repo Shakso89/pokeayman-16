@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,12 +14,14 @@ const StudentLogin: React.FC = () => {
   const [password, setPassword] = useState("");
   const { isLoading, loginStudent } = useStudentAuth();
   const navigate = useNavigate();
+  const location = useLocation();
   
-  // Check if already logged in using Supabase
+  // Check if already logged in using Supabase or localStorage
   useEffect(() => {
     const checkAuthStatus = async () => {
       const { data: { session } } = await supabase.auth.getSession();
       
+      // Check Supabase session first
       if (session) {
         // Check if user is a student
         const { data: student } = await supabase
@@ -30,6 +32,22 @@ const StudentLogin: React.FC = () => {
           
         if (student) {
           navigate("/student-dashboard");
+          return;
+        }
+      }
+      
+      // If no Supabase session, check localStorage
+      const isLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+      const userType = localStorage.getItem('userType');
+      
+      if (isLoggedIn && userType === 'student') {
+        // Redirect to saved path or student dashboard
+        const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+        if (redirectPath) {
+          sessionStorage.removeItem('redirectAfterLogin');
+          navigate(redirectPath);
+        } else {
+          navigate('/student-dashboard');
         }
       }
     };
@@ -81,7 +99,14 @@ const StudentLogin: React.FC = () => {
           description: `Logged in as ${result.student.display_name || result.student.username}`,
         });
         
-        navigate("/student-dashboard");
+        // Check for redirect path or go to dashboard
+        const redirectPath = sessionStorage.getItem('redirectAfterLogin');
+        if (redirectPath) {
+          sessionStorage.removeItem('redirectAfterLogin');
+          navigate(redirectPath);
+        } else {
+          navigate("/student-dashboard");
+        }
       }
     } catch (error: any) {
       console.error("Login error:", error);
