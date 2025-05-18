@@ -1,6 +1,5 @@
-
 import React from "react";
-import { 
+import {
   Dialog,
   DialogContent,
   DialogDescription,
@@ -16,6 +15,33 @@ interface ContactDialogProps {
   isOpen: boolean;
   onClose: () => void;
 }
+
+interface ContactItemProps {
+  icon: React.ReactNode;
+  label: string;
+  displayText: string;
+  href: string;
+  onClick?: () => void;
+  external?: boolean;
+}
+
+const ContactItem: React.FC<ContactItemProps> = ({ icon, label, displayText, href, onClick, external }) => (
+  <div className="flex items-center gap-3 bg-white/10 p-4 rounded-xl hover:bg-white/20 transition-colors">
+    <div className="p-3 rounded-full bg-opacity-80">{icon}</div>
+    <div className="flex-1">
+      <span className="font-medium text-white">{label}</span>
+      <a
+        href={href}
+        className="text-blue-300 hover:underline block"
+        onClick={onClick}
+        target={external ? "_blank" : undefined}
+        rel={external ? "noopener noreferrer" : undefined}
+      >
+        {displayText}
+      </a>
+    </div>
+  </div>
+);
 
 const ContactDialog: React.FC<ContactDialogProps> = ({ isOpen, onClose }) => {
   const copyToClipboard = (text: string, type: string) => {
@@ -36,77 +62,40 @@ const ContactDialog: React.FC<ContactDialogProps> = ({ isOpen, onClose }) => {
             Contact us to learn more about our credit system and features.
           </DialogDescription>
         </DialogHeader>
-        
+
         <div className="grid gap-5 py-4">
-          <div className="flex items-center gap-3 bg-white/10 p-4 rounded-xl hover:bg-white/20 transition-colors">
-            <div className="bg-blue-600 p-3 rounded-full">
-              <Mail className="h-6 w-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <span className="font-medium text-white">Email:</span>
-              <a 
-                href="mailto:ayman@pokeayman.com" 
-                className="text-blue-300 hover:underline block"
-                onClick={() => copyToClipboard("ayman@pokeayman.com", "Email")}
-              >
-                ayman@pokeayman.com
-              </a>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3 bg-white/10 p-4 rounded-xl hover:bg-white/20 transition-colors">
-            <div className="bg-pink-600 p-3 rounded-full">
-              <Instagram className="h-6 w-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <span className="font-medium text-white">Instagram:</span>
-              <a 
-                href="https://www.instagram.com/shakso/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-300 hover:underline block"
-                onClick={() => console.log("Contact attempt via Instagram: @shakso")}
-              >
-                @shakso
-              </a>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3 bg-white/10 p-4 rounded-xl hover:bg-white/20 transition-colors">
-            <div className="bg-blue-600 p-3 rounded-full">
-              <Phone className="h-6 w-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <span className="font-medium text-white">Phone:</span>
-              <a 
-                href="tel:+886900170038" 
-                className="text-blue-300 hover:underline block"
-                onClick={() => copyToClipboard("+886900170038", "Phone number")}
-              >
-                +886 900 170 038
-              </a>
-            </div>
-          </div>
-          
-          <div className="flex items-center gap-3 bg-white/10 p-4 rounded-xl hover:bg-white/20 transition-colors">
-            <div className="bg-green-600 p-3 rounded-full">
-              <MessageCircle className="h-6 w-6 text-white" />
-            </div>
-            <div className="flex-1">
-              <span className="font-medium text-white">LINE:</span>
-              <a 
-                href="https://line.me/ti/p/R2zf7rn9Mt" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="text-blue-300 hover:underline block"
-                onClick={() => console.log("Contact attempt via LINE")}
-              >
-                Click to connect on LINE
-              </a>
-            </div>
-          </div>
+          <ContactItem
+            icon={<Mail className="h-6 w-6 text-white bg-blue-600 p-1.5 rounded-full" />}
+            label="Email:"
+            displayText="ayman@pokeayman.com"
+            href="mailto:ayman@pokeayman.com"
+            onClick={() => copyToClipboard("ayman@pokeayman.com", "Email")}
+          />
+          <ContactItem
+            icon={<Instagram className="h-6 w-6 text-white bg-pink-600 p-1.5 rounded-full" />}
+            label="Instagram:"
+            displayText="@shakso"
+            href="https://www.instagram.com/shakso/"
+            onClick={() => console.log("Contact attempt via Instagram: @shakso")}
+            external
+          />
+          <ContactItem
+            icon={<Phone className="h-6 w-6 text-white bg-blue-600 p-1.5 rounded-full" />}
+            label="Phone:"
+            displayText="+886 900 170 038"
+            href="tel:+886900170038"
+            onClick={() => copyToClipboard("+886900170038", "Phone number")}
+          />
+          <ContactItem
+            icon={<MessageCircle className="h-6 w-6 text-white bg-green-600 p-1.5 rounded-full" />}
+            label="LINE:"
+            displayText="Click to connect on LINE"
+            href="https://line.me/ti/p/R2zf7rn9Mt"
+            onClick={() => console.log("Contact attempt via LINE")}
+            external
+          />
         </div>
-        
+
         <DialogFooter>
           <Button onClick={onClose} className="bg-blue-600 hover:bg-blue-700 w-full">Close</Button>
         </DialogFooter>
