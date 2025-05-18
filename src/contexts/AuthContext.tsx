@@ -1,5 +1,4 @@
-
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { toast } from '@/hooks/use-toast';
@@ -35,6 +34,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [authState, setAuthState] = useState<AuthState>(initialAuthState);
+  const isLoggingOut = useRef(false);
   
   // Clear all auth data from localStorage and state
   const clearAuthState = () => {
@@ -197,9 +197,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Logout function
+  // Logout function with protection against multiple calls
   const logout = async () => {
     try {
+      // Prevent multiple logout attempts
+      if (isLoggingOut.current) {
+        console.log("Logout already in progress, skipping duplicate request");
+        return true;
+      }
+      
+      isLoggingOut.current = true;
       setAuthState(prev => ({ ...prev, loading: true }));
 
       const { error } = await supabase.auth.signOut();
@@ -207,10 +214,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       clearAuthState();
 
+      // Only show toast once
       toast({
         title: "Logged out successfully",
         description: "You have been logged out of your account.",
       });
+      
       return true;
     } catch (error: any) {
       console.error("Logout error:", error);
@@ -222,6 +231,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return false;
     } finally {
       setAuthState(prev => ({ ...prev, loading: false }));
+      // Reset the logout flag after a short delay to prevent immediate re-attempts
+      setTimeout(() => {
+        isLoggingOut.current = false;
+      }, 1000);
     }
   };
 
@@ -239,7 +252,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }, 0);
         }
       } else if (event === "SIGNED_OUT") {
-        clearAuthState();
+        // Only clear auth state if not already in the process of logging out
+        if (!isLoggingOut.current) {
+          clearAuthState();
+        }
       }
     });
 

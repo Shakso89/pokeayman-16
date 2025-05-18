@@ -8,16 +8,22 @@ const LogoutPage: React.FC = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const [logoutError, setLogoutError] = useState<string | null>(null);
+  const [isLoggingOut, setIsLoggingOut] = useState(true);
 
   useEffect(() => {
     let timeoutId: NodeJS.Timeout;
-
+    
+    // Only attempt logout once
     const performLogout = async () => {
+      if (!isLoggingOut) return;
+      
+      setIsLoggingOut(false);
+      
       try {
-        const success = await logout();
+        await logout();
         timeoutId = setTimeout(() => {
           navigate('/', { replace: true });
-        }, success ? 500 : 0);
+        }, 1500);
       } catch (error: unknown) {
         console.error("Logout error:", error);
         if (error instanceof Error) {
@@ -34,7 +40,7 @@ const LogoutPage: React.FC = () => {
     performLogout();
 
     return () => clearTimeout(timeoutId);
-  }, [logout, navigate]);
+  }, [logout, navigate, isLoggingOut]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400">
