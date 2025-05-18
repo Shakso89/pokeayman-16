@@ -1,3 +1,4 @@
+
 import React, { useEffect } from 'react';
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 import Index from "./pages/Index";
@@ -17,11 +18,12 @@ import StudentDetailPage from "./pages/StudentDetailPage";
 import TeacherProfilePage from "./pages/TeacherProfilePage";
 import StudentProfilePage from "./pages/StudentProfilePage";
 import RankingPage from "./pages/RankingPage";
-import ProtectedRoute from "./components/ProtectedRoute";
+import ProtectedRoute from "./components/auth/ProtectedRoute";
 import LogoutPage from "./pages/LogoutPage";
 import { supabase } from "@/integrations/supabase/client";
 import { enableRealtimeForTables } from "@/utils/classSync/classSubscription";
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { AuthProvider } from './contexts/AuthContext';
 
 // Create a client
 const queryClient = new QueryClient({
@@ -109,66 +111,80 @@ function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/student-dashboard" element={
-            <ProtectedRoute>
-              <StudentDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/teacher-dashboard" element={
-            <ProtectedRoute>
-              <TeacherDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/teacher-login" element={<TeacherLogin />} />
-          <Route path="/student-login" element={<StudentLogin />} />
-          <Route path="/teacher-signup" element={<TeacherSignUp />} />
-          <Route path="/logout" element={<LogoutPage />} />
-          <Route path="/admin-dashboard" element={
-            <ProtectedRoute>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/teacher/messages" element={
-            <ProtectedRoute>
-              <MessagesPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/student/messages" element={
-            <ProtectedRoute>
-              <MessagesPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/teacher/reports" element={
-            <ProtectedRoute>
-              <ReportsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/teacher/student/:studentId" element={
-            <ProtectedRoute>
-              <StudentDetailPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/student/profile/:studentId" element={
-            <ProtectedRoute>
-              <StudentProfilePage />
-            </ProtectedRoute>
-          } />
-          <Route path="/teacher/profile/:teacherId" element={
-            <ProtectedRoute>
-              <TeacherProfilePage />
-            </ProtectedRoute>
-          } />
-          <Route path="/student/rankings" element={<RankingPage />} />
-          <Route path="/teacher/rankings" element={<RankingPage />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/class-details/:id" element={<ClassDetails />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <Toaster />
-      </BrowserRouter>
+      <AuthProvider>
+        <BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/student-dashboard" element={
+              <ProtectedRoute requiredUserType="student">
+                <StudentDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/teacher-dashboard" element={
+              <ProtectedRoute requiredUserType="teacher">
+                <TeacherDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/teacher-login" element={<TeacherLogin />} />
+            <Route path="/student-login" element={<StudentLogin />} />
+            <Route path="/teacher-signup" element={<TeacherSignUp />} />
+            <Route path="/logout" element={<LogoutPage />} />
+            <Route path="/admin-dashboard" element={
+              <ProtectedRoute requiredUserType="admin" allowAdminOverride={true}>
+                <AdminDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/teacher/messages" element={
+              <ProtectedRoute requiredUserType="teacher">
+                <MessagesPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/student/messages" element={
+              <ProtectedRoute requiredUserType="student">
+                <MessagesPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/teacher/reports" element={
+              <ProtectedRoute requiredUserType="teacher">
+                <ReportsPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/teacher/student/:studentId" element={
+              <ProtectedRoute requiredUserType="teacher">
+                <StudentDetailPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/student/profile/:studentId" element={
+              <ProtectedRoute requiredUserType="student">
+                <StudentProfilePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/teacher/profile/:teacherId" element={
+              <ProtectedRoute requiredUserType="teacher">
+                <TeacherProfilePage />
+              </ProtectedRoute>
+            } />
+            <Route path="/student/rankings" element={
+              <ProtectedRoute requiredUserType="student">
+                <RankingPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/teacher/rankings" element={
+              <ProtectedRoute requiredUserType="teacher">
+                <RankingPage />
+              </ProtectedRoute>
+            } />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/class-details/:id" element={
+              <ProtectedRoute requiredUserType="any">
+                <ClassDetails />
+              </ProtectedRoute>
+            } />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <Toaster />
+        </BrowserRouter>
+      </AuthProvider>
     </QueryClientProvider>
   );
 }

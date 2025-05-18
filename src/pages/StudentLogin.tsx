@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -5,9 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import PokemonOrbit from "@/components/PokemonOrbit";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 import { useStudentAuth } from "@/hooks/useStudentAuth";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 
 const StudentLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -54,25 +54,12 @@ const StudentLogin: React.FC = () => {
     try {
       const result = await loginStudent(usernameOrEmail, password);
 
-      if (result.success && result.student) {
-        const { id, display_name, username, class_id } = result.student;
-
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("userType", "student");
-        localStorage.setItem("studentId", id);
-        localStorage.setItem("studentDisplayName", display_name || username);
-        if (class_id) {
-          localStorage.setItem("studentClassId", class_id);
-        }
-
+      if (!result.success) {
         toast({
-          title: "Welcome back!",
-          description: `Logged in as ${display_name || username}`,
+          title: "Login Error",
+          description: result.message || "Invalid username or password",
+          variant: "destructive",
         });
-
-        const redirect = sessionStorage.getItem("redirectAfterLogin");
-        sessionStorage.removeItem("redirectAfterLogin");
-        navigate(redirect || "/student-dashboard");
       }
     } catch (error: any) {
       console.error("Login error:", error);

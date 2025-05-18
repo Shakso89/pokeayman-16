@@ -2,29 +2,23 @@
 import React, { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
 import Header from "@/components/Header";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Index: React.FC = () => {
   const navigate = useNavigate();
+  const { isLoggedIn, userType } = useAuth();
 
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        const { data: teacher } = await supabase.from('teachers').select('*').eq('id', session.user.id).maybeSingle();
-        if (teacher) {
-          navigate("/teacher-dashboard");
-          return;
-        }
-        const { data: student } = await supabase.from('students').select('*').eq('id', session.user.id).maybeSingle();
-        if (student) {
-          navigate("/student-dashboard");
-        }
+    // If user is already logged in, redirect to their dashboard
+    if (isLoggedIn) {
+      if (userType === 'teacher') {
+        navigate("/teacher-dashboard");
+      } else if (userType === 'student') {
+        navigate("/student-dashboard");
       }
-    };
-    checkAuthStatus();
-  }, [navigate]);
+    }
+  }, [isLoggedIn, userType, navigate]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 flex flex-col">

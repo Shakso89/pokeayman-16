@@ -1,10 +1,11 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { AuthLayout } from "@/components/AuthLayout";
 import { LoginForm } from "@/components/LoginForm";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { useAuth } from "@/hooks/useAuth";
+import { useAuth } from "@/contexts/AuthContext";
 
 const ADMIN_EMAILS = [
   "ayman.soliman.cc@gmail.com",
@@ -22,7 +23,7 @@ const isAdminUser = (email?: string, username?: string) => {
 const TeacherLogin = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const { isLoggedIn, isAdmin, loading, userType } = useAuth();
+  const { isLoggedIn, isAdmin, loading, userType, refreshAuthState } = useAuth();
 
   const [error, setError] = useState("");
   const [loginInProgress, setLoginInProgress] = useState(false);
@@ -61,6 +62,9 @@ const TeacherLogin = () => {
         localStorage.setItem("isAdmin", "true");
         localStorage.setItem("teacherId", `admin-${username}-${Date.now()}`);
 
+        // Refresh the auth state to pick up localStorage changes
+        await refreshAuthState();
+        
         toast({ title: "Success!", description: `Welcome back, ${username}` });
         navigate("/admin-dashboard");
         return;
@@ -110,20 +114,12 @@ const TeacherLogin = () => {
         throw error;
       }
 
-      if (data.user) {
-        const meta = data.user.user_metadata || {};
-        const isAdminAccount = isAdminUser(data.user.email, meta.username);
+      // Auth state will be updated automatically via onAuthStateChange
+      // but we can also manually refresh if needed
+      await refreshAuthState();
 
-        localStorage.setItem("userType", "teacher");
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("teacherUsername", meta.username || username);
-        localStorage.setItem("teacherId", data.user.id);
-        if (isAdminAccount) {
-          localStorage.setItem("isAdmin", "true");
-        }
-
-        toast({ title: "Success!", description: "Welcome back!" });
-      }
+      toast({ title: "Success!", description: "Welcome back!" });
+      
     } catch (err: any) {
       console.error("Login error:", err);
       setError(err.message || "Login failed");
