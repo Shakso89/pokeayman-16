@@ -128,10 +128,11 @@ export const useAuth = () => {
     } catch (error) {
       console.error("Error in handleSession:", error);
       // If there's an error, still try to process with available data
-      if (currentUser) {
+      const sessionUser = newSession.user;
+      if (sessionUser) {
         setIsLoggedIn(true);
         setUserType('teacher'); // Default to teacher if error
-        setUserId(currentUser.id);
+        setUserId(sessionUser.id);
       }
     }
   };
