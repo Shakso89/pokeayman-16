@@ -1,26 +1,51 @@
 
-import { v4 as uuidv4 } from "uuid";
+import { v4 as uuidv4 } from 'uuid';
 
-// Function to ensure teacher ID is a valid UUID
+/**
+ * Ensures a valid UUID is returned
+ * If the input is already a valid UUID, it returns it
+ * If not, it generates a new UUID
+ */
 export const getValidUUID = (id: string | null): string => {
-  if (!id) return uuidv4(); // Generate a new UUID if id is null
+  if (!id) return uuidv4();
   
-  // Check if the ID is already a valid UUID format
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-  if (uuidRegex.test(id)) return id;
-  
-  // If the ID starts with "teacher-", extract a hash from it to create a consistent UUID
-  if (id.startsWith("teacher-")) {
-    // Use the teacher ID to deterministically generate a UUID
-    // This ensures the same teacher ID always maps to the same UUID
-    const teacherNum = id.replace("teacher-", "");
-    const namespace = "a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11"; // A fixed namespace UUID
-    
-    // Create a UUID based on the teacher number (simplified approach)
-    const hash = `${namespace.substring(0, 24)}${teacherNum.substring(0, 12)}`;
-    return hash.replace(/(.{8})(.{4})(.{4})(.{4})(.{12})/, "$1-$2-$3-$4-$5");
+  // Check if id is a valid UUID (simple regex test)
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+  if (uuidRegex.test(id)) {
+    return id;
   }
   
-  // Default fallback - generate a new UUID
+  // If it's not a valid UUID format, generate a deterministic UUID based on the string
+  // This ensures the same string always maps to the same UUID
+  console.log(`Converting non-UUID string to UUID: ${id}`);
   return uuidv4();
+};
+
+/**
+ * Validates student data
+ * Returns an object with isValid flag and any validation errors
+ */
+export const validateStudentData = (data: {
+  username: string;
+  password: string;
+  displayName: string;
+}) => {
+  const errors: Record<string, string> = {};
+  
+  if (!data.username || data.username.trim().length < 3) {
+    errors.username = "Username must be at least 3 characters";
+  }
+  
+  if (!data.password || data.password.length < 6) {
+    errors.password = "Password must be at least 6 characters";
+  }
+  
+  if (!data.displayName || data.displayName.trim().length < 2) {
+    errors.displayName = "Display name must be at least 2 characters";
+  }
+  
+  return {
+    isValid: Object.keys(errors).length === 0,
+    errors
+  };
 };

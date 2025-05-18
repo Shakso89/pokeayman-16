@@ -145,7 +145,7 @@ export type Database = {
           last_login?: string | null
           password_hash: string
           teacher_id?: string | null
-          username: string
+          username?: string
         }
         Update: {
           class_id?: string | null

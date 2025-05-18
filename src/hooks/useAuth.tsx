@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from './use-toast';
@@ -14,7 +15,47 @@ export const useAuth = () => {
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
 
+  const refreshAuthState = async () => {
+    console.log("Refreshing auth state...");
+    setLoading(true);
+    try {
+      const {
+        data: { session: existingSession },
+      } = await supabase.auth.getSession();
+
+      if (existingSession) {
+        await handleSession(existingSession);
+      } else {
+        // Fallback to localStorage (backward compatibility)
+        const localIsLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+        const localUserType = localStorage.getItem("userType") as UserType;
+
+        if (localIsLoggedIn && localUserType) {
+          setIsLoggedIn(true);
+          setUserType(localUserType);
+          setUserId(
+            localUserType === "teacher"
+              ? localStorage.getItem("teacherId")
+              : localStorage.getItem("studentId")
+          );
+          setIsAdmin(localStorage.getItem("isAdmin") === "true");
+          console.log("Auth state loaded from localStorage:", { localUserType, isAdmin: localStorage.getItem("isAdmin") === "true" });
+        } else {
+          clearAuthState();
+          console.log("No auth session found");
+        }
+      }
+    } catch (error) {
+      console.error("Auth check error:", error);
+      clearAuthState();
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
+    console.log("Setting up auth state listeners");
+    
     // Listen for auth changes
     const {
       data: { subscription },
@@ -29,42 +70,7 @@ export const useAuth = () => {
     });
 
     // Initial session check
-    const checkSession = async () => {
-      setLoading(true);
-      try {
-        const {
-          data: { session: existingSession },
-        } = await supabase.auth.getSession();
-
-        if (existingSession) {
-          await handleSession(existingSession);
-        } else {
-          // Fallback to localStorage (backward compatibility)
-          const localIsLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-          const localUserType = localStorage.getItem("userType") as UserType;
-
-          if (localIsLoggedIn && localUserType) {
-            setIsLoggedIn(true);
-            setUserType(localUserType);
-            setUserId(
-              localUserType === "teacher"
-                ? localStorage.getItem("teacherId")
-                : localStorage.getItem("studentId")
-            );
-            setIsAdmin(localStorage.getItem("isAdmin") === "true");
-          } else {
-            clearAuthState();
-          }
-        }
-      } catch (error) {
-        console.error("Auth check error:", error);
-        clearAuthState();
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    checkSession();
+    refreshAuthState();
 
     return () => subscription.unsubscribe();
   }, []);
@@ -135,6 +141,8 @@ export const useAuth = () => {
     localStorage.setItem("studentId", id);
     localStorage.setItem("studentDisplayName", data.display_name || data.username || "");
     if (data.class_id) localStorage.setItem("studentClassId", data.class_id);
+    
+    console.log("Student auth setup complete", { id, displayName: data.display_name || data.username });
   };
 
   const setupTeacherAuth = (
@@ -156,6 +164,8 @@ export const useAuth = () => {
     );
 
     if (isAdminUser) localStorage.setItem("isAdmin", "true");
+    
+    console.log("Teacher auth setup complete", { id, isAdmin: isAdminUser });
   };
 
   const clearAuthState = () => {
@@ -174,6 +184,8 @@ export const useAuth = () => {
     localStorage.removeItem("studentDisplayName");
     localStorage.removeItem("isAdmin");
     localStorage.removeItem("studentClassId");
+    
+    console.log("Auth state cleared");
   };
 
   const logout = async () => {
@@ -212,5 +224,6 @@ export const useAuth = () => {
     loading,
     isAdmin,
     logout,
+    refreshAuthState
   };
 };

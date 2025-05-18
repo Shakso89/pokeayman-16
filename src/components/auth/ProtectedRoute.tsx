@@ -27,7 +27,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   useEffect(() => {
     const timer = setTimeout(() => {
       setInitialCheckDone(true);
-    }, 300);
+    }, 500); // Increased delay to ensure auth check completes
     
     return () => clearTimeout(timer);
   }, []);
@@ -54,6 +54,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // If still loading auth state, show loading indicator
   if (loading || !initialCheckDone) {
+    console.log("ProtectedRoute: Loading auth state...");
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
@@ -61,8 +62,11 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
+  console.log("ProtectedRoute: Auth check complete", { isLoggedIn, userType, isAdmin });
+
   // Handle login check
   if (!isLoggedIn) {
+    console.log("ProtectedRoute: User not logged in, redirecting to", getLoginRoute());
     // Store the attempted URL to redirect back after login
     if (location.pathname !== '/teacher-login' && location.pathname !== '/student-login') {
       sessionStorage.setItem('redirectAfterLogin', location.pathname);
@@ -73,6 +77,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Check if user has required access type
   if (!hasAccess()) {
+    console.log("ProtectedRoute: User doesn't have access, redirecting to home");
     return <Navigate to="/" replace />;
   }
 

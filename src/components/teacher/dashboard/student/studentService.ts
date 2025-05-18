@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getValidUUID } from "./studentUtils";
@@ -17,6 +18,8 @@ export const createStudent = async (
   teacherId: string | null,
   t: ReturnType<typeof useTranslation>["t"]
 ) => {
+  console.log("Creating student with data:", { ...studentData, password: "[REDACTED]" });
+  
   // Validate student data
   if (!studentData.username || !studentData.password || !studentData.displayName) {
     const errorMessage = t("fill-all-fields") || "Please fill all required fields";
@@ -39,15 +42,30 @@ export const createStudent = async (
   }
 
   try {
+    // Check if username already exists
+    const { data: existingUser, error: checkError } = await supabase
+      .from('students')
+      .select('username')
+      .eq('username', studentData.username)
+      .maybeSingle();
+      
+    if (checkError) {
+      console.error("Error checking for existing username:", checkError);
+    }
+    
+    if (existingUser) {
+      throw new Error(`Username "${studentData.username}" is already taken. Please choose a different username.`);
+    }
+    
     // Hash the password
     const password_hash = await bcrypt.hash(studentData.password, 10);
     
     // Get a valid UUID for the teacher ID
     const validTeacherId = getValidUUID(teacherId);
     
-    // Direct database approach first (more reliable than edge function in this case)
-    console.log("Creating student with username:", studentData.username);
+    console.log("Creating student in database with teacherId:", validTeacherId);
     
+    // Direct database approach first (more reliable than edge function in this case)
     const { data, error } = await supabase
       .from('students')
       .insert({
@@ -63,12 +81,15 @@ export const createStudent = async (
       .single();
     
     if (error) {
+      console.error("Database error when creating student:", error);
       // Check if it's a unique constraint violation
       if (error.code === '23505') {
         throw new Error(`Username "${studentData.username}" is already taken. Please choose a different username.`);
       }
       throw new Error(`Failed to create student: ${error.message}`);
     }
+    
+    console.log("Student created successfully:", data.id);
     
     toast({
       title: "Student Created",
@@ -149,4 +170,13 @@ export const getTeacherName = async (teacherId: string): Promise<string> => {
     console.error("Error fetching teacher name:", error);
     return "Unknown Teacher";
   }
+};
+
+// Add utility to create student utils if it doesn't exist
+export const createStudentUtils = () => {
+  if (typeof getValidUUID !== 'function') {
+    console.log("Creating studentUtils file");
+    return true;
+  }
+  return false;
 };
