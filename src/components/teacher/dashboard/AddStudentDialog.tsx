@@ -6,6 +6,8 @@ import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import StudentForm from "./student/StudentForm";
 import { createStudent } from "./student/studentService";
+import { AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 interface AddStudentDialogProps {
   isOpen: boolean;
@@ -30,17 +32,24 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
     schoolId: ""
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleAddStudent = async () => {
     setIsLoading(true);
+    setError(null);
     
     try {
+      if (!studentData.username || !studentData.password || !studentData.displayName) {
+        setError(t("fill-all-fields") || "Please fill all required fields");
+        return;
+      }
+      
       const createResponse = await createStudent(studentData, teacherId, t);
       
       // Show success message
       toast({
         title: "Success",
-        description: t("student-added")
+        description: t("student-added") || "Student added successfully"
       });
       
       // Reset form and close dialog
@@ -69,6 +78,7 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
       
     } catch (error: any) {
       console.error("Error creating student:", error);
+      setError(error.message || "Failed to create student");
       toast({
         title: "Error",
         description: error.message || "Failed to create student",
@@ -79,15 +89,33 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
     }
   };
 
+  const handleClose = () => {
+    setError(null);
+    setStudentData({
+      username: "",
+      password: "",
+      displayName: "",
+      schoolId: ""
+    });
+    onClose();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleClose}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>{t("create-student")}</DialogTitle>
+          <DialogTitle>{t("create-student") || "Create Student"}</DialogTitle>
           <DialogDescription>
-            {t("create-student-desc")}
+            {t("create-student-desc") || "Create a new student account linked to your teacher profile"}
           </DialogDescription>
         </DialogHeader>
+        
+        {error && (
+          <Alert variant="destructive">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        )}
         
         <StudentForm 
           studentData={studentData}
@@ -97,11 +125,11 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
         />
         
         <DialogFooter>
-          <Button variant="outline" onClick={onClose} disabled={isLoading}>
-            {t("cancel")}
+          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
+            {t("cancel") || "Cancel"}
           </Button>
           <Button onClick={handleAddStudent} disabled={isLoading}>
-            {isLoading ? `${t("creating")}...` : t("create-account")}
+            {isLoading ? `${t("creating") || "Creating"}...` : (t("create-account") || "Create Account")}
           </Button>
         </DialogFooter>
       </DialogContent>

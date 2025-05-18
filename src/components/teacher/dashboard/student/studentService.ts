@@ -19,21 +19,23 @@ export const createStudent = async (
 ) => {
   // Validate student data
   if (!studentData.username || !studentData.password || !studentData.displayName) {
+    const errorMessage = t("fill-all-fields") || "Please fill all required fields";
     toast({
       title: "Error",
-      description: t("fill-all-fields"),
+      description: errorMessage,
       variant: "destructive"
     });
-    throw new Error(t("fill-all-fields"));
+    throw new Error(errorMessage);
   }
   
   if (!teacherId) {
+    const errorMessage = "Teacher ID is missing";
     toast({
       title: "Error",
-      description: "Teacher ID is missing",
+      description: errorMessage,
       variant: "destructive"
     });
-    throw new Error("Teacher ID is missing");
+    throw new Error(errorMessage);
   }
 
   // Get a valid UUID for the teacher ID
@@ -41,15 +43,24 @@ export const createStudent = async (
   
   try {
     // First approach: use the edge function to create the student
+    console.log("Calling create_student edge function with:", {
+      username: studentData.username,
+      displayName: studentData.displayName,
+      teacherId: validTeacherId,
+      schoolId: studentData.schoolId
+    });
+    
     const { data: createResponse, error: edgeFunctionError } = await supabase.functions.invoke("create_student", {
       body: {
         username: studentData.username,
         password: studentData.password, 
         displayName: studentData.displayName,
         teacherId: validTeacherId,
-        schoolId: studentData.schoolId
+        schoolId: studentData.schoolId || undefined
       }
     });
+    
+    console.log("Edge function response:", createResponse);
     
     if (edgeFunctionError) {
       console.error("Edge function error:", edgeFunctionError);
@@ -79,7 +90,7 @@ export const createStudent = async (
         password: studentData.password,
         display_name: studentData.displayName,
         teacher_id: validTeacherId,
-        school_id: studentData.schoolId,
+        school_id: studentData.schoolId || undefined,
         is_active: true,
         created_at: new Date().toISOString()
       } as Student)

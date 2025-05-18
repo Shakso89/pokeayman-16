@@ -44,9 +44,17 @@ const Index: React.FC = () => {
               onClick={() => navigate("/teacher-login")} 
               size="lg" 
               variant="outline"
-              className="bg-white/20 text-white border-white hover:bg-white/30"
+              className="bg-white/20 text-white border-white hover:bg-white/30 mr-2"
             >
-              Login to Dashboard
+              Teacher Login
+            </Button>
+            <Button 
+              onClick={() => navigate("/student-login")} 
+              size="lg" 
+              variant="outline"
+              className="bg-green-500/80 text-white border-green-400 hover:bg-green-600/80"
+            >
+              Student Login
             </Button>
           </div>
         </div>
