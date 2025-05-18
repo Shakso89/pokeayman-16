@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import bcrypt from "bcryptjs";
 
 interface Student {
   id: string;
@@ -24,82 +25,66 @@ interface LoginResult {
 export const useStudentAuth = () => {
   const [isLoading, setIsLoading] = useState(false);
   
-  const loginStudent = async (usernameOrEmail: string, password: string): Promise<LoginResult> => {
+  const loginStudent = async (username: string, password: string): Promise<LoginResult> => {
     setIsLoading(true);
     
     try {
-      // First try to authenticate with Supabase
-      let authSuccess = false;
-      let studentId = '';
-      
-      // Check if input is an email
-      const isEmail = usernameOrEmail.includes('@');
-      
-      try {
-        // Try to authenticate with Supabase
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          // If it's an email, use it directly, otherwise use placeholder pattern
-          email: isEmail ? usernameOrEmail : `${usernameOrEmail}@pokeayman.com`,
-          password: password
-        });
-
-        if (!authError && authData.user) {
-          authSuccess = true;
-          studentId = authData.user.id;
-        }
-      } catch (authErr) {
-        console.warn("Supabase auth error:", authErr);
-        // Continue with database query even if auth fails
-      }
-      
-      // Check if the username/email and password match in the students table
+      // Get student data from Supabase
       const { data: student, error } = await supabase
         .from('students')
         .select(`
           id,
           username,
+          password_hash,
           display_name,
           class_id,
           teacher_id
         `)
-        .or(`username.eq.${usernameOrEmail}${isEmail ? `,email.eq.${usernameOrEmail}` : ''}`)
+        .eq('username', username)
         .maybeSingle();
       
+      // Handle database query error
       if (error) {
         console.error("Database query error:", error);
         throw new Error(`Database error: ${error.message}`);
       }
       
-      // If we have a successful auth but no student record, or no auth success and no student record
+      // If no student found with that username
       if (!student) {
-        if (!authSuccess) {
-          // Try legacy login via localStorage
-          return await legacyLoginStudent(usernameOrEmail, password);
+        // Try legacy login via localStorage
+        return await legacyLoginStudent(username, password);
+      }
+      
+      // Verify password
+      let passwordValid = false;
+      
+      // Check if the password_hash field exists and is a bcrypt hash (starts with $2a$, $2b$, or $2y$)
+      if (student.password_hash && 
+          (student.password_hash.startsWith('$2a$') || 
+          student.password_hash.startsWith('$2b$') || 
+          student.password_hash.startsWith('$2y$'))) {
+        // Compare with bcrypt
+        passwordValid = await bcrypt.compare(password, student.password_hash);
+      } else if (student.password_hash === password) {
+        // Legacy plain-text password comparison (for backwards compatibility)
+        // This is temporary and should be migrated
+        passwordValid = true;
+        
+        // Migrate to hashed password
+        try {
+          const hashedPassword = await bcrypt.hash(password, 10);
+          await supabase
+            .from('students')
+            .update({ password_hash: hashedPassword })
+            .eq('id', student.id);
+          console.log("Migrated plain-text password to hash for student:", student.id);
+        } catch (e) {
+          console.error("Failed to migrate password:", e);
         }
-        
-        // Auth success but no student record - create one
-        const newStudent = {
-          id: studentId,
-          username: usernameOrEmail,
-          display_name: usernameOrEmail,
-          password: password, // Note: In production, never store plain passwords
-        };
-        
-        const { data: createdStudent, error: createError } = await supabase
-          .from('students')
-          .insert(newStudent)
-          .select()
-          .single();
-          
-        if (createError) {
-          console.error("Error creating student record:", createError);
-          throw new Error(`Failed to create student record: ${createError.message}`);
-        }
-        
-        return {
-          success: true,
-          student: createdStudent as Student
-        };
+      }
+      
+      if (!passwordValid) {
+        throw new Error("Invalid username or password");
       }
       
       // Get teacher details if available
@@ -128,48 +113,21 @@ export const useStudentAuth = () => {
       
       // Set student data
       const studentData: Student = {
-        ...student,
+        id: student.id,
+        username: student.username,
+        display_name: student.display_name,
+        class_id: student.class_id,
+        teacher_id: student.teacher_id,
         teacher_name: teacherName,
         school_name: schoolName
       };
       
-      // If we don't have auth success yet, try to establish it
-      if (!authSuccess) {
-        try {
-          // Try to sign in with Supabase Auth
-          const { error: authError } = await supabase.auth.signInWithPassword({
-            email: `${student.username}@pokeayman.com`,
-            password: password
-          });
-          
-          if (authError) {
-            console.warn("Could not establish Supabase session:", authError);
-            // Create a user account if it doesn't exist
-            try {
-              const { error: signupError } = await supabase.auth.signUp({
-                email: `${student.username}@pokeayman.com`,
-                password: password,
-                options: {
-                  data: {
-                    username: student.username,
-                    display_name: student.display_name,
-                    user_type: 'student'
-                  }
-                }
-              });
-              
-              if (signupError) {
-                console.warn("Failed to create auth account:", signupError);
-              }
-            } catch (e) {
-              console.warn("Error creating auth account:", e);
-            }
-          }
-        } catch (e) {
-          console.error("Error setting up Supabase session:", e);
-          // Continue with localStorage fallback
-        }
-      }
+      // Set local storage values for session
+      localStorage.setItem("isLoggedIn", "true");
+      localStorage.setItem("userType", "student");
+      localStorage.setItem("studentId", student.id);
+      localStorage.setItem("studentDisplayName", student.display_name || student.username);
+      if (student.class_id) localStorage.setItem("studentClassId", student.class_id);
       
       return { 
         success: true, 
@@ -205,13 +163,16 @@ export const useStudentAuth = () => {
       
       // Try to migrate student to database
       try {
+        // Hash the password for security
+        const hashedPassword = await bcrypt.hash(password, 10);
+        
         const { data, error } = await supabase
           .from('students')
           .insert({
             id: student.id,
             username: student.username,
-            password: password,
-            display_name: student.display_name || student.username,  // Fixed: using display_name instead of displayName
+            password_hash: hashedPassword, // Store the hashed password
+            display_name: student.display_name || student.username,
             teacher_id: student.teacherId,
             class_id: student.classId,
             last_login: new Date().toISOString()
@@ -225,12 +186,19 @@ export const useStudentAuth = () => {
         console.error("Error migrating student to database:", err);
       }
       
+      // Set local storage values for session
+      localStorage.setItem("isLoggedIn", "true");
+      localStorage.setItem("userType", "student");
+      localStorage.setItem("studentId", student.id);
+      localStorage.setItem("studentDisplayName", student.display_name || student.username);
+      if (student.classId) localStorage.setItem("studentClassId", student.classId);
+      
       return {
         success: true,
         student: {
           id: student.id,
           username: student.username,
-          display_name: student.display_name || student.username,  // Fixed: using display_name instead of displayName
+          display_name: student.display_name || student.username,
           class_id: student.classId,
           teacher_id: student.teacherId,
           teacher_name: "Unknown"

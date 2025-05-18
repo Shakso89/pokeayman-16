@@ -41,6 +41,7 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
     try {
       if (!studentData.username || !studentData.password || !studentData.displayName) {
         setError(t("fill-all-fields") || "Please fill all required fields");
+        setIsLoading(false);
         return;
       }
       

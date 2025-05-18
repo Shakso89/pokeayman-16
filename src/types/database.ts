@@ -2,12 +2,12 @@
 export type Student = {
   id: string;
   username: string;
-  password: string;
-  email?: string; // Added email field
+  password_hash: string;
+  email?: string;
   display_name: string | null;
   teacher_id: string | null;
   class_id: string | null;
-  school_id?: string | null; // Added school_id field
+  school_id?: string | null;
   is_active: boolean;
   created_at: string;
   last_login: string | null;
