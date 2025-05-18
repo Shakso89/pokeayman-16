@@ -1,102 +1,134 @@
-import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Loader2, Trash2 } from "lucide-react";
-import { AdminTeacherData } from "./TeachersTab"; // adjust path as needed
 
-interface TeacherCardProps {
-  teacher: AdminTeacherData;
-  processing: 'toggle' | 'delete' | null;
-  t: (key: string, fallback?: string) => string;
-  onToggle: () => void;
-  onDelete: () => void;
+import React, { useState } from "react";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
+import TeacherCard from "./TeacherCard";
+
+export interface AdminTeacherData {
+  id: string;
+  username: string;
+  displayName: string;
+  createdAt: string;
+  isActive: boolean;
+  lastLogin?: string;
+  timeSpent?: number;
+  numSchools?: number;
+  numStudents?: number;
+  subscriptionType: 'trial' | 'monthly' | 'annual';
+  expiryDate?: string;
 }
 
-const TeacherCard: React.FC<TeacherCardProps> = ({
-  teacher,
-  processing,
-  t,
-  onToggle,
-  onDelete,
-}) => {
-  const isAdmin = teacher.username === "Admin" || teacher.username === "Ayman";
+interface TeachersTabProps {
+  teachers: AdminTeacherData[];
+  setTeachers: React.Dispatch<React.SetStateAction<AdminTeacherData[]>>;
+  t: (key: string, fallback?: string) => string;
+}
+
+const TeachersTab: React.FC<TeachersTabProps> = ({ teachers, setTeachers, t }) => {
+  const [processingIds, setProcessingIds] = useState<Record<string, "toggle" | "delete">>({});
+
+  const handleToggleAccount = async (userId: string) => {
+    if (processingIds[userId]) return;
+    
+    setProcessingIds((prev) => ({ ...prev, [userId]: "toggle" }));
+    
+    try {
+      const teacher = teachers.find((t) => t.id === userId);
+      if (!teacher) throw new Error("Teacher not found");
+      
+      const newIsActive = !teacher.isActive;
+      
+      const { error } = await supabase
+        .from("teachers")
+        .update({ is_active: newIsActive })
+        .eq("id", userId);
+        
+      if (error) throw error;
+      
+      setTeachers((prev) =>
+        prev.map((t) => (t.id === userId ? { ...t, isActive: newIsActive } : t))
+      );
+      
+      toast({
+        title: t("account-updated", "Account updated"),
+        description: newIsActive
+          ? t("account-activated", "Account has been activated")
+          : t("account-frozen", "Account has been frozen"),
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to update account";
+      console.error("Toggle Error:", message);
+      toast({
+        title: t("error", "Error"),
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingIds((prev) => {
+        const updated = { ...prev };
+        delete updated[userId];
+        return updated;
+      });
+    }
+  };
+
+  const handleDeleteAccount = async (userId: string) => {
+    const confirm = window.confirm(
+      t("confirm-delete", "Are you sure you want to delete this account? This action cannot be undone.")
+    );
+    if (!confirm) return;
+    
+    setProcessingIds((prev) => ({ ...prev, [userId]: "delete" }));
+    
+    try {
+      const { error } = await supabase
+        .from("teachers")
+        .delete()
+        .eq("id", userId);
+        
+      if (error) throw error;
+      
+      setTeachers((prev) => prev.filter((t) => t.id !== userId));
+      
+      toast({
+        title: t("account-deleted", "Account deleted"),
+        description: t("account-deleted-desc", "Account has been permanently deleted"),
+      });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : "Failed to delete account";
+      console.error("Delete Error:", message);
+      toast({
+        title: t("error", "Error"),
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setProcessingIds((prev) => {
+        const updated = { ...prev };
+        delete updated[userId];
+        return updated;
+      });
+    }
+  };
 
   return (
-    <Card className="relative">
-      {isAdmin && (
-        <div className="absolute top-0 right-0 m-2">
-          <Badge className="bg-purple-500">
-            {t("admin-account") || "Admin Account"}
-          </Badge>
-        </div>
+    <div className="grid gap-4">
+      {teachers.length === 0 ? (
+        <p className="text-center py-8 text-gray-500">{t("no-teachers", "No teachers found")}</p>
+      ) : (
+        teachers.map((teacher) => (
+          <TeacherCard
+            key={teacher.id}
+            teacher={teacher}
+            processing={processingIds[teacher.id] || null}
+            t={t}
+            onToggle={() => handleToggleAccount(teacher.id)}
+            onDelete={() => handleDeleteAccount(teacher.id)}
+          />
+        ))
       )}
-      <CardHeader>
-        <CardTitle className="flex justify-between">
-          <span>{teacher.displayName} ({teacher.username})</span>
-          <Badge className={teacher.isActive ? "bg-green-500" : "bg-red-500"}>
-            {teacher.isActive ? t("active") || "Active" : t("frozen") || "Frozen"}
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-          <div>
-            <p className="text-sm text-gray-500">{t("account-type")}</p>
-            <p>{teacher.subscriptionType || t("none")}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">{t("expiry-date")}</p>
-            <p>{teacher.expiryDate || "-"}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">{t("created")}</p>
-            <p>{new Date(teacher.createdAt).toLocaleDateString()}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">{t("last-login")}</p>
-            <p>{teacher.lastLogin || t("no-login")}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">{t("time-spent")}</p>
-            <p>{teacher.timeSpent ?? 0} {t("minutes")}</p>
-          </div>
-          <div>
-            <p className="text-sm text-gray-500">{t("classes")}</p>
-            <p>{teacher.numSchools ?? 0} {t("schools")}, {teacher.numStudents ?? 0} {t("students")}</p>
-          </div>
-        </div>
-
-        {!isAdmin && (
-          <div className="flex gap-2">
-            <Button
-              onClick={onToggle}
-              variant={teacher.isActive ? "destructive" : "default"}
-              disabled={!!processing}
-            >
-              {processing === 'toggle' ? (
-                <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> {t("processing")}</>
-              ) : (
-                teacher.isActive ? t("freeze-account") : t("unfreeze-account")
-              )}
-            </Button>
-            <Button
-              onClick={onDelete}
-              variant="outline"
-              className="text-red-500 border-red-500 hover:bg-red-50"
-              disabled={!!processing}
-            >
-              {processing === 'delete' ? (
-                <><Loader2 className="h-4 w-4 mr-1 animate-spin" /> {t("processing")}</>
-              ) : (
-                t("delete-account")
-              )}
-            </Button>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+    </div>
   );
 };
 
-export default TeacherCard;
+export default TeachersTab;
