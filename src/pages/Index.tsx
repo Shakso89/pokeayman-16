@@ -61,16 +61,16 @@ const Index: React.FC = () => {
 
         {/* Ash and Pikachu hero image */}
         <div className="flex justify-center mb-8">
-          <img src="/lovable-uploads/bb965096-a2fc-4ca6-aaa5-c0ce74c9e2e8.png" alt="Ash and Pikachu" className="h-auto max-w-full md:max-w-md lg:max-w-lg xl:max-w-xl" style={{
+          <img alt="Ash and Pikachu" style={{
           filter: "drop-shadow(0 0 20px rgba(255, 255, 0, 0.3))"
-        }} />
+        }} src="/lovable-uploads/be64cb1f-6989-4838-8064-d1a749d90ef8.png" className="h-auto max-w-full md:max-w-md lg:max-w-lg xl:max-w-xl object-scale-down" />
         </div>
 
         {/* Pokémon image showcase */}
         <div className="flex justify-center flex-wrap gap-8 mb-16">
-          <img src="/lovable-uploads/6b6ad061-baa5-438e-a631-131fbfe0eafc.png" alt="Pikachu" className="h-48 w-auto drop-shadow-lg animate-bounce" style={{
+          <img alt="Pikachu" className="h-48 w-auto drop-shadow-lg animate-bounce" style={{
           animationDuration: "3s"
-        }} />
+        }} src="/lovable-uploads/6643827c-343f-41b5-becf-e156015a18e7.png" />
           <img src="/lovable-uploads/2c72122a-ed62-4276-b90f-0f0688bf9693.png" alt="Charizard" className="h-64 w-auto drop-shadow-lg animate-pulse" style={{
           animationDuration: "4s"
         }} />
