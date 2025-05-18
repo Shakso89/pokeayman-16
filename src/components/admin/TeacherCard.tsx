@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Loader2, Trash2 } from "lucide-react";
-import { AdminTeacherData } from "./TeachersTab";
+import { AdminTeacherData } from "@/types/admin";
 
 interface TeacherCardProps {
   teacher: AdminTeacherData;
