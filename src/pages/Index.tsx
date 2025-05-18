@@ -25,8 +25,8 @@ const Index: React.FC = () => {
           <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
             {t("welcome-to-pokeayman")}
           </h1>
-          <p className="text-lg md:text-xl text-white max-w-2xl mx-auto">
-            {t("pokeayman-description")}
+          <p className="text-lg md:text-xl text-white max-w-3xl mx-auto mb-8">
+            Turn everyday lessons into exciting adventures! Use Pokémon, challenges, and rewards to boost student motivation and make learning unforgettable. Join a new wave of gamified education.
           </p>
         </div>
         
@@ -49,24 +49,31 @@ const Index: React.FC = () => {
           </Button>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-white">
-            <h3 className="text-xl font-bold mb-3">{t("feature-1-title")}</h3>
-            <p>{t("feature-1-desc")}</p>
-          </div>
+        {/* Why Choose PokéAyman Section */}
+        <div className="text-center mb-12">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-10">
+            Why Choose PokéAyman?
+          </h2>
           
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-white">
-            <h3 className="text-xl font-bold mb-3">{t("feature-2-title")}</h3>
-            <p>{t("feature-2-desc")}</p>
-          </div>
-          
-          <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-white">
-            <h3 className="text-xl font-bold mb-3">{t("feature-3-title")}</h3>
-            <p>{t("feature-3-desc")}</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-white">
+              <h3 className="text-xl font-bold mb-3">Engaging Learning</h3>
+              <p>Turn education into a fun adventure with Pokémon-themed rewards and challenges.</p>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-white">
+              <h3 className="text-xl font-bold mb-3">Track Progress</h3>
+              <p>Teachers can easily monitor student activities and achievements through an intuitive dashboard.</p>
+            </div>
+            
+            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-white">
+              <h3 className="text-xl font-bold mb-3">Community Building</h3>
+              <p>Connect with other teachers and schools to share best practices and resources.</p>
+            </div>
           </div>
         </div>
 
-        {/* Added Pokémon image showcase */}
+        {/* Pokémon image showcase */}
         <div className="flex justify-center flex-wrap gap-8 mb-16">
           <img 
             src="/lovable-uploads/6b6ad061-baa5-438e-a631-131fbfe0eafc.png" 

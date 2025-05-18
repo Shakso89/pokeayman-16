@@ -99,7 +99,17 @@ const translations: Record<string, Record<string, string>> = {
     "you-won-pokemon": "You won {name}!",
     "close": "Close",
     "student-dashboard": "Student Dashboard",
-    "teacher-dashboard": "Teacher Dashboard"
+    "teacher-dashboard": "Teacher Dashboard",
+    "welcome-to-pokeayman": "Welcome to PokéAyman",
+    "pokeayman-description": "Turn everyday lessons into exciting adventures! Use Pokémon, challenges, and rewards to boost student motivation and make learning unforgettable.",
+    "teacher-login": "Teacher Login",
+    "student-login": "Student Login",
+    "feature-1-title": "Engaging Learning",
+    "feature-1-desc": "Turn education into a fun adventure with Pokémon-themed rewards and challenges.",
+    "feature-2-title": "Track Progress",
+    "feature-2-desc": "Teachers can easily monitor student activities and achievements through an intuitive dashboard.",
+    "feature-3-title": "Community Building",
+    "feature-3-desc": "Connect with other teachers and schools to share best practices and resources."
   },
   zh: {
     "login": "登录",
@@ -193,7 +203,17 @@ const translations: Record<string, Record<string, string>> = {
     "you-won-pokemon": "你赢得了 {name}!",
     "close": "关闭",
     "student-dashboard": "学生仪表板",
-    "teacher-dashboard": "教师仪表板"
+    "teacher-dashboard": "教师仪表板",
+    "welcome-to-pokeayman": "欢迎来到 PokéAyman",
+    "pokeayman-description": "将日常课程变成激动人心的冒险！使用 Pokémon、挑战和奖励来提高学生的积极性，使学习难忘。",
+    "teacher-login": "教师登录",
+    "student-login": "学生登录",
+    "feature-1-title": "引人入胜的学习",
+    "feature-1-desc": "通过 Pokémon 主题的奖励和挑战，将教育变成一次有趣的冒险。",
+    "feature-2-title": "跟踪进度",
+    "feature-2-desc": "教师可以通过直观的仪表板轻松监控学生的活动和成就。",
+    "feature-3-title": "社区建设",
+    "feature-3-desc": "与其他教师和学校联系，分享最佳实践和资源。"
   }
 };
 
