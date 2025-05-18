@@ -57,6 +57,42 @@ export const createStudent = async (
       throw new Error(`Username "${studentData.username}" is already taken. Please choose a different username.`);
     }
     
+    // First, verify the teacher exists in the database
+    const { data: teacherExists, error: teacherCheckError } = await supabase
+      .from('teachers')
+      .select('id')
+      .eq('id', teacherId)
+      .maybeSingle();
+      
+    if (teacherCheckError) {
+      console.error("Error checking teacher existence:", teacherCheckError);
+      throw new Error(`Failed to verify teacher: ${teacherCheckError.message}`);
+    }
+    
+    if (!teacherExists) {
+      console.error("Teacher doesn't exist in database:", teacherId);
+      
+      // Instead of failing, try to create the teacher record first
+      const { data: newTeacher, error: createTeacherError } = await supabase
+        .from('teachers')
+        .insert({
+          id: teacherId,
+          username: localStorage.getItem('teacherUsername') || 'teacher',
+          display_name: localStorage.getItem('teacherDisplayName') || 'Teacher',
+          password: '***', // Placeholder
+          is_active: true
+        })
+        .select()
+        .single();
+        
+      if (createTeacherError) {
+        console.error("Failed to create teacher record:", createTeacherError);
+        throw new Error(`Teacher doesn't exist in database. Auto-creation failed: ${createTeacherError.message}`);
+      }
+      
+      console.log("Created missing teacher record:", newTeacher.id);
+    }
+    
     // Hash the password
     const password_hash = await bcrypt.hash(studentData.password, 10);
     

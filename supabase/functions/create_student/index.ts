@@ -109,6 +109,39 @@ serve(async (req) => {
       });
     }
 
+    // First check if teacher exists, if not create teacher record
+    const { data: existingTeacher, error: teacherCheckError } = await supabaseAdmin
+      .from('teachers')
+      .select('id')
+      .eq('id', validTeacherId)
+      .maybeSingle();
+
+    if (teacherCheckError) {
+      console.error("Error checking for teacher:", teacherCheckError);
+    } else if (!existingTeacher) {
+      // Create a placeholder teacher if it doesn't exist
+      const { error: createTeacherError } = await supabaseAdmin
+        .from('teachers')
+        .insert({
+          id: validTeacherId,
+          username: `teacher_${validTeacherId.substring(0,8)}`,
+          display_name: "Teacher",
+          password: "***", // Placeholder
+          is_active: true
+        });
+        
+      if (createTeacherError) {
+        console.error("Failed to create teacher record:", createTeacherError);
+        return new Response(JSON.stringify({ 
+          error: `Teacher doesn't exist and couldn't be created: ${createTeacherError.message}`
+        }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+          status: 400,
+        });
+      }
+      console.log(`Created placeholder teacher record with ID: ${validTeacherId}`);
+    }
+
     try {
       // Generate a UUID for the student
       const studentId = crypto.randomUUID();
