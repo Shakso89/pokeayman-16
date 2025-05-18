@@ -65,6 +65,28 @@ const Index: React.FC = () => {
             <p>{t("feature-3-desc")}</p>
           </div>
         </div>
+
+        {/* Added Pokémon image showcase */}
+        <div className="flex justify-center flex-wrap gap-8 mb-16">
+          <img 
+            src="/lovable-uploads/6b6ad061-baa5-438e-a631-131fbfe0eafc.png" 
+            alt="Pikachu" 
+            className="h-48 w-auto drop-shadow-lg animate-bounce" 
+            style={{ animationDuration: "3s" }}
+          />
+          <img 
+            src="/lovable-uploads/2c72122a-ed62-4276-b90f-0f0688bf9693.png" 
+            alt="Charizard" 
+            className="h-64 w-auto drop-shadow-lg animate-pulse" 
+            style={{ animationDuration: "4s" }}
+          />
+          <img 
+            src="/lovable-uploads/d1c806ec-9607-4d94-af2a-bdbb8d2cb0c6.png" 
+            alt="Bulbasaur" 
+            className="h-48 w-auto drop-shadow-lg animate-bounce" 
+            style={{ animationDuration: "3.5s" }}
+          />
+        </div>
       </div>
       
       <Footer />

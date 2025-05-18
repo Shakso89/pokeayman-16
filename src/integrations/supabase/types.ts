@@ -132,7 +132,7 @@ export type Database = {
           id: string
           is_active: boolean | null
           last_login: string | null
-          password: string
+          password_hash: string
           teacher_id: string | null
           username: string
         }
@@ -143,7 +143,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_login?: string | null
-          password: string
+          password_hash: string
           teacher_id?: string | null
           username: string
         }
@@ -154,7 +154,7 @@ export type Database = {
           id?: string
           is_active?: boolean | null
           last_login?: string | null
-          password?: string
+          password_hash?: string
           teacher_id?: string | null
           username?: string
         }
