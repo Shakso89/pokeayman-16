@@ -16,11 +16,25 @@ import { Button } from "@/components/ui/button";
 const Header: React.FC = () => {
   const navigate = useNavigate();
   
+  // Check if user is logged in to determine where to redirect when home button is clicked
+  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+  const userType = localStorage.getItem("userType");
+  
+  const handleHomeClick = () => {
+    if (isLoggedIn && userType === "teacher") {
+      navigate("/teacher-dashboard");
+    } else if (isLoggedIn && userType === "student") {
+      navigate("/student-dashboard");
+    } else {
+      navigate("/");
+    }
+  };
+  
   return (
     <div className="w-full bg-white/10 backdrop-blur-md py-4 px-6 flex justify-between items-center">
       <div 
         className="cursor-pointer flex items-center"
-        onClick={() => navigate("/")}
+        onClick={handleHomeClick}
       >
         <img 
           src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" 
@@ -34,7 +48,7 @@ const Header: React.FC = () => {
         <Button 
           variant="ghost" 
           size="icon"
-          onClick={() => navigate("/")}
+          onClick={handleHomeClick}
           className="text-white hover:bg-white/20"
         >
           <Home size={20} />

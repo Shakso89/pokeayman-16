@@ -29,6 +29,15 @@ export const NavBar: React.FC<NavBarProps> = ({
     navigate("/logout");
   };
 
+  const handleHomeClick = () => {
+    // Direct to the appropriate dashboard based on user type
+    if (userType === "teacher") {
+      navigate("/teacher-dashboard");
+    } else {
+      navigate("/student-dashboard");
+    }
+  };
+
   const isAdmin = localStorage.getItem("isAdmin") === "true";
   
   const handleCloseSettings = () => {
@@ -64,7 +73,7 @@ export const NavBar: React.FC<NavBarProps> = ({
         </div>
         
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")} title="Home">
+          <Button variant="ghost" size="icon" onClick={handleHomeClick} title="Home">
             <Home size={20} />
           </Button>
           
