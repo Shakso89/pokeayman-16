@@ -1,5 +1,4 @@
-
-import { toast as sonnerToast, type ToastT } from "sonner";
+import { toast as sonnerToast } from "sonner";
 
 export interface ToastProps {
   title?: string;
@@ -15,7 +14,7 @@ export function useToast() {
       duration,
       className: variant === "destructive" ? "bg-destructive text-destructive-foreground" : ""
     };
-    
+
     if (action) {
       options.action = action;
     }
@@ -29,12 +28,13 @@ export function useToast() {
   return { toast };
 }
 
+// Export a standalone toast function as well, for convenience
 export const toast = ({ title, description, action, variant, duration }: ToastProps) => {
   const options: any = {
     duration,
     className: variant === "destructive" ? "bg-destructive text-destructive-foreground" : ""
   };
-  
+
   if (action) {
     options.action = action;
   }
@@ -44,5 +44,3 @@ export const toast = ({ title, description, action, variant, duration }: ToastPr
     ...options
   });
 };
-
-// Remove the duplicate export that was causing the conflict
