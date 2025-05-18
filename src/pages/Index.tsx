@@ -17,9 +17,7 @@ const Index: React.FC = () => {
         </div>
         
         <div className="text-center mb-12">
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
-            {t("welcome-to-pokeayman")}
-          </h1>
+          
           <p className="text-lg md:text-xl text-white max-w-3xl mx-auto mb-8">
             Turn everyday lessons into exciting adventures! Use Pokémon, challenges, and rewards to boost student motivation and make learning unforgettable. Join a new wave of gamified education.
           </p>
