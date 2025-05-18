@@ -211,7 +211,7 @@ export const useStudentAuth = () => {
             id: student.id,
             username: student.username,
             password: password,
-            display_name: student.displayName || student.username,  // Fixed here: changed from displayName to display_name
+            display_name: student.display_name || student.username,  // Fixed: using display_name instead of displayName
             teacher_id: student.teacherId,
             class_id: student.classId,
             last_login: new Date().toISOString()
@@ -230,7 +230,7 @@ export const useStudentAuth = () => {
         student: {
           id: student.id,
           username: student.username,
-          display_name: student.displayName || student.username,  // Fixed here: using display_name instead of displayName
+          display_name: student.display_name || student.username,  // Fixed: using display_name instead of displayName
           class_id: student.classId,
           teacher_id: student.teacherId,
           teacher_name: "Unknown"

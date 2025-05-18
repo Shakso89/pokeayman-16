@@ -1,14 +1,17 @@
 
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Student {
   id: string;
   username: string;
-  displayName: string;
+  displayName?: string;  // Keep for backwards compatibility
+  display_name: string;  // Use this as the primary property name
   avatar?: string;
-  photos?: string[]; // Ensure photos is defined as optional
+  photos?: string[]; 
   classId?: string;
+  class_id?: string;
   pokemonCollection?: { id: string; name: string; image: string }[];
   contactInfo?: string;
 }
@@ -38,7 +41,37 @@ export const useStudentProfile = (studentId: string | undefined) => {
   const loadStudentData = async () => {
     setIsLoading(true);
     try {
-      // Try to get student from localStorage
+      // First try to get student from Supabase
+      const { data: studentData, error } = await supabase
+        .from('students')
+        .select('*')
+        .eq('id', studentId)
+        .maybeSingle();
+      
+      if (studentData) {
+        // Found student in Supabase
+        setStudent({
+          id: studentData.id,
+          username: studentData.username,
+          display_name: studentData.display_name || studentData.username,
+          displayName: studentData.display_name || studentData.username, // For backward compatibility
+          class_id: studentData.class_id,
+          classId: studentData.class_id, // For backward compatibility
+          photos: [],
+          pokemonCollection: []
+        });
+        
+        setEditData({
+          display_name: studentData.display_name || studentData.username,
+          photos: [],
+          contactInfo: ""
+        });
+        
+        setIsLoading(false);
+        return;
+      }
+      
+      // If not found in Supabase, fall back to localStorage
       const studentsData = localStorage.getItem("students");
       if (studentsData) {
         const students = JSON.parse(studentsData);
@@ -49,24 +82,29 @@ export const useStudentProfile = (studentId: string | undefined) => {
           const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
           const pokemonData = studentPokemons.find((p: any) => p.studentId === studentId);
           
-          setStudent({
+          // Normalize the data structure to ensure display_name is consistent
+          const normalizedStudent = {
             ...foundStudent,
-            photos: foundStudent.photos || [], // Ensure photos is an array
+            display_name: foundStudent.displayName || foundStudent.display_name || foundStudent.username,
+            photos: foundStudent.photos || [],
+            class_id: foundStudent.classId || foundStudent.class_id,
             pokemonCollection: pokemonData?.pokemons || []
-          });
+          };
+          
+          setStudent(normalizedStudent);
           
           setEditData({
-            displayName: foundStudent.displayName,
-            photos: foundStudent.photos || [],
-            contactInfo: foundStudent.contactInfo
+            display_name: normalizedStudent.display_name,
+            photos: normalizedStudent.photos || [],
+            contactInfo: normalizedStudent.contactInfo
           });
         } else {
-          toast("Student not found");
+          toast.error("Student not found");
         }
       }
     } catch (error) {
       console.error("Error loading student profile:", error);
-      toast("Error loading profile");
+      toast.error("Error loading profile");
     } finally {
       setIsLoading(false);
     }
@@ -88,43 +126,61 @@ export const useStudentProfile = (studentId: string | undefined) => {
     setFriendRequestSent(!!existingRequest);
   };
   
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!student) return;
     
     try {
+      // Try to update in Supabase first
+      if (student.id) {
+        const { error } = await supabase
+          .from('students')
+          .update({
+            display_name: editData.display_name || student.display_name
+          })
+          .eq('id', student.id);
+          
+        if (error) {
+          console.error("Error updating student in Supabase:", error);
+          throw error;
+        }
+      }
+      
+      // Also update in localStorage for backward compatibility
       const students = JSON.parse(localStorage.getItem("students") || "[]");
       const index = students.findIndex((s: Student) => s.id === studentId);
       
       if (index !== -1) {
         students[index] = {
           ...students[index],
-          displayName: editData.displayName || student.displayName,
+          displayName: editData.display_name || student.display_name,
+          display_name: editData.display_name || student.display_name,
           contactInfo: editData.contactInfo,
           photos: editData.photos || student.photos,
           avatar: student.avatar
         };
         
         localStorage.setItem("students", JSON.stringify(students));
-        
-        setStudent({
-          ...student,
-          displayName: editData.displayName || student.displayName,
-          contactInfo: editData.contactInfo,
-          photos: editData.photos || student.photos
-        });
-        
-        setIsEditing(false);
-        toast("Profile updated successfully!");
       }
+      
+      setStudent({
+        ...student,
+        display_name: editData.display_name || student.display_name,
+        displayName: editData.display_name || student.display_name,
+        contactInfo: editData.contactInfo,
+        photos: editData.photos || student.photos
+      });
+      
+      setIsEditing(false);
+      toast.success("Profile updated successfully!");
     } catch (error) {
       console.error("Error saving profile:", error);
-      toast("Failed to save profile");
+      toast.error("Failed to save profile");
     }
   };
   
   const handleCancel = () => {
     setEditData({
-      displayName: student?.displayName,
+      display_name: student?.display_name,
       photos: student?.photos || [],
       contactInfo: student?.contactInfo
     });
@@ -138,11 +194,11 @@ export const useStudentProfile = (studentId: string | undefined) => {
     // For now we'll just simulate it using localStorage
     localStorage.setItem("selectedChatUser", JSON.stringify({
       id: student.id,
-      displayName: student.displayName,
+      displayName: student.display_name,
       avatar: student.avatar
     }));
     
-    toast("Message window opened");
+    toast.success("Message window opened");
   };
   
   const handleAddFriend = () => {
@@ -150,7 +206,7 @@ export const useStudentProfile = (studentId: string | undefined) => {
     
     // Check if request already sent
     if (friendRequestSent) {
-      toast("Friend request already sent");
+      toast.info("Friend request already sent");
       return;
     }
     
@@ -170,7 +226,7 @@ export const useStudentProfile = (studentId: string | undefined) => {
     localStorage.setItem("friendRequests", JSON.stringify(requests));
     
     setFriendRequestSent(true);
-    toast("Friend request sent");
+    toast.success("Friend request sent");
   };
   
   return {

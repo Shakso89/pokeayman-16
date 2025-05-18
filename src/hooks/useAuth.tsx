@@ -78,7 +78,9 @@ export const useAuth = () => {
       setUser(currentUser);
       
       if (currentUser) {
+        setIsLoggedIn(true);
         const userData = currentUser.user_metadata || {};
+        
         // Check for admin status by email
         const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@pokeayman.com', 'admin@example.com'];
         const isAdminEmail = adminEmails.includes(currentUser.email?.toLowerCase() || '');
