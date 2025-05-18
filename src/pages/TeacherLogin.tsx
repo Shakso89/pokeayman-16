@@ -59,7 +59,23 @@ const TeacherLogin = () => {
             
             if (error) {
               console.error("Admin Supabase login error:", error);
-              // Fall back to local auth if Supabase fails
+              // Try to sign up if login fails
+              const { error: signUpError } = await supabase.auth.signUp({
+                email: username,
+                password: password,
+                options: {
+                  data: {
+                    username: username === "ayman.soliman.cc@gmail.com" ? "Ayman" : "Admin",
+                    isAdmin: true,
+                    user_type: "teacher"
+                  }
+                }
+              });
+
+              if (signUpError) {
+                console.error("Admin signup error:", signUpError);
+                // Fall back to local auth if Supabase fails
+              }
             } else if (data.user) {
               toast({
                 title: "Success!",
@@ -102,12 +118,55 @@ const TeacherLogin = () => {
       
       // Sign in with Supabase Auth
       const { data, error } = await supabase.auth.signInWithPassword({
-        email: isEmail ? username : `${username}@placeholder.com`,
+        email: isEmail ? username : `${username}@pokeayman.com`,
         password,
       });
       
       if (error) {
-        throw error;
+        // If login fails, try to sign up if it's a teacher account
+        if (error.message.includes("Invalid login credentials")) {
+          try {
+            // Check if there's a matching user in the teachers table first
+            const { data: teacherData, error: teacherError } = await supabase
+              .from('teachers')
+              .select('*')
+              .or(`username.eq.${username}${isEmail ? `,email.eq.${username}` : ''}`)
+              .maybeSingle();
+              
+            if (!teacherError && teacherData) {
+              // Teacher exists in database but not in auth, create auth account
+              const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+                email: isEmail ? username : `${username}@pokeayman.com`,
+                password: password,
+                options: {
+                  data: {
+                    username: teacherData.username,
+                    display_name: teacherData.display_name,
+                    user_type: "teacher"
+                  }
+                }
+              });
+              
+              if (signUpError) {
+                throw signUpError;
+              }
+              
+              if (signUpData.user) {
+                toast({
+                  title: "Account created!",
+                  description: "Please check your email to verify your account.",
+                });
+                return;
+              }
+            } else {
+              throw error;
+            }
+          } catch (signupErr) {
+            throw error;
+          }
+        } else {
+          throw error;
+        }
       }
       
       if (data.user) {
@@ -119,7 +178,7 @@ const TeacherLogin = () => {
         
         toast({
           title: "Success!",
-          description: "Welcome back, Teacher!",
+          description: "Welcome back!",
         });
         
         // We're keeping these for backward compatibility

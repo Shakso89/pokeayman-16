@@ -19,12 +19,12 @@ export const useAuth = () => {
   useEffect(() => {
     // First set up the auth state change listener
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (event, newSession) => {
+      (event, newSession) => {
         console.log("Auth state changed:", event);
         
         if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
           if (newSession) {
-            await handleSession(newSession);
+            handleSession(newSession);
           }
         } else if (event === 'SIGNED_OUT') {
           clearAuthState();
@@ -84,44 +84,26 @@ export const useAuth = () => {
         const isAdminEmail = adminEmails.includes(currentUser.email?.toLowerCase() || '');
         const isAdminUser = isAdminEmail || userData.username === "Admin" || userData.username === "Ayman";
         
-        // Determine if this is a teacher or student account
-        // Try to find if this is a student account first
-        const { data: studentData } = await supabase
-          .from('students')
-          .select('*')
-          .eq('id', currentUser.id)
-          .maybeSingle();
-          
-        if (studentData) {
-          // This is a student account
-          setIsLoggedIn(true);
-          setUserType('student');
-          setUserId(currentUser.id);
-          setIsAdmin(false);
-          
-          // Update localStorage for compatibility with existing code
-          localStorage.setItem('isLoggedIn', 'true');
-          localStorage.setItem('userType', 'student');
-          localStorage.setItem('studentId', currentUser.id);
-          localStorage.setItem('studentDisplayName', studentData.display_name || studentData.username);
-          if (studentData.class_id) {
-            localStorage.setItem('studentClassId', studentData.class_id);
-          }
+        // Get user type from metadata or determine from database
+        const userTypeFromMeta = userData.user_type as UserType;
+        
+        if (userTypeFromMeta === 'student') {
+          // This is explicitly marked as a student account
+          setupStudentAuth(currentUser.id, userData);
         } else {
-          // Assume teacher account if not found as student
-          setIsLoggedIn(true);
-          setUserType('teacher');
-          setUserId(currentUser.id);
-          setIsAdmin(isAdminUser);
-          
-          // Update localStorage for compatibility with existing code
-          localStorage.setItem('isLoggedIn', 'true');
-          localStorage.setItem('userType', 'teacher');
-          localStorage.setItem('teacherId', currentUser.id);
-          localStorage.setItem('teacherUsername', userData.username || currentUser.email?.split('@')[0] || '');
-          
-          if (isAdminUser) {
-            localStorage.setItem('isAdmin', 'true');
+          // Try to find if this is a student account first if type not specified
+          const { data: studentData } = await supabase
+            .from('students')
+            .select('*')
+            .eq('id', currentUser.id)
+            .maybeSingle();
+            
+          if (studentData) {
+            // This is a student account
+            setupStudentAuth(currentUser.id, studentData);
+          } else {
+            // Assume teacher account if not found as student
+            setupTeacherAuth(currentUser.id, userData, isAdminUser);
           }
         }
       }
@@ -134,6 +116,41 @@ export const useAuth = () => {
         setUserType('teacher'); // Default to teacher if error
         setUserId(sessionUser.id);
       }
+    }
+  };
+  
+  // Helper to set up student authentication
+  const setupStudentAuth = (id: string, data: any) => {
+    setIsLoggedIn(true);
+    setUserType('student');
+    setUserId(id);
+    setIsAdmin(false);
+    
+    // Update localStorage for compatibility with existing code
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('userType', 'student');
+    localStorage.setItem('studentId', id);
+    localStorage.setItem('studentDisplayName', data.display_name || data.username || '');
+    if (data.class_id) {
+      localStorage.setItem('studentClassId', data.class_id);
+    }
+  };
+  
+  // Helper to set up teacher authentication
+  const setupTeacherAuth = (id: string, userData: any, isAdminUser: boolean) => {
+    setIsLoggedIn(true);
+    setUserType('teacher');
+    setUserId(id);
+    setIsAdmin(isAdminUser);
+    
+    // Update localStorage for compatibility with existing code
+    localStorage.setItem('isLoggedIn', 'true');
+    localStorage.setItem('userType', 'teacher');
+    localStorage.setItem('teacherId', id);
+    localStorage.setItem('teacherUsername', userData.username || userData.email?.split('@')[0] || '');
+    
+    if (isAdminUser) {
+      localStorage.setItem('isAdmin', 'true');
     }
   };
   

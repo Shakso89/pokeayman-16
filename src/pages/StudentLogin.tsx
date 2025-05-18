@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -70,20 +69,6 @@ const StudentLogin: React.FC = () => {
         localStorage.setItem('studentDisplayName', result.student.display_name || result.student.username);
         if (result.student.class_id) {
           localStorage.setItem('studentClassId', result.student.class_id);
-        }
-        
-        // Try to sign in with Supabase Auth
-        // For now, we'll use a generated email if none is provided
-        const generatedEmail = `${result.student.username}@pokeayman.com`;
-        
-        try {
-          await supabase.auth.signInWithPassword({
-            email: generatedEmail,
-            password: password
-          });
-        } catch (authError) {
-          console.error("Supabase auth error:", authError);
-          // Continue anyway since we're using local storage for now
         }
         
         toast({
