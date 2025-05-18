@@ -73,15 +73,15 @@ export const useAuth = () => {
   // Helper function to handle session data
   const handleSession = async (newSession: Session) => {
     try {
-      const newUser = newSession.user;
+      const currentUser = newSession.user;
       setSession(newSession);
-      setUser(newUser);
+      setUser(currentUser);
       
-      if (newUser) {
-        const userData = newUser.user_metadata || {};
+      if (currentUser) {
+        const userData = currentUser.user_metadata || {};
         // Check for admin status by email
         const adminEmails = ['ayman.soliman.cc@gmail.com', 'admin@pokeayman.com', 'admin@example.com'];
-        const isAdminEmail = adminEmails.includes(newUser.email?.toLowerCase() || '');
+        const isAdminEmail = adminEmails.includes(currentUser.email?.toLowerCase() || '');
         const isAdminUser = isAdminEmail || userData.username === "Admin" || userData.username === "Ayman";
         
         // Determine if this is a teacher or student account
@@ -89,20 +89,20 @@ export const useAuth = () => {
         const { data: studentData } = await supabase
           .from('students')
           .select('*')
-          .eq('id', newUser.id)
+          .eq('id', currentUser.id)
           .maybeSingle();
           
         if (studentData) {
           // This is a student account
           setIsLoggedIn(true);
           setUserType('student');
-          setUserId(newUser.id);
+          setUserId(currentUser.id);
           setIsAdmin(false);
           
           // Update localStorage for compatibility with existing code
           localStorage.setItem('isLoggedIn', 'true');
           localStorage.setItem('userType', 'student');
-          localStorage.setItem('studentId', newUser.id);
+          localStorage.setItem('studentId', currentUser.id);
           localStorage.setItem('studentDisplayName', studentData.display_name || studentData.username);
           if (studentData.class_id) {
             localStorage.setItem('studentClassId', studentData.class_id);
@@ -111,14 +111,14 @@ export const useAuth = () => {
           // Assume teacher account if not found as student
           setIsLoggedIn(true);
           setUserType('teacher');
-          setUserId(newUser.id);
+          setUserId(currentUser.id);
           setIsAdmin(isAdminUser);
           
           // Update localStorage for compatibility with existing code
           localStorage.setItem('isLoggedIn', 'true');
           localStorage.setItem('userType', 'teacher');
-          localStorage.setItem('teacherId', newUser.id);
-          localStorage.setItem('teacherUsername', userData.username || newUser.email?.split('@')[0] || '');
+          localStorage.setItem('teacherId', currentUser.id);
+          localStorage.setItem('teacherUsername', userData.username || currentUser.email?.split('@')[0] || '');
           
           if (isAdminUser) {
             localStorage.setItem('isAdmin', 'true');
@@ -128,10 +128,10 @@ export const useAuth = () => {
     } catch (error) {
       console.error("Error in handleSession:", error);
       // If there's an error, still try to process with available data
-      if (newUser) {
+      if (currentUser) {
         setIsLoggedIn(true);
         setUserType('teacher'); // Default to teacher if error
-        setUserId(newUser.id);
+        setUserId(currentUser.id);
       }
     }
   };
