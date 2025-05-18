@@ -63,7 +63,7 @@ const Index: React.FC = () => {
         <div className="flex justify-center mb-8">
           <img alt="Ash and Pikachu" style={{
           filter: "drop-shadow(0 0 20px rgba(255, 255, 0, 0.3))"
-        }} src="/lovable-uploads/be64cb1f-6989-4838-8064-d1a749d90ef8.png" className="h-auto max-w-full md:max-w-md lg:max-w-lg xl:max-w-xl object-scale-down" />
+        }} src="/lovable-uploads/be64cb1f-6989-4838-8064-d1a749d90ef8.png" className="h-auto max-w-full md:max-w-md lg:max-w-lg xl:max-w-xl object-none" />
         </div>
 
         {/* Pokémon image showcase */}
