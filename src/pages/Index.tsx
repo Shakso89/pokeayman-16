@@ -1,16 +1,13 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import Footer from "@/components/Footer";
-
 const Index: React.FC = () => {
   const navigate = useNavigate();
   const {
     t
   } = useTranslation();
-  
   return <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400">
       <div className="container mx-auto px-4 py-8">
         <div className="flex justify-center mb-12">
@@ -21,12 +18,7 @@ const Index: React.FC = () => {
         
         <div className="text-center mb-12">
           <div className="relative">
-            <img 
-              src="/lovable-uploads/b2b5bd4e-8f17-400c-96eb-6dfb65535e4e.png" 
-              alt="Colorful Pokeball" 
-              className="absolute right-0 md:right-20 top-0 w-24 md:w-36 lg:w-48 animate-pulse"
-              style={{ animationDuration: "4s", filter: "drop-shadow(0 0 15px rgba(255,255,255,0.5))" }}
-            />
+            
           </div>
           <p className="text-lg md:text-xl text-white max-w-3xl mx-auto mb-8">
             Turn everyday lessons into exciting adventures! Use Pokémon, challenges, and rewards to boost student motivation and make learning unforgettable. Join a new wave of gamified education.
@@ -69,12 +61,9 @@ const Index: React.FC = () => {
 
         {/* Ash and Pikachu hero image */}
         <div className="flex justify-center mb-8">
-          <img 
-            src="/lovable-uploads/bb965096-a2fc-4ca6-aaa5-c0ce74c9e2e8.png" 
-            alt="Ash and Pikachu" 
-            className="h-auto max-w-full md:max-w-md lg:max-w-lg xl:max-w-xl" 
-            style={{ filter: "drop-shadow(0 0 20px rgba(255, 255, 0, 0.3))" }}
-          />
+          <img src="/lovable-uploads/bb965096-a2fc-4ca6-aaa5-c0ce74c9e2e8.png" alt="Ash and Pikachu" className="h-auto max-w-full md:max-w-md lg:max-w-lg xl:max-w-xl" style={{
+          filter: "drop-shadow(0 0 20px rgba(255, 255, 0, 0.3))"
+        }} />
         </div>
 
         {/* Pokémon image showcase */}
@@ -94,5 +83,4 @@ const Index: React.FC = () => {
       <Footer />
     </div>;
 };
-
 export default Index;
