@@ -1,161 +1,230 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from '@/hooks/use-toast';
+
+// Types
+interface AuthUser {
+  id: string;
+  email?: string;
+  username?: string;
+}
+
+type UserType = 'teacher' | 'student' | null;
 
 interface AuthContextType {
   isLoggedIn: boolean;
   isAdmin: boolean;
-  user: any;
-  userType: 'teacher' | 'student' | null;
+  user: AuthUser | null;
+  userType: UserType;
   loading: boolean;
   refreshAuthState: () => Promise<void>;
   logout: () => Promise<boolean>;
 }
 
-export const AuthContext = createContext<AuthContextType | undefined>(undefined);
+const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-interface AuthProviderProps {
-  children: React.ReactNode;
-}
-
+// Custom hook to use auth context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {
     throw new Error('useAuth must be used within an AuthProvider');
   }
   return context;
+};
+
+interface AuthProviderProps {
+  children: React.ReactNode;
 }
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
+  // State
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
-  const [user, setUser] = useState<any>(null);
-  const [userType, setUserType] = useState<'teacher' | 'student' | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [userType, setUserType] = useState<UserType>(null);
   const [loading, setLoading] = useState(false);
   
+  // Check if email belongs to an admin
+  const isAdminEmail = (email?: string): boolean => {
+    if (!email) return false;
+    
+    const adminEmails = [
+      'ayman.soliman.tr@gmail.com',
+      'ayman.soliman.cc@gmail.com',
+      'admin@pokeayman.com',
+      'admin@example.com',
+    ];
+    
+    return adminEmails.includes(email.toLowerCase());
+  };
+  
+  // Check if username indicates admin status
+  const isAdminUsername = (username?: string): boolean => {
+    if (!username) return false;
+    return username === 'Admin' || username === 'Ayman';
+  };
+  
+  // Load auth state from localStorage (for quick UI response)
+  const loadFromLocalStorage = () => {
+    const localIsLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+    if (!localIsLoggedIn) return false;
+    
+    const localType = localStorage.getItem('userType') as UserType;
+    if (!localType) return false;
+    
+    const localUsername = localStorage.getItem('teacherUsername') || '';
+    const localEmail = localStorage.getItem('userEmail') || '';
+    const localIsAdmin = localStorage.getItem('isAdmin') === 'true';
+    
+    // Determine user ID based on type
+    const userId = localType === 'teacher'
+      ? localStorage.getItem('teacherId')
+      : localStorage.getItem('studentId');
+    
+    if (!userId) return false;
+    
+    // Create user object
+    const userData: AuthUser = {
+      id: userId,
+      username: localUsername || undefined,
+      email: localEmail || undefined
+    };
+    
+    // Set state from localStorage
+    setIsLoggedIn(true);
+    setUserType(localType);
+    setIsAdmin(localIsAdmin || isAdminEmail(localEmail) || isAdminUsername(localUsername));
+    setUser(userData);
+    
+    return true;
+  };
+  
+  // Clear authentication state
+  const clearAuthState = () => {
+    // Clear state
+    setIsLoggedIn(false);
+    setUserType(null);
+    setIsAdmin(false);
+    setUser(null);
+    
+    // Clear localStorage
+    localStorage.removeItem('isLoggedIn');
+    localStorage.removeItem('userType');
+    localStorage.removeItem('teacherId');
+    localStorage.removeItem('studentId');
+    localStorage.removeItem('teacherUsername');
+    localStorage.removeItem('studentDisplayName');
+    localStorage.removeItem('isAdmin');
+    localStorage.removeItem('studentClassId');
+    localStorage.removeItem('userEmail');
+    
+    console.info('Auth state cleared');
+  };
+  
+  // Refresh authentication state
   const refreshAuthState = async () => {
     try {
-      console.log("Refreshing auth state...");
+      console.log('Refreshing auth state...');
       setLoading(true);
       
-      // Start with localStorage values for immediate response
-      const localIsLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-      const localType = localStorage.getItem('userType') as 'teacher' | 'student' | null;
-      const localUsername = localStorage.getItem('teacherUsername') || '';
-      const localEmail = localStorage.getItem('userEmail')?.toLowerCase() || '';
+      // Start with localStorage for immediate response
+      loadFromLocalStorage();
       
-      // Set initial state from localStorage for fast UI response
-      if (localIsLoggedIn && localType) {
-        setIsLoggedIn(true);
-        setUserType(localType);
-        setIsAdmin(localStorage.getItem('isAdmin') === 'true');
-      }
-      
-      // Try to get session from Supabase (async, but won't block UI)
+      // Then check for Supabase session
       const { data: { session } } = await supabase.auth.getSession();
       
-      // Check for admin status from Supabase
-      const supabaseUser = session?.user;
-      const supabaseEmail = supabaseUser?.email?.toLowerCase();
-      
-      // Check for Ayman admin status
-      const isAymanAdmin =
-        localUsername === 'Ayman' ||
-        localUsername === 'Admin' ||
-        supabaseEmail === 'ayman.soliman.tr@gmail.com' ||
-        supabaseEmail === 'ayman.soliman.cc@gmail.com' ||
-        localEmail === 'ayman.soliman.tr@gmail.com' ||
-        localEmail === 'ayman.soliman.cc@gmail.com';
-      
-      // Set admin status
-      const adminStatus = isAymanAdmin || localStorage.getItem('isAdmin') === 'true';
-      
-      // If we have Supabase session, use that data
-      if (session) {
+      if (session?.user) {
+        const supabaseUser = session.user;
+        const supabaseEmail = supabaseUser.email?.toLowerCase();
+        
+        // Check for admin status
+        const adminStatus = 
+          isAdminEmail(supabaseEmail) || 
+          isAdminUsername(localStorage.getItem('teacherUsername') || '') ||
+          localStorage.getItem('isAdmin') === 'true';
+        
+        // Set state from Supabase session
         setIsLoggedIn(true);
-        setUser(session.user);
-        setUserType(localType || (localStorage.getItem('isAdmin') === 'true' ? 'teacher' : null));
+        setUser({
+          id: supabaseUser.id,
+          email: supabaseEmail
+        });
+        
+        // Default to teacher if admin, otherwise use localStorage type
+        setUserType(localStorage.getItem('userType') as UserType || (adminStatus ? 'teacher' : null));
         setIsAdmin(adminStatus);
         
-        // Save email to localStorage if from Supabase
+        // Save email to localStorage if not already there
         if (supabaseEmail && !localStorage.getItem('userEmail')) {
           localStorage.setItem('userEmail', supabaseEmail);
         }
-      } 
-      // Otherwise rely on localStorage values set above
+      }
       
-      console.info("Auth state refreshed:", {
+      console.info('Auth state refreshed:', {
         isLoggedIn,
         userType,
-        isAdmin: adminStatus
+        isAdmin
       });
-      
     } catch (error) {
-      console.error("Error refreshing auth state:", error);
+      console.error('Error refreshing auth state:', error);
     } finally {
-      // Always set loading to false quickly
       setLoading(false);
     }
   };
-
-  // Implement the logout function
+  
+  // Logout
   const logout = async (): Promise<boolean> => {
     try {
       setLoading(true);
       
-      // Sign out from Supabase if we have a session
+      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       
-      // Clear localStorage auth data
-      localStorage.removeItem('isLoggedIn');
-      localStorage.removeItem('userType');
-      localStorage.removeItem('teacherId');
-      localStorage.removeItem('studentId');
-      localStorage.removeItem('teacherUsername');
-      localStorage.removeItem('studentDisplayName');
-      localStorage.removeItem('isAdmin');
-      localStorage.removeItem('studentClassId');
-      localStorage.removeItem('userEmail');
+      // Clear local auth state
+      clearAuthState();
       
-      // Clear state
-      setIsLoggedIn(false);
-      setUserType(null);
-      setIsAdmin(false);
-      setUser(null);
+      toast({
+        title: 'Logged out successfully',
+        description: 'You have been logged out of your account.',
+      });
       
-      console.info("User logged out successfully");
       return true;
-    } catch (error) {
-      console.error("Error during logout:", error);
+    } catch (error: any) {
+      console.error('Error during logout:', error);
+      
+      toast({
+        title: 'Logout failed',
+        description: error.message || 'An error occurred during logout',
+        variant: 'destructive',
+      });
+      
       return false;
     } finally {
       setLoading(false);
     }
   };
-
+  
   // Setup auth on initial render
   useEffect(() => {
-    // Don't start in loading state
-    setLoading(false);
-    
     // Initial auth check without blocking
     refreshAuthState();
-
+    
     // Setup Supabase auth subscription
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      async (_event, session) => {
-        console.info("Auth state changed:", _event);
-        // Don't set loading to true here - avoid blocking UI
+      async (event) => {
+        console.info('Auth state changed:', event);
         await refreshAuthState();
       }
     );
-
+    
     // Unsubscribe on cleanup
     return () => {
       subscription?.unsubscribe();
     };
   }, []);
-
+  
   const value = {
     isLoggedIn,
     isAdmin,
@@ -165,6 +234,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     refreshAuthState,
     logout
   };
-
+  
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };
