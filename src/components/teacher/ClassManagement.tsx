@@ -9,7 +9,8 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { ChevronLeft, Plus, User, Users, School, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { saveClass, deleteClass, ClassData } from "@/utils/pokemon/classManagement";
+import { saveClass, deleteClass } from "@/utils/pokemon/index";
+import { ClassData } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
 import {
   AlertDialog,
