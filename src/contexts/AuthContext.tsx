@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -133,6 +132,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         // Admin check by email and username
         const adminEmails = [
           "ayman.soliman.cc@gmail.com",
+          "ayman.soliman.tr@gmail.com",
           "admin@pokeayman.com",
           "admin@example.com",
         ];

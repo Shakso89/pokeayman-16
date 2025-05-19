@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from './use-toast';
@@ -88,6 +87,7 @@ export const useAuth = () => {
         // Admin check by email and username
         const adminEmails = [
           "ayman.soliman.cc@gmail.com",
+          "ayman.soliman.tr@gmail.com",
           "admin@pokeayman.com",
           "admin@example.com",
         ];

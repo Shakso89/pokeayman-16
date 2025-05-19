@@ -9,6 +9,7 @@ import { useAuth } from "@/contexts/AuthContext";
 
 const ADMIN_EMAILS = [
   "ayman.soliman.cc@gmail.com",
+  "ayman.soliman.tr@gmail.com",
   "admin@pokeayman.com",
   "admin@example.com"
 ];
