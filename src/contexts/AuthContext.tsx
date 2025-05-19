@@ -32,10 +32,17 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<any>(null);
   const [userType, setUserType] = useState<'teacher' | 'student' | null>(null);
   const [loading, setLoading] = useState(true);
+  const [authCheckTimeout, setAuthCheckTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const refreshAuthState = async () => {
     try {
       setLoading(true);
+      console.log("Refreshing auth state...");
+      
+      // Clear any existing timeout to prevent race conditions
+      if (authCheckTimeout) {
+        clearTimeout(authCheckTimeout);
+      }
       
       // Try to get session from Supabase
       const { data: { session } } = await supabase.auth.getSession();
@@ -95,6 +102,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error("Error refreshing auth state:", error);
     } finally {
       setLoading(false);
+      
+      // Set a timeout to force show the login form after 5 seconds if still loading
+      const timeout = setTimeout(() => {
+        if (loading) {
+          console.log("Auth check timeout reached, forcing loading to false");
+          setLoading(false);
+        }
+      }, 5000);
+      
+      setAuthCheckTimeout(timeout);
     }
   };
 
@@ -136,6 +153,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Setup Supabase auth subscription
   useEffect(() => {
+    // Set a timeout to force show the login form after 5 seconds if still loading
+    const timeout = setTimeout(() => {
+      if (loading) {
+        console.log("Initial auth check timeout reached, forcing loading to false");
+        setLoading(false);
+      }
+    }, 5000);
+    
+    setAuthCheckTimeout(timeout);
+
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         console.info("Auth state changed:", _event);
@@ -149,6 +176,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     // Unsubscribe on cleanup
     return () => {
       subscription?.unsubscribe();
+      if (authCheckTimeout) {
+        clearTimeout(authCheckTimeout);
+      }
     };
   }, []);
 

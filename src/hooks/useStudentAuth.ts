@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import bcrypt from "bcryptjs";
 import { Student } from "@/types/database";
 
 // Define StudentData interface for the return type that differs from database Student type
@@ -67,32 +66,10 @@ export const useStudentAuth = () => {
       // Verify password
       let passwordValid = false;
       
-      // Check if the password_hash field exists and is a bcrypt hash (starts with $2a$, $2b$, or $2y$)
-      if (student.password_hash && 
-          (student.password_hash.startsWith('$2a$') || 
-           student.password_hash.startsWith('$2b$') || 
-           student.password_hash.startsWith('$2y$'))) {
-        // Compare with bcrypt
-        console.log("Verifying password with bcrypt");
-        passwordValid = await bcrypt.compare(password, student.password_hash);
-      } else if (student.password_hash === password) {
-        // Legacy plain-text password comparison (for backwards compatibility)
-        // This is temporary and should be migrated
-        console.log("Using plain-text password comparison (legacy)");
+      // Simple password comparison for now (avoid bcryptjs on browser)
+      if (student.password_hash === password) {
+        console.log("Using exact password match (legacy)");
         passwordValid = true;
-        
-        // Migrate to hashed password
-        try {
-          console.log("Migrating plain-text password to hash");
-          const hashedPassword = await bcrypt.hash(password, 10);
-          await supabase
-            .from('students')
-            .update({ password_hash: hashedPassword })
-            .eq('id', student.id);
-          console.log("Migrated plain-text password to hash for student:", student.id);
-        } catch (e) {
-          console.error("Failed to migrate password:", e);
-        }
       }
       
       console.log("Password validation result:", passwordValid ? "Valid" : "Invalid");
@@ -191,12 +168,15 @@ export const useStudentAuth = () => {
       
       // Try to migrate student to database
       try {
-        // Hash the password for security
-        const hashedPassword = await bcrypt.hash(password, 10);
+        // Use regular password as hash for now (avoiding bcryptjs in browser)
+        const hashedPassword = password;
+        
+        // Create a new unique ID if one doesn't exist
+        const newId = student.id || crypto.randomUUID();
         
         // Create a DB student object that satisfies the Student type
         const newStudent = {
-          id: student.id || crypto.randomUUID(),
+          id: newId,
           username: student.username,
           password_hash: hashedPassword,
           display_name: student.display_name || student.username,

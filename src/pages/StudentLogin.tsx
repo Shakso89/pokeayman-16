@@ -9,6 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { useStudentAuth } from "@/hooks/useStudentAuth";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
 
 const StudentLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -20,6 +21,20 @@ const StudentLogin: React.FC = () => {
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
+  const [showLoading, setShowLoading] = useState(true);
+
+  // Add a timeout to handle potential stuck loading states
+  useEffect(() => {
+    if (authLoading) {
+      const timer = setTimeout(() => {
+        setShowLoading(false);
+      }, 3000); // Show form after 3 seconds even if loading is still true
+      
+      return () => clearTimeout(timer);
+    } else {
+      setShowLoading(false);
+    }
+  }, [authLoading]);
 
   // Auto-redirect if already logged in
   useEffect(() => {
@@ -80,7 +95,7 @@ const StudentLogin: React.FC = () => {
     }
   };
 
-  if (authLoading) {
+  if (authLoading && showLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-400 to-purple-600 p-4">
         <div className="bg-white/80 backdrop-blur-sm p-8 rounded-lg shadow-xl">
@@ -115,49 +130,57 @@ const StudentLogin: React.FC = () => {
           <CardDescription>Enter your login details to continue</CardDescription>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div className="space-y-2">
-              <label htmlFor="usernameOrEmail" className="text-sm font-medium">
-                Username
-              </label>
-              <Input
-                id="usernameOrEmail"
-                value={usernameOrEmail}
-                onChange={(e) => setUsernameOrEmail(e.target.value)}
-                placeholder="Enter your username"
-                disabled={isProcessing || studentAuthLoading}
-              />
+          {authLoading && !showLoading ? (
+            <div className="space-y-4">
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
+              <Skeleton className="h-10 w-full" />
             </div>
+          ) : (
+            <form onSubmit={handleLogin} className="space-y-4">
+              <div className="space-y-2">
+                <label htmlFor="usernameOrEmail" className="text-sm font-medium">
+                  Username
+                </label>
+                <Input
+                  id="usernameOrEmail"
+                  value={usernameOrEmail}
+                  onChange={(e) => setUsernameOrEmail(e.target.value)}
+                  placeholder="Enter your username"
+                  disabled={isProcessing || studentAuthLoading}
+                />
+              </div>
 
-            <div className="space-y-2">
-              <label htmlFor="password" className="text-sm font-medium">
-                Password
-              </label>
-              <Input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="Enter your password"
+              <div className="space-y-2">
+                <label htmlFor="password" className="text-sm font-medium">
+                  Password
+                </label>
+                <Input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Enter your password"
+                  disabled={isProcessing || studentAuthLoading}
+                />
+              </div>
+
+              <Button
+                type="submit"
+                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                 disabled={isProcessing || studentAuthLoading}
-              />
-            </div>
-
-            <Button
-              type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              disabled={isProcessing || studentAuthLoading}
-            >
-              {isProcessing || studentAuthLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Logging in...
-                </>
-              ) : (
-                "Login"
-              )}
-            </Button>
-          </form>
+              >
+                {isProcessing || studentAuthLoading ? (
+                  <>
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    Logging in...
+                  </>
+                ) : (
+                  "Login"
+                )}
+              </Button>
+            </form>
+          )}
         </CardContent>
         <CardFooter className="flex justify-center">
           <Button
