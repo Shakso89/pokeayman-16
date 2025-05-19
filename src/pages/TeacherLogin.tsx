@@ -53,35 +53,37 @@ const TeacherLogin = () => {
 
     try {
       console.log("Attempting login with:", username);
-      // Enhanced special handling for Ayman email or username
-      const isAymanEmail = username.toLowerCase() === "ayman.soliman.tr@gmail.com";
-      const isAymanUsername = username.toLowerCase() === "ayman";
       
-      if (isAymanEmail || isAymanUsername) {
-        // If using email, set username to "Ayman"
-        if (isAymanEmail) {
-          username = "Ayman";
-        }
+      // Special handling for admin users
+      const isAymanEmail = username.toLowerCase() === "ayman.soliman.tr@gmail.com" || 
+                           username.toLowerCase() === "ayman.soliman.cc@gmail.com";
+      const isAymanUsername = username.toLowerCase() === "ayman";
+      const isAdminUsername = username.toLowerCase() === "admin";
+      
+      // Admin login flow - avoid using bcryptjs
+      if (isAymanEmail || isAymanUsername || isAdminUsername) {
+        const validAdminPassword = password === "AymanPassword" || password === "AdminAyman";
         
-        // Special admin login for "Ayman" or "ayman.soliman.tr@gmail.com"
-        if (password === "AymanPassword" || password === "AdminAyman") {
+        if (validAdminPassword) {
+          const displayUsername = isAymanEmail ? "Ayman" : username;
+          
           localStorage.setItem("userType", "teacher");
           localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("teacherUsername", "Ayman");
+          localStorage.setItem("teacherUsername", displayUsername);
           localStorage.setItem("isAdmin", "true");
-          localStorage.setItem("userEmail", "ayman.soliman.tr@gmail.com");
-          localStorage.setItem("teacherId", `admin-Ayman-${Date.now()}`);
+          localStorage.setItem("userEmail", isAymanEmail ? username : `${username.toLowerCase()}@pokeayman.com`);
+          localStorage.setItem("teacherId", `admin-${displayUsername}-${Date.now()}`);
 
           // Refresh the auth state to pick up localStorage changes
           await refreshAuthState();
           
-          toast({ title: "Success!", description: `Welcome back, Ayman!` });
+          toast({ title: "Success!", description: `Welcome back, ${displayUsername}!` });
           navigate("/admin-dashboard");
           return;
         }
       }
       
-      // Normal dev admin login handling
+      // Regular dev admin login handling
       const isDevAdminLogin =
         import.meta.env.MODE === "development" &&
         (ADMIN_USERNAMES.includes(username) || ADMIN_EMAILS.includes(username.toLowerCase())) &&
@@ -106,10 +108,11 @@ const TeacherLogin = () => {
         return;
       }
 
+      // Standard flow for non-admin users (using Supabase auth)
       const isEmail = username.includes("@");
       const email = isEmail ? username : `${username}@pokeayman.com`;
 
-      // Attempt login
+      // Attempt login with Supabase
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password
@@ -118,54 +121,27 @@ const TeacherLogin = () => {
       console.log("Supabase login result:", { data, error });
 
       if (error) {
-        // Special handling for ayman.soliman.tr@gmail.com or Ayman username
-        if ((username.toLowerCase() === "ayman.soliman.tr@gmail.com" || username.toLowerCase() === "ayman") && 
-            (password === "AymanPassword" || password === "AdminAyman")) {
+        // For backward compatibility - try to find teacher in local storage
+        const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+        const teacher = teachers.find((t: any) => 
+          t.username === username || t.email === username
+        );
+        
+        if (teacher && teacher.password === password) {
+          // Use localStorage for now but try to migrate to Supabase auth
           localStorage.setItem("userType", "teacher");
           localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("teacherUsername", "Ayman");
-          localStorage.setItem("isAdmin", "true");
-          localStorage.setItem("userEmail", "ayman.soliman.tr@gmail.com");
-          localStorage.setItem("teacherId", `admin-Ayman-${Date.now()}`);
+          localStorage.setItem("teacherUsername", teacher.username || "");
+          localStorage.setItem("isAdmin", teacher.isAdmin ? "true" : "false");
+          localStorage.setItem("teacherId", teacher.id);
           
           await refreshAuthState();
           
-          toast({ title: "Success!", description: "Welcome back, Ayman!" });
-          navigate("/admin-dashboard");
+          toast({ title: "Success!", description: "Welcome back!" });
+          navigate(teacher.isAdmin ? "/admin-dashboard" : "/teacher-dashboard");
           return;
         }
         
-        // Check if teacher exists in DB to attempt auto sign-up
-        if (error.message.includes("Invalid login credentials")) {
-          const { data: teacherData, error: fetchError } = await supabase
-            .from("teachers")
-            .select("*")
-            .or(`username.eq.${username}${isEmail ? `,email.eq.${username}` : ""}`)
-            .maybeSingle();
-
-          if (teacherData && !fetchError) {
-            const { error: signUpError } = await supabase.auth.signUp({
-              email,
-              password,
-              options: {
-                data: {
-                  username: teacherData.username,
-                  display_name: teacherData.display_name,
-                  user_type: "teacher"
-                }
-              }
-            });
-
-            if (!signUpError) {
-              toast({
-                title: "Account created!",
-                description: "Please check your email to verify your account."
-              });
-              return;
-            }
-          }
-        }
-
         throw error;
       }
 
@@ -178,6 +154,11 @@ const TeacherLogin = () => {
     } catch (err: any) {
       console.error("Login error:", err);
       setError(err.message || "Login failed");
+      toast({
+        title: "Login failed",
+        description: err.message || "Invalid username or password",
+        variant: "destructive",
+      });
     } finally {
       setLoginInProgress(false);
     }
