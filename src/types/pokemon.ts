@@ -1,3 +1,4 @@
+
 export interface Pokemon {
   id: string;
   name: string;
@@ -23,6 +24,18 @@ export interface School {
   id: string;
   name: string;
   teacherId: string;
+  createdAt: string;
+}
+
+export interface ClassData {
+  id: string;
+  name: string;
+  description?: string;
+  schoolId: string;
+  teacherId: string;
+  students: string[];
+  isPublic: boolean;
+  likes: string[];
   createdAt: string;
 }
 

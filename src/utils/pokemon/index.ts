@@ -40,11 +40,12 @@ export { samplePokemons } from './sampleData';
 
 // Export class management functions
 export {
-  classExists,
   saveClass,
-  getClassesBySchoolId,
-  deleteClass
+  deleteClass,
+  getClassById,
+  classExists,
+  getClassesBySchoolId
 } from './classManagement';
 
-// Properly export types using 'export type'
-export type { ClassData } from './classManagement';
+// Export types from Pokemon
+export type { ClassData } from '@/types/pokemon';

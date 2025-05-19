@@ -91,7 +91,7 @@ export const saveClass = async (classData: Omit<ClassData, "id"> | ClassData): P
         toast({
           title: "Warning",
           description: "Failed to save class to database. It's saved locally only.",
-          variant: "warning",
+          variant: "destructive",
         });
         
         return newClass;
@@ -139,7 +139,7 @@ export const deleteClass = async (classId: string): Promise<boolean> => {
         toast({
           title: "Warning",
           description: "Failed to delete class from database. It's deleted locally only.",
-          variant: "warning",
+          variant: "destructive",
         });
         
         return true;
@@ -203,5 +203,50 @@ export const getClassById = async (classId: string): Promise<ClassData | null> =
     }
     
     return null;
+  }
+};
+
+// Check if a class exists
+export const classExists = async (classId: string): Promise<boolean> => {
+  const classData = await getClassById(classId);
+  return classData !== null;
+};
+
+// Get classes by school ID
+export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('classes')
+      .select('*')
+      .eq('school_id', schoolId);
+      
+    if (error) throw error;
+    
+    return data.map(item => ({
+      id: item.id,
+      name: item.name,
+      description: item.description || "",
+      schoolId: item.school_id,
+      teacherId: item.teacher_id,
+      students: item.students || [],
+      isPublic: item.is_public !== false,
+      likes: item.likes || [],
+      createdAt: item.created_at
+    }));
+  } catch (error) {
+    console.error("Error getting classes by school ID:", error);
+    
+    // Fallback to localStorage
+    try {
+      const savedClasses = localStorage.getItem("classes");
+      if (savedClasses) {
+        const parsedClasses = JSON.parse(savedClasses);
+        return parsedClasses.filter((cls: ClassData) => cls.schoolId === schoolId);
+      }
+    } catch (localError) {
+      console.error("Error getting classes from localStorage:", localError);
+    }
+    
+    return [];
   }
 };
