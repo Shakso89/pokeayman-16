@@ -51,22 +51,28 @@ const TeacherLogin = () => {
     setError("");
 
     try {
+      // Special handling for Ayman email with username "Ayman"
+      const isAymanEmail = username.toLowerCase() === "ayman.soliman.tr@gmail.com";
+      if (isAymanEmail) {
+        username = "Ayman";
+      }
+      
       const isDevAdminLogin =
         import.meta.env.MODE === "development" &&
-        ADMIN_USERNAMES.includes(username) &&
+        (ADMIN_USERNAMES.includes(username) || ADMIN_EMAILS.includes(username.toLowerCase())) &&
         (password === "AdminAyman" || password === "AymanPassword");
 
       if (isDevAdminLogin) {
         localStorage.setItem("userType", "teacher");
         localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("teacherUsername", username);
+        localStorage.setItem("teacherUsername", username === "ayman.soliman.tr@gmail.com" ? "Ayman" : username);
         localStorage.setItem("isAdmin", "true");
         localStorage.setItem("teacherId", `admin-${username}-${Date.now()}`);
 
         // Refresh the auth state to pick up localStorage changes
         await refreshAuthState();
         
-        toast({ title: "Success!", description: `Welcome back, ${username}` });
+        toast({ title: "Success!", description: `Welcome back, ${username === "ayman.soliman.tr@gmail.com" ? "Ayman" : username}` });
         navigate("/admin-dashboard");
         return;
       }
@@ -81,6 +87,21 @@ const TeacherLogin = () => {
       });
 
       if (error) {
+        // Special handling for ayman.soliman.tr@gmail.com
+        if (username.toLowerCase() === "ayman.soliman.tr@gmail.com" && password === "AymanPassword") {
+          localStorage.setItem("userType", "teacher");
+          localStorage.setItem("isLoggedIn", "true");
+          localStorage.setItem("teacherUsername", "Ayman");
+          localStorage.setItem("isAdmin", "true");
+          localStorage.setItem("teacherId", `admin-Ayman-${Date.now()}`);
+          
+          await refreshAuthState();
+          
+          toast({ title: "Success!", description: "Welcome back, Ayman!" });
+          navigate("/admin-dashboard");
+          return;
+        }
+        
         // Check if teacher exists in DB to attempt auto sign-up
         if (error.message.includes("Invalid login credentials")) {
           const { data: teacherData, error: fetchError } = await supabase

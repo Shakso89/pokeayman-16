@@ -11,6 +11,7 @@ import StudentsTab from "@/components/admin/StudentsTab";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Type for student data
 interface StudentData {
@@ -31,11 +32,7 @@ const AdminDashboard: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const { t } = useTranslation();
   const navigate = useNavigate();
-
-  // Check if current user is Admin
-  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-  const username = localStorage.getItem("teacherUsername") || "";
-  const isAdmin = username === "Admin" || username === "Ayman";
+  const { isLoggedIn, user, isAdmin } = useAuth();
 
   // Function to refresh the dashboard data from Supabase
   const refreshData = async () => {
@@ -170,14 +167,28 @@ const AdminDashboard: React.FC = () => {
     }
   }, [isLoggedIn, isAdmin]);
 
-  // Redirect if not admin with username "Admin" or "Ayman"
-  if (!isLoggedIn || !isAdmin) {
+  // Redirect if not admin
+  if (!isLoggedIn) {
     return <Navigate to="/teacher-login" />;
+  }
+
+  // Special handling for ayman.soliman.tr@gmail.com to ensure they always have access
+  const userEmail = user?.email?.toLowerCase();
+  const isAymanEmail = userEmail === "ayman.soliman.tr@gmail.com" || 
+                       userEmail === "ayman.soliman.cc@gmail.com";
+  
+  if (!isAdmin && !isAymanEmail) {
+    toast({
+      title: "Access Denied",
+      description: "You don't have permission to access the admin dashboard.",
+      variant: "destructive"
+    });
+    return <Navigate to="/teacher-dashboard" />;
   }
 
   return (
     <div className="min-h-screen bg-gray-100">
-      <NavBar userType="teacher" userName="Admin" />
+      <NavBar userType="teacher" userName={isAymanEmail ? "Ayman" : "Admin"} />
       
       <div className="container mx-auto py-8 px-4">
         <AdminHeader />
