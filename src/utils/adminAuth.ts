@@ -39,25 +39,30 @@ export const isValidAdminPassword = (password: string): boolean => {
 
 /**
  * Special handling for specific admin emails
+ * This function has been improved to ensure special case emails never get stuck
  */
-export const isAymanEmail = (username: string): boolean => 
-  username.toLowerCase() === "ayman.soliman.tr@gmail.com" || 
-  username.toLowerCase() === "ayman.soliman.cc@gmail.com";
+export const isAymanEmail = (email?: string): boolean => {
+  if (!email) return false;
+  return email.toLowerCase() === "ayman.soliman.tr@gmail.com" || 
+         email.toLowerCase() === "ayman.soliman.cc@gmail.com";
+};
 
 /**
  * Check if username is Ayman
  */
 export const isAymanUsername = (username: string): boolean => 
-  username.toLowerCase() === "ayman";
+  username && username.toLowerCase() === "ayman";
 
 /**
  * Check for development admin login bypasses
+ * With improved handling for special admin cases
  */
 export const checkDevAdminLogin = (username: string, password: string): boolean => {
   // Special case for Ayman's email
-  if (username.toLowerCase() === "ayman.soliman.tr@gmail.com" && 
-      (password === "AdminAyman" || password === "AymanPassword")) {
-    return true;
+  if (username.toLowerCase() === "ayman.soliman.tr@gmail.com" || 
+      username.toLowerCase() === "ayman" ||
+      username.toLowerCase() === "ayman.soliman.cc@gmail.com") {
+    return password === "AdminAyman" || password === "AymanPassword";
   }
   
   // General admin credential check
@@ -74,6 +79,7 @@ export const checkDevAdminLogin = (username: string, password: string): boolean 
 
 /**
  * Process admin login for both student and teacher login flows
+ * Enhanced for reliable authentication of special admin accounts
  */
 export const processAdminLogin = (username: string): {
   displayName: string;
@@ -84,11 +90,17 @@ export const processAdminLogin = (username: string): {
   let displayName = "Admin";
   let email = username.includes("@") ? username.toLowerCase() : `${username.toLowerCase()}@pokeayman.com`;
   
-  // Special case for Ayman
+  // Special case for Ayman with reliable email assignment
   if (username.toLowerCase() === "ayman" || 
       username.toLowerCase().includes("ayman.soliman")) {
     displayName = "Ayman";
-    if (!username.includes("@")) {
+    
+    // Ensure consistent email for Ayman accounts
+    if (username.toLowerCase() === "ayman.soliman.tr@gmail.com") {
+      email = "ayman.soliman.tr@gmail.com";
+    } else if (username.toLowerCase() === "ayman.soliman.cc@gmail.com") {
+      email = "ayman.soliman.cc@gmail.com";
+    } else if (!username.includes("@")) {
       email = "ayman.soliman.tr@gmail.com";
     }
   }
