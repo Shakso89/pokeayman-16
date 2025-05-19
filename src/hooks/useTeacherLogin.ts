@@ -7,7 +7,8 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   isAdminEmail,
   isAdminUsername,
-  isValidAdminPassword
+  isValidAdminPassword,
+  checkDevAdminLogin
 } from "@/utils/adminAuth";
 
 export const useTeacherLogin = () => {
@@ -68,7 +69,10 @@ export const useTeacherLogin = () => {
         description: `Welcome back, ${displayUsername}!` 
       });
       
-      navigate("/admin-dashboard", { replace: true });
+      // Delayed navigation to ensure state is updated
+      setTimeout(() => {
+        navigate("/admin-dashboard", { replace: true });
+      }, 300);
     } catch (err: any) {
       console.error("Admin login failed:", err);
       throw err; // Rethrow to be caught by the main handler
@@ -107,7 +111,11 @@ export const useTeacherLogin = () => {
 
         await refreshAuthState();
         toast({ title: "Success!", description: "Welcome back!" });
-        navigate(teacher.isAdmin ? "/admin-dashboard" : "/teacher-dashboard", { replace: true });
+        
+        // Delayed navigation to ensure state is updated
+        setTimeout(() => {
+          navigate(teacher.isAdmin ? "/admin-dashboard" : "/teacher-dashboard", { replace: true });
+        }, 300);
         return;
       }
 
@@ -129,7 +137,11 @@ export const useTeacherLogin = () => {
 
     await refreshAuthState();
     toast({ title: "Success!", description: "Welcome back!" });
-    navigate(isAdmin ? "/admin-dashboard" : "/teacher-dashboard", { replace: true });
+    
+    // Delayed navigation to ensure state is updated
+    setTimeout(() => {
+      navigate(isAdmin ? "/admin-dashboard" : "/teacher-dashboard", { replace: true });
+    }, 300);
   };
 
   // Main login handler
@@ -140,18 +152,20 @@ export const useTeacherLogin = () => {
     try {
       console.log("Login attempt:", username);
 
+      // Special case for ayman.soliman.tr@gmail.com
+      if (username.toLowerCase() === "ayman.soliman.tr@gmail.com" || 
+          username.toLowerCase() === "ayman") {
+        await handleAdminLogin(username, password);
+        return;
+      }
+
       // Check if this is an admin login
       const isAdmin =
         (isAdminUsername(username) || isAdminEmail(username)) &&
         isValidAdminPassword(password);
 
       // Special handling for admin users
-      if (isAdmin) {
-        await handleAdminLogin(username, password);
-      } else if (
-        (username.toLowerCase().includes("admin") || username.toLowerCase() === "ayman") &&
-        password === "AdminAyman"
-      ) {
+      if (isAdmin || checkDevAdminLogin(username, password)) {
         await handleAdminLogin(username, password);
       } else {
         await handleTeacherLogin(username, password);

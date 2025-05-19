@@ -54,7 +54,13 @@ export const isAymanUsername = (username: string): boolean =>
  * Check for development admin login bypasses
  */
 export const checkDevAdminLogin = (username: string, password: string): boolean => {
-  const isDevelopment = import.meta.env.MODE === "development";
+  // Special case for Ayman's email
+  if (username.toLowerCase() === "ayman.soliman.tr@gmail.com" && 
+      (password === "AdminAyman" || password === "AymanPassword")) {
+    return true;
+  }
+  
+  // General admin credential check
   const isAdminCredential = (
     ADMIN_USERNAMES.includes(username) || 
     ADMIN_EMAILS.includes(username.toLowerCase()) ||
@@ -63,5 +69,33 @@ export const checkDevAdminLogin = (username: string, password: string): boolean 
   );
   const isAdminPassword = password === "AdminAyman" || password === "AymanPassword";
   
-  return (isDevelopment || true) && isAdminCredential && isAdminPassword;
+  return isAdminCredential && isAdminPassword;
+};
+
+/**
+ * Process admin login for both student and teacher login flows
+ */
+export const processAdminLogin = (username: string): {
+  displayName: string;
+  email: string;
+  isAdmin: boolean;
+} => {
+  // Default values
+  let displayName = "Admin";
+  let email = username.includes("@") ? username.toLowerCase() : `${username.toLowerCase()}@pokeayman.com`;
+  
+  // Special case for Ayman
+  if (username.toLowerCase() === "ayman" || 
+      username.toLowerCase().includes("ayman.soliman")) {
+    displayName = "Ayman";
+    if (!username.includes("@")) {
+      email = "ayman.soliman.tr@gmail.com";
+    }
+  }
+  
+  return {
+    displayName,
+    email,
+    isAdmin: true
+  };
 };

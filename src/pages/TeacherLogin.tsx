@@ -10,7 +10,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle, Loader2 } from "lucide-react";
 
 const TeacherLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -41,6 +42,20 @@ const TeacherLogin: React.FC = () => {
 
     const checkSession = async () => {
       try {
+        // Fast check from localStorage first
+        const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+        const userType = localStorage.getItem("userType");
+        
+        if (isLoggedIn && userType === "teacher") {
+          const isAdmin = localStorage.getItem("isAdmin") === "true";
+          if (isAdmin) {
+            navigate("/admin-dashboard", { replace: true });
+          } else {
+            navigate("/teacher-dashboard", { replace: true });
+          }
+          return;
+        }
+        
         // Get session from Supabase
         const { data: { session }, error } = await supabase.auth.getSession();
 
@@ -88,9 +103,19 @@ const TeacherLogin: React.FC = () => {
       }
     };
 
-    // Use a timeout for the initial check to ensure UI renders first
+    // Set a timeout to ensure we don't get stuck in loading state
     const timer = setTimeout(() => {
       checkSession();
+      
+      // Add a fallback timeout in case the session check takes too long
+      const fallbackTimer = setTimeout(() => {
+        if (isMounted && checkingSession) {
+          console.log("Session check timeout reached, showing login form");
+          setCheckingSession(false);
+        }
+      }, 5000); // 5 second max wait time
+      
+      return () => clearTimeout(fallbackTimer);
     }, 1000);
     
     setSessionCheckTimeout(timer);
@@ -105,27 +130,32 @@ const TeacherLogin: React.FC = () => {
     };
   }, [navigate]);
 
-  // Already logged in check from localStorage (fast path)
-  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-  const userType = localStorage.getItem("userType");
-
   // Show loading state
   if (checkingSession) {
-    return <AuthLoading title="Teacher Login" />;
-  }
-
-  // If already logged in, redirect to appropriate dashboard
-  if (isLoggedIn && userType === "teacher") {
-    const isAdmin = localStorage.getItem("isAdmin") === "true";
-    return <Navigate to={isAdmin ? "/admin-dashboard" : "/teacher-dashboard"} replace />;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 flex flex-col items-center justify-center p-4">
+        <img
+          src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png"
+          alt="PokéAyman Logo"
+          className="h-24 w-auto mb-6"
+          style={{ filter: "drop-shadow(0 0 8px rgba(255,255,255,0.7))" }}
+        />
+        <div className="bg-white/80 backdrop-blur-sm p-8 rounded-lg shadow-xl flex flex-col items-center">
+          <Loader2 className="h-10 w-10 animate-spin text-blue-600 mb-4" />
+          <h2 className="text-xl font-semibold text-center">Checking login status...</h2>
+          <p className="text-gray-500 mt-2 text-center">Please wait a moment</p>
+        </div>
+      </div>
+    );
   }
 
   return (
     <AuthLayout title="Teacher Login">
       {sessionError && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4" role="alert">
-          <p>{sessionError}</p>
-        </div>
+        <Alert variant="destructive" className="mb-4">
+          <AlertCircle className="h-4 w-4" />
+          <AlertDescription>{sessionError}</AlertDescription>
+        </Alert>
       )}
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-2">
@@ -154,7 +184,14 @@ const TeacherLogin: React.FC = () => {
         {error && <p className="text-sm text-red-500">{error}</p>}
 
         <Button type="submit" className="w-full" disabled={loginInProgress}>
-          {loginInProgress ? "Signing in..." : "Sign in"}
+          {loginInProgress ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Signing in...
+            </>
+          ) : (
+            "Sign in"
+          )}
         </Button>
 
         <div className="text-center mt-4">

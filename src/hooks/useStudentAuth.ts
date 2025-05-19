@@ -28,18 +28,32 @@ export const useStudentAuth = () => {
   const loginStudent = async (username: string, password: string): Promise<LoginResult> => {
     setIsLoading(true);
     
+    // Create a timeout promise to prevent infinite waiting
+    const timeoutPromise = new Promise<LoginResult>((_, reject) => {
+      setTimeout(() => {
+        reject(new Error("Login request timed out. Please try again."));
+      }, 10000); // 10 second timeout
+    });
+    
     try {
       console.log("Attempting to login student with username:", username);
       
-      // First try database login
-      const result = await tryDatabaseLogin(username, password);
+      // Race between actual login and timeout
+      const result = await Promise.race([
+        tryDatabaseLogin(username, password),
+        timeoutPromise
+      ]);
+      
       if (result.success) {
         return result;
       }
       
       // If database login fails, try legacy login
       console.log("Student not found in database, trying legacy login");
-      return await legacyLoginStudent(username, password);
+      return await Promise.race([
+        legacyLoginStudent(username, password),
+        timeoutPromise
+      ]);
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
@@ -127,12 +141,7 @@ export const useStudentAuth = () => {
       
       if (!student) {
         console.log("Student not found in localStorage");
-        toast({
-          title: "Login Failed",
-          description: "Invalid username or password",
-          variant: "destructive",
-        });
-        return { success: false, student: null, message: "Invalid credentials" };
+        throw new Error("Invalid username or password");
       }
       
       console.log("Student found in localStorage, migrating to database");
