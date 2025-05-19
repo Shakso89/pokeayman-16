@@ -51,7 +51,7 @@ const TeacherLogin = () => {
     setError("");
 
     try {
-      // Enhanced special handling for Ayman email
+      // Enhanced special handling for Ayman email or username
       const isAymanEmail = username.toLowerCase() === "ayman.soliman.tr@gmail.com";
       const isAymanUsername = username.toLowerCase() === "ayman";
       
@@ -67,6 +67,7 @@ const TeacherLogin = () => {
           localStorage.setItem("isLoggedIn", "true");
           localStorage.setItem("teacherUsername", "Ayman");
           localStorage.setItem("isAdmin", "true");
+          localStorage.setItem("userEmail", "ayman.soliman.tr@gmail.com");
           localStorage.setItem("teacherId", `admin-Ayman-${Date.now()}`);
 
           // Refresh the auth state to pick up localStorage changes
@@ -85,16 +86,20 @@ const TeacherLogin = () => {
         (password === "AdminAyman" || password === "AymanPassword");
 
       if (isDevAdminLogin) {
+        // Set username to "Ayman" if using email
+        const displayUsername = username.includes("@") ? "Ayman" : username;
+        
         localStorage.setItem("userType", "teacher");
         localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("teacherUsername", username === "ayman.soliman.tr@gmail.com" ? "Ayman" : username);
+        localStorage.setItem("teacherUsername", displayUsername);
         localStorage.setItem("isAdmin", "true");
+        localStorage.setItem("userEmail", username.includes("@") ? username.toLowerCase() : `${username.toLowerCase()}@pokeayman.com`);
         localStorage.setItem("teacherId", `admin-${username}-${Date.now()}`);
 
         // Refresh the auth state to pick up localStorage changes
         await refreshAuthState();
         
-        toast({ title: "Success!", description: `Welcome back, ${username === "ayman.soliman.tr@gmail.com" ? "Ayman" : username}` });
+        toast({ title: "Success!", description: `Welcome back, ${displayUsername}` });
         navigate("/admin-dashboard");
         return;
       }
@@ -109,12 +114,14 @@ const TeacherLogin = () => {
       });
 
       if (error) {
-        // Special handling for ayman.soliman.tr@gmail.com
-        if (username.toLowerCase() === "ayman.soliman.tr@gmail.com" && password === "AymanPassword") {
+        // Special handling for ayman.soliman.tr@gmail.com or Ayman username
+        if ((username.toLowerCase() === "ayman.soliman.tr@gmail.com" || username.toLowerCase() === "ayman") && 
+            (password === "AymanPassword" || password === "AdminAyman")) {
           localStorage.setItem("userType", "teacher");
           localStorage.setItem("isLoggedIn", "true");
           localStorage.setItem("teacherUsername", "Ayman");
           localStorage.setItem("isAdmin", "true");
+          localStorage.setItem("userEmail", "ayman.soliman.tr@gmail.com");
           localStorage.setItem("teacherId", `admin-Ayman-${Date.now()}`);
           
           await refreshAuthState();

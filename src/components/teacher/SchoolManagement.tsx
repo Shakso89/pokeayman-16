@@ -17,8 +17,8 @@ interface SchoolManagementProps {
   teacherId: string;
 }
 
-// Predefined school names
-const PREDEFINED_SCHOOLS = ["Daya", "Betuin", "Tanzi", "Dali", "Renmei", "New School"];
+// Update: Renamed "New School" to "Other School" and added Renmai
+const PREDEFINED_SCHOOLS = ["Daya", "Betuin", "Tanzi", "Dali", "Renmai", "Other School"];
 
 const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSchool, teacherId }) => {
   const [schools, setSchools] = useState<School[]>([]);
@@ -86,8 +86,17 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
         throw error;
       }
       
-      // If admin and no schools exist, create predefined schools
-      if (isAdminUser && (!schoolsData || schoolsData.length === 0)) {
+      // If admin and no schools exist, or predefined schools are missing, create predefined schools
+      if (schoolsData) {
+        const existingSchoolNames = schoolsData.map(school => school.name);
+        const missingSchools = PREDEFINED_SCHOOLS.filter(name => !existingSchoolNames.includes(name));
+        
+        if (missingSchools.length > 0) {
+          console.log("Creating missing schools:", missingSchools);
+          await createMissingSchools(missingSchools);
+          return; // loadSchools will be called again by the subscription
+        }
+      } else if (!schoolsData || schoolsData.length === 0) {
         await createPredefinedSchools();
         return; // loadSchools will be called again by the subscription
       }
@@ -108,6 +117,39 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  // Create missing schools
+  const createMissingSchools = async (missingSchools: string[]) => {
+    try {
+      for (const schoolName of missingSchools) {
+        const schoolId = crypto.randomUUID();
+        
+        // Create school in Supabase
+        await supabase
+          .from('schools')
+          .insert({
+            id: schoolId,
+            name: schoolName,
+            created_by: teacherId,
+            created_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          });
+          
+        // Initialize Pokemon pool for the new school
+        initializeSchoolPokemonPool(schoolId);
+      }
+      
+      // Load schools again after creating missing ones
+      loadSchools();
+    } catch (error) {
+      console.error("Error creating missing schools:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create missing schools.",
+        variant: "destructive",
+      });
     }
   };
   
@@ -536,7 +578,8 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
                       </div>
                     </CardHeader>
                     <CardContent>
-                      {school.name === "New School" && (
+                      {/* Show alert for "Other School" indicating to contact admin */}
+                      {school.name === "Other School" && (
                         <Alert className="mb-3 bg-amber-50">
                           <AlertDescription>
                             {t("contact-admin-after-creating-classes")}

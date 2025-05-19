@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -174,8 +175,13 @@ const AdminDashboard: React.FC = () => {
   // Special handling for specified admin accounts to ensure they always have access
   const userEmail = user?.email?.toLowerCase();
   const username = localStorage.getItem("teacherUsername") || "";
+  const storedEmail = localStorage.getItem("userEmail")?.toLowerCase() || "";
+  
   const isAymanEmail = userEmail === "ayman.soliman.tr@gmail.com" || 
-                       userEmail === "ayman.soliman.cc@gmail.com";
+                       userEmail === "ayman.soliman.cc@gmail.com" ||
+                       storedEmail === "ayman.soliman.tr@gmail.com" ||
+                       storedEmail === "ayman.soliman.cc@gmail.com";
+                       
   const isAymanUsername = username === "Ayman" || username === "Admin";
   
   if (!isAdmin && !isAymanEmail && !isAymanUsername) {
