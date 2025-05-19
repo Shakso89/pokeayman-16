@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -15,23 +16,25 @@ export const useTeacherLogin = () => {
   const [error, setError] = useState("");
   const [loginInProgress, setLoginInProgress] = useState(false);
 
+  // Handle admin login flow
   const handleAdminLogin = async (username: string, password: string) => {
-    const email = username.includes("@") ? username : `${username.toLowerCase()}@pokeayman.com`;
-    const displayUsername = username.includes("ayman") || username === "Ayman" ? "Ayman" : "Admin";
-
-    // Set localStorage
-    localStorage.setItem("userType", "teacher");
-    localStorage.setItem("isLoggedIn", "true");
-    localStorage.setItem("teacherUsername", displayUsername);
-    localStorage.setItem("isAdmin", "true");
-    localStorage.setItem("userEmail", email);
-    localStorage.setItem("teacherId", `admin-${displayUsername}-${Date.now()}`);
-
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+      const email = username.includes("@") ? username.toLowerCase() : `${username.toLowerCase()}@pokeayman.com`;
+      const displayUsername = username.includes("ayman") || username === "Ayman" ? "Ayman" : "Admin";
 
-      if (error && isAdminEmail(email)) {
-        const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+      console.log(`Admin login attempt for: ${email}`);
+
+      // Try to sign in with Supabase first
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({ 
+        email, 
+        password 
+      });
+
+      // If sign in fails, try to sign up (for development convenience)
+      if (signInError) {
+        console.log("Admin signin failed, attempting signup:", signInError.message);
+        
+        const { error: signUpError } = await supabase.auth.signUp({
           email,
           password,
           options: {
@@ -44,26 +47,40 @@ export const useTeacherLogin = () => {
         });
 
         if (signUpError) {
-          console.warn("Supabase admin signup failed:", signUpError.message);
-        } else {
-          console.log("Admin signed up:", signUpData?.user?.id);
+          console.error("Admin signup also failed:", signUpError.message);
+          throw new Error(signUpError.message);
         }
-      } else {
-        console.log("Admin signed in:", data?.user?.id);
       }
-    } catch (err) {
-      console.warn("Supabase admin auth fallback:", err);
-    }
 
-    await refreshAuthState();
-    toast({ title: "Success!", description: `Welcome back, ${displayUsername}!` });
-    navigate("/admin-dashboard", { replace: true });
+      // Set localStorage values
+      localStorage.setItem("userType", "teacher");
+      localStorage.setItem("isLoggedIn", "true");
+      localStorage.setItem("teacherUsername", displayUsername);
+      localStorage.setItem("isAdmin", "true");
+      localStorage.setItem("userEmail", email);
+      localStorage.setItem("teacherId", data?.user?.id || `admin-${displayUsername}-${Date.now()}`);
+
+      // Refresh auth state to update context
+      await refreshAuthState();
+
+      toast({ 
+        title: "Success!", 
+        description: `Welcome back, ${displayUsername}!` 
+      });
+      
+      navigate("/admin-dashboard", { replace: true });
+    } catch (err: any) {
+      console.error("Admin login failed:", err);
+      throw err; // Rethrow to be caught by the main handler
+    }
   };
 
+  // Handle teacher login flow
   const handleTeacherLogin = async (username: string, password: string) => {
     const isEmail = username.includes("@");
-    const email = isEmail ? username : `${username}@placeholder.com`;
+    const email = isEmail ? username.toLowerCase() : `${username.toLowerCase()}@placeholder.com`;
 
+    // Try to authenticate with Supabase
     const { data, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -74,9 +91,12 @@ export const useTeacherLogin = () => {
         throw new Error("Please verify your email address before logging in.");
       }
 
-      // Try local fallback
+      // Local fallback for development
       const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-      const teacher = teachers.find((t: any) => t.username === username || t.email === username);
+      const teacher = teachers.find((t: any) => 
+        t.username.toLowerCase() === username.toLowerCase() || 
+        t.email?.toLowerCase() === username.toLowerCase()
+      );
 
       if (teacher && teacher.password === password) {
         localStorage.setItem("userType", "teacher");
@@ -94,11 +114,12 @@ export const useTeacherLogin = () => {
       throw authError;
     }
 
-    // If authenticated through Supabase
-    const userEmail = data.user?.email || "";
+    // Authentication successful via Supabase
+    const userEmail = data.user?.email?.toLowerCase() || "";
     const isAdmin = isAdminEmail(userEmail);
     const usernameFromMetadata = data.user?.user_metadata?.username || "";
 
+    // Set localStorage values
     localStorage.setItem("userType", "teacher");
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("teacherUsername", usernameFromMetadata || username);
@@ -111,6 +132,7 @@ export const useTeacherLogin = () => {
     navigate(isAdmin ? "/admin-dashboard" : "/teacher-dashboard", { replace: true });
   };
 
+  // Main login handler
   const handleLogin = async (username: string, password: string) => {
     setLoginInProgress(true);
     setError("");
@@ -118,10 +140,12 @@ export const useTeacherLogin = () => {
     try {
       console.log("Login attempt:", username);
 
+      // Check if this is an admin login
       const isAdmin =
         (isAdminUsername(username) || isAdminEmail(username)) &&
         isValidAdminPassword(password);
 
+      // Special handling for admin users
       if (isAdmin) {
         await handleAdminLogin(username, password);
       } else if (
