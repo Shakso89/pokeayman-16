@@ -8,7 +8,7 @@ import PokemonOrbit from "@/components/PokemonOrbit";
 import { toast } from "@/hooks/use-toast";
 import { useStudentAuth } from "@/hooks/useStudentAuth";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
 const StudentLogin: React.FC = () => {
@@ -22,19 +22,29 @@ const StudentLogin: React.FC = () => {
   const [password, setPassword] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [showLoading, setShowLoading] = useState(true);
+  const [forceShowForm, setForceShowForm] = useState(false);
 
   // Add a timeout to handle potential stuck loading states
   useEffect(() => {
     if (authLoading) {
       const timer = setTimeout(() => {
         setShowLoading(false);
-      }, 3000); // Show form after 3 seconds even if loading is still true
+      }, 2000); // Show form after 2 seconds even if loading is still true
       
       return () => clearTimeout(timer);
     } else {
       setShowLoading(false);
     }
   }, [authLoading]);
+
+  // After 5 seconds, force show the form regardless of state
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setForceShowForm(true);
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   // Auto-redirect if already logged in
   useEffect(() => {
@@ -95,7 +105,7 @@ const StudentLogin: React.FC = () => {
     }
   };
 
-  if (authLoading && showLoading) {
+  if (authLoading && showLoading && !forceShowForm) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-400 to-purple-600 p-4">
         <div className="bg-white/80 backdrop-blur-sm p-8 rounded-lg shadow-xl">
@@ -130,7 +140,7 @@ const StudentLogin: React.FC = () => {
           <CardDescription>Enter your login details to continue</CardDescription>
         </CardHeader>
         <CardContent>
-          {authLoading && !showLoading ? (
+          {authLoading && !showLoading && !forceShowForm ? (
             <div className="space-y-4">
               <Skeleton className="h-10 w-full" />
               <Skeleton className="h-10 w-full" />
@@ -179,6 +189,21 @@ const StudentLogin: React.FC = () => {
                   "Login"
                 )}
               </Button>
+              
+              {authLoading && (
+                <div className="mt-4 text-center flex justify-center items-center space-x-2">
+                  <RefreshCw className="h-4 w-4 animate-spin text-gray-500" />
+                  <span className="text-sm text-gray-500">Still checking login status...</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm"
+                    onClick={() => setForceShowForm(true)}
+                    className="h-auto p-0 text-blue-500"
+                  >
+                    Refresh
+                  </Button>
+                </div>
+              )}
             </form>
           )}
         </CardContent>

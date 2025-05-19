@@ -1,4 +1,3 @@
-
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -33,6 +32,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [userType, setUserType] = useState<'teacher' | 'student' | null>(null);
   const [loading, setLoading] = useState(true);
   const [authCheckTimeout, setAuthCheckTimeout] = useState<NodeJS.Timeout | null>(null);
+  const [initializationComplete, setInitializationComplete] = useState(false);
 
   const refreshAuthState = async () => {
     try {
@@ -102,14 +102,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       console.error("Error refreshing auth state:", error);
     } finally {
       setLoading(false);
+      setInitializationComplete(true);
       
-      // Set a timeout to force show the login form after 5 seconds if still loading
+      // Set a timeout to force show the login form after 3 seconds if still loading
       const timeout = setTimeout(() => {
-        if (loading) {
-          console.log("Auth check timeout reached, forcing loading to false");
-          setLoading(false);
-        }
-      }, 5000);
+        setLoading(false);
+      }, 3000);
       
       setAuthCheckTimeout(timeout);
     }
@@ -153,13 +151,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Setup Supabase auth subscription
   useEffect(() => {
-    // Set a timeout to force show the login form after 5 seconds if still loading
+    // Set a timeout to force show the login form after 3 seconds if still loading
     const timeout = setTimeout(() => {
       if (loading) {
         console.log("Initial auth check timeout reached, forcing loading to false");
         setLoading(false);
       }
-    }, 5000);
+    }, 3000);
     
     setAuthCheckTimeout(timeout);
 
