@@ -18,6 +18,67 @@ export const useTeacherLogin = () => {
   const [error, setError] = useState("");
   const [loginInProgress, setLoginInProgress] = useState(false);
 
+  const handleAdminLogin = async (username: string, displayUsername: string) => {
+    localStorage.setItem("userType", "teacher");
+    localStorage.setItem("isLoggedIn", "true");
+    localStorage.setItem("teacherUsername", displayUsername);
+    localStorage.setItem("isAdmin", "true");
+    localStorage.setItem("userEmail", isAymanEmail(username) ? username : `${username.toLowerCase()}@pokeayman.com`);
+    localStorage.setItem("teacherId", `admin-${displayUsername}-${Date.now()}`);
+
+    // Refresh the auth state to pick up localStorage changes
+    await refreshAuthState();
+    
+    toast({ title: "Success!", description: `Welcome back, ${displayUsername}!` });
+    navigate("/admin-dashboard");
+  };
+
+  const handleTeacherLogin = async (username: string, password: string) => {
+    // Check if input is email (contains @)
+    const isEmail = username.includes('@');
+    const email = isEmail ? username : `${username}@placeholder.com`;
+    
+    // Try Supabase auth first
+    const { data, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password
+    });
+
+    if (authError) {
+      // Check for email verification error
+      if (authError.message?.includes("Email not confirmed")) {
+        throw new Error("Please verify your email address before logging in. Check your inbox for a verification link.");
+      }
+      
+      // Try legacy login (localStorage)
+      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+      const teacher = teachers.find((t: any) => 
+        t.username === username || t.email === username
+      );
+      
+      if (teacher && teacher.password === password) {
+        // Use localStorage for now but try to migrate to Supabase auth
+        localStorage.setItem("userType", "teacher");
+        localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("teacherUsername", teacher.username || "");
+        localStorage.setItem("isAdmin", teacher.isAdmin ? "true" : "false");
+        localStorage.setItem("teacherId", teacher.id);
+        
+        await refreshAuthState();
+        
+        toast({ title: "Success!", description: "Welcome back!" });
+        navigate(teacher.isAdmin ? "/admin-dashboard" : "/teacher-dashboard");
+        return;
+      }
+      
+      throw authError;
+    }
+
+    // Auth state will be updated automatically via onAuthStateChange
+    await refreshAuthState();
+    toast({ title: "Success!", description: "Welcome back!" });
+  };
+
   const handleLogin = async (username: string, password: string) => {
     setLoginInProgress(true);
     setError("");
@@ -29,87 +90,20 @@ export const useTeacherLogin = () => {
       if (isAymanEmail(username) || isAymanUsername(username) || isAdminUsername(username)) {
         if (isValidAdminPassword(password)) {
           const displayUsername = isAymanEmail(username) ? "Ayman" : username;
-          
-          localStorage.setItem("userType", "teacher");
-          localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("teacherUsername", displayUsername);
-          localStorage.setItem("isAdmin", "true");
-          localStorage.setItem("userEmail", isAymanEmail(username) ? username : `${username.toLowerCase()}@pokeayman.com`);
-          localStorage.setItem("teacherId", `admin-${displayUsername}-${Date.now()}`);
-
-          // Refresh the auth state to pick up localStorage changes
-          await refreshAuthState();
-          
-          toast({ title: "Success!", description: `Welcome back, ${displayUsername}!` });
-          navigate("/admin-dashboard");
+          await handleAdminLogin(username, displayUsername);
           return;
         }
       }
       
       // Dev admin login handling
       if (checkDevAdminLogin(username, password)) {
-        // Set username to "Ayman" if using email
         const displayUsername = username.includes("@") ? "Ayman" : username;
-        
-        localStorage.setItem("userType", "teacher");
-        localStorage.setItem("isLoggedIn", "true");
-        localStorage.setItem("teacherUsername", displayUsername);
-        localStorage.setItem("isAdmin", "true");
-        localStorage.setItem("userEmail", username.includes("@") ? 
-                              username.toLowerCase() : 
-                              `${username.toLowerCase()}@pokeayman.com`);
-        localStorage.setItem("teacherId", `admin-${username}-${Date.now()}`);
-
-        // Refresh the auth state to pick up localStorage changes
-        await refreshAuthState();
-        
-        toast({ title: "Success!", description: `Welcome back, ${displayUsername}` });
-        navigate("/admin-dashboard");
+        await handleAdminLogin(username, displayUsername);
         return;
       }
 
-      // Standard flow for non-admin users (using Supabase auth)
-      const isEmail = username.includes("@");
-      const email = isEmail ? username : `${username}@pokeayman.com`;
-
-      // Attempt login with Supabase
-      const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password
-      });
-
-      console.log("Supabase login result:", { data, error });
-
-      if (error) {
-        // For backward compatibility - try to find teacher in local storage
-        const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-        const teacher = teachers.find((t: any) => 
-          t.username === username || t.email === username
-        );
-        
-        if (teacher && teacher.password === password) {
-          // Use localStorage for now but try to migrate to Supabase auth
-          localStorage.setItem("userType", "teacher");
-          localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("teacherUsername", teacher.username || "");
-          localStorage.setItem("isAdmin", teacher.isAdmin ? "true" : "false");
-          localStorage.setItem("teacherId", teacher.id);
-          
-          await refreshAuthState();
-          
-          toast({ title: "Success!", description: "Welcome back!" });
-          navigate(teacher.isAdmin ? "/admin-dashboard" : "/teacher-dashboard");
-          return;
-        }
-        
-        throw error;
-      }
-
-      // Auth state will be updated automatically via onAuthStateChange
-      // but we can also manually refresh if needed
-      await refreshAuthState();
-
-      toast({ title: "Success!", description: "Welcome back!" });
+      // Standard teacher login flow
+      await handleTeacherLogin(username, password);
       
     } catch (err: any) {
       console.error("Login error:", err);
