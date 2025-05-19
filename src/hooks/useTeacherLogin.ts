@@ -4,44 +4,20 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-
-// Admin emails that should always have admin access
-const ADMIN_EMAILS = [
-  "ayman.soliman.tr@gmail.com",
-  "ayman.soliman.cc@gmail.com",
-  "admin@pokeayman.com",
-  "admin@example.com"
-];
-
-// Admin usernames that should always have admin access
-const ADMIN_USERNAMES = ["Admin", "Ayman"];
-
-// Passwords that grant admin access
-const ADMIN_PASSWORDS = ["AdminAyman", "AymanPassword"];
+import { 
+  ADMIN_EMAILS, 
+  ADMIN_USERNAMES, 
+  ADMIN_PASSWORDS,
+  isAdminEmail, 
+  isAdminUsername,
+  isValidAdminPassword 
+} from "@/utils/adminAuth";
 
 export const useTeacherLogin = () => {
   const navigate = useNavigate();
   const { refreshAuthState } = useAuth();
   const [error, setError] = useState("");
   const [loginInProgress, setLoginInProgress] = useState(false);
-
-  const isAdminUser = (username: string): boolean => {
-    // Check if username is an admin email
-    if (ADMIN_EMAILS.includes(username.toLowerCase())) {
-      return true;
-    }
-    
-    // Check if username is an admin username
-    if (ADMIN_USERNAMES.includes(username)) {
-      return true;
-    }
-    
-    return false;
-  };
-
-  const isAdminPassword = (password: string): boolean => {
-    return ADMIN_PASSWORDS.includes(password);
-  };
 
   const handleAdminLogin = async (username: string, password: string) => {
     console.log("Processing admin login:", username);
@@ -69,8 +45,28 @@ export const useTeacherLogin = () => {
         });
         
         if (error) {
-          // For admin users, we'll continue even if Supabase auth fails
-          console.warn("Supabase auth failed for admin, using local auth:", error.message);
+          // For admin emails, try to sign up if login fails
+          if (isAdminEmail(username)) {
+            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+              email: username,
+              password: password,
+              options: {
+                data: {
+                  username: displayUsername,
+                  user_type: "teacher",
+                  is_admin: true
+                }
+              }
+            });
+            
+            if (signUpError) {
+              console.warn("Supabase admin signup failed:", signUpError.message);
+            } else {
+              console.log("Admin account created or confirmed with Supabase:", signUpData?.user?.id);
+            }
+          } else {
+            console.warn("Supabase auth failed for admin, using local auth:", error.message);
+          }
         } else {
           console.log("Admin authenticated with Supabase:", data.user?.id);
         }
@@ -132,7 +128,7 @@ export const useTeacherLogin = () => {
     await refreshAuthState();
     
     // Extra check for admin status based on email
-    if (data.user?.email && ADMIN_EMAILS.includes(data.user.email.toLowerCase())) {
+    if (data.user?.email && isAdminEmail(data.user.email)) {
       localStorage.setItem("isAdmin", "true");
       localStorage.setItem("teacherUsername", "Ayman");
       await refreshAuthState();
@@ -151,19 +147,21 @@ export const useTeacherLogin = () => {
     try {
       console.log("Attempting login with:", username);
       
+      // Special admin email cases - handle them first and explicitly
+      if (username === "ayman.soliman.tr@gmail.com" || username === "ayman.soliman.cc@gmail.com") {
+        if (isValidAdminPassword(password)) {
+          await handleAdminLogin(username, password);
+          return;
+        }
+      }
+      
       // Handle admin login cases
-      if (isAdminUser(username) && isAdminPassword(password)) {
+      if ((isAdminUsername(username) || isAdminEmail(username)) && isValidAdminPassword(password)) {
         await handleAdminLogin(username, password);
         return;
       }
       
-      // Special case for Ayman email with admin password
-      if (username.toLowerCase() === "ayman.soliman.tr@gmail.com" && isAdminPassword(password)) {
-        await handleAdminLogin(username, password);
-        return;
-      }
-      
-      // Special case: any username with "admin" and password "AdminAyman" for development
+      // Special case for any username with "admin" and password "AdminAyman" for development
       if ((username.toLowerCase().includes("admin") || username.toLowerCase() === "ayman") && 
           password === "AdminAyman") {
         await handleAdminLogin(username, password);

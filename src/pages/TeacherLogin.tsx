@@ -7,6 +7,8 @@ import { useTeacherLogin } from "@/hooks/useTeacherLogin";
 import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { isAdminEmail } from "@/utils/adminAuth";
+import AuthLoading from "@/components/auth/AuthLoading";
 
 const TeacherLogin = () => {
   const navigate = useNavigate();
@@ -16,26 +18,43 @@ const TeacherLogin = () => {
   
   // Check if user is already logged in
   useEffect(() => {
+    let isMounted = true;
+    
     const checkSession = async () => {
       try {
         // Check Supabase session
         const { data, error } = await supabase.auth.getSession();
+        
+        if (!isMounted) return;
         
         if (error) {
           console.error("Session check error:", error);
           setSessionError("Error checking your login status");
         } else if (data.session) {
           // User is already logged in, redirect to dashboard
-          const isAdmin = localStorage.getItem("isAdmin") === "true" || 
-                         ["Ayman", "Admin"].includes(localStorage.getItem("teacherUsername") || "");
+          const email = data.session.user?.email?.toLowerCase();
+          const isAdmin = email ? isAdminEmail(email) : false;
+          const localAdmin = localStorage.getItem("isAdmin") === "true" || 
+                           ["Ayman", "Admin"].includes(localStorage.getItem("teacherUsername") || "");
           
-          navigate(isAdmin ? "/admin-dashboard" : "/teacher-dashboard");
+          // If email is admin or localStorage says it's admin, redirect to admin dashboard
+          if (isAdmin || localAdmin) {
+            if (isAdmin && !localAdmin) {
+              // Ensure localStorage is updated for admin emails
+              localStorage.setItem("isAdmin", "true");
+            }
+            navigate("/admin-dashboard");
+          } else {
+            navigate("/teacher-dashboard");
+          }
           return;
         }
         
-        // Also check localStorage as fallback
+        // Fallback to localStorage check
         const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
         const userType = localStorage.getItem("userType");
+        
+        if (!isMounted) return;
         
         if (isLoggedIn && userType === "teacher") {
           const isAdmin = localStorage.getItem("isAdmin") === "true" || 
@@ -44,25 +63,30 @@ const TeacherLogin = () => {
           navigate(isAdmin ? "/admin-dashboard" : "/teacher-dashboard");
           return;
         }
+        
+        setCheckingSession(false);
       } catch (err) {
         console.error("Error checking session:", err);
-      } finally {
-        setCheckingSession(false);
+        if (isMounted) {
+          setCheckingSession(false);
+          setSessionError("Failed to check login status");
+        }
       }
     };
     
-    checkSession();
+    // Small timeout to avoid flickering
+    const timer = setTimeout(() => {
+      checkSession();
+    }, 500);
+    
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
   }, [navigate]);
   
   if (checkingSession) {
-    return (
-      <AuthLayout title="Checking Login...">
-        <div className="flex flex-col items-center justify-center p-8">
-          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-4" />
-          <p className="text-gray-500">Checking your login status...</p>
-        </div>
-      </AuthLayout>
-    );
+    return <AuthLoading title="Checking Login..." />;
   }
   
   return (
