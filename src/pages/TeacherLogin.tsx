@@ -1,32 +1,14 @@
 
-import React, { useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { AuthLayout } from "@/components/AuthLayout";
 import { LoginForm } from "@/components/LoginForm";
-import { useAuth } from "@/contexts/AuthContext";
 import { useTeacherLogin } from "@/hooks/useTeacherLogin";
 
 const TeacherLogin = () => {
   const navigate = useNavigate();
-  const { isLoggedIn, isAdmin, userType } = useAuth();
   const { error, loginInProgress, handleLogin } = useTeacherLogin();
-
-  // Simple redirection effect when already logged in
-  useEffect(() => {
-    if (isLoggedIn) {
-      const redirect = sessionStorage.getItem("redirectAfterLogin");
-      sessionStorage.removeItem("redirectAfterLogin");
-
-      if (userType === "student") {
-        navigate("/student-dashboard");
-      } else if (isAdmin) {
-        navigate(redirect || "/admin-dashboard");
-      } else {
-        navigate(redirect || "/teacher-dashboard");
-      }
-    }
-  }, [isLoggedIn, isAdmin, userType, navigate]);
-
+  
   return (
     <AuthLayout title="Teacher Login">
       <div className="flex justify-center mb-8">

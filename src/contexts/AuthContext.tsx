@@ -30,25 +30,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [user, setUser] = useState<any>(null);
   const [userType, setUserType] = useState<'teacher' | 'student' | null>(null);
-  const [loading, setLoading] = useState(false); // Start with loading false
+  const [loading, setLoading] = useState(false);
   
   const refreshAuthState = async () => {
     try {
       console.log("Refreshing auth state...");
       setLoading(true);
       
-      // Try to get session from Supabase
+      // Start with localStorage values for immediate response
+      const localIsLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
+      const localType = localStorage.getItem('userType') as 'teacher' | 'student' | null;
+      const localUsername = localStorage.getItem('teacherUsername') || '';
+      const localEmail = localStorage.getItem('userEmail')?.toLowerCase() || '';
+      
+      // Set initial state from localStorage for fast UI response
+      if (localIsLoggedIn && localType) {
+        setIsLoggedIn(true);
+        setUserType(localType);
+        setIsAdmin(localStorage.getItem('isAdmin') === 'true');
+      }
+      
+      // Try to get session from Supabase (async, but won't block UI)
       const { data: { session } } = await supabase.auth.getSession();
       
       // Check for admin status from Supabase
       const supabaseUser = session?.user;
       const supabaseEmail = supabaseUser?.email?.toLowerCase();
-      
-      // Get localStorage values as fallback
-      const localIsLoggedIn = localStorage.getItem('isLoggedIn') === 'true';
-      const localType = localStorage.getItem('userType') as 'teacher' | 'student' | null;
-      const localUsername = localStorage.getItem('teacherUsername') || '';
-      const localEmail = localStorage.getItem('userEmail')?.toLowerCase() || '';
       
       // Check for Ayman admin status
       const isAymanAdmin =
@@ -74,28 +81,19 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           localStorage.setItem('userEmail', supabaseEmail);
         }
       } 
-      // Otherwise use localStorage 
-      else if (localIsLoggedIn) {
-        setIsLoggedIn(true);
-        setUserType(localType);
-        setIsAdmin(adminStatus);
-      } else {
-        setIsLoggedIn(false);
-        setUserType(null);
-        setIsAdmin(false);
-      }
+      // Otherwise rely on localStorage values set above
       
       console.info("Auth state refreshed:", {
-        isLoggedIn: isLoggedIn || localIsLoggedIn,
-        userType: userType || localType,
+        isLoggedIn,
+        userType,
         isAdmin: adminStatus
       });
       
     } catch (error) {
       console.error("Error refreshing auth state:", error);
     } finally {
-      // Always set loading to false after a maximum of 1 second
-      setTimeout(() => setLoading(false), 1000);
+      // Always set loading to false quickly
+      setLoading(false);
     }
   };
 
@@ -135,27 +133,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  // Setup Supabase auth subscription
+  // Setup auth on initial render
   useEffect(() => {
-    // Set a short timeout to minimize blocking the UI
-    const timeout = setTimeout(() => {
-      setLoading(false);
-    }, 1000);
+    // Don't start in loading state
+    setLoading(false);
+    
+    // Initial auth check without blocking
+    refreshAuthState();
 
+    // Setup Supabase auth subscription
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
         console.info("Auth state changed:", _event);
+        // Don't set loading to true here - avoid blocking UI
         await refreshAuthState();
       }
     );
 
-    // Get initial session state, but don't block rendering
-    refreshAuthState();
-
     // Unsubscribe on cleanup
     return () => {
       subscription?.unsubscribe();
-      clearTimeout(timeout);
     };
   }, []);
 

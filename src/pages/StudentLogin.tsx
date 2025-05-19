@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,31 +7,15 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import PokemonOrbit from "@/components/PokemonOrbit";
 import { toast } from "@/hooks/use-toast";
 import { useStudentAuth } from "@/hooks/useStudentAuth";
-import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
 const StudentLogin: React.FC = () => {
   const navigate = useNavigate();
   const { isLoading: studentAuthLoading, loginStudent } = useStudentAuth();
-  const { isLoggedIn, userType } = useAuth();
 
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-
-  // Simple redirection effect when already logged in
-  useEffect(() => {
-    if (isLoggedIn) {
-      const redirect = sessionStorage.getItem("redirectAfterLogin");
-      sessionStorage.removeItem("redirectAfterLogin");
-
-      if (userType === "teacher") {
-        navigate("/teacher-dashboard");
-      } else if (userType === "student") {
-        navigate(redirect || "/student-dashboard");
-      }
-    }
-  }, [isLoggedIn, userType, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
