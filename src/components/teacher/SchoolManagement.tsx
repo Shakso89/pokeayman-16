@@ -17,8 +17,19 @@ interface SchoolManagementProps {
   teacherId: string;
 }
 
-// Update: Renamed "New School" to "Other School" and added Renmai
+// Predefined schools
 const PREDEFINED_SCHOOLS = ["Daya", "Betuin", "Tanzi", "Dali", "Renmai", "Other School"];
+
+// Admin emails that should always have admin access
+const ADMIN_EMAILS = [
+  "ayman.soliman.tr@gmail.com",
+  "ayman.soliman.cc@gmail.com",
+  "admin@pokeayman.com",
+  "admin@example.com"
+];
+
+// Admin usernames that should always have admin access
+const ADMIN_USERNAMES = ["Admin", "Ayman"];
 
 const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSchool, teacherId }) => {
   const [schools, setSchools] = useState<School[]>([]);
@@ -34,19 +45,28 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
   const [classesToDelete, setClassesToDelete] = useState<Class[]>([]);
   const [selectedSchoolForDeletion, setSelectedSchoolForDeletion] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [createSchoolLoading, setCreateSchoolLoading] = useState(false);
   
   const { t } = useTranslation();
 
-  useEffect(() => {
-    // Check if current user is admin - ensure Ayman is always an admin
+  // Check if user is admin
+  const checkAdminStatus = () => {
     const username = localStorage.getItem("teacherUsername") || "";
     const userEmail = localStorage.getItem("userEmail")?.toLowerCase() || "";
-    setIsAdminUser(
-      username === "Admin" || 
-      username === "Ayman" || 
-      userEmail === "ayman.soliman.tr@gmail.com" || 
-      userEmail === "ayman.soliman.cc@gmail.com"
-    );
+    const isAdminFlag = localStorage.getItem("isAdmin") === "true";
+    
+    const isAdmin = isAdminFlag || 
+                    ADMIN_USERNAMES.includes(username) || 
+                    ADMIN_EMAILS.includes(userEmail);
+    
+    console.log("Admin status check:", { username, userEmail, isAdminFlag, result: isAdmin });
+    
+    return isAdmin;
+  };
+
+  useEffect(() => {
+    // Check if current user is admin
+    setIsAdminUser(checkAdminStatus());
     
     // Load schools from Supabase
     loadSchools();
@@ -73,7 +93,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
     };
   }, [teacherId]);
   
-  // Modified loadSchools function to ensure schools are properly loaded
+  // Load schools from database
   const loadSchools = async () => {
     setIsLoading(true);
     try {
@@ -89,20 +109,13 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
       
       console.log("Schools data from Supabase:", schoolsData);
       
-      // If admin and no schools exist, or predefined schools are missing, create predefined schools
-      if (schoolsData) {
-        const existingSchoolNames = schoolsData.map(school => school.name);
-        const missingSchools = PREDEFINED_SCHOOLS.filter(name => !existingSchoolNames.includes(name));
-        
-        if (missingSchools.length > 0) {
-          console.log("Creating missing schools:", missingSchools);
-          await createMissingSchools(missingSchools);
+      // If no schools exist, create predefined schools for admin users
+      if (!schoolsData || schoolsData.length === 0) {
+        if (checkAdminStatus()) {
+          console.log("No schools found, creating predefined schools as admin");
+          await createPredefinedSchools();
           return; // loadSchools will be called again by the subscription
         }
-      } else if (!schoolsData || schoolsData.length === 0) {
-        console.log("No schools found, creating predefined schools");
-        await createPredefinedSchools();
-        return; // loadSchools will be called again by the subscription
       }
       
       setSchools(schoolsData || []);
@@ -120,76 +133,69 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
         description: "Failed to load schools from database, using local data.",
         variant: "destructive",
       });
+      
+      // If admin and no schools, try to create them
+      if (parsedSchools.length === 0 && checkAdminStatus()) {
+        createPredefinedSchools();
+      }
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Create missing schools
-  const createMissingSchools = async (missingSchools: string[]) => {
-    try {
-      for (const schoolName of missingSchools) {
-        const schoolId = crypto.randomUUID();
-        
-        // Create school in Supabase
-        await supabase
-          .from('schools')
-          .insert({
-            id: schoolId,
-            name: schoolName,
-            created_by: teacherId,
-            created_at: new Date().toISOString(),
-            updated_at: new Date().toISOString()
-          });
-          
-        // Initialize Pokemon pool for the new school
-        initializeSchoolPokemonPool(schoolId);
-      }
-      
-      // Load schools again after creating missing ones
-      loadSchools();
-    } catch (error) {
-      console.error("Error creating missing schools:", error);
-      toast({
-        title: "Error",
-        description: "Failed to create missing schools.",
-        variant: "destructive",
-      });
-    }
-  };
-  
   // Create predefined schools if they don't exist
   const createPredefinedSchools = async () => {
     try {
+      const createdSchools = [];
+      
       for (const schoolName of PREDEFINED_SCHOOLS) {
-        // Check if school already exists
-        const { data: existingSchool } = await supabase
-          .from('schools')
-          .select('id')
-          .eq('name', schoolName)
-          .maybeSingle();
-          
-        if (!existingSchool) {
-          const schoolId = crypto.randomUUID();
-          
-          // Create school in Supabase
-          await supabase
+        try {
+          // Check if school already exists
+          const { data: existingSchool } = await supabase
             .from('schools')
-            .insert({
-              id: schoolId,
-              name: schoolName,
-              created_by: teacherId,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString()
-            });
+            .select('id')
+            .eq('name', schoolName)
+            .maybeSingle();
             
-          // Initialize Pokemon pool for the new school
-          initializeSchoolPokemonPool(schoolId);
+          if (!existingSchool) {
+            const schoolId = crypto.randomUUID();
+            
+            // Create school in Supabase
+            const { data, error } = await supabase
+              .from('schools')
+              .insert({
+                id: schoolId,
+                name: schoolName,
+                created_by: teacherId || null,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString()
+              })
+              .select();
+              
+            if (error) {
+              console.error(`Error creating school ${schoolName}:`, error);
+            } else if (data) {
+              console.log(`Created school ${schoolName}:`, data[0]);
+              createdSchools.push(data[0]);
+              
+              // Initialize Pokemon pool for the new school
+              initializeSchoolPokemonPool(schoolId);
+            }
+          }
+        } catch (schoolError) {
+          console.error(`Error processing school ${schoolName}:`, schoolError);
         }
       }
       
-      // Load schools again after creating predefined ones
-      loadSchools();
+      if (createdSchools.length > 0) {
+        toast({
+          title: "Schools created",
+          description: `Created ${createdSchools.length} predefined schools.`,
+        });
+        
+        // Update local state with new schools
+        setSchools(prev => [...prev, ...createdSchools]);
+      }
     } catch (error) {
       console.error("Error creating predefined schools:", error);
       toast({
@@ -201,17 +207,8 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
   };
 
   const handleAddSchool = async () => {
-    // Modified to ensure Ayman can add schools
-    const username = localStorage.getItem("teacherUsername") || "";
-    const userEmail = localStorage.getItem("userEmail")?.toLowerCase() || "";
-    const isAdmin = 
-      username === "Admin" || 
-      username === "Ayman" || 
-      userEmail === "ayman.soliman.tr@gmail.com" || 
-      userEmail === "ayman.soliman.cc@gmail.com";
-      
-    // Only admin can create schools
-    if (!isAdmin) {
+    // Double-check if user is admin
+    if (!checkAdminStatus()) {
       toast({
         title: t("error"),
         description: t("only-admin-can-create-schools"),
@@ -244,20 +241,29 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
     }
 
     const schoolId = crypto.randomUUID();
+    setCreateSchoolLoading(true);
     
     try {
+      console.log("Creating school with ID:", schoolId, "and teacher ID:", teacherId);
+      
       // Create school in Supabase
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('schools')
         .insert({
           id: schoolId,
           name: newSchool.name,
-          created_by: teacherId,
+          created_by: teacherId || null,
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
-        });
+        })
+        .select();
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error creating school:", error);
+        throw error;
+      }
+      
+      console.log("School created successfully:", data);
       
       // Initialize Pokemon pool for the new school
       initializeSchoolPokemonPool(schoolId);
@@ -265,12 +271,15 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
       // Reset input field
       setNewSchool({ name: "" });
       
+      // Add to local state (subscription will refresh anyway)
+      if (data && data[0]) {
+        setSchools(prev => [...prev, data[0]]);
+      }
+      
       toast({
         title: t("success"),
         description: t("school-created"),
       });
-      
-      // The subscription will reload the schools
     } catch (error: any) {
       console.error("Error creating school:", error);
       
@@ -279,22 +288,15 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
         description: error.message || t("failed-to-create-school"),
         variant: "destructive",
       });
+    } finally {
+      setCreateSchoolLoading(false);
     }
   };
 
-  // Fix: Updated the handleUpdateSchool to ensure no error happens when saving school name
+  // Update school name
   const handleUpdateSchool = async (schoolId: string, newName: string) => {
-    // Modified to ensure Ayman can update schools
-    const username = localStorage.getItem("teacherUsername") || "";
-    const userEmail = localStorage.getItem("userEmail")?.toLowerCase() || "";
-    const isAdmin = 
-      username === "Admin" || 
-      username === "Ayman" || 
-      userEmail === "ayman.soliman.tr@gmail.com" || 
-      userEmail === "ayman.soliman.cc@gmail.com";
-      
-    // Only admin can update schools
-    if (!isAdmin) {
+    // Double-check if user is admin
+    if (!checkAdminStatus()) {
       toast({
         title: t("error"),
         description: t("only-admin-can-update-schools"),
@@ -330,15 +332,25 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
     try {
       console.log("Updating school:", schoolId, "with new name:", newName);
       // Update school in Supabase
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from('schools')
         .update({ 
           name: newName,
           updated_at: new Date().toISOString()
         })
-        .eq('id', schoolId);
+        .eq('id', schoolId)
+        .select();
         
       if (error) throw error;
+      
+      console.log("School updated successfully:", data);
+      
+      // Update local state
+      if (data && data[0]) {
+        setSchools(prev => 
+          prev.map(school => school.id === schoolId ? data[0] : school)
+        );
+      }
       
       setEditingSchoolId(null);
 
@@ -346,8 +358,6 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
         title: t("success"),
         description: t("school-updated"),
       });
-      
-      // The subscription will reload the schools
     } catch (error: any) {
       console.error("Error updating school:", error);
       
@@ -362,17 +372,8 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
   };
 
   const handleDeleteSchool = async (schoolId: string) => {
-    // Modified to ensure Ayman can delete schools
-    const username = localStorage.getItem("teacherUsername") || "";
-    const userEmail = localStorage.getItem("userEmail")?.toLowerCase() || "";
-    const isAdmin = 
-      username === "Admin" || 
-      username === "Ayman" || 
-      userEmail === "ayman.soliman.tr@gmail.com" || 
-      userEmail === "ayman.soliman.cc@gmail.com";
-      
-    // Only admin can delete schools
-    if (!isAdmin) {
+    // Double-check if user is admin
+    if (!checkAdminStatus()) {
       toast({
         title: t("error"),
         description: t("only-admin-can-delete-schools"),
@@ -446,6 +447,9 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
         .eq('id', schoolId);
         
       if (error) throw error;
+      
+      // Update local state
+      setSchools(prev => prev.filter(school => school.id !== schoolId));
 
       toast({
         title: t("success"),
@@ -458,8 +462,6 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
         setSelectedSchoolForDeletion(null);
         setClassesToDelete([]);
       }
-      
-      // The subscription will reload the schools
     } catch (error: any) {
       console.error("Error deleting school:", error);
       
@@ -508,6 +510,21 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
         </div>
       </div>
       
+      {/* Admin check info - helpful for debugging */}
+      {isAdminUser ? (
+        <Alert className="bg-green-50 border-green-200">
+          <AlertDescription>
+            You are logged in as an admin user with full school management permissions.
+          </AlertDescription>
+        </Alert>
+      ) : (
+        <Alert className="bg-yellow-50 border-yellow-200">
+          <AlertDescription>
+            You need admin privileges to create or modify schools.
+          </AlertDescription>
+        </Alert>
+      )}
+      
       {isLoading ? (
         <div className="flex justify-center items-center py-12">
           <Loader2 className="h-8 w-8 animate-spin text-blue-500 mr-2" />
@@ -527,8 +544,15 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
                     value={newSchool.name}
                     onChange={(e) => setNewSchool({ name: e.target.value })}
                   />
-                  <Button onClick={handleAddSchool}>
-                    <Plus className="h-4 w-4 mr-1" />
+                  <Button 
+                    onClick={handleAddSchool}
+                    disabled={createSchoolLoading}
+                  >
+                    {createSchoolLoading ? (
+                      <Loader2 className="h-4 w-4 mr-1 animate-spin" />
+                    ) : (
+                      <Plus className="h-4 w-4 mr-1" />
+                    )}
                     {t("add-school")}
                   </Button>
                 </div>

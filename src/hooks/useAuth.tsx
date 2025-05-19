@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from './use-toast';
@@ -15,6 +14,17 @@ interface AuthState {
   isAdmin: boolean;
 }
 
+// List of admin emails for quick reference
+const ADMIN_EMAILS = [
+  "ayman.soliman.tr@gmail.com",
+  "ayman.soliman.cc@gmail.com",
+  "admin@pokeayman.com",
+  "admin@example.com",
+];
+
+// Admin usernames
+const ADMIN_USERNAMES = ["Admin", "Ayman"];
+
 export const useAuth = () => {
   const [loading, setLoading] = useState(true);
   const [authState, setAuthState] = useState<AuthState>({
@@ -26,24 +36,59 @@ export const useAuth = () => {
     isAdmin: false
   });
 
+  // Update auth state with new values
+  const updateAuthState = (newState: Partial<AuthState>) => {
+    setAuthState(prevState => ({ ...prevState, ...newState }));
+  };
+
+  // Check if user is admin based on email or username
+  const checkIsAdmin = (user: User | null, username?: string): boolean => {
+    if (!user && !username) return false;
+    
+    const email = user?.email?.toLowerCase() || '';
+    const storedEmail = localStorage.getItem("userEmail")?.toLowerCase() || '';
+    const storedUsername = localStorage.getItem("teacherUsername") || '';
+    
+    const isAdminEmail = ADMIN_EMAILS.includes(email) || ADMIN_EMAILS.includes(storedEmail);
+    const isAdminUsername = username 
+      ? ADMIN_USERNAMES.includes(username) 
+      : ADMIN_USERNAMES.includes(storedUsername);
+    
+    return isAdminEmail || isAdminUsername;
+  };
+
   // Handle authentication session
-  const handleSession = async (newSession: Session) => {
+  const handleSession = async (newSession: Session | null) => {
     try {
-      const currentUser = newSession.user;
-      
-      if (!currentUser) {
+      if (!newSession || !newSession.user) {
         clearAuthState();
         return;
       }
       
-      // Set basic auth state from session
+      const currentUser = newSession.user;
       const userData = currentUser.user_metadata || {};
-      const userTypeFromMeta = userData.user_type as UserType;
+      const username = userData.username || localStorage.getItem("teacherUsername");
       
       // Check if user is admin
-      const isAdminUser = checkIsAdmin(currentUser, userData);
+      const isAdminUser = checkIsAdmin(currentUser, username);
+      
+      // Store email in localStorage for reference
+      if (currentUser.email) {
+        localStorage.setItem("userEmail", currentUser.email);
+      }
+      
+      // For admin users, set up as teacher type
+      if (isAdminUser) {
+        setupTeacherAuth(currentUser.id, {
+          username: username || currentUser.email?.split('@')[0] || 'Admin',
+          isAdmin: true
+        });
+        return;
+      }
       
       // Determine if user is student or teacher
+      const userTypeFromMeta = userData.user_type as UserType;
+      
       if (userTypeFromMeta === "student") {
         setupStudentAuth(currentUser.id, userData);
       } else {
@@ -57,47 +102,26 @@ export const useAuth = () => {
         if (studentData) {
           setupStudentAuth(currentUser.id, studentData);
         } else {
-          setupTeacherAuth(currentUser.id, userData, isAdminUser);
+          setupTeacherAuth(currentUser.id, userData, false);
         }
       }
     } catch (error) {
       console.error("Error in handleSession:", error);
-      // Fallback to basic session data
-      const sessionUser = newSession.user;
-      if (sessionUser) {
+      // Try to recover with basic session data
+      if (newSession?.user) {
+        const sessionUser = newSession.user;
+        const isAdminUser = checkIsAdmin(sessionUser);
+        
         updateAuthState({
           isLoggedIn: true,
-          userType: "teacher",
+          userType: isAdminUser ? "teacher" : "teacher", // Default to teacher
           userId: sessionUser.id,
           session: newSession,
           user: sessionUser,
-          isAdmin: false
+          isAdmin: isAdminUser
         });
       }
     }
-  };
-
-  // Check if user is admin based on email or username
-  const checkIsAdmin = (user: User, userData: any): boolean => {
-    const adminEmails = [
-      "ayman.soliman.cc@gmail.com",
-      "ayman.soliman.tr@gmail.com",
-      "admin@pokeayman.com",
-      "admin@example.com",
-    ];
-    
-    const isAdminEmail = adminEmails.includes(
-      (user.email || "").toLowerCase()
-    );
-    
-    return isAdminEmail || 
-           userData.username === "Admin" || 
-           userData.username === "Ayman";
-  };
-
-  // Update auth state with new values
-  const updateAuthState = (newState: Partial<AuthState>) => {
-    setAuthState(prevState => ({ ...prevState, ...newState }));
   };
 
   // Setup student authentication
@@ -124,17 +148,22 @@ export const useAuth = () => {
   const setupTeacherAuth = (
     id: string,
     userData: any,
-    isAdminUser: boolean
+    isAdminUser: boolean = false
   ) => {
+    // If explicitly passed isAdmin flag, use that, otherwise check
+    const isAdmin = typeof isAdminUser === 'boolean' 
+      ? isAdminUser 
+      : checkIsAdmin(null, userData.username);
+    
     // Update state
     updateAuthState({
       isLoggedIn: true,
       userType: "teacher",
       userId: id,
-      isAdmin: isAdminUser
+      isAdmin: isAdmin
     });
 
-    // Update localStorage
+    // Update localStorage with consistent values
     localStorage.setItem("isLoggedIn", "true");
     localStorage.setItem("userType", "teacher");
     localStorage.setItem("teacherId", id);
@@ -143,9 +172,9 @@ export const useAuth = () => {
       userData.username || userData.email?.split("@")[0] || ""
     );
 
-    if (isAdminUser) localStorage.setItem("isAdmin", "true");
+    if (isAdmin) localStorage.setItem("isAdmin", "true");
     
-    console.log("Teacher auth setup complete", { id, isAdmin: isAdminUser });
+    console.log("Teacher auth setup complete", { id, isAdmin: isAdmin });
   };
 
   // Clear authentication state
@@ -167,6 +196,7 @@ export const useAuth = () => {
     localStorage.removeItem("studentDisplayName");
     localStorage.removeItem("isAdmin");
     localStorage.removeItem("studentClassId");
+    localStorage.removeItem("userEmail");
     
     console.log("Auth state cleared");
   };
@@ -175,6 +205,10 @@ export const useAuth = () => {
   const loadFromLocalStorage = () => {
     const localIsLoggedIn = localStorage.getItem("isLoggedIn") === "true";
     const localUserType = localStorage.getItem("userType") as UserType;
+    const teacherUsername = localStorage.getItem("teacherUsername");
+    const isAdmin = localStorage.getItem("isAdmin") === "true" || 
+                   ADMIN_USERNAMES.includes(teacherUsername || '') ||
+                   ADMIN_EMAILS.includes(localStorage.getItem("userEmail")?.toLowerCase() || '');
 
     if (localIsLoggedIn && localUserType) {
       const userId = localUserType === "teacher"
@@ -185,12 +219,12 @@ export const useAuth = () => {
         isLoggedIn: true,
         userType: localUserType,
         userId,
-        isAdmin: localStorage.getItem("isAdmin") === "true"
+        isAdmin: isAdmin
       });
       
       console.log("Auth state loaded from localStorage:", { 
         userType: localUserType, 
-        isAdmin: localStorage.getItem("isAdmin") === "true" 
+        isAdmin: isAdmin
       });
       
       return true;
@@ -205,7 +239,10 @@ export const useAuth = () => {
     setLoading(true);
     
     try {
-      // Try to get session from Supabase
+      // First load from localStorage for immediate feedback
+      loadFromLocalStorage();
+      
+      // Then try to get session from Supabase
       const {
         data: { session: existingSession },
       } = await supabase.auth.getSession();
@@ -213,7 +250,7 @@ export const useAuth = () => {
       if (existingSession) {
         await handleSession(existingSession);
       } else {
-        // Fallback to localStorage if no session
+        // If no session and localStorage failed, clear auth state
         if (!loadFromLocalStorage()) {
           clearAuthState();
           console.log("No auth session found");
@@ -221,7 +258,10 @@ export const useAuth = () => {
       }
     } catch (error) {
       console.error("Auth check error:", error);
-      clearAuthState();
+      // Keep the localStorage state if it exists
+      if (!authState.isLoggedIn) {
+        clearAuthState();
+      }
     } finally {
       setLoading(false);
     }
