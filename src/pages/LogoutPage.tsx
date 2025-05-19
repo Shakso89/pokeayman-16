@@ -20,7 +20,11 @@ const LogoutPage: React.FC = () => {
       setIsLoggingOut(false);
       
       try {
-        await logout();
+        const success = await logout();
+        if (!success) {
+          throw new Error("Logout failed");
+        }
+        
         timeoutId = setTimeout(() => {
           navigate('/', { replace: true });
         }, 1500);

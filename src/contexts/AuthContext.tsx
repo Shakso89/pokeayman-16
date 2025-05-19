@@ -1,3 +1,4 @@
+
 import React, { createContext, useState, useEffect, useContext } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 
@@ -8,6 +9,7 @@ interface AuthContextType {
   userType: 'teacher' | 'student' | null;
   loading: boolean;
   refreshAuthState: () => Promise<void>;
+  logout: () => Promise<boolean>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -96,6 +98,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Implement the logout function
+  const logout = async (): Promise<boolean> => {
+    try {
+      setLoading(true);
+      
+      // Sign out from Supabase if we have a session
+      const { error } = await supabase.auth.signOut();
+      if (error) throw error;
+      
+      // Clear localStorage auth data
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('userType');
+      localStorage.removeItem('teacherId');
+      localStorage.removeItem('studentId');
+      localStorage.removeItem('teacherUsername');
+      localStorage.removeItem('studentDisplayName');
+      localStorage.removeItem('isAdmin');
+      localStorage.removeItem('studentClassId');
+      localStorage.removeItem('userEmail');
+      
+      // Clear state
+      setIsLoggedIn(false);
+      setUserType(null);
+      setIsAdmin(false);
+      setUser(null);
+      
+      console.info("User logged out successfully");
+      return true;
+    } catch (error) {
+      console.error("Error during logout:", error);
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  };
+
   // Setup Supabase auth subscription
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
@@ -120,7 +158,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     user,
     userType,
     loading,
-    refreshAuthState
+    refreshAuthState,
+    logout
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
