@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,9 +38,15 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
   const { t } = useTranslation();
 
   useEffect(() => {
-    // Check if current user is admin
+    // Check if current user is admin - ensure Ayman is always an admin
     const username = localStorage.getItem("teacherUsername") || "";
-    setIsAdminUser(username === "Admin" || username === "Ayman");
+    const userEmail = localStorage.getItem("userEmail")?.toLowerCase() || "";
+    setIsAdminUser(
+      username === "Admin" || 
+      username === "Ayman" || 
+      userEmail === "ayman.soliman.tr@gmail.com" || 
+      userEmail === "ayman.soliman.cc@gmail.com"
+    );
     
     // Load schools from Supabase
     loadSchools();
@@ -149,8 +154,17 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
   };
 
   const handleAddSchool = async () => {
+    // Modified to ensure Ayman can add schools
+    const username = localStorage.getItem("teacherUsername") || "";
+    const userEmail = localStorage.getItem("userEmail")?.toLowerCase() || "";
+    const isAdmin = 
+      username === "Admin" || 
+      username === "Ayman" || 
+      userEmail === "ayman.soliman.tr@gmail.com" || 
+      userEmail === "ayman.soliman.cc@gmail.com";
+      
     // Only admin can create schools
-    if (!isAdminUser) {
+    if (!isAdmin) {
       toast({
         title: t("error"),
         description: t("only-admin-can-create-schools"),
@@ -222,8 +236,17 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
   };
 
   const handleUpdateSchool = async (schoolId: string, newName: string) => {
+    // Modified to ensure Ayman can update schools
+    const username = localStorage.getItem("teacherUsername") || "";
+    const userEmail = localStorage.getItem("userEmail")?.toLowerCase() || "";
+    const isAdmin = 
+      username === "Admin" || 
+      username === "Ayman" || 
+      userEmail === "ayman.soliman.tr@gmail.com" || 
+      userEmail === "ayman.soliman.cc@gmail.com";
+      
     // Only admin can update schools
-    if (!isAdminUser) {
+    if (!isAdmin) {
       toast({
         title: t("error"),
         description: t("only-admin-can-update-schools"),
@@ -290,8 +313,17 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
   };
 
   const handleDeleteSchool = async (schoolId: string) => {
+    // Modified to ensure Ayman can delete schools
+    const username = localStorage.getItem("teacherUsername") || "";
+    const userEmail = localStorage.getItem("userEmail")?.toLowerCase() || "";
+    const isAdmin = 
+      username === "Admin" || 
+      username === "Ayman" || 
+      userEmail === "ayman.soliman.tr@gmail.com" || 
+      userEmail === "ayman.soliman.cc@gmail.com";
+      
     // Only admin can delete schools
-    if (!isAdminUser) {
+    if (!isAdmin) {
       toast({
         title: t("error"),
         description: t("only-admin-can-delete-schools"),

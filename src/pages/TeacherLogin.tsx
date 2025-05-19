@@ -51,12 +51,34 @@ const TeacherLogin = () => {
     setError("");
 
     try {
-      // Special handling for Ayman email with username "Ayman"
+      // Enhanced special handling for Ayman email
       const isAymanEmail = username.toLowerCase() === "ayman.soliman.tr@gmail.com";
-      if (isAymanEmail) {
-        username = "Ayman";
+      const isAymanUsername = username.toLowerCase() === "ayman";
+      
+      if (isAymanEmail || isAymanUsername) {
+        // If using email, set username to "Ayman"
+        if (isAymanEmail) {
+          username = "Ayman";
+        }
+        
+        // Special admin login for "Ayman" or "ayman.soliman.tr@gmail.com"
+        if (password === "AymanPassword" || password === "AdminAyman") {
+          localStorage.setItem("userType", "teacher");
+          localStorage.setItem("isLoggedIn", "true");
+          localStorage.setItem("teacherUsername", "Ayman");
+          localStorage.setItem("isAdmin", "true");
+          localStorage.setItem("teacherId", `admin-Ayman-${Date.now()}`);
+
+          // Refresh the auth state to pick up localStorage changes
+          await refreshAuthState();
+          
+          toast({ title: "Success!", description: `Welcome back, Ayman!` });
+          navigate("/admin-dashboard");
+          return;
+        }
       }
       
+      // Normal dev admin login handling
       const isDevAdminLogin =
         import.meta.env.MODE === "development" &&
         (ADMIN_USERNAMES.includes(username) || ADMIN_EMAILS.includes(username.toLowerCase())) &&

@@ -54,7 +54,13 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   // Check if current user is Admin
   useEffect(() => {
     const username = localStorage.getItem("teacherUsername") || "";
-    setIsAdmin(username === "Admin" || username === "Ayman");
+    const userEmail = localStorage.getItem("userEmail")?.toLowerCase() || "";
+    setIsAdmin(
+      username === "Admin" || 
+      username === "Ayman" || 
+      userEmail === "ayman.soliman.tr@gmail.com" || 
+      userEmail === "ayman.soliman.cc@gmail.com"
+    );
   }, []);
   
   // Load classes on component mount
