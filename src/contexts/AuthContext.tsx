@@ -30,19 +30,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isAdmin, setIsAdmin] = useState<boolean>(false);
   const [user, setUser] = useState<any>(null);
   const [userType, setUserType] = useState<'teacher' | 'student' | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [authCheckTimeout, setAuthCheckTimeout] = useState<NodeJS.Timeout | null>(null);
-  const [initializationComplete, setInitializationComplete] = useState(false);
-
+  const [loading, setLoading] = useState(false); // Start with loading false
+  
   const refreshAuthState = async () => {
     try {
-      setLoading(true);
       console.log("Refreshing auth state...");
-      
-      // Clear any existing timeout to prevent race conditions
-      if (authCheckTimeout) {
-        clearTimeout(authCheckTimeout);
-      }
+      setLoading(true);
       
       // Try to get session from Supabase
       const { data: { session } } = await supabase.auth.getSession();
@@ -101,15 +94,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     } catch (error) {
       console.error("Error refreshing auth state:", error);
     } finally {
-      setLoading(false);
-      setInitializationComplete(true);
-      
-      // Set a timeout to force show the login form after 3 seconds if still loading
-      const timeout = setTimeout(() => {
-        setLoading(false);
-      }, 3000);
-      
-      setAuthCheckTimeout(timeout);
+      // Always set loading to false after a maximum of 1 second
+      setTimeout(() => setLoading(false), 1000);
     }
   };
 
@@ -151,15 +137,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Setup Supabase auth subscription
   useEffect(() => {
-    // Set a timeout to force show the login form after 3 seconds if still loading
+    // Set a short timeout to minimize blocking the UI
     const timeout = setTimeout(() => {
-      if (loading) {
-        console.log("Initial auth check timeout reached, forcing loading to false");
-        setLoading(false);
-      }
-    }, 3000);
-    
-    setAuthCheckTimeout(timeout);
+      setLoading(false);
+    }, 1000);
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (_event, session) => {
@@ -168,15 +149,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       }
     );
 
-    // Get initial session state
+    // Get initial session state, but don't block rendering
     refreshAuthState();
 
     // Unsubscribe on cleanup
     return () => {
       subscription?.unsubscribe();
-      if (authCheckTimeout) {
-        clearTimeout(authCheckTimeout);
-      }
+      clearTimeout(timeout);
     };
   }, []);
 

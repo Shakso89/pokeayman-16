@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from "react";
-import { useNavigate, useLocation } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,48 +8,19 @@ import PokemonOrbit from "@/components/PokemonOrbit";
 import { toast } from "@/hooks/use-toast";
 import { useStudentAuth } from "@/hooks/useStudentAuth";
 import { useAuth } from "@/contexts/AuthContext";
-import { Loader2, RefreshCw } from "lucide-react";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Loader2 } from "lucide-react";
 
 const StudentLogin: React.FC = () => {
   const navigate = useNavigate();
-  const location = useLocation();
-
   const { isLoading: studentAuthLoading, loginStudent } = useStudentAuth();
-  const { isLoggedIn, userType, loading: authLoading, refreshAuthState } = useAuth();
+  const { isLoggedIn, userType } = useAuth();
 
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [showLoading, setShowLoading] = useState(true);
-  const [forceShowForm, setForceShowForm] = useState(false);
 
-  // Add a timeout to handle potential stuck loading states
+  // Simple redirection effect when already logged in
   useEffect(() => {
-    if (authLoading) {
-      const timer = setTimeout(() => {
-        setShowLoading(false);
-      }, 2000); // Show form after 2 seconds even if loading is still true
-      
-      return () => clearTimeout(timer);
-    } else {
-      setShowLoading(false);
-    }
-  }, [authLoading]);
-
-  // After 5 seconds, force show the form regardless of state
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      setForceShowForm(true);
-    }, 5000);
-    
-    return () => clearTimeout(timer);
-  }, []);
-
-  // Auto-redirect if already logged in
-  useEffect(() => {
-    if (authLoading || isProcessing) return;
-
     if (isLoggedIn) {
       const redirect = sessionStorage.getItem("redirectAfterLogin");
       sessionStorage.removeItem("redirectAfterLogin");
@@ -60,7 +31,7 @@ const StudentLogin: React.FC = () => {
         navigate(redirect || "/student-dashboard");
       }
     }
-  }, [authLoading, isLoggedIn, userType, navigate, isProcessing]);
+  }, [isLoggedIn, userType, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -82,9 +53,7 @@ const StudentLogin: React.FC = () => {
       const result = await loginStudent(usernameOrEmail, password);
 
       if (result.success) {
-        console.log("Login successful, refreshing auth state");
-        // Refresh the auth state to ensure all components have the latest data
-        await refreshAuthState();
+        console.log("Login successful, redirecting to dashboard");
         navigate("/student-dashboard");
       } else {
         toast({
@@ -104,17 +73,6 @@ const StudentLogin: React.FC = () => {
       setIsProcessing(false);
     }
   };
-
-  if (authLoading && showLoading && !forceShowForm) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-400 to-purple-600 p-4">
-        <div className="bg-white/80 backdrop-blur-sm p-8 rounded-lg shadow-xl">
-          <div className="animate-spin h-12 w-12 border-t-2 border-b-2 border-purple-500 rounded-full mx-auto" />
-          <p className="text-center mt-4">Checking authentication status...</p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-400 to-purple-600 p-4 relative overflow-hidden">
@@ -140,72 +98,49 @@ const StudentLogin: React.FC = () => {
           <CardDescription>Enter your login details to continue</CardDescription>
         </CardHeader>
         <CardContent>
-          {authLoading && !showLoading && !forceShowForm ? (
-            <div className="space-y-4">
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-              <Skeleton className="h-10 w-full" />
-            </div>
-          ) : (
-            <form onSubmit={handleLogin} className="space-y-4">
-              <div className="space-y-2">
-                <label htmlFor="usernameOrEmail" className="text-sm font-medium">
-                  Username
-                </label>
-                <Input
-                  id="usernameOrEmail"
-                  value={usernameOrEmail}
-                  onChange={(e) => setUsernameOrEmail(e.target.value)}
-                  placeholder="Enter your username"
-                  disabled={isProcessing || studentAuthLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label htmlFor="password" className="text-sm font-medium">
-                  Password
-                </label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  disabled={isProcessing || studentAuthLoading}
-                />
-              </div>
-
-              <Button
-                type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div className="space-y-2">
+              <label htmlFor="usernameOrEmail" className="text-sm font-medium">
+                Username
+              </label>
+              <Input
+                id="usernameOrEmail"
+                value={usernameOrEmail}
+                onChange={(e) => setUsernameOrEmail(e.target.value)}
+                placeholder="Enter your username"
                 disabled={isProcessing || studentAuthLoading}
-              >
-                {isProcessing || studentAuthLoading ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Logging in...
-                  </>
-                ) : (
-                  "Login"
-                )}
-              </Button>
-              
-              {authLoading && (
-                <div className="mt-4 text-center flex justify-center items-center space-x-2">
-                  <RefreshCw className="h-4 w-4 animate-spin text-gray-500" />
-                  <span className="text-sm text-gray-500">Still checking login status...</span>
-                  <Button 
-                    variant="ghost" 
-                    size="sm"
-                    onClick={() => setForceShowForm(true)}
-                    className="h-auto p-0 text-blue-500"
-                  >
-                    Refresh
-                  </Button>
-                </div>
+              />
+            </div>
+
+            <div className="space-y-2">
+              <label htmlFor="password" className="text-sm font-medium">
+                Password
+              </label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="Enter your password"
+                disabled={isProcessing || studentAuthLoading}
+              />
+            </div>
+
+            <Button
+              type="submit"
+              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+              disabled={isProcessing || studentAuthLoading}
+            >
+              {isProcessing || studentAuthLoading ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Logging in...
+                </>
+              ) : (
+                "Login"
               )}
-            </form>
-          )}
+            </Button>
+          </form>
         </CardContent>
         <CardFooter className="flex justify-center">
           <Button
