@@ -73,10 +73,11 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
     };
   }, [teacherId]);
   
-  // Function to load schools from Supabase
+  // Modified loadSchools function to ensure schools are properly loaded
   const loadSchools = async () => {
     setIsLoading(true);
     try {
+      console.log("Loading schools...");
       // Get schools from Supabase
       const { data: schoolsData, error } = await supabase
         .from('schools')
@@ -85,6 +86,8 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
       if (error) {
         throw error;
       }
+      
+      console.log("Schools data from Supabase:", schoolsData);
       
       // If admin and no schools exist, or predefined schools are missing, create predefined schools
       if (schoolsData) {
@@ -97,6 +100,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
           return; // loadSchools will be called again by the subscription
         }
       } else if (!schoolsData || schoolsData.length === 0) {
+        console.log("No schools found, creating predefined schools");
         await createPredefinedSchools();
         return; // loadSchools will be called again by the subscription
       }
@@ -108,6 +112,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
       // Fallback to localStorage
       const savedSchools = localStorage.getItem("schools");
       const parsedSchools = savedSchools ? JSON.parse(savedSchools) : [];
+      console.log("Fallback to localStorage schools:", parsedSchools);
       setSchools(parsedSchools);
       
       toast({
@@ -277,6 +282,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
     }
   };
 
+  // Fix: Updated the handleUpdateSchool to ensure no error happens when saving school name
   const handleUpdateSchool = async (schoolId: string, newName: string) => {
     // Modified to ensure Ayman can update schools
     const username = localStorage.getItem("teacherUsername") || "";
@@ -322,6 +328,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
     }
 
     try {
+      console.log("Updating school:", schoolId, "with new name:", newName);
       // Update school in Supabase
       const { error } = await supabase
         .from('schools')

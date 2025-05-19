@@ -7,6 +7,8 @@ import { Coins } from "lucide-react";
 import UserAvatar from "./UserAvatar";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "@/hooks/useTranslation";
+import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ProfileTabProps {
   userId: string;
@@ -32,11 +34,43 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
 
+  const handleDisplayNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setDisplayName(e.target.value);
+    
+    // Also update in Supabase if possible
+    if (userId && userId.startsWith('admin-')) {
+      // For admin users, we don't update in Supabase
+      return;
+    }
+    
+    try {
+      if (userType === 'teacher') {
+        supabase
+          .from('teachers')
+          .update({ display_name: e.target.value })
+          .eq('id', userId)
+          .then(({ error }) => {
+            if (error) console.error("Failed to update teacher display name in DB:", error);
+          });
+      } else {
+        supabase
+          .from('students')
+          .update({ display_name: e.target.value })
+          .eq('id', userId)
+          .then(({ error }) => {
+            if (error) console.error("Failed to update student display name in DB:", error);
+          });
+      }
+    } catch (error) {
+      console.error("Error updating display name:", error);
+    }
+  };
+
   const handleViewFullProfile = () => {
     onClose(); // Close the modal
     
     if (userType === "teacher") {
-      navigate(`/teacher/profile/${userId}`);
+      navigate(`/teacher-profile`);
     } else {
       navigate(`/student/profile/${userId}`);
     }
@@ -52,7 +86,8 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
         <Input
           id="displayName"
           value={displayName}
-          onChange={(e) => setDisplayName(e.target.value)}
+          onChange={handleDisplayNameChange}
+          placeholder="Enter your display name"
         />
       </div>
       

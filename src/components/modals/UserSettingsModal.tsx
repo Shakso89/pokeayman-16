@@ -11,11 +11,12 @@ import {
 import { Button } from "@/components/ui/button";
 import { UserCog } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getStudentPokemonCollection } from "@/utils/pokemon";
 import ProfileTab from "./settings/ProfileTab";
 import SecurityTab from "./settings/SecurityTab";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UserSettingsModalProps {
   isOpen: boolean;
@@ -33,6 +34,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   const [displayName, setDisplayName] = useState("");
   const [userId, setUserId] = useState("");
   const [coins, setCoins] = useState(0);
+  const [originalDisplayName, setOriginalDisplayName] = useState("");
 
   useEffect(() => {
     // Load user data when modal opens
@@ -41,15 +43,39 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
     }
   }, [isOpen, userType]);
 
-  const loadUserData = () => {
+  const loadUserData = async () => {
     if (userType === "teacher") {
       const teacherId = localStorage.getItem("teacherId");
       if (teacherId) {
         setUserId(teacherId);
+        
+        // Check if teacherId is from Supabase (not starting with 'admin-')
+        if (!teacherId.startsWith('admin-')) {
+          try {
+            // Get teacher data from Supabase
+            const { data: teacher, error } = await supabase
+              .from('teachers')
+              .select('*')
+              .eq('id', teacherId)
+              .maybeSingle();
+            
+            if (teacher && !error) {
+              setDisplayName(teacher.display_name || '');
+              setOriginalDisplayName(teacher.display_name || '');
+              setAvatar(teacher.avatar || null);
+              return;
+            }
+          } catch (error) {
+            console.error("Error loading teacher data from Supabase:", error);
+          }
+        }
+        
+        // Fallback to localStorage
         const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
         const teacher = teachers.find((t: any) => t.id === teacherId);
         if (teacher) {
           setDisplayName(teacher.displayName || "");
+          setOriginalDisplayName(teacher.displayName || "");
           setAvatar(teacher.avatar || null);
         }
       }
@@ -57,10 +83,30 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
       const studentId = localStorage.getItem("studentId");
       if (studentId) {
         setUserId(studentId);
+        
+        // Try to get student data from Supabase
+        try {
+          const { data: student, error } = await supabase
+            .from('students')
+            .select('*')
+            .eq('id', studentId)
+            .maybeSingle();
+          
+          if (student && !error) {
+            setDisplayName(student.display_name || student.username || '');
+            setOriginalDisplayName(student.display_name || student.username || '');
+            return;
+          }
+        } catch (error) {
+          console.error("Error loading student data from Supabase:", error);
+        }
+        
+        // Fallback to localStorage
         const students = JSON.parse(localStorage.getItem("students") || "[]");
         const student = students.find((s: any) => s.id === studentId);
         if (student) {
-          setDisplayName(student.displayName || "");
+          setDisplayName(student.displayName || student.username || "");
+          setOriginalDisplayName(student.displayName || student.username || "");
           setAvatar(student.avatar || null);
         }
         
@@ -73,37 +119,75 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
     }
   };
 
-  const handleSave = () => {
-    if (userType === "teacher") {
-      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-      const teacherIndex = teachers.findIndex((t: any) => t.id === userId);
-      
-      if (teacherIndex !== -1) {
-        teachers[teacherIndex] = {
-          ...teachers[teacherIndex],
-          displayName,
-          avatar,
-        };
-        localStorage.setItem("teachers", JSON.stringify(teachers));
-        localStorage.setItem("teacherDisplayName", displayName);
+  const handleSave = async () => {
+    // Only update if display name has changed
+    if (displayName !== originalDisplayName) {
+      if (userType === "teacher") {
+        const teacherId = localStorage.getItem("teacherId");
         
-        toast(t("settings-saved"));
-      }
-    } else {
-      const students = JSON.parse(localStorage.getItem("students") || "[]");
-      const studentIndex = students.findIndex((s: any) => s.id === userId);
-      
-      if (studentIndex !== -1) {
-        students[studentIndex] = {
-          ...students[studentIndex],
-          displayName,
-          avatar,
-        };
-        localStorage.setItem("students", JSON.stringify(students));
-        localStorage.setItem("studentName", displayName);
+        // Update in Supabase if not an admin user
+        if (teacherId && !teacherId.startsWith('admin-')) {
+          try {
+            const { error } = await supabase
+              .from('teachers')
+              .update({ display_name: displayName })
+              .eq('id', teacherId);
+            
+            if (error) throw error;
+          } catch (error) {
+            console.error("Error updating teacher in Supabase:", error);
+          }
+        }
         
-        toast(t("settings-saved"));
+        // Also update in localStorage for backward compatibility
+        const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+        const teacherIndex = teachers.findIndex((t: any) => t.id === userId);
+        
+        if (teacherIndex !== -1) {
+          teachers[teacherIndex] = {
+            ...teachers[teacherIndex],
+            displayName,
+            avatar,
+          };
+          localStorage.setItem("teachers", JSON.stringify(teachers));
+          localStorage.setItem("teacherDisplayName", displayName);
+        }
+      } else {
+        const studentId = localStorage.getItem("studentId");
+        
+        // Update in Supabase
+        if (studentId) {
+          try {
+            const { error } = await supabase
+              .from('students')
+              .update({ display_name: displayName })
+              .eq('id', studentId);
+            
+            if (error) throw error;
+          } catch (error) {
+            console.error("Error updating student in Supabase:", error);
+          }
+        }
+        
+        // Also update in localStorage
+        const students = JSON.parse(localStorage.getItem("students") || "[]");
+        const studentIndex = students.findIndex((s: any) => s.id === userId);
+        
+        if (studentIndex !== -1) {
+          students[studentIndex] = {
+            ...students[studentIndex],
+            displayName,
+            avatar,
+          };
+          localStorage.setItem("students", JSON.stringify(students));
+          localStorage.setItem("studentDisplayName", displayName);
+        }
       }
+      
+      toast({
+        title: t("success"),
+        description: t("settings-saved"),
+      });
     }
     
     onClose();

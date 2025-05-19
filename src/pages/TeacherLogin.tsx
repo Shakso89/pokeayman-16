@@ -36,6 +36,7 @@ const TeacherLogin = () => {
       const redirect = sessionStorage.getItem("redirectAfterLogin");
       sessionStorage.removeItem("redirectAfterLogin");
 
+      console.log("User is logged in:", { userType, isAdmin });
       if (userType === "student") {
         navigate("/student-dashboard");
       } else if (isAdmin) {
@@ -51,6 +52,7 @@ const TeacherLogin = () => {
     setError("");
 
     try {
+      console.log("Attempting login with:", username);
       // Enhanced special handling for Ayman email or username
       const isAymanEmail = username.toLowerCase() === "ayman.soliman.tr@gmail.com";
       const isAymanUsername = username.toLowerCase() === "ayman";
@@ -112,6 +114,8 @@ const TeacherLogin = () => {
         email,
         password
       });
+
+      console.log("Supabase login result:", { data, error });
 
       if (error) {
         // Special handling for ayman.soliman.tr@gmail.com or Ayman username
