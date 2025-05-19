@@ -1,14 +1,16 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { School, Class, Student } from "@/types/pokemon";
 import { toast } from "@/hooks/use-toast";
-import { ChevronLeft, Plus, Edit, Trash2, School as SchoolIcon, Eye, Trash } from "lucide-react";
+import { ChevronLeft, Plus, Edit, Trash2, School as SchoolIcon, Eye, Trash, Loader2 } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { initializeSchoolPokemonPool } from "@/utils/pokemon";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SchoolManagementProps {
   onBack: () => void;
@@ -32,6 +34,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
   const [showDeleteClassDialog, setShowDeleteClassDialog] = useState(false);
   const [classesToDelete, setClassesToDelete] = useState<Class[]>([]);
   const [selectedSchoolForDeletion, setSelectedSchoolForDeletion] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   
   const { t } = useTranslation();
 
@@ -40,52 +43,112 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
     const username = localStorage.getItem("teacherUsername") || "";
     setIsAdminUser(username === "Admin" || username === "Ayman");
     
-    // Load all schools
-    const savedSchools = localStorage.getItem("schools");
-    let parsedSchools = savedSchools ? JSON.parse(savedSchools) : [];
+    // Load schools from Supabase
+    loadSchools();
     
-    // Initialize predefined schools if they don't exist or reset them to predefined values
-    if (isAdminUser) {
-      // First check if we should reset the schools
-      const shouldReset = parsedSchools.length === 0 || 
-        parsedSchools.some((school: School) => !PREDEFINED_SCHOOLS.includes(school.name)) ||
-        PREDEFINED_SCHOOLS.some(name => !parsedSchools.find((school: School) => school.name === name));
+    // Subscribe to realtime updates for schools
+    const channel = supabase
+      .channel('schema-db-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'schools'
+        },
+        (payload) => {
+          console.log('School change detected:', payload);
+          loadSchools();
+        }
+      )
+      .subscribe();
       
-      if (shouldReset) {
-        // Remove all existing schools
-        localStorage.removeItem("schools");
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [teacherId]);
+  
+  // Function to load schools from Supabase
+  const loadSchools = async () => {
+    setIsLoading(true);
+    try {
+      // Get schools from Supabase
+      const { data: schoolsData, error } = await supabase
+        .from('schools')
+        .select('*');
         
-        // Create the predefined schools
-        const initialSchools = PREDEFINED_SCHOOLS.map((name, index) => {
-          const schoolId = `school-${Date.now()}-${index}`;
-          const newSchool: School = {
-            id: schoolId,
-            name,
-            teacherId, // Set admin as creator
-            createdAt: new Date().toISOString(),
-          };
+      if (error) {
+        throw error;
+      }
+      
+      // If admin and no schools exist, create predefined schools
+      if (isAdminUser && (!schoolsData || schoolsData.length === 0)) {
+        await createPredefinedSchools();
+        return; // loadSchools will be called again by the subscription
+      }
+      
+      setSchools(schoolsData || []);
+    } catch (error) {
+      console.error("Error loading schools:", error);
+      
+      // Fallback to localStorage
+      const savedSchools = localStorage.getItem("schools");
+      const parsedSchools = savedSchools ? JSON.parse(savedSchools) : [];
+      setSchools(parsedSchools);
+      
+      toast({
+        title: "Error",
+        description: "Failed to load schools from database, using local data.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  // Create predefined schools if they don't exist
+  const createPredefinedSchools = async () => {
+    try {
+      for (const schoolName of PREDEFINED_SCHOOLS) {
+        // Check if school already exists
+        const { data: existingSchool } = await supabase
+          .from('schools')
+          .select('id')
+          .eq('name', schoolName)
+          .maybeSingle();
           
+        if (!existingSchool) {
+          const schoolId = crypto.randomUUID();
+          
+          // Create school in Supabase
+          await supabase
+            .from('schools')
+            .insert({
+              id: schoolId,
+              name: schoolName,
+              created_by: teacherId,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            });
+            
           // Initialize Pokemon pool for the new school
           initializeSchoolPokemonPool(schoolId);
-          
-          return newSchool;
-        });
-        
-        // Save predefined schools
-        localStorage.setItem("schools", JSON.stringify(initialSchools));
-        parsedSchools = initialSchools;
+        }
       }
+      
+      // Load schools again after creating predefined ones
+      loadSchools();
+    } catch (error) {
+      console.error("Error creating predefined schools:", error);
+      toast({
+        title: "Error",
+        description: "Failed to create predefined schools.",
+        variant: "destructive",
+      });
     }
-    
-    // Admin sees all schools, teachers see only their schools
-    const visibleSchools = isAdminUser 
-      ? parsedSchools 
-      : parsedSchools;
-    
-    setSchools(visibleSchools);
-  }, [teacherId, isAdminUser]);
+  };
 
-  const handleAddSchool = () => {
+  const handleAddSchool = async () => {
     // Only admin can create schools
     if (!isAdminUser) {
       toast({
@@ -119,34 +182,46 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
       return;
     }
 
-    const schoolId = `school-${Date.now()}`;
-    const newSchoolData: School = {
-      id: schoolId,
-      name: newSchool.name,
-      teacherId, // Set current teacher as creator
-      createdAt: new Date().toISOString(),
-    };
-
-    // Save to localStorage
-    const savedSchools = localStorage.getItem("schools");
-    const parsedSchools = savedSchools ? JSON.parse(savedSchools) : [];
-    parsedSchools.push(newSchoolData);
-    localStorage.setItem("schools", JSON.stringify(parsedSchools));
-
-    // Update local state
-    setSchools([...schools, newSchoolData]);
-    setNewSchool({ name: "" });
+    const schoolId = crypto.randomUUID();
     
-    // Initialize Pokemon pool for the new school
-    initializeSchoolPokemonPool(schoolId);
+    try {
+      // Create school in Supabase
+      const { error } = await supabase
+        .from('schools')
+        .insert({
+          id: schoolId,
+          name: newSchool.name,
+          created_by: teacherId,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        });
+        
+      if (error) throw error;
+      
+      // Initialize Pokemon pool for the new school
+      initializeSchoolPokemonPool(schoolId);
 
-    toast({
-      title: t("success"),
-      description: t("school-created"),
-    });
+      // Reset input field
+      setNewSchool({ name: "" });
+      
+      toast({
+        title: t("success"),
+        description: t("school-created"),
+      });
+      
+      // The subscription will reload the schools
+    } catch (error: any) {
+      console.error("Error creating school:", error);
+      
+      toast({
+        title: t("error"),
+        description: error.message || t("failed-to-create-school"),
+        variant: "destructive",
+      });
+    }
   };
 
-  const handleUpdateSchool = (schoolId: string, newName: string) => {
+  const handleUpdateSchool = async (schoolId: string, newName: string) => {
     // Only admin can update schools
     if (!isAdminUser) {
       toast({
@@ -181,27 +256,40 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
       return;
     }
 
-    // Update school in localStorage
-    const savedSchools = localStorage.getItem("schools");
-    const parsedSchools = savedSchools ? JSON.parse(savedSchools) : [];
-    const updatedSchools = parsedSchools.map((school: School) =>
-      school.id === schoolId ? { ...school, name: newName } : school
-    );
-    localStorage.setItem("schools", JSON.stringify(updatedSchools));
+    try {
+      // Update school in Supabase
+      const { error } = await supabase
+        .from('schools')
+        .update({ 
+          name: newName,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', schoolId);
+        
+      if (error) throw error;
+      
+      setEditingSchoolId(null);
 
-    // Update local state
-    setSchools(schools.map(school => 
-      school.id === schoolId ? { ...school, name: newName } : school
-    ));
-    setEditingSchoolId(null);
-
-    toast({
-      title: t("success"),
-      description: t("school-updated"),
-    });
+      toast({
+        title: t("success"),
+        description: t("school-updated"),
+      });
+      
+      // The subscription will reload the schools
+    } catch (error: any) {
+      console.error("Error updating school:", error);
+      
+      toast({
+        title: t("error"),
+        description: error.message || t("failed-to-update-school"),
+        variant: "destructive",
+      });
+      
+      setEditingSchoolId(null);
+    }
   };
 
-  const handleDeleteSchool = (schoolId: string) => {
+  const handleDeleteSchool = async (schoolId: string) => {
     // Only admin can delete schools
     if (!isAdminUser) {
       toast({
@@ -213,57 +301,93 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
     }
 
     // Check if school has classes
-    const savedClasses = localStorage.getItem("classes");
-    const parsedClasses = savedClasses ? JSON.parse(savedClasses) : [];
-    const schoolClasses = parsedClasses.filter((cls: Class) => cls.schoolId === schoolId);
-
-    if (schoolClasses.length > 0) {
-      // Show delete class dialog
-      setClassesToDelete(schoolClasses);
-      setSelectedSchoolForDeletion(schoolId);
-      setShowDeleteClassDialog(true);
-      return;
+    try {
+      const { data: classes, error } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('school_id', schoolId);
+        
+      if (error) throw error;
+      
+      if (classes && classes.length > 0) {
+        // Show delete class dialog
+        setClassesToDelete(classes);
+        setSelectedSchoolForDeletion(schoolId);
+        setShowDeleteClassDialog(true);
+        return;
+      }
+      
+      // If school has no classes, delete it directly
+      await deleteSchoolAndClasses(schoolId, []);
+    } catch (error: any) {
+      console.error("Error checking for classes:", error);
+      
+      toast({
+        title: t("error"),
+        description: error.message || t("failed-to-check-classes"),
+        variant: "destructive",
+      });
     }
-
-    // If school has no classes, delete it directly
-    deleteSchoolAndClasses(schoolId, []);
   };
 
-  const deleteSchoolAndClasses = (schoolId: string, classesToDelete: Class[]) => {
-    // Delete classes if any
-    if (classesToDelete.length > 0) {
-      const savedClasses = localStorage.getItem("classes");
-      const parsedClasses = savedClasses ? JSON.parse(savedClasses) : [];
-      const updatedClasses = parsedClasses.filter((cls: Class) => 
-        !classesToDelete.some(c => c.id === cls.id)
-      );
-      localStorage.setItem("classes", JSON.stringify(updatedClasses));
-
-      // Delete student associations with classes
-      const savedStudents = localStorage.getItem("students");
-      const parsedStudents = savedStudents ? JSON.parse(savedStudents) : [];
-      const updatedStudents = parsedStudents.map((student: Student) => {
-        if (classesToDelete.some(c => c.id === student.classId)) {
-          return { ...student, classId: null };
+  const deleteSchoolAndClasses = async (schoolId: string, classesToDelete: Class[]) => {
+    try {
+      // Delete classes if any
+      if (classesToDelete.length > 0) {
+        // Reset student class_id associations
+        for (const cls of classesToDelete) {
+          // Get students in this class
+          const { data: students } = await supabase
+            .from('students')
+            .select('id')
+            .eq('class_id', cls.id);
+            
+          if (students && students.length > 0) {
+            // Update students to remove class association
+            await supabase
+              .from('students')
+              .update({ class_id: null })
+              .in('id', students.map((s: any) => s.id));
+          }
+          
+          // Delete the class
+          await supabase
+            .from('classes')
+            .delete()
+            .eq('id', cls.id);
         }
-        return student;
+      }
+
+      // Delete school from Supabase
+      const { error } = await supabase
+        .from('schools')
+        .delete()
+        .eq('id', schoolId);
+        
+      if (error) throw error;
+
+      toast({
+        title: t("success"),
+        description: t("school-deleted"),
       });
-      localStorage.setItem("students", JSON.stringify(updatedStudents));
+      
+      // Close dialog if open
+      if (showDeleteClassDialog) {
+        setShowDeleteClassDialog(false);
+        setSelectedSchoolForDeletion(null);
+        setClassesToDelete([]);
+      }
+      
+      // The subscription will reload the schools
+    } catch (error: any) {
+      console.error("Error deleting school:", error);
+      
+      toast({
+        title: t("error"),
+        description: error.message || t("failed-to-delete-school"),
+        variant: "destructive",
+      });
     }
-
-    // Delete school from localStorage
-    const savedSchools = localStorage.getItem("schools");
-    const parsedSchools = savedSchools ? JSON.parse(savedSchools) : [];
-    const updatedSchools = parsedSchools.filter((school: School) => school.id !== schoolId);
-    localStorage.setItem("schools", JSON.stringify(updatedSchools));
-
-    // Update local state
-    setSchools(schools.filter(school => school.id !== schoolId));
-
-    toast({
-      title: t("success"),
-      description: t("school-deleted"),
-    });
   };
 
   const handleViewStudentPokemon = (studentId: string) => {
@@ -303,116 +427,125 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
         </div>
       </div>
       
-      {isAdminUser && (
-        <Card className="pokemon-card">
-          <CardHeader>
-            <CardTitle>{t("add-new-school")}</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="flex gap-2">
-              <Input
-                placeholder={t("school-name")}
-                value={newSchool.name}
-                onChange={(e) => setNewSchool({ name: e.target.value })}
-              />
-              <Button onClick={handleAddSchool}>
-                <Plus className="h-4 w-4 mr-1" />
-                {t("add-school")}
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-      
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {schools.map((school) => (
-          <Card key={school.id} className="pokemon-card hover:shadow-md transition-shadow">
-            {editingSchoolId === school.id ? (
-              <CardContent className="pt-6">
-                <Input
-                  defaultValue={school.name}
-                  autoFocus
-                  onBlur={(e) => handleUpdateSchool(school.id, e.target.value)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      handleUpdateSchool(school.id, e.currentTarget.value);
-                    } else if (e.key === "Escape") {
-                      setEditingSchoolId(null);
-                    }
-                  }}
-                />
-              </CardContent>
-            ) : (
-              <>
-                <CardHeader className="pb-2">
-                  <div className="flex justify-between">
-                    <CardTitle className="flex items-center gap-2">
-                      <SchoolIcon className="h-5 w-5 text-blue-500" />
-                      {school.name}
-                    </CardTitle>
-                    {isAdminUser && (
-                      <div className="flex gap-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setEditingSchoolId(school.id)}
-                          className="h-8 w-8 p-0"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDeleteSchool(school.id)}
-                          className="text-red-500 h-8 w-8 p-0"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-                </CardHeader>
-                <CardContent>
-                  {school.name === "New School" && (
-                    <Alert className="mb-3 bg-amber-50">
-                      <AlertDescription>
-                        {t("contact-admin-after-creating-classes")}
-                      </AlertDescription>
-                    </Alert>
-                  )}
-                  <Button 
-                    variant="default" 
-                    className="w-full"
-                    onClick={() => onSelectSchool(school.id)}
-                  >
-                    {t("manage-classes")}
+      {isLoading ? (
+        <div className="flex justify-center items-center py-12">
+          <Loader2 className="h-8 w-8 animate-spin text-blue-500 mr-2" />
+          <p>{t("loading-schools")}</p>
+        </div>
+      ) : (
+        <>
+          {isAdminUser && (
+            <Card className="pokemon-card">
+              <CardHeader>
+                <CardTitle>{t("add-new-school")}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex gap-2">
+                  <Input
+                    placeholder={t("school-name")}
+                    value={newSchool.name}
+                    onChange={(e) => setNewSchool({ name: e.target.value })}
+                  />
+                  <Button onClick={handleAddSchool}>
+                    <Plus className="h-4 w-4 mr-1" />
+                    {t("add-school")}
                   </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {schools.map((school) => (
+              <Card key={school.id} className="pokemon-card hover:shadow-md transition-shadow">
+                {editingSchoolId === school.id ? (
+                  <CardContent className="pt-6">
+                    <Input
+                      defaultValue={school.name}
+                      autoFocus
+                      onBlur={(e) => handleUpdateSchool(school.id, e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          handleUpdateSchool(school.id, e.currentTarget.value);
+                        } else if (e.key === "Escape") {
+                          setEditingSchoolId(null);
+                        }
+                      }}
+                    />
+                  </CardContent>
+                ) : (
+                  <>
+                    <CardHeader className="pb-2">
+                      <div className="flex justify-between">
+                        <CardTitle className="flex items-center gap-2">
+                          <SchoolIcon className="h-5 w-5 text-blue-500" />
+                          {school.name}
+                        </CardTitle>
+                        {isAdminUser && (
+                          <div className="flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => setEditingSchoolId(school.id)}
+                              className="h-8 w-8 p-0"
+                            >
+                              <Edit className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteSchool(school.id)}
+                              className="text-red-500 h-8 w-8 p-0"
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+                    </CardHeader>
+                    <CardContent>
+                      {school.name === "New School" && (
+                        <Alert className="mb-3 bg-amber-50">
+                          <AlertDescription>
+                            {t("contact-admin-after-creating-classes")}
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                      <Button 
+                        variant="default" 
+                        className="w-full"
+                        onClick={() => onSelectSchool(school.id)}
+                      >
+                        {t("manage-classes")}
+                      </Button>
+                    </CardContent>
+                  </>
+                )}
+              </Card>
+            ))}
+            
+            {schools.length === 0 && (
+              <Card className="col-span-full border-dashed">
+                <CardContent className="p-8 text-center">
+                  <SchoolIcon className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-lg font-medium mb-2">{t("no-schools-yet")}</h3>
+                  <p className="text-gray-500 mb-6">
+                    {isAdminUser 
+                      ? t("create-first-school-description")
+                      : t("no-schools-assigned")}
+                  </p>
+                  {isAdminUser && (
+                    <Button onClick={() => setNewSchool({ name: "" })}>
+                      <Plus className="h-4 w-4 mr-1" />
+                      {t("create-first-school")}
+                    </Button>
+                  )}
                 </CardContent>
-              </>
+              </Card>
             )}
-          </Card>
-        ))}
-        
-        {schools.length === 0 && (
-          <Card className="col-span-full border-dashed">
-            <CardContent className="p-8 text-center">
-              <SchoolIcon className="h-12 w-12 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-lg font-medium mb-2">{t("no-schools-yet")}</h3>
-              <p className="text-gray-500 mb-6">
-                {isAdminUser 
-                  ? t("create-first-school-description")
-                  : t("no-schools-assigned")}
-              </p>
-              {isAdminUser && (
-                <Button onClick={() => setNewSchool({ name: "" })}>
-                  <Plus className="h-4 w-4 mr-1" />
-                  {t("create-first-school")}
-                </Button>
-              )}
-            </CardContent>
-          </Card>
-        )}
-      </div>
+          </div>
+        </>
+      )}
 
       {/* Student Pokemon Dialog */}
       <Dialog open={showStudentPokemon} onOpenChange={setShowStudentPokemon}>
@@ -479,9 +612,6 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
               onClick={() => {
                 if (selectedSchoolForDeletion) {
                   deleteSchoolAndClasses(selectedSchoolForDeletion, classesToDelete);
-                  setShowDeleteClassDialog(false);
-                  setSelectedSchoolForDeletion(null);
-                  setClassesToDelete([]);
                 }
               }}
             >
