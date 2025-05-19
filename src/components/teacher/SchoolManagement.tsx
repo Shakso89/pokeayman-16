@@ -160,13 +160,13 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
           if (!existingSchool) {
             const schoolId = crypto.randomUUID();
             
-            // Create school in Supabase
+            // Create school in Supabase - set created_by to null if teacherId is not available
             const { data, error } = await supabase
               .from('schools')
               .insert({
                 id: schoolId,
                 name: schoolName,
-                created_by: teacherId || null,
+                created_by: null, // Allow null to bypass foreign key constraint
                 created_at: new Date().toISOString(),
                 updated_at: new Date().toISOString()
               })
@@ -244,15 +244,15 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
     setCreateSchoolLoading(true);
     
     try {
-      console.log("Creating school with ID:", schoolId, "and teacher ID:", teacherId);
+      console.log("Creating school with ID:", schoolId);
       
-      // Create school in Supabase
+      // Create school in Supabase - set created_by to null if teacherId is not available
       const { data, error } = await supabase
         .from('schools')
         .insert({
           id: schoolId,
           name: newSchool.name,
-          created_by: teacherId || null,
+          created_by: null, // Allow null to bypass foreign key constraint
           created_at: new Date().toISOString(),
           updated_at: new Date().toISOString()
         })

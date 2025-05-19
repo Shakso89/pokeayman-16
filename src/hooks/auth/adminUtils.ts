@@ -19,9 +19,17 @@ export const checkIsAdmin = (user: User | null, username?: string): boolean => {
   // Special case handling for known admin emails
   const isSpecialAdminEmail = 
     email === 'ayman.soliman.tr@gmail.com' || 
-    storedEmail === 'ayman.soliman.tr@gmail.com';
+    storedEmail === 'ayman.soliman.tr@gmail.com' ||
+    email === 'ayman.soliman.cc@gmail.com' || 
+    storedEmail === 'ayman.soliman.cc@gmail.com';
   
-  return isAdminEmail || isAdminUsername || isSpecialAdminEmail;
+  // Set isAdmin flag in localStorage for later reference
+  const isAdmin = isAdminEmail || isAdminUsername || isSpecialAdminEmail;
+  if (isAdmin) {
+    localStorage.setItem("isAdmin", "true");
+  }
+  
+  return isAdmin;
 };
 
 // Handle special admin emails with additional logging

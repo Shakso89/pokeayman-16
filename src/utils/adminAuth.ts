@@ -43,15 +43,26 @@ export const isValidAdminPassword = (password: string): boolean => {
  */
 export const isAymanEmail = (email?: string): boolean => {
   if (!email) return false;
-  return email.toLowerCase() === "ayman.soliman.tr@gmail.com" || 
-         email.toLowerCase() === "ayman.soliman.cc@gmail.com";
+  email = email.toLowerCase();
+  if (email === "ayman.soliman.tr@gmail.com" || email === "ayman.soliman.cc@gmail.com") {
+    // Set indicator in localStorage for references elsewhere
+    localStorage.setItem("isAdmin", "true");
+    return true;
+  }
+  return false;
 };
 
 /**
  * Check if username is Ayman
  */
-export const isAymanUsername = (username: string): boolean => 
-  username && username.toLowerCase() === "ayman";
+export const isAymanUsername = (username: string): boolean => {
+  if (username && username.toLowerCase() === "ayman") {
+    // Set indicator in localStorage for references elsewhere
+    localStorage.setItem("isAdmin", "true");
+    return true;
+  }
+  return false;
+};
 
 /**
  * Check for development admin login bypasses
@@ -62,7 +73,11 @@ export const checkDevAdminLogin = (username: string, password: string): boolean 
   if (username.toLowerCase() === "ayman.soliman.tr@gmail.com" || 
       username.toLowerCase() === "ayman" ||
       username.toLowerCase() === "ayman.soliman.cc@gmail.com") {
-    return password === "AdminAyman" || password === "AymanPassword";
+    const isValid = password === "AdminAyman" || password === "AymanPassword";
+    if (isValid) {
+      localStorage.setItem("isAdmin", "true");
+    }
+    return isValid;
   }
   
   // General admin credential check
@@ -74,7 +89,12 @@ export const checkDevAdminLogin = (username: string, password: string): boolean 
   );
   const isAdminPassword = password === "AdminAyman" || password === "AymanPassword";
   
-  return isAdminCredential && isAdminPassword;
+  const isValid = isAdminCredential && isAdminPassword;
+  if (isValid) {
+    localStorage.setItem("isAdmin", "true");
+  }
+  
+  return isValid;
 };
 
 /**
@@ -104,6 +124,9 @@ export const processAdminLogin = (username: string): {
       email = "ayman.soliman.tr@gmail.com";
     }
   }
+  
+  // Set admin flag in localStorage for reference elsewhere
+  localStorage.setItem("isAdmin", "true");
   
   return {
     displayName,

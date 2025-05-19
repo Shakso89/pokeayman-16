@@ -1,4 +1,3 @@
-
 import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Index from "./pages/Index";
 import TeacherLogin from "./pages/TeacherLogin";
@@ -16,7 +15,7 @@ import TeacherProfilePage from "./pages/TeacherProfilePage";
 import StudentDetailPage from "./pages/StudentDetailPage";
 import ReportsPage from "./pages/ReportsPage";
 import Messages from "./pages/Messages";
-import { AuthProvider } from "./contexts/AuthContext";
+import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from "./components/auth/ProtectedRoute";
 import "./App.css";
 
