@@ -10,7 +10,6 @@ interface StudentData {
   username: string;
   password: string;
   displayName: string;
-  schoolId?: string;
 }
 
 export const createStudent = async (
@@ -101,7 +100,7 @@ export const createStudent = async (
     
     console.log("Creating student in database with teacherId:", validTeacherId);
     
-    // Create student without the school_id field which is causing issues
+    // Create student
     const { data, error } = await supabase
       .from('students')
       .insert({

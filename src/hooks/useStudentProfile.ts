@@ -41,6 +41,8 @@ export const useStudentProfile = (studentId: string | undefined) => {
   const loadStudentData = async () => {
     setIsLoading(true);
     try {
+      console.log("Loading student data for ID:", studentId);
+      
       // First try to get student from Supabase
       const { data: studentData, error } = await supabase
         .from('students')
@@ -49,6 +51,7 @@ export const useStudentProfile = (studentId: string | undefined) => {
         .maybeSingle();
       
       if (studentData) {
+        console.log("Found student in Supabase:", studentData);
         // Found student in Supabase
         setStudent({
           id: studentData.id,
@@ -72,12 +75,14 @@ export const useStudentProfile = (studentId: string | undefined) => {
       }
       
       // If not found in Supabase, fall back to localStorage
+      console.log("Student not found in Supabase, checking localStorage");
       const studentsData = localStorage.getItem("students");
       if (studentsData) {
         const students = JSON.parse(studentsData);
         const foundStudent = students.find((s: Student) => s.id === studentId);
         
         if (foundStudent) {
+          console.log("Found student in localStorage:", foundStudent);
           // Get Pokémon collection
           const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
           const pokemonData = studentPokemons.find((p: any) => p.studentId === studentId);
@@ -99,6 +104,7 @@ export const useStudentProfile = (studentId: string | undefined) => {
             contactInfo: normalizedStudent.contactInfo
           });
         } else {
+          console.log("Student not found in localStorage either");
           toast.error("Student not found");
         }
       }
@@ -130,6 +136,8 @@ export const useStudentProfile = (studentId: string | undefined) => {
     if (!student) return;
     
     try {
+      console.log("Saving profile with data:", editData);
+      
       // Try to update in Supabase first
       if (student.id) {
         const { error } = await supabase
@@ -142,6 +150,8 @@ export const useStudentProfile = (studentId: string | undefined) => {
         if (error) {
           console.error("Error updating student in Supabase:", error);
           throw error;
+        } else {
+          console.log("Successfully updated student in Supabase");
         }
       }
       
@@ -160,15 +170,26 @@ export const useStudentProfile = (studentId: string | undefined) => {
         };
         
         localStorage.setItem("students", JSON.stringify(students));
+        console.log("Updated student in localStorage");
       }
       
-      setStudent({
+      // Update localStorage session data if it's the current user
+      if (isOwner) {
+        localStorage.setItem("studentName", editData.display_name || student.display_name);
+        localStorage.setItem("studentDisplayName", editData.display_name || student.display_name);
+        console.log("Updated session data in localStorage");
+      }
+      
+      // Update local state
+      const updatedStudent = {
         ...student,
         display_name: editData.display_name || student.display_name,
         displayName: editData.display_name || student.display_name,
         contactInfo: editData.contactInfo,
         photos: editData.photos || student.photos
-      });
+      };
+      
+      setStudent(updatedStudent);
       
       setIsEditing(false);
       toast.success("Profile updated successfully!");

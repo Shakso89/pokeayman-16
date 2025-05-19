@@ -30,7 +30,7 @@ const StudentLogin: React.FC = () => {
 
       if (userType === "teacher") {
         navigate("/teacher-dashboard");
-      } else {
+      } else if (userType === "student") {
         navigate(redirect || "/student-dashboard");
       }
     }
@@ -52,9 +52,12 @@ const StudentLogin: React.FC = () => {
     setIsProcessing(true);
 
     try {
+      console.log("Attempting student login with username:", usernameOrEmail);
       const result = await loginStudent(usernameOrEmail, password);
 
-      if (!result.success) {
+      if (result.success) {
+        navigate("/student-dashboard");
+      } else {
         toast({
           title: "Login Error",
           description: result.message || "Invalid username or password",

@@ -31,6 +31,8 @@ export const useStudentAuth = () => {
     setIsLoading(true);
     
     try {
+      console.log("Attempting to login student with username:", username);
+      
       // Get student data from Supabase
       const { data: student, error } = await supabase
         .from('students')
@@ -53,9 +55,12 @@ export const useStudentAuth = () => {
         throw new Error(`Database error: ${error.message}`);
       }
       
+      console.log("Student login query result:", student ? "Found student" : "No student found");
+      
       // If no student found with that username
       if (!student) {
         // Try legacy login via localStorage
+        console.log("Student not found in database, trying legacy login");
         return await legacyLoginStudent(username, password);
       }
       
@@ -65,17 +70,20 @@ export const useStudentAuth = () => {
       // Check if the password_hash field exists and is a bcrypt hash (starts with $2a$, $2b$, or $2y$)
       if (student.password_hash && 
           (student.password_hash.startsWith('$2a$') || 
-          student.password_hash.startsWith('$2b$') || 
-          student.password_hash.startsWith('$2y$'))) {
+           student.password_hash.startsWith('$2b$') || 
+           student.password_hash.startsWith('$2y$'))) {
         // Compare with bcrypt
+        console.log("Verifying password with bcrypt");
         passwordValid = await bcrypt.compare(password, student.password_hash);
       } else if (student.password_hash === password) {
         // Legacy plain-text password comparison (for backwards compatibility)
         // This is temporary and should be migrated
+        console.log("Using plain-text password comparison (legacy)");
         passwordValid = true;
         
         // Migrate to hashed password
         try {
+          console.log("Migrating plain-text password to hash");
           const hashedPassword = await bcrypt.hash(password, 10);
           await supabase
             .from('students')
@@ -86,6 +94,8 @@ export const useStudentAuth = () => {
           console.error("Failed to migrate password:", e);
         }
       }
+      
+      console.log("Password validation result:", passwordValid ? "Valid" : "Invalid");
       
       if (!passwordValid) {
         throw new Error("Invalid username or password");
@@ -106,9 +116,6 @@ export const useStudentAuth = () => {
         }
       }
       
-      // Find school name based on teacher's school
-      let schoolName = "Unknown";
-      
       // Update last login time
       await supabase
         .from('students')
@@ -119,19 +126,27 @@ export const useStudentAuth = () => {
       const studentData: StudentData = {
         id: student.id,
         username: student.username,
-        display_name: student.display_name || '',
+        display_name: student.display_name || student.username,
         class_id: student.class_id,
         teacher_id: student.teacher_id,
         teacher_name: teacherName,
-        school_name: schoolName
+        school_name: "Unknown"
       };
+      
+      console.log("Successfully logged in student:", studentData.id);
       
       // Set local storage values for session
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("userType", "student");
       localStorage.setItem("studentId", student.id);
+      localStorage.setItem("studentName", student.display_name || student.username); // Also set studentName for UI consistency
       localStorage.setItem("studentDisplayName", student.display_name || student.username);
       if (student.class_id) localStorage.setItem("studentClassId", student.class_id);
+      
+      toast({
+        title: "Login Successful",
+        description: `Welcome back, ${student.display_name || student.username}!`,
+      });
       
       return { 
         success: true, 
@@ -153,10 +168,12 @@ export const useStudentAuth = () => {
   // Legacy login function that uses localStorage
   const legacyLoginStudent = async (username: string, password: string): Promise<LoginResult> => {
     try {
+      console.log("Attempting legacy login with localStorage");
       const students = JSON.parse(localStorage.getItem("students") || "[]");
       const student = students.find((s: any) => s.username === username && s.password === password);
       
       if (!student) {
+        console.log("Student not found in localStorage");
         toast({
           title: "Login Failed",
           description: "Invalid username or password",
@@ -164,6 +181,8 @@ export const useStudentAuth = () => {
         });
         return { success: false, student: null, message: "Invalid credentials" };
       }
+      
+      console.log("Student found in localStorage, migrating to database");
       
       // Try to migrate student to database
       try {
@@ -199,8 +218,16 @@ export const useStudentAuth = () => {
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("userType", "student");
       localStorage.setItem("studentId", student.id);
+      localStorage.setItem("studentName", student.display_name || student.username); // Also set studentName for UI consistency
       localStorage.setItem("studentDisplayName", student.display_name || student.username);
       if (student.classId) localStorage.setItem("studentClassId", student.classId);
+      
+      console.log("Legacy login successful");
+      
+      toast({
+        title: "Login Successful",
+        description: `Welcome back, ${student.display_name || student.username}!`,
+      });
       
       return {
         success: true,
