@@ -101,18 +101,23 @@ export const useStudentAuth = () => {
         throw new Error("Invalid username or password");
       }
       
+      if (!student.is_active) {
+        throw new Error("Your account has been deactivated. Please contact your teacher.");
+      }
+      
       // Get teacher details if available
       let teacherName = "Unknown";
+      let schoolName = "Unknown";
       
       if (student.teacher_id) {
         const { data: teacher } = await supabase
           .from('teachers')
-          .select('display_name')
+          .select('display_name, username')
           .eq('id', student.teacher_id)
           .maybeSingle();
           
         if (teacher) {
-          teacherName = teacher.display_name;
+          teacherName = teacher.display_name || teacher.username;
         }
       }
       
@@ -130,7 +135,7 @@ export const useStudentAuth = () => {
         class_id: student.class_id,
         teacher_id: student.teacher_id,
         teacher_name: teacherName,
-        school_name: "Unknown"
+        school_name: schoolName
       };
       
       console.log("Successfully logged in student:", studentData.id);
@@ -139,7 +144,7 @@ export const useStudentAuth = () => {
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("userType", "student");
       localStorage.setItem("studentId", student.id);
-      localStorage.setItem("studentName", student.display_name || student.username); // Also set studentName for UI consistency
+      localStorage.setItem("studentName", student.display_name || student.username);
       localStorage.setItem("studentDisplayName", student.display_name || student.username);
       if (student.class_id) localStorage.setItem("studentClassId", student.class_id);
       
@@ -165,7 +170,7 @@ export const useStudentAuth = () => {
     }
   };
   
-  // Legacy login function that uses localStorage
+  // Legacy login function that uses localStorage and migrates to database
   const legacyLoginStudent = async (username: string, password: string): Promise<LoginResult> => {
     try {
       console.log("Attempting legacy login with localStorage");
@@ -191,24 +196,58 @@ export const useStudentAuth = () => {
         
         // Create a DB student object that satisfies the Student type
         const newStudent = {
-          id: student.id,
+          id: student.id || crypto.randomUUID(),
           username: student.username,
           password_hash: hashedPassword,
           display_name: student.display_name || student.username,
-          teacher_id: student.teacherId,
-          class_id: student.classId,
+          teacher_id: student.teacherId || student.teacher_id,
+          class_id: student.classId || student.class_id,
           is_active: true,
           created_at: new Date().toISOString(),
           last_login: new Date().toISOString()
         };
         
-        const { data, error } = await supabase
+        // First check if the student already exists in the database by ID or username
+        const { data: existingStudent, error: checkError } = await supabase
           .from('students')
-          .insert(newStudent)
-          .select();
+          .select('id')
+          .or(`id.eq.${newStudent.id},username.eq.${newStudent.username}`)
+          .maybeSingle();
+          
+        if (checkError) {
+          console.error("Error checking existing student:", checkError);
+        }
         
-        if (!error && data) {
-          console.log("Migrated student to database:", data);
+        if (!existingStudent) {
+          // Insert the new student
+          const { data, error } = await supabase
+            .from('students')
+            .insert(newStudent)
+            .select();
+            
+          if (error) {
+            console.error("Error migrating student to database:", error);
+          } else if (data) {
+            console.log("Migrated student to database:", data[0].id);
+          }
+        } else {
+          // Update the existing student
+          const { error } = await supabase
+            .from('students')
+            .update({
+              password_hash: hashedPassword,
+              display_name: newStudent.display_name,
+              teacher_id: newStudent.teacher_id,
+              class_id: newStudent.class_id,
+              last_login: newStudent.last_login
+            })
+            .eq('id', existingStudent.id);
+            
+          if (error) {
+            console.error("Error updating existing student:", error);
+          } else {
+            console.log("Updated existing student in database:", existingStudent.id);
+          }
         }
       } catch (err) {
         console.error("Error migrating student to database:", err);
@@ -221,6 +260,7 @@ export const useStudentAuth = () => {
       localStorage.setItem("studentName", student.display_name || student.username); // Also set studentName for UI consistency
       localStorage.setItem("studentDisplayName", student.display_name || student.username);
       if (student.classId) localStorage.setItem("studentClassId", student.classId);
+      if (student.class_id) localStorage.setItem("studentClassId", student.class_id);
       
       console.log("Legacy login successful");
       
@@ -235,8 +275,8 @@ export const useStudentAuth = () => {
           id: student.id,
           username: student.username,
           display_name: student.display_name || student.username,
-          class_id: student.classId,
-          teacher_id: student.teacherId,
+          class_id: student.classId || student.class_id,
+          teacher_id: student.teacherId || student.teacher_id,
           teacher_name: "Unknown"
         }
       };

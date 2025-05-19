@@ -1,11 +1,11 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Pencil, MessageSquare, UserPlus, Save, X } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import FriendRequestDialog from "@/components/dialogs/FriendRequestDialog";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Student {
   id: string;
@@ -39,6 +39,27 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 }) => {
   const { t } = useTranslation();
   const [showFriendDialog, setShowFriendDialog] = useState(false);
+  const [displayName, setDisplayName] = useState(student.displayName);
+  
+  useEffect(() => {
+    // Keep displayName in sync with student data
+    setDisplayName(student.displayName);
+  }, [student.displayName]);
+  
+  const handleSave = async () => {
+    // If there's a database connection, update the name there
+    try {
+      await supabase
+        .from('students')
+        .update({ display_name: displayName })
+        .eq('id', student.id);
+    } catch (err) {
+      console.error("Error updating display name in database:", err);
+    }
+    
+    // Call the parent's save function (which should handle local storage)
+    onSaveClick();
+  };
   
   return (
     <Card className="shadow-md">
@@ -63,8 +84,8 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
           {isEditing ? (
             <Input
               className="text-center text-xl font-bold mb-2"
-              defaultValue={student.displayName}
-              disabled
+              value={displayName}
+              onChange={(e) => setDisplayName(e.target.value)}
             />
           ) : (
             <h2 className="text-xl font-bold mb-2">{student.displayName}</h2>
@@ -77,7 +98,7 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
           <div className="flex flex-col w-full space-y-2">
             {isEditing ? (
               <>
-                <Button onClick={onSaveClick} className="w-full flex items-center">
+                <Button onClick={handleSave} className="w-full flex items-center">
                   <Save className="mr-2 h-4 w-4" />
                   {t("save")}
                 </Button>

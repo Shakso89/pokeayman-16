@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
@@ -77,6 +78,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     );
 
     if (isAdminUser) localStorage.setItem("isAdmin", "true");
+    
+    // Update last login in database
+    try {
+      supabase.from('teachers').update({
+        last_login: new Date().toISOString()
+      }).eq('id', id);
+    } catch (e) {
+      console.error("Error updating teacher last login:", e);
+    }
   };
 
   // Setup student auth data
@@ -95,6 +105,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     localStorage.setItem("studentId", id);
     localStorage.setItem("studentDisplayName", data.display_name || data.username || "");
     if (data.class_id) localStorage.setItem("studentClassId", data.class_id);
+    
+    // Update last login in database
+    try {
+      supabase.from('students').update({
+        last_login: new Date().toISOString()
+      }).eq('id', id);
+    } catch (e) {
+      console.error("Error updating student last login:", e);
+    }
   };
 
   // Process session data
@@ -162,6 +181,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Refresh auth state from supabase
   const refreshAuthState = async () => {
+    console.log("Refreshing auth state...");
     setAuthState(prev => ({ ...prev, loading: true }));
     
     try {
@@ -175,16 +195,59 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const localUserType = localStorage.getItem("userType") as UserType;
 
         if (localIsLoggedIn && localUserType) {
+          const userId = localUserType === "teacher" ? 
+            localStorage.getItem("teacherId") : 
+            localStorage.getItem("studentId");
+            
           setAuthState({
             ...initialAuthState,
             isLoggedIn: true,
             userType: localUserType,
-            userId: localUserType === "teacher"
-              ? localStorage.getItem("teacherId")
-              : localStorage.getItem("studentId"),
+            userId,
             isAdmin: localStorage.getItem("isAdmin") === "true",
             loading: false
           });
+          
+          // Check and update database if needed
+          if (userId) {
+            if (localUserType === 'student') {
+              const { data } = await supabase
+                .from('students')
+                .select('*')
+                .eq('id', userId)
+                .maybeSingle();
+                
+              if (data) {
+                console.log("Found student in database, updating session data");
+                // Update localStorage with latest data
+                localStorage.setItem("studentDisplayName", data.display_name || data.username);
+                if (data.class_id) localStorage.setItem("studentClassId", data.class_id);
+                
+                // Update last login
+                await supabase
+                  .from('students')
+                  .update({ last_login: new Date().toISOString() })
+                  .eq('id', userId);
+              }
+            } else if (localUserType === 'teacher') {
+              const { data } = await supabase
+                .from('teachers')
+                .select('*')
+                .eq('id', userId)
+                .maybeSingle();
+                
+              if (data) {
+                console.log("Found teacher in database, updating session data");
+                localStorage.setItem("teacherUsername", data.username);
+                
+                // Update last login
+                await supabase
+                  .from('teachers')
+                  .update({ last_login: new Date().toISOString() })
+                  .eq('id', userId);
+              }
+            }
+          }
         } else {
           clearAuthState();
         }

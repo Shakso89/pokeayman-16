@@ -14,7 +14,7 @@ const StudentLogin: React.FC = () => {
   const location = useLocation();
 
   const { isLoading: studentAuthLoading, loginStudent } = useStudentAuth();
-  const { isLoggedIn, userType, loading: authLoading } = useAuth();
+  const { isLoggedIn, userType, loading: authLoading, refreshAuthState } = useAuth();
 
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -56,6 +56,9 @@ const StudentLogin: React.FC = () => {
       const result = await loginStudent(usernameOrEmail, password);
 
       if (result.success) {
+        console.log("Login successful, refreshing auth state");
+        // Refresh the auth state to ensure all components have the latest data
+        await refreshAuthState();
         navigate("/student-dashboard");
       } else {
         toast({

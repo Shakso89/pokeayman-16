@@ -70,6 +70,38 @@ export const useStudentProfile = (studentId: string | undefined) => {
           contactInfo: ""
         });
         
+        // Sync with localStorage for legacy support
+        try {
+          const studentsInStorage = JSON.parse(localStorage.getItem("students") || "[]");
+          const existingIndex = studentsInStorage.findIndex((s: any) => s.id === studentId);
+          
+          if (existingIndex >= 0) {
+            // Update local storage entry
+            studentsInStorage[existingIndex] = {
+              ...studentsInStorage[existingIndex],
+              display_name: studentData.display_name,
+              displayName: studentData.display_name,
+              username: studentData.username,
+              class_id: studentData.class_id,
+              classId: studentData.class_id
+            };
+          } else {
+            // Add to local storage
+            studentsInStorage.push({
+              id: studentData.id,
+              username: studentData.username,
+              display_name: studentData.display_name,
+              displayName: studentData.display_name,
+              class_id: studentData.class_id,
+              classId: studentData.class_id
+            });
+          }
+          
+          localStorage.setItem("students", JSON.stringify(studentsInStorage));
+        } catch (e) {
+          console.error("Error syncing with localStorage:", e);
+        }
+        
         setIsLoading(false);
         return;
       }
@@ -103,6 +135,29 @@ export const useStudentProfile = (studentId: string | undefined) => {
             photos: normalizedStudent.photos || [],
             contactInfo: normalizedStudent.contactInfo
           });
+          
+          // Try to sync this student to the database
+          try {
+            const { data, error } = await supabase
+              .from('students')
+              .insert({
+                id: normalizedStudent.id,
+                username: normalizedStudent.username,
+                display_name: normalizedStudent.display_name,
+                class_id: normalizedStudent.class_id,
+                is_active: true,
+                created_at: new Date().toISOString()
+              })
+              .select();
+              
+            if (error && !error.message.includes('duplicate key')) {
+              console.error("Error syncing student to database:", error);
+            } else if (data) {
+              console.log("Synced student to database:", data[0].id);
+            }
+          } catch (err) {
+            console.error("Error syncing student to database:", err);
+          }
         } else {
           console.log("Student not found in localStorage either");
           toast.error("Student not found");
@@ -140,6 +195,7 @@ export const useStudentProfile = (studentId: string | undefined) => {
       
       // Try to update in Supabase first
       if (student.id) {
+        console.log("Updating student in Supabase:", student.id);
         const { error } = await supabase
           .from('students')
           .update({
@@ -222,7 +278,7 @@ export const useStudentProfile = (studentId: string | undefined) => {
     toast.success("Message window opened");
   };
   
-  const handleAddFriend = () => {
+  const handleAddFriend = async () => {
     if (!student || !currentUserId) return;
     
     // Check if request already sent
@@ -241,10 +297,27 @@ export const useStudentProfile = (studentId: string | undefined) => {
       createdAt: new Date().toISOString()
     };
     
-    // Save to localStorage
+    // Save to localStorage for now
     const requests = JSON.parse(localStorage.getItem("friendRequests") || "[]");
     requests.push(newRequest);
     localStorage.setItem("friendRequests", JSON.stringify(requests));
+    
+    // In a production app, we would also store this in the database
+    try {
+      // This is a placeholder for future database implementation
+      /*
+      await supabase.from('friend_requests').insert({
+        sender_id: currentUserId,
+        sender_type: userType,
+        receiver_id: student.id,
+        status: 'pending',
+        created_at: new Date().toISOString()
+      });
+      */
+    } catch (err) {
+      console.error("Error saving friend request to database:", err);
+      // Continue anyway since we saved to localStorage
+    }
     
     setFriendRequestSent(true);
     toast.success("Friend request sent");
