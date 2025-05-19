@@ -140,7 +140,8 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         teacherId,
         students: [],
         isPublic: true,
-        likes: []
+        likes: [],
+        createdAt: new Date().toISOString() // Add createdAt property with current date
       };
       
       const createdClass = await saveClass(classData);
