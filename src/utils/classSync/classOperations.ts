@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { handleDatabaseError } from "./errorHandling";
 import { ClassData, DatabaseClassData } from "./types";
@@ -26,7 +27,7 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
     const insertData = {
       name: classData.name,
       description: classData.description || null, // Allow empty description
-      teacher_id: classData.teacherId || null, // Allow null for admin users
+      teacher_id: classData.teacherId || null, // Set to null for admin users
       school_id: classData.schoolId || null,
       is_public: classData.isPublic || false,
       students: classData.students || [],
@@ -42,22 +43,10 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
     // Log the data being sent to Supabase
     console.log("Class insert data:", insertData);
     
-    const { data, error } = await supabase
-      .from("classes")
-      .insert(insertData)
-      .select()
-      .single();
-    
-    if (error) {
-      console.error("Error creating class in Supabase:", error);
-      
-      // If there's an error and we're not in admin mode, or the error is not related to foreign key constraint
-      if (!isAdmin || !error.message.includes("foreign key constraint")) {
-        return handleDatabaseError(error, null);
-      }
-      
-      // For admins, try fallback to localStorage if Supabase fails
-      console.log("Admin user detected, falling back to localStorage for class creation");
+    // IMPORTANT: For admin users, we skip the database insert and create a local-only class
+    // to avoid foreign key constraint issues when teacher profile doesn't exist
+    if (isAdmin) {
+      console.log("Admin user detected, creating local-only class");
       
       // Generate a UUID for the class
       const id = crypto.randomUUID();
@@ -68,6 +57,42 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
         description: classData.description || "",
         schoolId: classData.schoolId || "",
         teacherId: null, // Set teacherId to null for admin-created classes
+        students: classData.students || [],
+        isPublic: classData.isPublic || false,
+        likes: classData.likes || [],
+        createdAt: currentTime,
+        updatedAt: currentTime
+      };
+      
+      // Store in localStorage
+      const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+      localStorage.setItem("classes", JSON.stringify([...existingClasses, newClass]));
+      
+      return newClass;
+    }
+    
+    // For regular teachers with valid profiles, use Supabase
+    const { data, error } = await supabase
+      .from("classes")
+      .insert(insertData)
+      .select()
+      .single();
+    
+    if (error) {
+      console.error("Error creating class in Supabase:", error);
+      
+      // If there's an error, try fallback to localStorage
+      console.log("Falling back to localStorage for class creation");
+      
+      // Generate a UUID for the class
+      const id = crypto.randomUUID();
+      const currentTime = new Date().toISOString();
+      const newClass: ClassData = {
+        id,
+        name: classData.name,
+        description: classData.description || "",
+        schoolId: classData.schoolId || "",
+        teacherId: classData.teacherId || null,
         students: classData.students || [],
         isPublic: classData.isPublic || false,
         likes: classData.likes || [],

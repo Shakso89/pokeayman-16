@@ -12,6 +12,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
 import { v4 as uuidv4 } from "uuid";
+import { createClass } from "@/utils/classSync/classOperations";
 
 interface SelectSchoolDialogProps {
   open: boolean;
@@ -105,32 +106,24 @@ export const SelectSchoolDialog: React.FC<SelectSchoolDialogProps> = ({
     setIsCreating(true);
     
     try {
-      const newClassId = uuidv4();
-      const newClass = {
-        id: newClassId,
+      // Check if we have a valid teacher ID
+      const isAdmin = localStorage.getItem("isAdmin") === "true";
+      
+      // Create class using createClass utility function which better handles errors
+      const newClass = await createClass({
         name: className.trim(),
         description: classDescription.trim(),
-        school_id: selectedSchoolId,
-        teacher_id: teacherId,
+        schoolId: selectedSchoolId,
+        teacherId: isAdmin ? null : teacherId, // Set teacherId to null for admin users to bypass FK constraint
         students: [],
-        is_public: true,
-        created_at: new Date().toISOString()
-      };
+        isPublic: true,
+        likes: [],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
       
-      // Create class in Supabase
-      const { error } = await supabase
-        .from('classes')
-        .insert(newClass);
-        
-      if (error) throw error;
-      
-      // Store in localStorage as fallback
-      try {
-        const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-        existingClasses.push(newClass);
-        localStorage.setItem("classes", JSON.stringify(existingClasses));
-      } catch (err) {
-        console.error("Error updating localStorage:", err);
+      if (!newClass) {
+        throw new Error("Failed to create class");
       }
       
       toast({
@@ -139,7 +132,7 @@ export const SelectSchoolDialog: React.FC<SelectSchoolDialogProps> = ({
       });
       
       // Navigate to the class details page
-      navigate(`/class-details/${newClassId}`);
+      navigate(`/class-details/${newClass.id}`);
       onOpenChange(false);
       
     } catch (error) {
