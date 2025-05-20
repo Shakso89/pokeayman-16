@@ -74,6 +74,11 @@ const TeacherDashboard: React.FC = () => {
     }
   }, [teacherId, username, isLoggedIn, userType]);
 
+  // Fix: Add a handler for create class button click
+  const handleCreateClass = () => {
+    setCurrentView("classes");
+  };
+
   if (!isLoggedIn || userType !== "teacher") {
     return <Navigate to="/teacher-login" />;
   }
@@ -103,6 +108,18 @@ const TeacherDashboard: React.FC = () => {
               teacherId={teacherId}
               isAdmin={isAdmin}
             />
+
+            {/* Add a prominent Create Class button */}
+            <div className="mt-8 flex justify-center">
+              <Button 
+                onClick={handleCreateClass}
+                className="w-full max-w-md bg-red-500 hover:bg-red-600 flex items-center justify-center gap-2 py-6"
+                size="lg"
+              >
+                <span className="text-xl">+</span>
+                <span className="text-lg">create-class</span>
+              </Button>
+            </div>
           </>
         ) : currentView === "classes" ? (
           selectedSchoolId ? (

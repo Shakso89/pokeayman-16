@@ -1,11 +1,12 @@
 
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Home, Settings } from "lucide-react";
+import { Home, Settings, Plus } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import DashboardCards from "./DashboardCards";
 import DashboardActions from "./DashboardActions";
 import AccessRequestsTab from "./AccessRequestsTab";
+import { Button } from "@/components/ui/button";
 
 interface MainDashboardProps {
   activeTab: string;
@@ -47,6 +48,18 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
               onManageClasses={onManageClasses}
               isAdmin={isAdmin}
             />
+            
+            {/* Add a Create Class button in the dashboard tab */}
+            <div className="mt-6">
+              <Button 
+                onClick={onManageClasses}
+                variant="ranking" 
+                className="w-full flex items-center justify-center gap-2 py-4"
+              >
+                <Plus className="h-5 w-5" />
+                <span className="text-md">{t("create-class")}</span>
+              </Button>
+            </div>
           </TabsContent>
           
           <TabsContent value="actions_and_requests">
