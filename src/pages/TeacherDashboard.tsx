@@ -16,7 +16,7 @@ import { toast } from "@/hooks/use-toast";
 
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState<"main" | "classes" | "collaboration">("main");
+  const [currentView, setCurrentView] = useState<"main" | "classes" | "collaboration" | "create-class">("main");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [teacherData, setTeacherData] = useState<any>(null);
@@ -74,8 +74,25 @@ const TeacherDashboard: React.FC = () => {
     }
   }, [teacherId, username, isLoggedIn, userType]);
 
-  // Fix: Add a handler for create class button click
+  // Direct class creation handler (bypasses school selection)
   const handleCreateClass = () => {
+    // If we have at least one school, select the first one and go straight to class creation
+    const savedSchools = localStorage.getItem("schools");
+    if (savedSchools) {
+      const schools = JSON.parse(savedSchools);
+      if (schools && schools.length > 0) {
+        setSelectedSchoolId(schools[0].id);
+        setCurrentView("create-class");
+        return;
+      }
+    }
+    
+    // If no schools found, go to the school management screen
+    setCurrentView("classes");
+  };
+
+  // Handle navigating to manage classes (shows school list first)
+  const handleManageClasses = () => {
     setCurrentView("classes");
   };
 
@@ -104,22 +121,11 @@ const TeacherDashboard: React.FC = () => {
               activeTab={activeTab}
               setActiveTab={setActiveTab}
               onAddStudent={() => setIsAddStudentOpen(true)}
-              onManageClasses={() => setCurrentView("classes")}
+              onManageClasses={handleManageClasses}
+              onCreateClass={handleCreateClass}
               teacherId={teacherId}
               isAdmin={isAdmin}
             />
-
-            {/* Add a prominent Create Class button */}
-            <div className="mt-8 flex justify-center">
-              <Button 
-                onClick={handleCreateClass}
-                className="w-full max-w-md bg-red-500 hover:bg-red-600 flex items-center justify-center gap-2 py-6"
-                size="lg"
-              >
-                <span className="text-xl">+</span>
-                <span className="text-lg">create-class</span>
-              </Button>
-            </div>
           </>
         ) : currentView === "classes" ? (
           selectedSchoolId ? (
@@ -135,6 +141,13 @@ const TeacherDashboard: React.FC = () => {
               teacherId={teacherId || ""}
             />
           )
+        ) : currentView === "create-class" ? (
+          <ClassManagement 
+            onBack={() => setCurrentView("main")}
+            schoolId={selectedSchoolId || ""}
+            teacherId={teacherId || ""}
+            directCreateMode={true} // New prop to indicate direct creation mode
+          />
         ) : (
           <div>
             <div className="flex items-center mb-6">

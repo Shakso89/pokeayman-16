@@ -19,7 +19,7 @@ import {
 import { removeClass, getClassById } from "@/utils/classSync/classOperations";
 import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
-import { awardCoinsToStudent, removeCoinsFromStudent } from "@/utils/pokemon/studentPokemon";
+import { awardCoinsToStudent } from "@/utils/pokemon/studentPokemon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StudentsTab from "@/components/student/StudentsTab";
 import CreateHomeworkDialog from "@/components/teacher/CreateHomeworkDialog";
@@ -37,8 +37,6 @@ const ClassDetails = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [isTeacher, setIsTeacher] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
-  
-  // Add the missing state variable for ManageClassDialog
   const [isManageClassOpen, setIsManageClassOpen] = useState(false);
   
   // Management dialogs state
@@ -55,6 +53,7 @@ const ClassDetails = () => {
   });
   const [isCreateHomeworkOpen, setIsCreateHomeworkOpen] = useState(false);
   const [teacherId, setTeacherId] = useState<string>("");
+  const [userPermissionLevel, setUserPermissionLevel] = useState<"owner" | "teacher" | "viewer">("viewer");
 
   // Check if user is admin or teacher
   useEffect(() => {
@@ -77,6 +76,16 @@ const ClassDetails = () => {
         const cls = await getClassById(id);
         if (cls) {
           setClassData(cls);
+          
+          // Determine permission level
+          const currentTeacherId = localStorage.getItem("teacherId") || "";
+          if (cls.teacherId === currentTeacherId) {
+            setUserPermissionLevel("owner");
+          } else if (isAdmin) {
+            setUserPermissionLevel("owner"); // Admin has full permissions
+          } else {
+            setUserPermissionLevel("viewer");
+          }
           
           // If class has students, fetch their details
           if (cls.students && cls.students.length > 0) {
@@ -133,7 +142,7 @@ const ClassDetails = () => {
     };
     
     fetchClassDetails();
-  }, [id, t]);
+  }, [id, t, isAdmin, teacherId]);
 
   const checkLocalStorageFallback = () => {
     // Check localStorage as fallback
@@ -143,6 +152,16 @@ const ClassDetails = () => {
       const foundClass = parsedClasses.find((cls: any) => cls.id === id);
       if (foundClass) {
         setClassData(foundClass);
+        
+        // Determine permission level
+        const currentTeacherId = localStorage.getItem("teacherId") || "";
+        if (foundClass.teacherId === currentTeacherId) {
+          setUserPermissionLevel("owner");
+        } else if (isAdmin) {
+          setUserPermissionLevel("owner"); // Admin has full permissions
+        } else {
+          setUserPermissionLevel("viewer");
+        }
         
         // Fetch student details if class has students
         if (foundClass.students && foundClass.students.length > 0) {
@@ -253,10 +272,13 @@ const ClassDetails = () => {
     });
   };
 
-  // New function to check if current user is the class creator
+  // Function to check if current user is the class creator
   const isClassCreator = () => {
     const currentTeacherId = localStorage.getItem("teacherId") || "";
-    return classData && (classData.teacher_id === currentTeacherId || classData.teacherId === currentTeacherId);
+    return (classData && 
+      (classData.teacher_id === currentTeacherId || 
+       classData.teacherId === currentTeacherId)
+    ) || isAdmin;
   };
 
   if (loading) {
@@ -299,7 +321,8 @@ const ClassDetails = () => {
         </div>
         
         <div className="flex gap-2">
-          {isTeacher && (
+          {/* Only show management options to class creator */}
+          {isClassCreator() ? (
             <>
               <Button 
                 onClick={() => setIsCreateHomeworkOpen(true)}
@@ -309,27 +332,33 @@ const ClassDetails = () => {
                 {t("assign-homework")}
               </Button>
 
-              {isClassCreator() && (
-                <Button 
-                  onClick={() => setIsManageClassOpen(true)}
-                  className="mr-2"
-                  variant="secondary"
+              <Button 
+                onClick={() => setIsManageClassOpen(true)}
+                className="mr-2"
+                variant="secondary"
+              >
+                <Settings className="h-4 w-4 mr-1" />
+                {t("manage-class")}
+              </Button>
+              
+              {isAdmin && (
+                <Button
+                  variant="destructive"
+                  onClick={() => setDeleteDialogOpen(true)}
+                  size="sm"
                 >
-                  <Settings className="h-4 w-4 mr-1" />
-                  {t("manage-class")}
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  {t("delete-class")}
                 </Button>
               )}
             </>
-          )}
-          
-          {isAdmin && (
+          ) : (
             <Button
-              variant="destructive"
-              onClick={() => setDeleteDialogOpen(true)}
-              size="sm"
+              variant="outline"
+              className="mr-2"
+              disabled={true} // Replace with request access functionality
             >
-              <Trash2 className="h-4 w-4 mr-1" />
-              {t("delete-class")}
+              {t("view-only-mode")}
             </Button>
           )}
         </div>
@@ -363,6 +392,17 @@ const ClassDetails = () => {
                   <h3 className="font-medium text-gray-500">{t("created")}</h3>
                   <p>{new Date(classData.created_at || classData.createdAt).toLocaleDateString()}</p>
                 </div>
+                {(classData.teacher_id || classData.teacherId) && (
+                  <div>
+                    <h3 className="font-medium text-gray-500">{t("creator")}</h3>
+                    <p>
+                      {isClassCreator() ? 
+                        t("you") : 
+                        `${(classData.teacher_id || classData.teacherId).substring(0, 8)}...`
+                      }
+                    </p>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -390,7 +430,8 @@ const ClassDetails = () => {
                           </div>
                         </div>
                         
-                        {isTeacher && (
+                        {/* Only show student management options to class creator */}
+                        {isClassCreator() && (
                           <div className="flex items-center space-x-2">
                             <Button 
                               size="sm" 
@@ -452,47 +493,52 @@ const ClassDetails = () => {
         </AlertDialogContent>
       </AlertDialog>
       
-      {/* Manage Pokemon Dialog */}
-      <ManagePokemonDialog
-        open={managePokemonDialog.open}
-        onOpenChange={(open) => setManagePokemonDialog({...managePokemonDialog, open})}
-        studentId={managePokemonDialog.studentId}
-        studentName={managePokemonDialog.studentName}
-        schoolId={managePokemonDialog.schoolId}
-        onPokemonRemoved={handlePokemonRemoved}
-      />
-      
-      {/* Give Coins Dialog */}
-      <GiveCoinsDialog
-        open={giveCoinsDialog.open}
-        onOpenChange={(open) => setGiveCoinsDialog({...giveCoinsDialog, open})}
-        onGiveCoins={handleGiveCoins}
-      />
-      
-      {/* Create Homework Dialog */}
-      <CreateHomeworkDialog
-        open={isCreateHomeworkOpen}
-        onOpenChange={setIsCreateHomeworkOpen}
-        onHomeworkCreated={handleHomeworkCreated}
-        teacherId={teacherId}
-        classId={id || ""}
-        className={classData.name}
-      />
-      
-      {/* Manage Class Dialog */}
-      <ManageClassDialog
-        open={isManageClassOpen}
-        onOpenChange={setIsManageClassOpen}
-        classId={id || ""}
-        className={classData?.name || ""}
-        students={students.map(student => ({
-          id: student.id,
-          displayName: student.display_name || student.displayName || student.username,
-          username: student.username,
-          schoolId: classData?.school_id || classData?.schoolId
-        }))}
-        teacherId={teacherId}
-      />
+      {/* Only render these dialogs if the user is the class creator */}
+      {isClassCreator() && (
+        <>
+          {/* Manage Pokemon Dialog */}
+          <ManagePokemonDialog
+            open={managePokemonDialog.open}
+            onOpenChange={(open) => setManagePokemonDialog({...managePokemonDialog, open})}
+            studentId={managePokemonDialog.studentId}
+            studentName={managePokemonDialog.studentName}
+            schoolId={managePokemonDialog.schoolId}
+            onPokemonRemoved={handlePokemonRemoved}
+          />
+          
+          {/* Give Coins Dialog */}
+          <GiveCoinsDialog
+            open={giveCoinsDialog.open}
+            onOpenChange={(open) => setGiveCoinsDialog({...giveCoinsDialog, open})}
+            onGiveCoins={handleGiveCoins}
+          />
+          
+          {/* Create Homework Dialog */}
+          <CreateHomeworkDialog
+            open={isCreateHomeworkOpen}
+            onOpenChange={setIsCreateHomeworkOpen}
+            onHomeworkCreated={handleHomeworkCreated}
+            teacherId={teacherId}
+            classId={id || ""}
+            className={classData.name}
+          />
+          
+          {/* Manage Class Dialog */}
+          <ManageClassDialog
+            open={isManageClassOpen}
+            onOpenChange={setIsManageClassOpen}
+            classId={id || ""}
+            className={classData?.name || ""}
+            students={students.map(student => ({
+              id: student.id,
+              displayName: student.display_name || student.displayName || student.username,
+              username: student.username,
+              schoolId: classData?.school_id || classData?.schoolId
+            }))}
+            teacherId={teacherId}
+          />
+        </>
+      )}
     </div>
   );
 };

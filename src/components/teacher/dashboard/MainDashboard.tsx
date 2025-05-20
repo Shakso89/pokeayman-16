@@ -13,6 +13,7 @@ interface MainDashboardProps {
   setActiveTab: (tab: string) => void;
   onAddStudent: () => void;
   onManageClasses: () => void;
+  onCreateClass: () => void; // Added separate handler for create class
   teacherId: string;
   isAdmin: boolean;
 }
@@ -22,6 +23,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
   setActiveTab,
   onAddStudent,
   onManageClasses,
+  onCreateClass, // New prop
   teacherId,
   isAdmin
 }) => {
@@ -49,10 +51,10 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
               isAdmin={isAdmin}
             />
             
-            {/* Add a Create Class button in the dashboard tab */}
+            {/* Create Class button in the dashboard tab */}
             <div className="mt-6">
               <Button 
-                onClick={onManageClasses}
+                onClick={onCreateClass}
                 variant="ranking" 
                 className="w-full flex items-center justify-center gap-2 py-4"
               >

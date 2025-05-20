@@ -19,12 +19,14 @@ interface ClassManagementProps {
   onBack: () => void;
   schoolId: string;
   teacherId: string;
+  directCreateMode?: boolean; // New prop to indicate direct creation mode
 }
 
 const ClassManagement: React.FC<ClassManagementProps> = ({ 
   onBack, 
   schoolId, 
-  teacherId 
+  teacherId,
+  directCreateMode = false
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -41,6 +43,8 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   const [availableStudents, setAvailableStudents] = useState<any[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [justCreatedClass, setJustCreatedClass] = useState<ClassData | null>(null);
   
   // Check if current user is Admin
   useEffect(() => {
@@ -82,6 +86,17 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       supabase.removeChannel(channel);
     };
   }, [schoolId, teacherId]);
+
+  // Auto-focus on class creation when in direct create mode
+  useEffect(() => {
+    if (directCreateMode) {
+      // If we're in direct create mode, focus on the class name input
+      const classNameInput = document.getElementById("className");
+      if (classNameInput) {
+        classNameInput.focus();
+      }
+    }
+  }, [directCreateMode]);
   
   const fetchClasses = async () => {
     setLoading(true);
@@ -139,14 +154,14 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       // Create class data with required and optional fields matching the ClassData type
       const classData = {
         name: newClass.name,
-        description: newClass.description || "", // Ensure description is not undefined
+        description: newClass.description || "",
         schoolId,
         teacherId: isAdmin ? null : teacherId, // Set teacherId to null for admin users
         students: [],
         isPublic: true,
         likes: [],
         createdAt: currentTime,
-        updatedAt: currentTime // Add updatedAt field
+        updatedAt: currentTime
       };
       
       console.log("Creating class with data:", classData);
@@ -159,8 +174,19 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
           description: t("class-created-successfully")
         });
         
+        setJustCreatedClass(createdClass);
+        setSuccessMessage(t("class-created-successfully"));
+        
+        // Clear form
         setNewClass({ name: "", description: "" });
+        
+        // Fetch updated classes
         fetchClasses();
+        
+        // If in direct create mode, navigate to the class details page
+        if (directCreateMode && createdClass.id) {
+          navigate(`/class-details/${createdClass.id}`);
+        }
       } else {
         throw new Error("Failed to create class");
       }
@@ -172,6 +198,11 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         variant: "destructive"
       });
     }
+  };
+  
+  // Check if the current teacher is the creator of a class
+  const isClassCreator = (classData: ClassData) => {
+    return classData.teacherId === teacherId;
   };
   
   const handleDeleteClass = async (classId: string) => {
@@ -353,7 +384,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
           <ChevronLeft className="h-4 w-4 mr-1" />
           {t("back")}
         </Button>
-        <h2 className="text-2xl font-bold">{t("class-management")}</h2>
+        <h2 className="text-2xl font-bold">{directCreateMode ? t("create-class") : t("class-management")}</h2>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -415,6 +446,28 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         </Card>
       </div>
       
+      {/* Success Message */}
+      {successMessage && (
+        <Card className="bg-green-50 border-green-200">
+          <CardContent className="py-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="text-green-500 mr-2">✓</div>
+                <p>{successMessage}</p>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setSuccessMessage(null)}
+                className="h-8 w-8 p-0"
+              >
+                ×
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+      
       {/* Classes List */}
       <h3 className="text-xl font-semibold mt-8">{t("your-classes")}</h3>
       
@@ -433,7 +486,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>{cls.name}</span>
-                  {isAdmin && (
+                  {(isAdmin || isClassCreator(cls)) && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -457,28 +510,51 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
                   <span>
                     {cls.students?.length || 0} {t("students")}
                   </span>
+                  {/* Show teacher ID if available */}
+                  {cls.teacherId && (
+                    <div className="flex items-center mt-2 text-xs text-gray-500">
+                      <User className="h-4 w-4 mr-1" />
+                      <span>
+                        {t("creator")}: {cls.teacherId === teacherId ? t("you") : cls.teacherId.substring(0, 8) + '...'}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </CardContent>
               <CardFooter className="flex justify-between">
-                <Button 
-                  variant="outline"
-                  onClick={() => openAddStudentDialog(cls.id)}
-                >
-                  {t("add-students")}
-                </Button>
-                <Button 
-                  variant="default"
-                  onClick={() => navigate(`/class-details/${cls.id}`)}
-                >
-                  {t("view-details")}
-                </Button>
+                {/* Only show manage buttons to class creator or admin */}
+                {(isClassCreator(cls) || isAdmin) ? (
+                  <>
+                    <Button 
+                      variant="outline"
+                      onClick={() => openAddStudentDialog(cls.id)}
+                    >
+                      {t("add-students")}
+                    </Button>
+                    <Button 
+                      variant="default"
+                      onClick={() => navigate(`/class-details/${cls.id}`)}
+                    >
+                      {t("manage-class")}
+                    </Button>
+                  </>
+                ) : (
+                  // For non-creators, only show view details
+                  <Button 
+                    variant="default"
+                    className="w-full"
+                    onClick={() => navigate(`/class-details/${cls.id}`)}
+                  >
+                    {t("view-details")}
+                  </Button>
+                )}
               </CardFooter>
             </Card>
           ))}
         </div>
       )}
       
-      {/* Add Student Dialog - Enhance this with better UX */}
+      {/* Add Student Dialog */}
       <Dialog open={isAddStudentDialogOpen} onOpenChange={setIsAddStudentDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
