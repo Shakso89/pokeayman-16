@@ -3,11 +3,11 @@
 export interface ClassData {
   id: string;
   name: string;
-  description: string;
-  teacherId: string;
+  description?: string; // Make description optional
+  teacherId: string | null; // Can be null for admin-created classes
   schoolId: string;
   createdAt: string;
-  updatedAt?: string; // Make updatedAt optional
+  updatedAt: string; // Required but will have a fallback value
   students?: string[];
   isPublic?: boolean;
   likes?: string[];

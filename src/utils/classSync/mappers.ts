@@ -7,7 +7,7 @@ export const formatClassData = (dbClass: DatabaseClassData): ClassData => {
     id: dbClass.id,
     name: dbClass.name,
     description: dbClass.description || "",
-    teacherId: dbClass.teacher_id || "",
+    teacherId: dbClass.teacher_id || null,
     schoolId: dbClass.school_id || "",
     students: dbClass.students || [],
     isPublic: dbClass.is_public || false,

@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { handleDatabaseError } from "./errorHandling";
 import { ClassData, DatabaseClassData } from "./types";
@@ -24,17 +23,16 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
     const dbClassData = toDbFormat(classData);
     
     // Create a properly typed object that satisfies Supabase's requirements
-    // We need to ensure it has the name property and other required fields from Class type
     const insertData = {
       name: classData.name,
-      description: classData.description || null,
+      description: classData.description || null, // Allow empty description
       teacher_id: classData.teacherId || null, // Allow null for admin users
       school_id: classData.schoolId || null,
       is_public: classData.isPublic || false,
       students: classData.students || [],
       likes: classData.likes || [],
-      created_at: new Date().toISOString(),
-      updated_at: new Date().toISOString() // Add updated_at field
+      created_at: classData.createdAt || new Date().toISOString(),
+      updated_at: classData.updatedAt || new Date().toISOString() // Ensure updated_at is set
     };
     
     // Check if current user is admin based on localStorage flag
@@ -74,7 +72,7 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
         isPublic: classData.isPublic || false,
         likes: classData.likes || [],
         createdAt: currentTime,
-        updatedAt: currentTime // Add updatedAt field
+        updatedAt: currentTime
       };
       
       // Store in localStorage
@@ -161,7 +159,7 @@ export const removeClass = async (classId: string): Promise<boolean> => {
   }
 };
 
-// Get class by ID
+// Get class by ID - Fix to correctly handle class data format and errors
 export const getClassById = async (classId: string): Promise<ClassData | null> => {
   try {
     const { data, error } = await supabase
@@ -176,9 +174,13 @@ export const getClassById = async (classId: string): Promise<ClassData | null> =
       // Fallback to localStorage if Supabase fetch fails
       try {
         const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-        const foundClass = existingClasses.find((cls: ClassData) => cls.id === classId);
+        const foundClass = existingClasses.find((cls: any) => cls.id === classId);
         
         if (foundClass) {
+          // Ensure the class has the updatedAt field
+          if (!foundClass.updatedAt && foundClass.createdAt) {
+            foundClass.updatedAt = foundClass.createdAt;
+          }
           return foundClass;
         }
       } catch (localStorageError) {

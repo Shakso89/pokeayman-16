@@ -17,7 +17,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deleteClass } from "@/utils/pokemon/classManagement";
+import { deleteClass, getClassById } from "@/utils/classSync/classOperations";
 
 const ClassDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -41,7 +41,32 @@ const ClassDetails = () => {
     const fetchClassDetails = async () => {
       setLoading(true);
       try {
-        // Fetch class data
+        // Try to use the classSync utility function first
+        const cls = await getClassById(id);
+        if (cls) {
+          setClassData(cls);
+          
+          // If class has students, fetch their details
+          if (cls.students && cls.students.length > 0) {
+            try {
+              const { data: studentsData, error: studentsError } = await supabase
+                .from('students')
+                .select('*')
+                .in('id', cls.students);
+                
+              if (!studentsError && studentsData) {
+                setStudents(studentsData);
+              }
+            } catch (err) {
+              console.error("Error fetching students:", err);
+              // Attempt localStorage fallback for students
+              fetchStudentsFromLocalStorage(cls.students);
+            }
+          }
+          return;
+        }
+        
+        // If getClassById failed, attempt direct Supabase query
         const { data: classData, error: classError } = await supabase
           .from('classes')
           .select('*')
@@ -52,41 +77,7 @@ const ClassDetails = () => {
         
         if (!classData) {
           // Check localStorage as fallback
-          const savedClasses = localStorage.getItem("classes");
-          if (savedClasses) {
-            const parsedClasses = JSON.parse(savedClasses);
-            const foundClass = parsedClasses.find((cls: any) => cls.id === id);
-            if (foundClass) {
-              setClassData(foundClass);
-              
-              // Fetch student details if class has students
-              if (foundClass.students && foundClass.students.length > 0) {
-                // Try to fetch from Supabase first
-                const { data: studentsData, error: studentsError } = await supabase
-                  .from('students')
-                  .select('*')
-                  .in('id', foundClass.students);
-                  
-                if (!studentsError && studentsData) {
-                  setStudents(studentsData);
-                } else {
-                  // Fallback to localStorage for students
-                  const savedStudents = localStorage.getItem("students");
-                  if (savedStudents) {
-                    const parsedStudents = JSON.parse(savedStudents);
-                    const classStudents = parsedStudents.filter((student: any) => 
-                      foundClass.students.includes(student.id)
-                    );
-                    setStudents(classStudents);
-                  }
-                }
-              }
-              return;
-            }
-          }
-          // If we get here, class was not found in database or localStorage
-          console.error("Class not found in database or localStorage");
-          setClassData(null);
+          checkLocalStorageFallback();
           return;
         }
         
@@ -94,13 +85,7 @@ const ClassDetails = () => {
         
         // Fetch student details if class has students
         if (classData.students && classData.students.length > 0) {
-          const { data: studentsData, error: studentsError } = await supabase
-            .from('students')
-            .select('*')
-            .in('id', classData.students);
-            
-          if (studentsError) throw studentsError;
-          setStudents(studentsData || []);
+          fetchStudentsFromSupabase(classData.students);
         }
       } catch (error) {
         console.error("Error fetching class details:", error);
@@ -109,6 +94,7 @@ const ClassDetails = () => {
           description: t("failed-to-load-class-details"),
           variant: "destructive"
         });
+        checkLocalStorageFallback();
       } finally {
         setLoading(false);
       }
@@ -116,6 +102,60 @@ const ClassDetails = () => {
     
     fetchClassDetails();
   }, [id, t]);
+
+  const checkLocalStorageFallback = () => {
+    // Check localStorage as fallback
+    const savedClasses = localStorage.getItem("classes");
+    if (savedClasses && id) {
+      const parsedClasses = JSON.parse(savedClasses);
+      const foundClass = parsedClasses.find((cls: any) => cls.id === id);
+      if (foundClass) {
+        setClassData(foundClass);
+        
+        // Fetch student details if class has students
+        if (foundClass.students && foundClass.students.length > 0) {
+          fetchStudentsFromLocalStorage(foundClass.students);
+        }
+      } else {
+        setClassData(null);
+      }
+    } else {
+      setClassData(null);
+    }
+  };
+
+  const fetchStudentsFromSupabase = async (studentIds: string[]) => {
+    try {
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select('*')
+        .in('id', studentIds);
+        
+      if (studentsError) throw studentsError;
+      setStudents(studentsData || []);
+    } catch (error) {
+      console.error("Error fetching students from Supabase:", error);
+      fetchStudentsFromLocalStorage(studentIds);
+    }
+  };
+
+  const fetchStudentsFromLocalStorage = (studentIds: string[]) => {
+    try {
+      const savedStudents = localStorage.getItem("students");
+      if (savedStudents) {
+        const parsedStudents = JSON.parse(savedStudents);
+        const classStudents = parsedStudents.filter((student: any) => 
+          studentIds.includes(student.id)
+        );
+        setStudents(classStudents);
+      } else {
+        setStudents([]);
+      }
+    } catch (error) {
+      console.error("Error fetching students from localStorage:", error);
+      setStudents([]);
+    }
+  };
 
   const handleDeleteClass = async () => {
     if (!id) return;

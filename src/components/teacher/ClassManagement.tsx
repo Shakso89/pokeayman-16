@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
-import { ClassData } from "@/types/pokemon";
+import { ClassData } from "@/utils/classSync/types";
 import { createClass, updateClassDetails, removeClass } from "@/utils/classSync/classOperations";
 import { checkIsAdmin } from "@/hooks/auth/adminUtils";
 
@@ -105,7 +105,8 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         isPublic: dbClass.is_public !== false,
         description: dbClass.description || '',
         likes: dbClass.likes || [],
-        createdAt: dbClass.created_at
+        createdAt: dbClass.created_at,
+        updatedAt: dbClass.updated_at || dbClass.created_at // Add updatedAt field with fallback
       }));
       
       setClasses(formattedClasses);
@@ -134,9 +135,11 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       }
       
       const currentTime = new Date().toISOString();
-      const classData: Omit<ClassData, "id"> = {
+      
+      // Create class data with required and optional fields matching the ClassData type
+      const classData = {
         name: newClass.name,
-        description: newClass.description,
+        description: newClass.description || "", // Ensure description is not undefined
         schoolId,
         teacherId: isAdmin ? null : teacherId, // Set teacherId to null for admin users
         students: [],
@@ -204,11 +207,11 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       const currentClass = classes.find(c => c.id === classId);
       const currentStudents = currentClass?.students || [];
       
-      // Get all students assigned to this teacher
+      // Get all available students to add
       const { data, error } = await supabase
         .from('students')
         .select('*')
-        .eq('teacher_id', teacherId);
+        .order('display_name', { ascending: true });
         
       if (error) throw error;
       
@@ -231,10 +234,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         
         if (savedStudents) {
           const allStudents = JSON.parse(savedStudents);
-          const teacherStudents = allStudents.filter((student: any) => 
-            student.teacherId === teacherId
-          );
-          const availableStudents = teacherStudents.filter((student: any) => 
+          const availableStudents = allStudents.filter((student: any) => 
             !currentStudents.includes(student.id)
           );
           
@@ -478,7 +478,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         </div>
       )}
       
-      {/* Add Student Dialog */}
+      {/* Add Student Dialog - Enhance this with better UX */}
       <Dialog open={isAddStudentDialogOpen} onOpenChange={setIsAddStudentDialogOpen}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
