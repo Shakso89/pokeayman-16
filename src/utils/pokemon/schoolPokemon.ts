@@ -4,12 +4,12 @@ import { getRandomType, getRarityForId } from "./types";
 import { getPokemonPools, savePokemonPools } from "./storage";
 
 // Initialize school Pokemon pool
-export const initializeSchoolPokemonPool = (schoolId: string, initialPokemonCount: number = 100): boolean => {
+export const initializeSchoolPokemonPool = (schoolId: string, initialPokemonCount: number = 100): PokemonPool | null => {
   // Check if pool already exists
   const existingPools = getPokemonPools();
   if (existingPools.some(pool => pool.schoolId === schoolId)) {
     console.log(`Pool for school ${schoolId} already exists`);
-    return false;
+    return null;
   }
 
   // Create a new pool with random Pokemons
@@ -31,7 +31,7 @@ export const initializeSchoolPokemonPool = (schoolId: string, initialPokemonCoun
   savePokemonPools(existingPools);
   
   console.log(`Created new Pokemon pool for school ${schoolId} with ${initialPokemonCount} Pokemons`);
-  return true;
+  return newPool;
 };
 
 // Get school Pokemon pool
@@ -95,7 +95,7 @@ export const getRandomPokemonFromPool = (schoolId: string): Pokemon | null => {
 };
 
 // Initialize class Pokemon pool
-export const initializeClassPokemonPool = (schoolId: string, classId: string, pokemonCount: number = 30): boolean => {
+export const initializeClassPokemonPool = (schoolId: string, classId: string, pokemonCount: number = 30): PokemonPool | null => {
   // We're using the school pool structure with the classId as the schoolId
   return initializeSchoolPokemonPool(classId, pokemonCount);
 };

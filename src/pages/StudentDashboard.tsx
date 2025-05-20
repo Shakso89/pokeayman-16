@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -49,10 +48,7 @@ const StudentDashboard: React.FC = () => {
     });
     
     // Update all school pools to have 500 Pokémon
-    const updated = updateAllSchoolPoolsTo500();
-    if (updated) {
-      console.log("Updated school pools to have 500 Pokémon");
-    }
+    updateAllSchoolPoolsTo500();
     
     if (studentId) {
       loadStudentData();
@@ -92,9 +88,12 @@ const StudentDashboard: React.FC = () => {
     const currentSchoolId = schoolId || localStorage.getItem("studentSchoolId") || "default-school-1";
     console.log("Loading school pokemon pool for:", currentSchoolId);
     // Initialize the school pool if it doesn't exist
-    const pool = initializeSchoolPokemonPool(currentSchoolId);
+    let pool = getSchoolPokemonPool(currentSchoolId);
+    if (!pool) {
+      pool = initializeSchoolPokemonPool(currentSchoolId);
+    }
     console.log("School pokemon pool:", pool);
-    if (pool) {
+    if (pool && pool.availablePokemons) {
       setSchoolPokemons(pool.availablePokemons);
     } else {
       setSchoolPokemons([]);

@@ -1,16 +1,16 @@
-
 export interface Pokemon {
   id: string;
   name: string;
   image: string;
   type: string;
   rarity: "common" | "uncommon" | "rare" | "legendary";
-  // Removed level property
+  level?: number; // Make level optional instead of removing it
 }
 
 export interface PokemonPool {
   schoolId: string;
   availablePokemons: Pokemon[];
+  lastUpdated?: string; // Add this property to fix the errors
 }
 
 export interface StudentPokemon {
