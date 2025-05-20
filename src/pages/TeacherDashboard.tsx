@@ -16,7 +16,7 @@ import { toast } from "@/hooks/use-toast";
 
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState<"main" | "classes" | "collaboration" | "create-class">("main");
+  const [currentView, setCurrentView] = useState<"main" | "classes" | "collaboration">("main");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [teacherData, setTeacherData] = useState<any>(null);
@@ -74,24 +74,10 @@ const TeacherDashboard: React.FC = () => {
     }
   }, [teacherId, username, isLoggedIn, userType]);
 
-  // Direct class creation handler
+  // Placeholder function for CreateClass button (we're removing functionality)
   const handleCreateClass = () => {
-    console.log("Create class button clicked");
-    // Get the first school for quick creation (we'll improve UX by selecting a school first)
-    const savedSchools = localStorage.getItem("schools");
-    if (savedSchools) {
-      const schools = JSON.parse(savedSchools);
-      if (schools && schools.length > 0) {
-        console.log("Setting selected school ID:", schools[0].id);
-        setSelectedSchoolId(schools[0].id);
-        setCurrentView("create-class");
-        return;
-      }
-    }
-    
-    // If no schools found, go to the school management screen
-    console.log("No schools found, navigating to school management");
-    setCurrentView("classes");
+    console.log("Create class functionality has been removed");
+    // No longer setting the view to "create-class"
   };
 
   // Handle navigating to manage classes (shows school list first)
@@ -126,7 +112,7 @@ const TeacherDashboard: React.FC = () => {
               setActiveTab={setActiveTab}
               onAddStudent={() => setIsAddStudentOpen(true)}
               onManageClasses={handleManageClasses}
-              onCreateClass={handleCreateClass}
+              onCreateClass={handleCreateClass} // Keep this prop but it won't do anything now
               teacherId={teacherId || ""}
               isAdmin={isAdmin}
             />
@@ -145,13 +131,6 @@ const TeacherDashboard: React.FC = () => {
               teacherId={teacherId || ""}
             />
           )
-        ) : currentView === "create-class" ? (
-          <ClassManagement 
-            onBack={() => setCurrentView("main")}
-            schoolId={selectedSchoolId || ""}
-            teacherId={teacherId || ""}
-            directCreateMode={true} // Indicate direct creation mode
-          />
         ) : (
           <div>
             <div className="flex items-center mb-6">

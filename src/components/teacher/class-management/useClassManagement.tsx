@@ -24,7 +24,6 @@ export const useClassManagement = ({
   const [loading, setLoading] = useState(true);
   const [isAdmin, setIsAdmin] = useState(false);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [justCreatedClass, setJustCreatedClass] = useState<ClassData | null>(null);
   
   // Add students dialog state
   const [isAddStudentDialogOpen, setIsAddStudentDialogOpen] = useState(false);
@@ -40,12 +39,6 @@ export const useClassManagement = ({
     const username = localStorage.getItem("teacherUsername") || "";
     const isAdminUser = username === "Admin" || username === "Ayman" || localStorage.getItem("isAdmin") === "true";
     setIsAdmin(isAdminUser);
-    
-    console.log("Admin status check:", {
-      username,
-      isAdminFlag: localStorage.getItem("isAdmin"),
-      result: isAdminUser
-    });
   }, []);
   
   // Load classes on component mount and subscribe to changes
@@ -113,21 +106,6 @@ export const useClassManagement = ({
     }
   };
 
-  const handleClassCreated = (createdClass: ClassData | null) => {
-    if (createdClass) {
-      setJustCreatedClass(createdClass);
-      setSuccessMessage(t("class-created-successfully"));
-      
-      // Fetch updated classes
-      fetchClasses();
-      
-      // If in direct create mode, navigate to the class details page
-      if (directCreateMode && createdClass.id) {
-        navigate(`/class-details/${createdClass.id}`);
-      }
-    }
-  };
-  
   const openAddStudentDialog = async (classId: string) => {
     setSelectedClassId(classId);
     
@@ -302,12 +280,10 @@ export const useClassManagement = ({
     loading,
     isAdmin,
     successMessage,
-    justCreatedClass,
     isAddStudentDialogOpen,
     availableStudents,
     isDeleteDialogOpen,
     setSuccessMessage,
-    handleClassCreated,
     openAddStudentDialog,
     handleAddStudents,
     openDeleteDialog,

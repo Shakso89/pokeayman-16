@@ -1,17 +1,18 @@
+
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Home, Settings, Plus } from "lucide-react";
+import { Home, Settings } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import DashboardCards from "./DashboardCards";
 import DashboardActions from "./DashboardActions";
 import AccessRequestsTab from "./AccessRequestsTab";
-import { Button } from "@/components/ui/button";
+
 interface MainDashboardProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onAddStudent: () => void;
   onManageClasses: () => void;
-  onCreateClass: () => void;
+  onCreateClass: () => void; // We'll keep this prop to avoid breaking interfaces
   teacherId: string;
   isAdmin: boolean;
 }
@@ -20,14 +21,14 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
   setActiveTab,
   onAddStudent,
   onManageClasses,
-  onCreateClass,
+  onCreateClass, // Keep this prop but we won't use it
   teacherId,
   isAdmin
 }) => {
-  const {
-    t
-  } = useTranslation();
-  return <div className="grid grid-cols-1 gap-6">
+  const { t } = useTranslation();
+  
+  return (
+    <div className="grid grid-cols-1 gap-6">
       <div>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4">
@@ -44,10 +45,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
           <TabsContent value="dashboard">
             <DashboardCards teacherId={teacherId} onManageClasses={onManageClasses} isAdmin={isAdmin} />
             
-            {/* Create Class button in the dashboard tab */}
-            <div className="mt-6">
-              
-            </div>
+            {/* Create Class button removed */}
           </TabsContent>
           
           <TabsContent value="actions_and_requests">
@@ -67,6 +65,8 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
           </TabsContent>
         </Tabs>
       </div>
-    </div>;
+    </div>
+  );
 };
+
 export default MainDashboard;

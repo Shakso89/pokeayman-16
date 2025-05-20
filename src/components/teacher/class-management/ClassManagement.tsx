@@ -5,7 +5,6 @@ import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useClassManagement } from "./useClassManagement";
-import ClassForm from "./ClassForm";
 import SchoolInfoCard from "./SchoolInfoCard";
 import ClassList from "./ClassList";
 import AddStudentsDialog from "./AddStudentsDialog";
@@ -31,12 +30,10 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     loading,
     isAdmin,
     successMessage,
-    justCreatedClass,
     isAddStudentDialogOpen,
     availableStudents,
     isDeleteDialogOpen,
     setSuccessMessage,
-    handleClassCreated,
     openAddStudentDialog,
     handleAddStudents,
     openDeleteDialog,
@@ -52,19 +49,10 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
           <ChevronLeft className="h-4 w-4 mr-1" />
           {t("back")}
         </Button>
-        <h2 className="text-2xl font-bold">{directCreateMode ? t("create-class") : t("class-management")}</h2>
+        <h2 className="text-2xl font-bold">{directCreateMode ? t("manage-classes") : t("class-management")}</h2>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {/* Create Class Card */}
-        <ClassForm 
-          schoolId={schoolId}
-          teacherId={teacherId}
-          isAdmin={isAdmin}
-          onClassCreated={handleClassCreated}
-          directCreateMode={directCreateMode}
-        />
-        
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
         {/* School Info Card */}
         <SchoolInfoCard
           schoolId={schoolId}
