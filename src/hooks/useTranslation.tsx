@@ -1,48 +1,62 @@
 
-import React, { createContext, useState, useContext, useEffect } from "react";
-import { translate, getCurrentLanguage, changeLanguage } from "@/utils/translations";
+import { createContext, useContext, useState } from "react";
 
-type LanguageContextType = {
-  language: "en" | "zh";
+interface LanguageContextType {
   t: (key: string) => string;
-  setLanguage: (lang: "en" | "zh") => void;
-};
+  changeLanguage: (lang: string) => void;
+  language: string;
+  i18n: {
+    dir: () => "ltr" | "rtl";
+  };
+}
 
+// Create a context with default values
 const LanguageContext = createContext<LanguageContextType>({
+  t: (key) => key,
+  changeLanguage: () => {},
   language: "en",
-  t: (key: string) => key,
-  setLanguage: () => {},
+  i18n: {
+    dir: () => "ltr",
+  },
 });
 
-export const useTranslation = () => useContext(LanguageContext);
+// Sample translations
+const translations: Record<string, Record<string, string>> = {
+  en: {
+    "back": "Back",
+    "manage-classes": "Manage Classes",
+    "class-management": "Class Management",
+    "your-classes": "Your Classes",
+    "create-class-in-any-school": "Create Class In Any School",
+    // Add more translations as needed
+  },
+  // Add more languages as needed
+};
 
-export const LanguageProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [language, setLanguageState] = useState<"en" | "zh">(getCurrentLanguage());
+// Provider component
+export const LanguageProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
+  const [language, setLanguage] = useState("en");
 
   const t = (key: string): string => {
-    return translate(key, language);
+    return translations[language]?.[key] || key;
   };
 
-  const setLanguage = (newLanguage: "en" | "zh") => {
-    setLanguageState(newLanguage);
-    changeLanguage(newLanguage);
+  const changeLanguage = (lang: string) => {
+    setLanguage(lang);
   };
 
-  useEffect(() => {
-    const handleLanguageChange = (event: Event) => {
-      const customEvent = event as CustomEvent;
-      setLanguageState(customEvent.detail.language);
-    };
-
-    window.addEventListener("languageChange", handleLanguageChange);
-    return () => {
-      window.removeEventListener("languageChange", handleLanguageChange);
-    };
-  }, []);
+  const i18n = {
+    dir: () => language === "ar" ? "rtl" : "ltr" as "ltr" | "rtl",
+  };
 
   return (
-    <LanguageContext.Provider value={{ language, t, setLanguage }}>
+    <LanguageContext.Provider value={{ t, changeLanguage, language, i18n }}>
       {children}
     </LanguageContext.Provider>
   );
+};
+
+// Custom hook to use the language context
+export const useTranslation = () => {
+  return useContext(LanguageContext);
 };
