@@ -5,7 +5,7 @@ import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NavBar } from "@/components/NavBar";
 import { useTranslation } from "@/hooks/useTranslation";
-import ClassManagement from "@/components/teacher/ClassManagement";
+import ClassManagement from "@/components/teacher/class-management/ClassManagement";
 import SchoolCollaboration from "@/components/teacher/SchoolCollaboration";
 import SchoolManagement from "@/components/teacher/SchoolManagement";
 import DashboardHeader from "@/components/teacher/dashboard/DashboardHeader";
