@@ -1,105 +1,75 @@
 
 import React from "react";
+import { HomeworkAssignment } from "@/types/homework";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { FileText, Image, Mic, FileUp } from "lucide-react";
-import { useTranslation } from "@/hooks/useTranslation";
-import { HomeworkAssignment } from "@/types/homework";
+import { formatDistance } from "date-fns";
+import { BookOpen, CheckCircle, Clock } from "lucide-react";
 
-interface HomeworkCardProps {
+export interface HomeworkCardProps {
   homework: HomeworkAssignment;
-  className: string;
   submitted: boolean;
-  status: string | null;
-  isExpired: boolean;
   onSubmit: () => void;
-  onViewSubmission: () => void;
-  now: Date;
+  onView: () => void;
+  t: (key: string) => string;
 }
 
-export const HomeworkCard: React.FC<HomeworkCardProps> = ({
+const HomeworkCard: React.FC<HomeworkCardProps> = ({
   homework,
-  className,
   submitted,
-  status,
-  isExpired,
   onSubmit,
-  onViewSubmission,
-  now
+  onView,
+  t,
 }) => {
-  const { t } = useTranslation();
+  const expirationDate = new Date(homework.expiresAt);
+  const now = new Date();
+  const expired = expirationDate < now;
   
-  // Get homework type icon
-  const getHomeworkTypeIcon = (type: string) => {
-    switch (type) {
-      case "text": return <FileText className="h-5 w-5 text-blue-500" />;
-      case "image": return <Image className="h-5 w-5 text-green-500" />;
-      case "audio": return <Mic className="h-5 w-5 text-purple-500" />;
-      default: return <FileText className="h-5 w-5" />;
-    }
-  };
+  // Calculate time remaining
+  const timeRemaining = formatDistance(expirationDate, now, { addSuffix: true });
 
   return (
-    <Card className={isExpired ? "opacity-70" : ""}>
-      <CardHeader className="pb-2">
-        <div className="flex items-center gap-2">
-          {getHomeworkTypeIcon(homework.type)}
-          <CardTitle className="text-base">{homework.title}</CardTitle>
-        </div>
-        <CardDescription>
-          <div className="flex justify-between items-center">
-            <span>
-              {!isExpired ? (
-                <>{t("due")} {new Date(homework.expiresAt).toLocaleDateString()} ({Math.ceil((new Date(homework.expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60))} {t("hours")})</>
-              ) : (
-                <span className="text-red-500">{t("expired")}</span>
-              )}
-            </span>
-            <span className="text-xs bg-gray-100 px-2 py-1 rounded">
-              {className}
-            </span>
+    <Card className={expired ? "opacity-70" : ""}>
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center">
+            <BookOpen className="h-5 w-5 mr-2 text-blue-500" />
+            <CardTitle className="text-lg">{homework.title}</CardTitle>
           </div>
+          {submitted && (
+            <div className="bg-green-100 text-green-800 text-xs px-2 py-1 rounded-full flex items-center">
+              <CheckCircle className="h-3 w-3 mr-1" />
+              {t("submitted")}
+            </div>
+          )}
+        </div>
+        <CardDescription className="flex items-center mt-1">
+          <Clock className="h-4 w-4 mr-1 text-gray-500" />
+          {expired ? (
+            <span className="text-red-500">{t("expired")}</span>
+          ) : (
+            <span>{t("expires")} {timeRemaining}</span>
+          )}
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <p className="text-sm mb-2">{homework.description}</p>
-        <p className="text-sm font-medium">
-          {t("reward")}: <span className="text-amber-500">{homework.coinReward} {t("coins")}</span>
-        </p>
+        <p className="text-gray-700">{homework.description}</p>
+        <div className="mt-2 text-sm text-blue-600">
+          {t("reward")}: {homework.coinReward} {t("coins")}
+        </div>
       </CardContent>
-      <CardFooter>
+      <CardFooter className="flex justify-end gap-3">
         {submitted ? (
-          <div className="w-full space-y-2">
-            <div className={`text-sm px-3 py-2 rounded-md w-full text-center ${
-              status === "approved" 
-                ? "bg-green-100 text-green-800" 
-                : status === "rejected"
-                ? "bg-red-100 text-red-800"
-                : "bg-blue-100 text-blue-800"
-            }`}>
-              {status === "approved" 
-                ? t("submission-approved") 
-                : status === "rejected"
-                ? t("submission-rejected")
-                : t("submission-pending")}
-            </div>
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full"
-              onClick={onViewSubmission}
-            >
-              {t("view-submission")}
-            </Button>
-          </div>
+          <Button onClick={onView} variant="outline">
+            {t("view-submission")}
+          </Button>
+        ) : !expired ? (
+          <Button onClick={onSubmit}>
+            {t("submit")}
+          </Button>
         ) : (
-          <Button 
-            className="w-full" 
-            disabled={isExpired}
-            onClick={onSubmit}
-          >
-            <FileUp className="h-4 w-4 mr-2" />
-            {t("submit-answer")}
+          <Button disabled variant="outline">
+            {t("expired")}
           </Button>
         )}
       </CardFooter>
