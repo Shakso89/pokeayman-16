@@ -13,7 +13,7 @@ interface MainDashboardProps {
   setActiveTab: (tab: string) => void;
   onAddStudent: () => void;
   onManageClasses: () => void;
-  onCreateClass: () => void; // Added separate handler for create class
+  onCreateClass: () => void; 
   teacherId: string;
   isAdmin: boolean;
 }
@@ -23,7 +23,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
   setActiveTab,
   onAddStudent,
   onManageClasses,
-  onCreateClass, // New prop
+  onCreateClass,
   teacherId,
   isAdmin
 }) => {
@@ -72,6 +72,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
                 <DashboardActions 
                   onAddStudent={onAddStudent}
                   onManageClasses={onManageClasses}
+                  onCreateClass={onCreateClass}
                   isAdmin={isAdmin}
                 />
               </div>

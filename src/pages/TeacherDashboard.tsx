@@ -74,13 +74,15 @@ const TeacherDashboard: React.FC = () => {
     }
   }, [teacherId, username, isLoggedIn, userType]);
 
-  // Direct class creation handler (bypasses school selection)
+  // Direct class creation handler
   const handleCreateClass = () => {
-    // If we have at least one school, select the first one and go straight to class creation
+    console.log("Create class button clicked");
+    // Get the first school for quick creation (we'll improve UX by selecting a school first)
     const savedSchools = localStorage.getItem("schools");
     if (savedSchools) {
       const schools = JSON.parse(savedSchools);
       if (schools && schools.length > 0) {
+        console.log("Setting selected school ID:", schools[0].id);
         setSelectedSchoolId(schools[0].id);
         setCurrentView("create-class");
         return;
@@ -88,11 +90,13 @@ const TeacherDashboard: React.FC = () => {
     }
     
     // If no schools found, go to the school management screen
+    console.log("No schools found, navigating to school management");
     setCurrentView("classes");
   };
 
   // Handle navigating to manage classes (shows school list first)
   const handleManageClasses = () => {
+    console.log("Manage classes button clicked");
     setCurrentView("classes");
   };
 
@@ -123,7 +127,7 @@ const TeacherDashboard: React.FC = () => {
               onAddStudent={() => setIsAddStudentOpen(true)}
               onManageClasses={handleManageClasses}
               onCreateClass={handleCreateClass}
-              teacherId={teacherId}
+              teacherId={teacherId || ""}
               isAdmin={isAdmin}
             />
           </>
@@ -146,7 +150,7 @@ const TeacherDashboard: React.FC = () => {
             onBack={() => setCurrentView("main")}
             schoolId={selectedSchoolId || ""}
             teacherId={teacherId || ""}
-            directCreateMode={true} // New prop to indicate direct creation mode
+            directCreateMode={true} // Indicate direct creation mode
           />
         ) : (
           <div>
