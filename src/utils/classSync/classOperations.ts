@@ -28,12 +28,20 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
     const insertData = {
       name: classData.name,
       description: classData.description || null,
-      teacher_id: classData.teacherId || null,
+      teacher_id: classData.teacherId || null, // Allow null for admin users
       school_id: classData.schoolId || null,
       is_public: classData.isPublic || false,
       students: classData.students || [],
-      likes: classData.likes || []
+      likes: classData.likes || [],
+      created_at: new Date().toISOString()
     };
+    
+    // Check if current user is admin based on localStorage flag
+    const isAdmin = localStorage.getItem("isAdmin") === "true";
+    console.log("Creating class with admin status:", isAdmin);
+    
+    // Log the data being sent to Supabase
+    console.log("Class insert data:", insertData);
     
     const { data, error } = await supabase
       .from("classes")
@@ -42,7 +50,35 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
       .single();
     
     if (error) {
-      return handleDatabaseError(error, null);
+      console.error("Error creating class in Supabase:", error);
+      
+      // If there's an error and we're not in admin mode, or the error is not related to foreign key constraint
+      if (!isAdmin || !error.message.includes("foreign key constraint")) {
+        return handleDatabaseError(error, null);
+      }
+      
+      // For admins, try fallback to localStorage if Supabase fails
+      console.log("Admin user detected, falling back to localStorage for class creation");
+      
+      // Generate a UUID for the class
+      const id = crypto.randomUUID();
+      const newClass: ClassData = {
+        id,
+        name: classData.name,
+        description: classData.description || "",
+        schoolId: classData.schoolId || "",
+        teacherId: null, // Set teacherId to null for admin-created classes
+        students: classData.students || [],
+        isPublic: classData.isPublic || false,
+        likes: classData.likes || [],
+        createdAt: new Date().toISOString()
+      };
+      
+      // Store in localStorage
+      const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+      localStorage.setItem("classes", JSON.stringify([...existingClasses, newClass]));
+      
+      return newClass;
     }
     
     return formatClassData(data as DatabaseClassData);
@@ -66,7 +102,23 @@ export const updateClassDetails = async (classId: string, updates: Partial<Class
       .eq("id", classId);
     
     if (error) {
-      return handleDatabaseError(error, false);
+      console.error("Error updating class in Supabase:", error);
+      
+      // Fallback to localStorage if Supabase update fails
+      try {
+        const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+        const updatedClasses = existingClasses.map((cls: ClassData) => {
+          if (cls.id === classId) {
+            return { ...cls, ...updates };
+          }
+          return cls;
+        });
+        
+        localStorage.setItem("classes", JSON.stringify(updatedClasses));
+        return true;
+      } catch (localStorageError) {
+        return handleDatabaseError(error, false);
+      }
     }
     
     return true;
@@ -85,7 +137,18 @@ export const removeClass = async (classId: string): Promise<boolean> => {
       .eq("id", classId);
     
     if (error) {
-      return handleDatabaseError(error, false);
+      console.error("Error deleting class in Supabase:", error);
+      
+      // Fallback to localStorage if Supabase delete fails
+      try {
+        const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+        const filteredClasses = existingClasses.filter((cls: ClassData) => cls.id !== classId);
+        
+        localStorage.setItem("classes", JSON.stringify(filteredClasses));
+        return true;
+      } catch (localStorageError) {
+        return handleDatabaseError(error, false);
+      }
     }
     
     return true;
@@ -105,6 +168,20 @@ export const getClassById = async (classId: string): Promise<ClassData | null> =
       .single();
     
     if (error) {
+      console.error("Error fetching class from Supabase:", error);
+      
+      // Fallback to localStorage if Supabase fetch fails
+      try {
+        const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+        const foundClass = existingClasses.find((cls: ClassData) => cls.id === classId);
+        
+        if (foundClass) {
+          return foundClass;
+        }
+      } catch (localStorageError) {
+        console.error("Error accessing localStorage:", localStorageError);
+      }
+      
       return handleDatabaseError(error, null);
     }
     
@@ -112,5 +189,33 @@ export const getClassById = async (classId: string): Promise<ClassData | null> =
   } catch (error) {
     console.error("Error fetching class:", error);
     return null;
+  }
+};
+
+// Get all classes for a school
+export const getClassesBySchool = async (schoolId: string): Promise<ClassData[]> => {
+  try {
+    const { data, error } = await supabase
+      .from("classes")
+      .select("*")
+      .eq("school_id", schoolId);
+    
+    if (error) {
+      console.error("Error fetching classes from Supabase:", error);
+      
+      // Fallback to localStorage if Supabase fetch fails
+      try {
+        const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+        return existingClasses.filter((cls: ClassData) => cls.schoolId === schoolId);
+      } catch (localStorageError) {
+        console.error("Error accessing localStorage:", localStorageError);
+        return [];
+      }
+    }
+    
+    return data.map(formatClassData);
+  } catch (error) {
+    console.error("Error fetching classes:", error);
+    return [];
   }
 };

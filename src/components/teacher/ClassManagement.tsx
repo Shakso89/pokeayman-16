@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -9,20 +8,12 @@ import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
 import { ChevronLeft, Plus, User, Users, School, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { saveClass, deleteClass } from "@/utils/pokemon/index";
-import { ClassData } from "@/types/pokemon";
-import { supabase } from "@/integrations/supabase/client";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useTranslation } from "@/hooks/useTranslation";
+import { supabase } from "@/integrations/supabase/client";
+import { ClassData } from "@/types/pokemon";
+import { createClass, updateClassDetails, removeClass } from "@/utils/classSync/classOperations";
+import { checkIsAdmin } from "@/hooks/auth/adminUtils";
 
 interface ClassManagementProps {
   onBack: () => void;
@@ -53,14 +44,18 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   
   // Check if current user is Admin
   useEffect(() => {
+    const user = null; // We don't have access to the user object here
     const username = localStorage.getItem("teacherUsername") || "";
-    const userEmail = localStorage.getItem("userEmail")?.toLowerCase() || "";
-    setIsAdmin(
-      username === "Admin" || 
-      username === "Ayman" || 
-      userEmail === "ayman.soliman.tr@gmail.com" || 
-      userEmail === "ayman.soliman.cc@gmail.com"
-    );
+    const email = localStorage.getItem("userEmail") || "";
+    const isAdminUser = checkIsAdmin(user, username) || localStorage.getItem("isAdmin") === "true";
+    setIsAdmin(isAdminUser);
+    
+    console.log("Admin status check:", {
+      username,
+      userEmail: email,
+      isAdminFlag: localStorage.getItem("isAdmin"),
+      result: isAdminUser
+    });
   }, []);
   
   // Load classes on component mount
@@ -71,7 +66,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     const channel = supabase
       .channel('schema-db-changes')
       .on(
-        'postgres_changes' as any,
+        'postgres_changes',
         {
           event: '*',
           schema: 'public',
@@ -94,8 +89,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       const { data, error } = await supabase
         .from('classes')
         .select('*')
-        .eq('school_id', schoolId)
-        .eq('teacher_id', teacherId);
+        .eq('school_id', schoolId);
         
       if (error) {
         throw error;
@@ -120,7 +114,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       // Fallback to localStorage
       const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
       const filteredClasses = allClasses.filter((cls: any) => 
-        cls.schoolId === schoolId && cls.teacherId === teacherId
+        cls.schoolId === schoolId
       );
       setClasses(filteredClasses);
     } finally {
@@ -143,14 +137,16 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         name: newClass.name,
         description: newClass.description,
         schoolId,
-        teacherId,
+        teacherId: isAdmin ? null : teacherId, // Set teacherId to null for admin users
         students: [],
         isPublic: true,
         likes: [],
-        createdAt: new Date().toISOString() // Add createdAt property with current date
+        createdAt: new Date().toISOString()
       };
       
-      const createdClass = await saveClass(classData);
+      console.log("Creating class with data:", classData);
+      
+      const createdClass = await createClass(classData);
       
       if (createdClass) {
         toast({
@@ -160,6 +156,8 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         
         setNewClass({ name: "", description: "" });
         fetchClasses();
+      } else {
+        throw new Error("Failed to create class");
       }
     } catch (error) {
       console.error("Error creating class:", error);
@@ -173,7 +171,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   
   const handleDeleteClass = async (classId: string) => {
     try {
-      const success = await deleteClass(classId);
+      const success = await removeClass(classId);
       
       if (success) {
         toast({
@@ -409,7 +407,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
             <div className="flex items-center">
               <User className="h-5 w-5 mr-2 text-green-500" />
               <span className="font-medium">{t("teacher-id")}:</span>
-              <span className="ml-2 text-gray-600">{teacherId}</span>
+              <span className="ml-2 text-gray-600">{isAdmin ? "Admin (No teacher ID)" : teacherId}</span>
             </div>
           </CardContent>
         </Card>
