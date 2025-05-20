@@ -1,11 +1,13 @@
-
-import React, { useState } from "react";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import React, { useEffect, useState } from "react";
+import {
+  Card, CardHeader, CardTitle, CardDescription,
+  CardContent, CardFooter
+} from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Plus, Loader2 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { createClass } from "@/utils/classSync/classOperations";
@@ -27,113 +29,116 @@ const ClassForm: React.FC<ClassFormProps> = ({
   directCreateMode = false
 }) => {
   const { t } = useTranslation();
-  const [newClass, setNewClass] = useState({
-    name: "",
-    description: ""
-  });
-  
-  // Auto-focus on class creation when in direct create mode
-  React.useEffect(() => {
+  const [isLoading, setIsLoading] = useState(false);
+  const [formData, setFormData] = useState({ name: "", description: "" });
+
+  useEffect(() => {
     if (directCreateMode) {
-      // If we're in direct create mode, focus on the class name input
-      const classNameInput = document.getElementById("className");
-      if (classNameInput) {
-        classNameInput.focus();
-      }
+      document.getElementById("className")?.focus();
     }
   }, [directCreateMode]);
-  
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
   const handleCreateClass = async () => {
+    if (!formData.name.trim()) {
+      toast({
+        title: t("error"),
+        description: t("class-name-required"),
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsLoading(true);
+
+    const timestamp = new Date().toISOString();
+    const newClass: ClassData = {
+      name: formData.name.trim(),
+      description: formData.description || "",
+      schoolId,
+      teacherId: isAdmin ? null : teacherId,
+      students: [],
+      isPublic: true,
+      likes: [],
+      createdAt: timestamp,
+      updatedAt: timestamp
+    };
+
     try {
-      if (!newClass.name.trim()) {
-        toast({
-          title: t("error"),
-          description: t("class-name-required"),
-          variant: "destructive"
-        });
-        return;
-      }
-      
-      const currentTime = new Date().toISOString();
-      
-      // Create class data with required and optional fields matching the ClassData type
-      const classData = {
-        name: newClass.name,
-        description: newClass.description || "",
-        schoolId,
-        teacherId: isAdmin ? null : teacherId, // Set teacherId to null for admin users
-        students: [],
-        isPublic: true,
-        likes: [],
-        createdAt: currentTime,
-        updatedAt: currentTime
-      };
-      
-      console.log("Creating class with data:", classData);
-      
-      const createdClass = await createClass(classData);
-      
-      if (createdClass) {
+      const created = await createClass(newClass);
+      if (created) {
         toast({
           title: t("success"),
           description: t("class-created-successfully")
         });
-        
-        // Clear form
-        setNewClass({ name: "", description: "" });
-        
-        // Notify parent component
-        onClassCreated(createdClass);
+        setFormData({ name: "", description: "" });
+        onClassCreated(created);
       } else {
-        throw new Error("Failed to create class");
+        throw new Error("Class creation failed");
       }
-    } catch (error) {
-      console.error("Error creating class:", error);
+    } catch (err) {
+      console.error(err);
       toast({
         title: t("error"),
         description: t("failed-to-create-class"),
         variant: "destructive"
       });
-      
-      // Notify parent with null to indicate failure
       onClassCreated(null);
+    } finally {
+      setIsLoading(false);
     }
   };
-  
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>{t("create-new-class")}</CardTitle>
-        <CardDescription>{t("add-new-class-to")} {schoolId}</CardDescription>
+        <CardDescription>{t("add-new-class-to")} <strong>{schoolId}</strong></CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="className">{t("class-name")}</Label>
-          <Input 
+          <Input
             id="className"
-            placeholder={t("enter-class-name")} 
-            value={newClass.name}
-            onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
+            placeholder={t("enter-class-name")}
+            value={formData.name}
+            onChange={(e) => handleInputChange("name", e.target.value)}
+            disabled={isLoading}
           />
         </div>
         <div className="space-y-2">
-          <Label htmlFor="classDescription">{t("description")} ({t("optional")})</Label>
-          <Textarea 
+          <Label htmlFor="classDescription">
+            {t("description")} ({t("optional")})
+          </Label>
+          <Textarea
             id="classDescription"
-            placeholder={t("enter-class-description")} 
-            value={newClass.description}
-            onChange={(e) => setNewClass({ ...newClass, description: e.target.value })}
+            placeholder={t("enter-class-description")}
+            value={formData.description}
+            onChange={(e) => handleInputChange("description", e.target.value)}
+            disabled={isLoading}
           />
         </div>
       </CardContent>
       <CardFooter>
-        <Button 
+        <Button
           onClick={handleCreateClass}
           className="w-full"
-          disabled={!newClass.name.trim()}
+          disabled={isLoading || !formData.name.trim()}
         >
-          <Plus className="h-4 w-4 mr-2" />
-          {t("create-class")}
+          {isLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              {t("creating")}...
+            </>
+          ) : (
+            <>
+              <Plus className="h-4 w-4 mr-2" />
+              {t("create-class")}
+            </>
+          )}
         </Button>
       </CardFooter>
     </Card>
