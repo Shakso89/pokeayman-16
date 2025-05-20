@@ -56,13 +56,12 @@ const HomeworkTabs: React.FC<HomeworkTabsProps> = ({
         <ActiveHomeworkTab 
           activeHomework={activeHomework}
           submissions={submissions}
-          getClassNameById={getClassNameById}
+          classes={classes}
           onAwardCoins={onAwardCoins}
           onApproveSubmission={onApproveSubmission}
           onRejectSubmission={onRejectSubmission}
           onDeleteHomework={onDeleteHomework}
           onCreateHomework={onCreateHomework}
-          classes={classes}
           onNavigateToStudentProfile={navigateToStudentProfile}
         />
       </TabsContent>

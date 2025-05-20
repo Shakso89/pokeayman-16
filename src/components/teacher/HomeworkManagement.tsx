@@ -76,7 +76,7 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
         open={isGiveCoinsOpen}
         onOpenChange={setIsGiveCoinsOpen}
         onGiveCoins={handleGiveCoins}
-        studentId={selectedStudent?.id}
+        studentId={selectedStudent?.id || ""}
       />
     </div>
   );

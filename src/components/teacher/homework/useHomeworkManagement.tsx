@@ -14,7 +14,7 @@ export const useHomeworkManagement = (teacherId: string) => {
   const [isCreateHomeworkOpen, setIsCreateHomeworkOpen] = useState(false);
   const [homeworkAssignments, setHomeworkAssignments] = useState<HomeworkAssignment[]>([]);
   const [homeworkSubmissions, setHomeworkSubmissions] = useState<HomeworkSubmission[]>([]);
-  const [classes, setClasses] = useState<Array<{ id: string; name: string }>[]>([]);
+  const [classes, setClasses] = useState<Array<{ id: string; name: string }>>([]);
   const [isGiveCoinsOpen, setIsGiveCoinsOpen] = useState(false);
   const [selectedStudent, setSelectedStudent] = useState<{id: string, name: string} | null>(null);
   const [selectedClassId, setSelectedClassId] = useState<string>("");
@@ -93,7 +93,8 @@ export const useHomeworkManagement = (teacherId: string) => {
       // Fallback to localStorage
       const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
       const teacherClasses = allClasses.filter((cls: any) => cls.teacherId === teacherId);
-      setClasses(teacherClasses.map((cls: any) => ({ id: cls.id, name: cls.name })));
+      const formattedClasses = teacherClasses.map((cls: any) => ({ id: cls.id, name: cls.name }));
+      setClasses(formattedClasses);
     }
   };
 

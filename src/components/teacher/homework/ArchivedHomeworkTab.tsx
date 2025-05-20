@@ -1,76 +1,52 @@
 
 import React from "react";
-import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkAssignment, HomeworkSubmission } from "@/types/homework";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { getHomeworkTypeIcon } from "./HomeworkUtils";
-import { Badge } from "@/components/ui/badge";
+import { HomeworkCard } from "./HomeworkCard";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface ArchivedHomeworkTabProps {
-  homeworks: HomeworkAssignment[];
+  archivedHomework: HomeworkAssignment[];
   submissions: HomeworkSubmission[];
-  classes: Array<{ id: string; name: string }>;
+  getClassNameById: (classId: string) => string;
+  onAwardCoins: (studentId: string, studentName: string) => void;
   onDeleteHomework: (homeworkId: string) => void;
+  onNavigateToStudentProfile: (studentId: string) => void;
 }
 
 const ArchivedHomeworkTab: React.FC<ArchivedHomeworkTabProps> = ({
-  homeworks,
+  archivedHomework,
   submissions,
-  classes,
-  onDeleteHomework
+  getClassNameById,
+  onAwardCoins,
+  onDeleteHomework,
+  onNavigateToStudentProfile,
 }) => {
   const { t } = useTranslation();
   
-  // Helper functions
-  const getSubmissionsForHomework = (homeworkId: string) => {
-    return submissions.filter(sub => sub.homeworkId === homeworkId);
-  };
-  
-  const getClassName = (classId: string) => {
-    const cls = classes.find(c => c.id === classId);
-    return cls ? cls.name : t("unknown-class");
-  };
+  // Dummy functions for the HomeworkCard component since we don't approve/reject archived homework
+  const dummyApprove = () => {};
+  const dummyReject = () => {};
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-      {homeworks.map(homework => {
-        const homeworkSubmissions = getSubmissionsForHomework(homework.id);
-        const approvedSubmissions = homeworkSubmissions.filter(sub => sub.status === "approved");
-        const className = getClassName(homework.classId);
-        
-        return (
-          <Card key={homework.id} className="bg-gray-50">
-            <CardHeader className="pb-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  {getHomeworkTypeIcon(homework.type)}
-                  <CardTitle className="ml-2 text-gray-600">{homework.title}</CardTitle>
-                </div>
-                <Badge variant="secondary" className="text-xs">
-                  {className}
-                </Badge>
-              </div>
-              <CardDescription className="mt-2">
-                {t("expired")}: {new Date(homework.expiresAt).toLocaleDateString()}
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-gray-600 mb-3">{t("submissions")}: {homeworkSubmissions.length}</p>
-              <p className="text-sm text-gray-600">{t("approved")}: {approvedSubmissions.length}</p>
-            </CardContent>
-            <CardFooter>
-              <Button variant="outline" onClick={() => onDeleteHomework(homework.id)}>
-                {t("delete-permanently")}
-              </Button>
-            </CardFooter>
-          </Card>
-        );
-      })}
-      
-      {homeworks.length === 0 && (
-        <div className="col-span-full text-center py-12">
-          <p className="text-xl text-gray-500">{t("no-archived-homework")}</p>
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {archivedHomework && archivedHomework.length > 0 ? (
+        archivedHomework.map(homework => (
+          <HomeworkCard
+            key={homework.id}
+            homework={homework}
+            className={getClassNameById(homework.classId)}
+            submissions={submissions.filter(sub => sub.homeworkId === homework.id)}
+            onApproveSubmission={dummyApprove}
+            onRejectSubmission={dummyReject}
+            onAwardCoins={onAwardCoins}
+            onDeleteHomework={onDeleteHomework}
+            onNavigateToStudentProfile={onNavigateToStudentProfile}
+            isActive={false}
+          />
+        ))
+      ) : (
+        <div className="col-span-2 text-center py-10 bg-gray-50 rounded-lg">
+          <p className="text-gray-500">{t("no-archived-homework")}</p>
         </div>
       )}
     </div>
