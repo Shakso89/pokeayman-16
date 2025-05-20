@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -17,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { deleteClass, getClassById } from "@/utils/classSync/classOperations";
+import { removeClass, getClassById } from "@/utils/classSync/classOperations";
 
 const ClassDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -161,7 +160,7 @@ const ClassDetails = () => {
     if (!id) return;
     
     try {
-      const success = await deleteClass(id);
+      const success = await removeClass(id);
       
       if (success) {
         toast({
