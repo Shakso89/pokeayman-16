@@ -64,8 +64,7 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
           if (payload.new && payload.new.status === 'approved') {
             toast({
               title: t("submission-approved"),
-              description: t("you-earned-coins"),
-              variant: "success"
+              description: t("you-earned-coins")
             });
           }
           loadHomeworkData();

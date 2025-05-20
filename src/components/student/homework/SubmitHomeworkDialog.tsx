@@ -15,7 +15,7 @@ export interface SubmitHomeworkDialogProps {
   homework: HomeworkAssignment;
   studentId: string;
   studentName: string;
-  onSubmissionComplete: () => void;
+  onSubmissionComplete: (submissionData: any) => void; // Updated to accept the submission data
 }
 
 const SubmitHomeworkDialog: React.FC<SubmitHomeworkDialogProps> = ({
@@ -49,7 +49,7 @@ const SubmitHomeworkDialog: React.FC<SubmitHomeworkDialogProps> = ({
     
     try {
       await saveHomeworkSubmission(submission);
-      onSubmissionComplete();
+      onSubmissionComplete(submission);
     } catch (error) {
       console.error("Error submitting homework:", error);
     } finally {

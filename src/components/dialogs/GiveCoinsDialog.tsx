@@ -17,12 +17,14 @@ interface GiveCoinsDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onGiveCoins: (amount: number) => void;
+  studentId: string; // Added this prop
 }
 
 const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({ 
   open, 
   onOpenChange, 
-  onGiveCoins 
+  onGiveCoins,
+  studentId // Added this prop to the destructuring
 }) => {
   const { t } = useTranslation();
   const [coinAmount, setCoinAmount] = useState<number>(10);
