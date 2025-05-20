@@ -93,6 +93,14 @@ export const removeCoinsFromStudent = (studentId: string, amount: number): boole
   }
   
   studentPokemons[studentIndex].coins -= amount;
+  
+  // Update spent coins counter
+  if (studentPokemons[studentIndex].spentCoins !== undefined) {
+    studentPokemons[studentIndex].spentCoins += amount;
+  } else {
+    studentPokemons[studentIndex].spentCoins = amount;
+  }
+  
   saveStudentPokemons(studentPokemons);
   return true;
 };
@@ -104,11 +112,17 @@ export const awardCoinsToStudent = (studentId: string, amount: number): void => 
   
   if (studentIndex >= 0) {
     studentPokemons[studentIndex].coins += amount;
+    
+    // Initialize spentCoins if it doesn't exist
+    if (studentPokemons[studentIndex].spentCoins === undefined) {
+      studentPokemons[studentIndex].spentCoins = 0;
+    }
   } else {
     studentPokemons.push({
       studentId,
       pokemons: [],
-      coins: amount
+      coins: amount,
+      spentCoins: 0
     });
   }
   

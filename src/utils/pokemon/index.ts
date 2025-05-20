@@ -1,51 +1,36 @@
 
-// Main entry point to aggregate and export all Pokemon utils
-
-// Export from types.ts
-export { getRandomType, getRarityForId } from './types';
-
-// Export from storage.ts
-export { 
-  getPokemonPools, 
-  savePokemonPools, 
-  getStudentPokemons, 
-  saveStudentPokemons 
-} from './storage';
-
-// Export from schoolPokemon.ts
-export { 
-  initializeSchoolPokemonPool, 
-  getSchoolPokemonPool, 
-  getRandomPokemonFromPool,
-  getClassPokemonPool,
-  initializeClassPokemonPool,
-  getDailyWheelPokemons,
-  updateAllSchoolPoolsTo500
-} from './schoolPokemon';
-
-// Export from studentPokemon.ts
-export { 
-  getStudentPokemonCollection, 
+import {
   removePokemonFromStudent,
   removePokemonFromStudentAndReturnToPool,
   removeCoinsFromStudent,
   awardCoinsToStudent,
   assignPokemonToStudent,
   assignRandomPokemonToStudent,
-  useStudentCoin
+  useStudentCoin,
+  getStudentPokemonCollection
 } from './studentPokemon';
 
-// Export sample Pokemon data
-export { samplePokemons } from './sampleData';
+import {
+  createPokemonPool,
+  getPokemonPool,
+  addPokemonToPool,
+  removePokemonFromPool
+} from './schoolPokemon';
 
-// Export class management functions
 export {
-  saveClass,
-  deleteClass,
-  getClassById,
-  classExists,
-  getClassesBySchoolId
-} from './classManagement';
-
-// Export types from Pokemon
-export type { ClassData } from '@/types/pokemon';
+  // Student Pokemon operations
+  removePokemonFromStudent,
+  removePokemonFromStudentAndReturnToPool,
+  removeCoinsFromStudent,
+  awardCoinsToStudent,
+  assignPokemonToStudent,
+  assignRandomPokemonToStudent,
+  useStudentCoin,
+  getStudentPokemonCollection,
+  
+  // School Pokemon operations
+  createPokemonPool,
+  getPokemonPool,
+  addPokemonToPool,
+  removePokemonFromPool
+};
