@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -225,6 +224,7 @@ const ManageClassDialog: React.FC<ManageClassDialogProps> = ({
         open={giveCoinsDialog.open}
         onOpenChange={(open) => setGiveCoinsDialog({...giveCoinsDialog, open})}
         onGiveCoins={handleGiveCoins}
+        studentId={giveCoinsDialog.studentId}
       />
 
       {/* Manage Pokemon Dialog */}

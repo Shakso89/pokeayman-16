@@ -511,6 +511,7 @@ const ClassDetails = () => {
             open={giveCoinsDialog.open}
             onOpenChange={(open) => setGiveCoinsDialog({...giveCoinsDialog, open})}
             onGiveCoins={handleGiveCoins}
+            studentId={giveCoinsDialog.studentId}
           />
           
           {/* Create Homework Dialog */}

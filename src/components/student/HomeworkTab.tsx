@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -61,7 +60,7 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
         },
         (payload) => {
           // If a submission is approved, show toast notification
-          if (payload.new && payload.new.status === 'approved') {
+          if (payload.new && typeof payload.new === 'object' && 'status' in payload.new && payload.new.status === 'approved') {
             toast({
               title: t("submission-approved"),
               description: t("you-earned-coins")
