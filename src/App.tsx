@@ -8,7 +8,7 @@ import TeacherSignUp from "./pages/TeacherSignUp";
 import StudentDashboard from "./pages/StudentDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import ReportsPage from "./pages/ReportsPage";
-import { Messages } from "./pages/Messages"; // This appears to be a named export
+import { Messages } from "./pages/Messages";
 import RankingPage from "./pages/RankingPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import Contact from "./pages/Contact";
@@ -21,18 +21,8 @@ import ClassDetailsPage from "./pages/ClassDetailsPage";
 import { useTranslation } from "./hooks/useTranslation";
 import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from '@vercel/analytics/react';
+import { ThemeProvider } from "@/components/theme-provider";
 import CreateClassPage from "./pages/CreateClassPage";
-
-// Create a simple theme provider component since it's missing
-const ThemeProvider: React.FC<{
-  children: React.ReactNode;
-  attribute?: string;
-  defaultTheme?: string;
-  enableSystem?: boolean;
-  disableTransitionOnChange?: boolean;
-}> = ({ children }) => {
-  return <>{children}</>;
-};
 
 function ScrollToTop() {
   const { pathname } = useLocation();
