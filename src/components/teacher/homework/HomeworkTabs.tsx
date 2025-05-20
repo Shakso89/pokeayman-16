@@ -1,21 +1,21 @@
 
 import React from "react";
-import { useTranslation } from "@/hooks/useTranslation";
-import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { HomeworkAssignment } from "@/types/homework";
+import { HomeworkAssignment, HomeworkSubmission } from "@/types/homework";
+import { useTranslation } from "@/hooks/useTranslation";
 import ActiveHomeworkTab from "./ActiveHomeworkTab";
 import ArchivedHomeworkTab from "./ArchivedHomeworkTab";
 
 interface HomeworkTabsProps {
   activeTab: "active" | "archived";
-  onTabChange: (value: "active" | "archived") => void;
+  onTabChange: (tab: "active" | "archived") => void;
   activeHomework: HomeworkAssignment[];
   archivedHomework: HomeworkAssignment[];
-  submissions: any[];
+  submissions: HomeworkSubmission[];
   classes: Array<{ id: string; name: string }>;
   onAwardCoins: (studentId: string, studentName: string) => void;
+  onApproveSubmission: (submission: HomeworkSubmission) => void;
+  onRejectSubmission: (submission: HomeworkSubmission) => void;
   onDeleteHomework: (homeworkId: string) => void;
   onCreateHomework: (classId: string, className: string) => void;
 }
@@ -28,54 +28,54 @@ const HomeworkTabs: React.FC<HomeworkTabsProps> = ({
   submissions,
   classes,
   onAwardCoins,
+  onApproveSubmission,
+  onRejectSubmission,
   onDeleteHomework,
-  onCreateHomework,
+  onCreateHomework
 }) => {
   const { t } = useTranslation();
-
+  
+  const getClassNameById = (classId: string) => {
+    const foundClass = classes.find(c => c.id === classId);
+    return foundClass ? foundClass.name : t("unknown-class");
+  };
+  
+  const navigateToStudentProfile = (studentId: string) => {
+    // Navigate to student profile
+    window.location.href = `/teacher/student/${studentId}`;
+  };
+  
   return (
-    <Tabs defaultValue="active" value={activeTab} onValueChange={(value) => onTabChange(value as "active" | "archived")}>
-      <TabsList className="mb-6">
+    <Tabs value={activeTab} onValueChange={(val) => onTabChange(val as "active" | "archived")} className="mt-6">
+      <TabsList className="grid grid-cols-2 mb-6">
         <TabsTrigger value="active">{t("active-homework")}</TabsTrigger>
         <TabsTrigger value="archived">{t("archived-homework")}</TabsTrigger>
       </TabsList>
       
       <TabsContent value="active">
-        {activeHomework.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <p>{t("no-active-homework")}</p>
-              <Button onClick={() => onCreateHomework(classes[0]?.id || "", classes[0]?.name || "")} className="mt-4">
-                {t("create-homework")}
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <ActiveHomeworkTab 
-            homeworks={activeHomework} 
-            submissions={submissions} 
-            classes={classes}
-            onAwardCoins={onAwardCoins}
-            onDeleteHomework={onDeleteHomework}
-          />
-        )}
+        <ActiveHomeworkTab 
+          activeHomework={activeHomework}
+          submissions={submissions}
+          getClassNameById={getClassNameById}
+          onAwardCoins={onAwardCoins}
+          onApproveSubmission={onApproveSubmission}
+          onRejectSubmission={onRejectSubmission}
+          onDeleteHomework={onDeleteHomework}
+          onCreateHomework={onCreateHomework}
+          classes={classes}
+          onNavigateToStudentProfile={navigateToStudentProfile}
+        />
       </TabsContent>
       
       <TabsContent value="archived">
-        {archivedHomework.length === 0 ? (
-          <Card>
-            <CardContent className="pt-6 text-center">
-              <p>{t("no-archived-homework")}</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <ArchivedHomeworkTab 
-            homeworks={archivedHomework} 
-            submissions={submissions} 
-            classes={classes}
-            onDeleteHomework={onDeleteHomework}
-          />
-        )}
+        <ArchivedHomeworkTab 
+          archivedHomework={archivedHomework}
+          submissions={submissions}
+          getClassNameById={getClassNameById}
+          onAwardCoins={onAwardCoins}
+          onDeleteHomework={onDeleteHomework}
+          onNavigateToStudentProfile={navigateToStudentProfile}
+        />
       </TabsContent>
     </Tabs>
   );

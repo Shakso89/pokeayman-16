@@ -32,6 +32,8 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
     handleGiveCoins,
     handleCreateHomework,
     handleDeleteHomework,
+    handleApproveSubmission,
+    handleRejectSubmission,
     activeHomework,
     archivedHomework
   } = useHomeworkManagement(teacherId);
@@ -55,6 +57,8 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
           setSelectedStudent({id: studentId, name: studentName});
           setIsGiveCoinsOpen(true);
         }}
+        onApproveSubmission={handleApproveSubmission}
+        onRejectSubmission={handleRejectSubmission}
         onDeleteHomework={handleDeleteHomework}
         onCreateHomework={handleCreateHomework}
       />
@@ -72,6 +76,7 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({ onBack, teacher
         open={isGiveCoinsOpen}
         onOpenChange={setIsGiveCoinsOpen}
         onGiveCoins={handleGiveCoins}
+        studentId={selectedStudent?.id}
       />
     </div>
   );

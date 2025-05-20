@@ -37,7 +37,7 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
       loadHomeworkData();
     }
     
-    // Listen for homework changes
+    // Listen for homework changes and submission status changes
     const channel = supabase
       .channel('homework_changes')
       .on(
@@ -51,6 +51,26 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
           loadHomeworkData();
         }
       )
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'homework_submissions',
+          filter: `studentId=eq.${studentId}`
+        },
+        (payload) => {
+          // If a submission is approved, show toast notification
+          if (payload.new && payload.new.status === 'approved') {
+            toast({
+              title: t("submission-approved"),
+              description: t("you-earned-coins"),
+              variant: "success"
+            });
+          }
+          loadHomeworkData();
+        }
+      )
       .subscribe();
       
     return () => {
@@ -61,23 +81,27 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
   const loadHomeworkData = async () => {
     setIsLoading(true);
     try {
-      // Fetch homework assignments for the class
-      const classHomework = await fetchHomeworkForClass(classId);
-      setHomeworkAssignments(classHomework);
+      // Try to fetch from Supabase first
+      const { data: homeworkData, error: homeworkError } = await supabase
+        .from('homework')
+        .select('*')
+        .eq('classId', classId);
+        
+      if (homeworkError) throw homeworkError;
       
-      // Fetch student submissions
-      const submissions = await fetchStudentSubmissions(studentId);
-      setUserSubmissions(submissions);
+      const { data: submissionsData, error: submissionsError } = await supabase
+        .from('homework_submissions')
+        .select('*')
+        .eq('studentId', studentId);
+        
+      if (submissionsError) throw submissionsError;
+      
+      setHomeworkAssignments(homeworkData || []);
+      setUserSubmissions(submissionsData || []);
     } catch (error) {
-      console.error("Error loading homework:", error);
-      // Fallback to localStorage or display error
-      toast({
-        title: t("error"),
-        description: t("failed-to-load-homework"),
-        variant: "destructive"
-      });
+      console.error("Error loading from Supabase, falling back to localStorage:", error);
       
-      // Try localStorage fallback
+      // Fallback to localStorage
       try {
         const savedHomework = localStorage.getItem("homeworkAssignments");
         const savedSubmissions = localStorage.getItem("homeworkSubmissions");
@@ -99,6 +123,12 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
         }
       } catch (localError) {
         console.error("Error with localStorage fallback:", localError);
+        
+        toast({
+          title: t("error"),
+          description: t("failed-to-load-homework"),
+          variant: "destructive"
+        });
       }
     } finally {
       setIsLoading(false);
@@ -121,14 +151,42 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
     }
   };
 
-  const handleSubmissionComplete = () => {
-    setIsSubmitDialogOpen(false);
-    loadHomeworkData(); // Refresh data to show new submission
-    toast({
-      title: t("success"),
-      description: t("homework-submitted-successfully")
-    });
+  const handleSubmissionComplete = async (submissionData: any) => {
+    try {
+      // Try to save to Supabase first
+      const { error } = await supabase
+        .from('homework_submissions')
+        .insert([submissionData]);
+        
+      if (error) throw error;
+      
+      setUserSubmissions(prev => [...prev, submissionData]);
+      setIsSubmitDialogOpen(false);
+      
+      toast({
+        title: t("success"),
+        description: t("homework-submitted-successfully")
+      });
+    } catch (error) {
+      console.error("Error saving to Supabase, falling back to localStorage:", error);
+      
+      // Fallback to localStorage
+      const currentSubmissions = JSON.parse(localStorage.getItem("homeworkSubmissions") || "[]");
+      localStorage.setItem("homeworkSubmissions", JSON.stringify([...currentSubmissions, submissionData]));
+      
+      setUserSubmissions(prev => [...prev, submissionData]);
+      setIsSubmitDialogOpen(false);
+      
+      toast({
+        title: t("success"),
+        description: t("homework-submitted-successfully")
+      });
+    }
   };
+  
+  // Filter out expired homework
+  const now = new Date();
+  const activeHomework = homeworkAssignments.filter(hw => new Date(hw.expiresAt) > now);
 
   if (isLoading) {
     return (
@@ -147,7 +205,7 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
         <h3 className="text-lg font-medium mb-4">{t("homework")}</h3>
         
         <HomeworkList 
-          homeworks={homeworkAssignments}
+          homeworks={activeHomework}
           userSubmissions={userSubmissions}
           onSubmit={handleSubmitHomework}
           onView={handleViewSubmission}

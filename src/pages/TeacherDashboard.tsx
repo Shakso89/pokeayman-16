@@ -1,13 +1,14 @@
 
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, BookText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NavBar } from "@/components/NavBar";
 import { useTranslation } from "@/hooks/useTranslation";
 import ClassManagement from "@/components/teacher/class-management/ClassManagement";
 import SchoolCollaboration from "@/components/teacher/SchoolCollaboration";
 import SchoolManagement from "@/components/teacher/SchoolManagement";
+import HomeworkManagement from "@/components/teacher/HomeworkManagement";
 import DashboardHeader from "@/components/teacher/dashboard/DashboardHeader";
 import AddStudentDialog from "@/components/teacher/dashboard/AddStudentDialog";
 import MainDashboard from "@/components/teacher/dashboard/MainDashboard";
@@ -16,7 +17,9 @@ import { toast } from "@/hooks/use-toast";
 
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState<"main" | "classes" | "collaboration">("main");
+  const [currentView, setCurrentView] = useState<
+    "main" | "classes" | "collaboration" | "homework"
+  >("main");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [teacherData, setTeacherData] = useState<any>(null);
@@ -74,16 +77,16 @@ const TeacherDashboard: React.FC = () => {
     }
   }, [teacherId, username, isLoggedIn, userType]);
 
-  // Placeholder function for CreateClass button (we're removing functionality)
-  const handleCreateClass = () => {
-    console.log("Create class functionality has been removed");
-    // No longer setting the view to "create-class"
-  };
-
   // Handle navigating to manage classes (shows school list first)
   const handleManageClasses = () => {
     console.log("Manage classes button clicked");
     setCurrentView("classes");
+  };
+  
+  // Handle navigating to homework management
+  const handleManageHomework = () => {
+    console.log("Manage homework button clicked");
+    setCurrentView("homework");
   };
 
   if (!isLoggedIn || userType !== "teacher") {
@@ -112,10 +115,22 @@ const TeacherDashboard: React.FC = () => {
               setActiveTab={setActiveTab}
               onAddStudent={() => setIsAddStudentOpen(true)}
               onManageClasses={handleManageClasses}
-              onCreateClass={handleCreateClass} // Keep this prop but it won't do anything now
+              onCreateClass={() => {}} // No longer needed but kept for interface compatibility
               teacherId={teacherId || ""}
               isAdmin={isAdmin}
             />
+            
+            {/* Add button for homework management */}
+            <div className="mt-6">
+              <Button 
+                variant="outline" 
+                className="flex items-center bg-blue-100 hover:bg-blue-200 text-blue-800"
+                onClick={handleManageHomework}
+              >
+                <BookText className="h-4 w-4 mr-2" />
+                {t("manage-homework")}
+              </Button>
+            </div>
           </>
         ) : currentView === "classes" ? (
           selectedSchoolId ? (
@@ -131,6 +146,11 @@ const TeacherDashboard: React.FC = () => {
               teacherId={teacherId || ""}
             />
           )
+        ) : currentView === "homework" ? (
+          <HomeworkManagement
+            onBack={() => setCurrentView("main")}
+            teacherId={teacherId || ""}
+          />
         ) : (
           <div>
             <div className="flex items-center mb-6">

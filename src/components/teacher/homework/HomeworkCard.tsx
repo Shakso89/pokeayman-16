@@ -11,8 +11,8 @@ interface HomeworkCardProps {
   homework: HomeworkAssignment;
   className: string;
   submissions: HomeworkSubmission[];
-  onApproveSubmission?: (submission: HomeworkSubmission) => void;
-  onRejectSubmission?: (submission: HomeworkSubmission) => void;
+  onApproveSubmission: (submission: HomeworkSubmission) => void;
+  onRejectSubmission: (submission: HomeworkSubmission) => void;
   onAwardCoins: (studentId: string, studentName: string) => void;
   onDeleteHomework: (homeworkId: string) => void;
   onNavigateToStudentProfile: (studentId: string) => void;
@@ -34,6 +34,11 @@ export const HomeworkCard: React.FC<HomeworkCardProps> = ({
   const now = new Date();
   const hoursRemaining = isActive ? 
     Math.ceil((new Date(homework.expiresAt).getTime() - now.getTime()) / (1000 * 60 * 60)) : 0;
+
+  // Filter submissions for this homework
+  const homeworkSubmissions = submissions.filter(
+    submission => submission.homeworkId === homework.id
+  );
 
   return (
     <Card key={homework.id} className={!isActive ? "bg-gray-50" : "overflow-hidden"}>
@@ -60,10 +65,10 @@ export const HomeworkCard: React.FC<HomeworkCardProps> = ({
       <CardContent>
         <p className="text-sm mb-3">{homework.description}</p>
         <div className="bg-gray-50 p-3 rounded-md">
-          <p className="text-sm font-medium mb-2">{t("submissions")}: {submissions.length}</p>
-          {submissions.length > 0 && isActive ? (
+          <p className="text-sm font-medium mb-2">{t("submissions")}: {homeworkSubmissions.length}</p>
+          {homeworkSubmissions.length > 0 ? (
             <div className="space-y-2 max-h-64 overflow-auto">
-              {submissions.map(submission => (
+              {homeworkSubmissions.map(submission => (
                 <HomeworkSubmissionItem 
                   key={submission.id}
                   submission={submission}
