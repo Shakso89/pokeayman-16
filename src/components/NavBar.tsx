@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -8,27 +7,25 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSepara
 import UserSettingsModal from "./modals/UserSettingsModal";
 import NotificationBadge from "./NotificationBadge";
 import { useTranslation } from "@/hooks/useTranslation";
-
 interface NavBarProps {
   userType: "teacher" | "student";
   userName?: string;
   userAvatar?: string;
 }
-
 export const NavBar: React.FC<NavBarProps> = ({
   userType,
   userName,
   userAvatar
 }) => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const {
+    t
+  } = useTranslation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-
   const handleLogout = () => {
     // Navigate to logout page which will handle the full logout process
     navigate("/logout");
   };
-
   const handleHomeClick = () => {
     // Direct to the appropriate dashboard based on user type
     if (userType === "teacher") {
@@ -37,13 +34,10 @@ export const NavBar: React.FC<NavBarProps> = ({
       navigate("/student-dashboard");
     }
   };
-
   const isAdmin = localStorage.getItem("isAdmin") === "true";
-  
   const handleCloseSettings = () => {
     setIsSettingsOpen(false);
   };
-  
   const handleViewProfile = () => {
     if (userType === "teacher") {
       const teacherId = localStorage.getItem("teacherId");
@@ -61,9 +55,7 @@ export const NavBar: React.FC<NavBarProps> = ({
       }
     }
   };
-
-  return (
-    <div className="bg-white border-b shadow-sm">
+  return <div className="bg-white border-b shadow-sm">
       <div className="flex items-center justify-between px-4 py-2 max-w-7xl mx-auto">
         <div className="flex items-center gap-4">
           <img src="/lovable-uploads/40c04be5-3d6e-4938-9a00-006177dbef3b.png" alt="PokéAyman Logo" className="h-12 w-auto" />
@@ -73,7 +65,7 @@ export const NavBar: React.FC<NavBarProps> = ({
         </div>
         
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={handleHomeClick} title="Home">
+          <Button variant="ghost" size="icon" onClick={handleHomeClick} title="Home" className="bg-gray-900 hover:bg-gray-800">
             <Home size={20} />
           </Button>
           
@@ -109,12 +101,10 @@ export const NavBar: React.FC<NavBarProps> = ({
                 <span>{t("profile-and-settings")}</span>
               </DropdownMenuItem>
               
-              {isAdmin && userType === "teacher" && (
-                <DropdownMenuItem onClick={() => navigate("/admin-dashboard")}>
+              {isAdmin && userType === "teacher" && <DropdownMenuItem onClick={() => navigate("/admin-dashboard")}>
                   <UserCog className="mr-2 h-4 w-4" />
                   <span>{t("admin-dashboard")}</span>
-                </DropdownMenuItem>
-              )}
+                </DropdownMenuItem>}
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={handleLogout}>
                 <LogOut className="mr-2 h-4 w-4" />
@@ -125,13 +115,6 @@ export const NavBar: React.FC<NavBarProps> = ({
         </div>
       </div>
       
-      {isSettingsOpen && (
-        <UserSettingsModal 
-          isOpen={isSettingsOpen} 
-          onClose={handleCloseSettings} 
-          userType={userType} 
-        />
-      )}
-    </div>
-  );
+      {isSettingsOpen && <UserSettingsModal isOpen={isSettingsOpen} onClose={handleCloseSettings} userType={userType} />}
+    </div>;
 };
