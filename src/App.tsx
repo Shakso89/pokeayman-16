@@ -1,87 +1,92 @@
-import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
-import Index from "./pages/Index";
-import TeacherLogin from "./pages/TeacherLogin";
-import TeacherDashboard from "./pages/TeacherDashboard";
-import AdminDashboard from "./pages/AdminDashboard";
-import StudentLogin from "./pages/StudentLogin";
-import StudentDashboard from "./pages/StudentDashboard";
-import LogoutPage from "./pages/LogoutPage";
-import NotFound from "./pages/NotFound";
-import RankingPage from "./pages/RankingPage";
-import Contact from "./pages/Contact";
-import TeacherSignUp from "./pages/TeacherSignUp";
-import StudentProfilePage from "./pages/StudentProfilePage";
-import TeacherProfilePage from "./pages/TeacherProfilePage";
-import StudentDetailPage from "./pages/StudentDetailPage";
-import ReportsPage from "./pages/ReportsPage";
-import Messages from "./pages/Messages";
-import { AuthProvider } from './contexts/AuthContext';
-import ProtectedRoute from "./components/auth/ProtectedRoute";
-import "./App.css";
+import React, { useEffect, useState } from "react";
+import { Routes, Route, useLocation } from "react-router-dom";
+import { Index } from "./pages/Index";
+import { StudentLogin } from "./pages/StudentLogin";
+import { TeacherLogin } from "./pages/TeacherLogin";
+import { TeacherSignUp } from "./pages/TeacherSignUp";
+import { StudentDashboard } from "./pages/StudentDashboard";
+import { TeacherDashboard } from "./pages/TeacherDashboard";
+import { ReportsPage } from "./pages/ReportsPage";
+import { Messages } from "./pages/Messages";
+import { RankingPage } from "./pages/RankingPage";
+import { AdminDashboard } from "./pages/AdminDashboard";
+import { Contact } from "./pages/Contact";
+import { LogoutPage } from "./pages/LogoutPage";
+import { NotFound } from "./pages/NotFound";
+import { TeacherProfilePage } from "./pages/TeacherProfilePage";
+import { StudentProfilePage } from "./pages/StudentProfilePage";
+import { StudentDetailPage } from "./pages/StudentDetailPage";
+import { ClassDetailsPage } from "./pages/ClassDetailsPage";
+import { useTranslation } from "./hooks/useTranslation";
+import { Toaster } from "@/components/ui/toaster"
+import { Analytics } from '@vercel/analytics/react';
+import { ThemeProvider } from "@/components/theme-provider"
+import CreateClassPage from "./pages/CreateClassPage";
+
+function ScrollToTop() {
+  const { pathname } = useLocation();
+
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [pathname]);
+
+  return null;
+}
+
+function Router() {
+  return (
+    <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/student-login" element={<StudentLogin />} />
+      <Route path="/teacher-login" element={<TeacherLogin />} />
+      <Route path="/teacher-signup" element={<TeacherSignUp />} />
+      <Route path="/student-dashboard" element={<StudentDashboard />} />
+      <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
+      <Route path="/reports" element={<ReportsPage />} />
+      <Route path="/messages" element={<Messages />} />
+      <Route path="/rankings" element={<RankingPage />} />
+      <Route path="/admin-dashboard" element={<AdminDashboard />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/logout" element={<LogoutPage />} />
+      <Route path="/teacher-profile/:teacherId" element={<TeacherProfilePage />} />
+      <Route path="/student/profile/:studentId" element={<StudentProfilePage />} />
+      <Route path="/student-detail/:studentId" element={<StudentDetailPage />} />
+      <Route path="/class-details/:classId" element={<ClassDetailsPage />} />
+      
+      {/* New route for creating classes in any school */}
+      <Route path="/create-class/:schoolId" element={<CreateClassPage />} />
+      
+      <Route path="*" element={<NotFound />} />
+    </Routes>
+  );
+}
 
 function App() {
+  const { i18n } = useTranslation();
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null;
+  }
+
   return (
-    <AuthProvider>
-      <Router>
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/teacher-login" element={<TeacherLogin />} />
-          <Route path="/student-login" element={<StudentLogin />} />
-          <Route path="/logout" element={<LogoutPage />} />
-          <Route path="/contact" element={<Contact />} />
-          <Route path="/teacher-signup" element={<TeacherSignUp />} />
-          
-          {/* Protected Routes */}
-          <Route path="/teacher-dashboard" element={
-            <ProtectedRoute requiredUserType="teacher">
-              <TeacherDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/admin-dashboard" element={
-            <ProtectedRoute requiredUserType="teacher" allowAdminOverride={true}>
-              <AdminDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/student-dashboard" element={
-            <ProtectedRoute requiredUserType="student">
-              <StudentDashboard />
-            </ProtectedRoute>
-          } />
-          <Route path="/ranking" element={
-            <ProtectedRoute requiredUserType="any">
-              <RankingPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/student-profile" element={
-            <ProtectedRoute requiredUserType="student">
-              <StudentProfilePage />
-            </ProtectedRoute>
-          } />
-          <Route path="/teacher-profile" element={
-            <ProtectedRoute requiredUserType="teacher">
-              <TeacherProfilePage />
-            </ProtectedRoute>
-          } />
-          <Route path="/student/:id" element={
-            <ProtectedRoute requiredUserType="teacher">
-              <StudentDetailPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/reports" element={
-            <ProtectedRoute requiredUserType="teacher">
-              <ReportsPage />
-            </ProtectedRoute>
-          } />
-          <Route path="/messages" element={
-            <ProtectedRoute requiredUserType="any">
-              <Messages />
-            </ProtectedRoute>
-          } />
-          
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </Router>
-    </AuthProvider>
+    <ThemeProvider
+      attribute="class"
+      defaultTheme="system"
+      enableSystem
+      disableTransitionOnChange
+    >
+      <div dir={i18n.dir()}>
+        <ScrollToTop />
+        <Router />
+        <Toaster />
+        <Analytics />
+      </div>
+    </ThemeProvider>
   );
 }
 

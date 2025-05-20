@@ -1,5 +1,5 @@
 
-import React from "react";
+import React, { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { ChevronLeft } from "lucide-react";
@@ -9,6 +9,7 @@ import SchoolInfoCard from "./SchoolInfoCard";
 import ClassList from "./ClassList";
 import AddStudentsDialog from "./AddStudentsDialog";
 import DeleteClassDialog from "./DeleteClassDialog";
+import { SelectSchoolDialog } from "./SelectSchoolDialog";
 
 interface ClassManagementProps {
   onBack: () => void;
@@ -24,6 +25,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   directCreateMode = false
 }) => {
   const { t } = useTranslation();
+  const [isSelectSchoolOpen, setIsSelectSchoolOpen] = useState(false);
   
   const { 
     classes,
@@ -59,6 +61,17 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
           teacherId={teacherId}
           isAdmin={isAdmin}
         />
+        
+        {/* Add button to create class in any school */}
+        <div className="mt-2 mb-4">
+          <Button 
+            variant="default" 
+            onClick={() => setIsSelectSchoolOpen(true)}
+            className="w-full"
+          >
+            {t("create-class-in-any-school")}
+          </Button>
+        </div>
       </div>
       
       {/* Success Message */}
@@ -109,6 +122,13 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         isOpen={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
         onConfirmDelete={handleDeleteClass}
+      />
+      
+      {/* School Selection Dialog */}
+      <SelectSchoolDialog
+        open={isSelectSchoolOpen}
+        onOpenChange={setIsSelectSchoolOpen}
+        teacherId={teacherId}
       />
     </div>
   );

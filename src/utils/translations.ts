@@ -109,7 +109,15 @@ const translations: Record<string, Record<string, string>> = {
     "feature-2-title": "Track Progress",
     "feature-2-desc": "Teachers can easily monitor student activities and achievements through an intuitive dashboard.",
     "feature-3-title": "Community Building",
-    "feature-3-desc": "Connect with other teachers and schools to share best practices and resources."
+    "feature-3-desc": "Connect with other teachers and schools to share best practices and resources.",
+    "create-class-in-any-school": "Create Class In Any School",
+    "select-school": "Select School",
+    "select-school-to-create-class": "Choose the school where you want to create a new class.",
+    "search-schools": "Search Schools",
+    "search-school-name": "Enter school name...",
+    "no-matching-schools": "No matching schools found",
+    "no-schools-available": "No schools available",
+    "continue": "Continue"
   },
   zh: {
     "login": "登录",
