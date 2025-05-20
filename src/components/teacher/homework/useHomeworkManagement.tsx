@@ -3,6 +3,8 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkAssignment } from "@/types/homework";
+// Add this import 
+import { awardCoinsToStudent } from "@/utils/pokemon";
 
 export const useHomeworkManagement = (teacherId: string) => {
   const { t } = useTranslation();
@@ -120,5 +122,3 @@ export const useHomeworkManagement = (teacherId: string) => {
   };
 };
 
-// Add this import 
-import { awardCoinsToStudent } from "@/utils/pokemon";
