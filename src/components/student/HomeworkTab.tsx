@@ -1,13 +1,16 @@
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
-import { HomeworkAssignment, HomeworkSubmission } from "@/types/homework";
-import HomeworkList from "./homework/HomeworkList";
+import { Loader2 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { HomeworkAssignment } from "@/types/homework";
+import { toast } from "@/hooks/use-toast";
 import SubmitHomeworkDialog from "./homework/SubmitHomeworkDialog";
 import ViewSubmissionDialog from "./homework/ViewSubmissionDialog";
-import { readFileAsDataURL } from "./homework/utils";
+import HomeworkList from "./homework/HomeworkList";
+import { fetchHomeworkForClass, fetchStudentSubmissions } from "./homework/utils";
 
 interface HomeworkTabProps {
   studentId: string;
@@ -15,154 +18,162 @@ interface HomeworkTabProps {
   classId: string;
 }
 
-const HomeworkTab: React.FC<HomeworkTabProps> = ({ studentId, studentName, classId }) => {
+const HomeworkTab: React.FC<HomeworkTabProps> = ({
+  studentId,
+  studentName,
+  classId
+}) => {
   const { t } = useTranslation();
-  const { toast } = useToast();
-  
-  const [homeworks, setHomeworks] = useState<HomeworkAssignment[]>([]);
-  const [submissions, setSubmissions] = useState<HomeworkSubmission[]>([]);
+  const [homeworkAssignments, setHomeworkAssignments] = useState<HomeworkAssignment[]>([]);
+  const [userSubmissions, setUserSubmissions] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedHomework, setSelectedHomework] = useState<HomeworkAssignment | null>(null);
-  const [isSubmitOpen, setIsSubmitOpen] = useState(false);
-  const [classes, setClasses] = useState<{[id: string]: string}>({});
-  const [viewSubmission, setViewSubmission] = useState<HomeworkSubmission | null>(null);
-  
+  const [isSubmitDialogOpen, setIsSubmitDialogOpen] = useState(false);
+  const [isViewSubmissionOpen, setIsViewSubmissionOpen] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState<any>(null);
+
   useEffect(() => {
-    loadHomeworkData();
-    loadClassesData();
-  }, [classId]);
-  
-  const loadClassesData = () => {
-    // Get class information for displaying class names
-    const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    const classMap: {[id: string]: string} = {};
-    
-    allClasses.forEach((cls: any) => {
-      classMap[cls.id] = cls.name;
-    });
-    
-    setClasses(classMap);
-  };
-  
-  const loadHomeworkData = () => {
-    console.log("Loading homework for class:", classId);
-    
-    // Get all homework assignments
-    const allHomeworks = JSON.parse(localStorage.getItem("homeworkAssignments") || "[]");
-    
-    // Filter for homework assigned to student's class that hasn't expired
-    const now = new Date();
-    const activeHomeworks = allHomeworks.filter((hw: HomeworkAssignment) => {
-      const isForClass = hw.classId === classId;
-      const isActive = new Date(hw.expiresAt) > now;
-      return isForClass && isActive;
-    });
-    
-    console.log("Found active homeworks:", activeHomeworks.length);
-    setHomeworks(activeHomeworks);
-    
-    // Get all submissions
-    const allSubmissions = JSON.parse(localStorage.getItem("homeworkSubmissions") || "[]");
-    
-    // Filter for student's submissions
-    const studentSubmissions = allSubmissions.filter((sub: HomeworkSubmission) => 
-      sub.studentId === studentId
-    );
-    
-    setSubmissions(studentSubmissions);
-  };
-  
-  const handleOpenSubmission = (homeworkId: string) => {
-    const submission = submissions.find(sub => sub.homeworkId === homeworkId);
-    if (submission) {
-      setViewSubmission(submission);
-    }
-  };
-  
-  const handleOpenSubmitDialog = (homework: HomeworkAssignment) => {
-    setSelectedHomework(homework);
-    setIsSubmitOpen(true);
-  };
-  
-  const handleSubmitHomework = async (file: File) => {
-    if (!selectedHomework) {
-      toast({
-        title: t("error"),
-        description: t("homework-not-selected"),
-        variant: "destructive"
-      });
-      return;
+    if (classId) {
+      loadHomeworkData();
     }
     
+    // Listen for homework changes
+    const channel = supabase
+      .channel('homework_changes')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'homework' 
+        },
+        () => {
+          loadHomeworkData();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [classId, studentId]);
+
+  const loadHomeworkData = async () => {
+    setIsLoading(true);
     try {
-      // For a real app, we would upload to a server
-      // For this demo, we'll create a data URL
-      const fileContent = await readFileAsDataURL(file);
+      // Fetch homework assignments for the class
+      const classHomework = await fetchHomeworkForClass(classId);
+      setHomeworkAssignments(classHomework);
       
-      // Create submission object
-      const submission: HomeworkSubmission = {
-        id: `submission-${Date.now()}`,
-        homeworkId: selectedHomework.id,
-        studentId,
-        studentName,
-        content: fileContent,
-        type: selectedHomework.type,
-        submittedAt: new Date().toISOString(),
-        status: "pending"
-      };
-      
-      // Save submission to localStorage
-      const allSubmissions = JSON.parse(localStorage.getItem("homeworkSubmissions") || "[]");
-      allSubmissions.push(submission);
-      localStorage.setItem("homeworkSubmissions", JSON.stringify(allSubmissions));
-      
-      // Update state
-      setSubmissions([...submissions, submission]);
-      setIsSubmitOpen(false);
-      
-      toast({
-        title: t("success"),
-        description: t("homework-submitted"),
-      });
+      // Fetch student submissions
+      const submissions = await fetchStudentSubmissions(studentId);
+      setUserSubmissions(submissions);
     } catch (error) {
+      console.error("Error loading homework:", error);
+      // Fallback to localStorage or display error
       toast({
         title: t("error"),
-        description: t("submission-failed"),
+        description: t("failed-to-load-homework"),
         variant: "destructive"
       });
+      
+      // Try localStorage fallback
+      try {
+        const savedHomework = localStorage.getItem("homeworkAssignments");
+        const savedSubmissions = localStorage.getItem("homeworkSubmissions");
+        
+        if (savedHomework) {
+          const allHomework = JSON.parse(savedHomework);
+          const classHomework = allHomework.filter(
+            (hw: any) => hw.classId === classId
+          );
+          setHomeworkAssignments(classHomework);
+        }
+        
+        if (savedSubmissions) {
+          const allSubmissions = JSON.parse(savedSubmissions);
+          const userSubs = allSubmissions.filter(
+            (sub: any) => sub.studentId === studentId
+          );
+          setUserSubmissions(userSubs);
+        }
+      } catch (localError) {
+        console.error("Error with localStorage fallback:", localError);
+      }
+    } finally {
+      setIsLoading(false);
     }
   };
-  
-  const now = new Date();
-  
+
+  const handleSubmitHomework = (homework: HomeworkAssignment) => {
+    setSelectedHomework(homework);
+    setIsSubmitDialogOpen(true);
+  };
+
+  const handleViewSubmission = (homework: HomeworkAssignment) => {
+    setSelectedHomework(homework);
+    
+    // Find the submission for this homework
+    const submission = userSubmissions.find(sub => sub.homeworkId === homework.id);
+    if (submission) {
+      setSelectedSubmission(submission);
+      setIsViewSubmissionOpen(true);
+    }
+  };
+
+  const handleSubmissionComplete = () => {
+    setIsSubmitDialogOpen(false);
+    loadHomeworkData(); // Refresh data to show new submission
+    toast({
+      title: t("success"),
+      description: t("homework-submitted-successfully")
+    });
+  };
+
+  if (isLoading) {
+    return (
+      <Card>
+        <CardContent className="pt-6 pb-6 text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
+          <p>{t("loading-homework")}</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card>
-      <CardHeader>
-        <CardTitle>{t("my-homework")}</CardTitle>
-        <CardDescription>{t("homework-description")}</CardDescription>
-      </CardHeader>
-      <CardContent>
+      <CardContent className="pt-6">
+        <h3 className="text-lg font-medium mb-4">{t("homework")}</h3>
+        
         <HomeworkList 
-          homeworks={homeworks}
-          submissions={submissions}
-          classes={classes}
-          onSubmit={handleOpenSubmitDialog}
-          onViewSubmission={handleOpenSubmission}
-          now={now}
+          homework={homeworkAssignments}
+          userSubmissions={userSubmissions}
+          onSubmit={handleSubmitHomework}
+          onView={handleViewSubmission}
+          t={t}
         />
+        
+        {selectedHomework && (
+          <>
+            <SubmitHomeworkDialog
+              open={isSubmitDialogOpen}
+              onOpenChange={setIsSubmitDialogOpen}
+              homework={selectedHomework}
+              studentId={studentId}
+              studentName={studentName}
+              onSubmissionComplete={handleSubmissionComplete}
+            />
+            
+            <ViewSubmissionDialog
+              open={isViewSubmissionOpen}
+              onOpenChange={setIsViewSubmissionOpen}
+              homework={selectedHomework}
+              submission={selectedSubmission}
+            />
+          </>
+        )}
       </CardContent>
-      
-      {/* Dialogs */}
-      <SubmitHomeworkDialog 
-        open={isSubmitOpen}
-        onOpenChange={setIsSubmitOpen}
-        homework={selectedHomework}
-        onSubmit={handleSubmitHomework}
-      />
-      
-      <ViewSubmissionDialog 
-        submission={viewSubmission}
-        onClose={() => setViewSubmission(null)}
-      />
     </Card>
   );
 };

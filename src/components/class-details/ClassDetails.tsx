@@ -1,10 +1,9 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, Loader2, Trash2, Award, BookText, Coins } from "lucide-react";
+import { ChevronLeft, Loader2, Trash2, Award, BookText, Coins, Settings } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import {
@@ -25,6 +24,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StudentsTab from "@/components/student/StudentsTab";
 import CreateHomeworkDialog from "@/components/teacher/CreateHomeworkDialog";
 import { HomeworkAssignment } from "@/types/homework";
+import ManageClassDialog from "@/components/dialogs/ManageClassDialog";
 
 const ClassDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -250,6 +250,12 @@ const ClassDetails = () => {
     });
   };
 
+  // New function to check if current user is the class creator
+  const isClassCreator = () => {
+    const currentTeacherId = localStorage.getItem("teacherId") || "";
+    return classData && (classData.teacher_id === currentTeacherId || classData.teacherId === currentTeacherId);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -291,13 +297,26 @@ const ClassDetails = () => {
         
         <div className="flex gap-2">
           {isTeacher && (
-            <Button 
-              onClick={() => setIsCreateHomeworkOpen(true)}
-              className="mr-2"
-            >
-              <BookText className="h-4 w-4 mr-1" />
-              {t("assign-homework")}
-            </Button>
+            <>
+              <Button 
+                onClick={() => setIsCreateHomeworkOpen(true)}
+                className="mr-2"
+              >
+                <BookText className="h-4 w-4 mr-1" />
+                {t("assign-homework")}
+              </Button>
+
+              {isClassCreator() && (
+                <Button 
+                  onClick={() => setIsManageClassOpen(true)}
+                  className="mr-2"
+                  variant="secondary"
+                >
+                  <Settings className="h-4 w-4 mr-1" />
+                  {t("manage-class")}
+                </Button>
+              )}
+            </>
           )}
           
           {isAdmin && (
@@ -455,6 +474,21 @@ const ClassDetails = () => {
         teacherId={teacherId}
         classId={id || ""}
         className={classData.name}
+      />
+      
+      {/* Manage Class Dialog */}
+      <ManageClassDialog
+        open={isManageClassOpen}
+        onOpenChange={setIsManageClassOpen}
+        classId={id || ""}
+        className={classData.name}
+        students={students.map(student => ({
+          id: student.id,
+          displayName: student.display_name || student.displayName || student.username,
+          username: student.username,
+          schoolId: classData.school_id || classData.schoolId
+        }))}
+        teacherId={teacherId}
       />
     </div>
   );
