@@ -1,6 +1,10 @@
-
 import React from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Card,
+  CardHeader,
+  CardTitle,
+  CardContent
+} from "@/components/ui/card";
 import { School, User } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -12,23 +16,27 @@ interface SchoolInfoCardProps {
 
 const SchoolInfoCard: React.FC<SchoolInfoCardProps> = ({ schoolId, teacherId, isAdmin }) => {
   const { t } = useTranslation();
-  
+
+  const infoItem = (icon: React.ReactNode, label: string, value: string) => (
+    <div className="flex items-center space-x-2">
+      {icon}
+      <span className="font-medium">{label}:</span>
+      <span className="text-gray-600">{value}</span>
+    </div>
+  );
+
   return (
     <Card>
       <CardHeader>
         <CardTitle>{t("school-information")}</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-2">
-        <div className="flex items-center">
-          <School className="h-5 w-5 mr-2 text-blue-500" />
-          <span className="font-medium">{t("school-id")}:</span>
-          <span className="ml-2 text-gray-600">{schoolId}</span>
-        </div>
-        <div className="flex items-center">
-          <User className="h-5 w-5 mr-2 text-green-500" />
-          <span className="font-medium">{t("teacher-id")}:</span>
-          <span className="ml-2 text-gray-600">{isAdmin ? "Admin (No teacher ID)" : teacherId}</span>
-        </div>
+      <CardContent className="space-y-3">
+        {infoItem(<School className="h-5 w-5 text-blue-500" />, t("school-id"), schoolId)}
+        {infoItem(
+          <User className="h-5 w-5 text-green-500" />,
+          t("teacher-id"),
+          isAdmin ? t("admin-no-teacher-id") : teacherId
+        )}
       </CardContent>
     </Card>
   );
