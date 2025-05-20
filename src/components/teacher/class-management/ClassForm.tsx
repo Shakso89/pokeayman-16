@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import {
   Card, CardHeader, CardTitle, CardDescription,
@@ -12,6 +13,7 @@ import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { createClass } from "@/utils/classSync/classOperations";
 import { ClassData } from "@/utils/classSync/types";
+import { v4 as uuidv4 } from "uuid";
 
 interface ClassFormProps {
   schoolId: string;
@@ -56,6 +58,7 @@ const ClassForm: React.FC<ClassFormProps> = ({
 
     const timestamp = new Date().toISOString();
     const newClass: ClassData = {
+      id: uuidv4(), // Generate a unique ID for the class
       name: formData.name.trim(),
       description: formData.description || "",
       schoolId,
