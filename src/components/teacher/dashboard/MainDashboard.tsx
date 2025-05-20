@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Home, Settings, Plus } from "lucide-react";
@@ -7,17 +6,15 @@ import DashboardCards from "./DashboardCards";
 import DashboardActions from "./DashboardActions";
 import AccessRequestsTab from "./AccessRequestsTab";
 import { Button } from "@/components/ui/button";
-
 interface MainDashboardProps {
   activeTab: string;
   setActiveTab: (tab: string) => void;
   onAddStudent: () => void;
   onManageClasses: () => void;
-  onCreateClass: () => void; 
+  onCreateClass: () => void;
   teacherId: string;
   isAdmin: boolean;
 }
-
 const MainDashboard: React.FC<MainDashboardProps> = ({
   activeTab,
   setActiveTab,
@@ -27,10 +24,10 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
   teacherId,
   isAdmin
 }) => {
-  const { t } = useTranslation();
-  
-  return (
-    <div className="grid grid-cols-1 gap-6">
+  const {
+    t
+  } = useTranslation();
+  return <div className="grid grid-cols-1 gap-6">
       <div>
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="mb-4">
@@ -45,22 +42,11 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
           </TabsList>
           
           <TabsContent value="dashboard">
-            <DashboardCards 
-              teacherId={teacherId}
-              onManageClasses={onManageClasses}
-              isAdmin={isAdmin}
-            />
+            <DashboardCards teacherId={teacherId} onManageClasses={onManageClasses} isAdmin={isAdmin} />
             
             {/* Create Class button in the dashboard tab */}
             <div className="mt-6">
-              <Button 
-                onClick={onCreateClass}
-                variant="ranking" 
-                className="w-full flex items-center justify-center gap-2 py-4"
-              >
-                <Plus className="h-5 w-5" />
-                <span className="text-md">{t("create-class")}</span>
-              </Button>
+              
             </div>
           </TabsContent>
           
@@ -69,12 +55,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
               {/* Actions Section */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">{t("actions")}</h3>
-                <DashboardActions 
-                  onAddStudent={onAddStudent}
-                  onManageClasses={onManageClasses}
-                  onCreateClass={onCreateClass}
-                  isAdmin={isAdmin}
-                />
+                <DashboardActions onAddStudent={onAddStudent} onManageClasses={onManageClasses} onCreateClass={onCreateClass} isAdmin={isAdmin} />
               </div>
               
               {/* Access Requests Section */}
@@ -86,8 +67,6 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
           </TabsContent>
         </Tabs>
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default MainDashboard;
