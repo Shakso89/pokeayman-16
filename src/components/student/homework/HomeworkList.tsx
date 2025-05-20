@@ -33,7 +33,7 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
     <div className="space-y-4">
       {homeworks.map((homework) => {
         // Find if user has submitted this homework
-        const hasSubmitted = userSubmissions.some(
+        const submitted = userSubmissions.some(
           (sub) => sub.homeworkId === homework.id
         );
 
@@ -41,7 +41,7 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
           <HomeworkCard
             key={homework.id}
             homework={homework}
-            hasSubmitted={hasSubmitted}
+            submitted={submitted}
             onSubmit={() => onSubmit(homework)}
             onView={() => onView(homework)}
             t={t}
