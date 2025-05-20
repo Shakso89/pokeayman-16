@@ -11,11 +11,31 @@ import {
 } from './studentPokemon';
 
 import {
-  createPokemonPool,
-  getPokemonPool,
-  addPokemonToPool,
-  removePokemonFromPool
+  initializeSchoolPokemonPool,
+  getSchoolPokemonPool,
+  updateAllSchoolPoolsTo500,
+  getRandomPokemonFromPool,
+  initializeClassPokemonPool,
+  getClassPokemonPool,
+  getDailyWheelPokemons,
+  forceUpdateAllSchoolPools
 } from './schoolPokemon';
+
+import {
+  getPokemonPools,
+  savePokemonPools,
+  getStudentPokemons,
+  saveStudentPokemons
+} from './storage';
+
+import {
+  getRandomType,
+  getRarityForId
+} from './types';
+
+import {
+  samplePokemons
+} from './sampleData';
 
 export {
   // Student Pokemon operations
@@ -29,8 +49,25 @@ export {
   getStudentPokemonCollection,
   
   // School Pokemon operations
-  createPokemonPool,
-  getPokemonPool,
-  addPokemonToPool,
-  removePokemonFromPool
+  initializeSchoolPokemonPool,
+  getSchoolPokemonPool,
+  updateAllSchoolPoolsTo500,
+  getRandomPokemonFromPool,
+  getClassPokemonPool,
+  initializeClassPokemonPool,
+  getDailyWheelPokemons,
+  forceUpdateAllSchoolPools,
+  
+  // Storage operations
+  getPokemonPools,
+  savePokemonPools,
+  getStudentPokemons,
+  saveStudentPokemons,
+  
+  // Types and helpers
+  getRandomType,
+  getRarityForId,
+  
+  // Sample data
+  samplePokemons
 };
