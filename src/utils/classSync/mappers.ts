@@ -1,46 +1,45 @@
 
 import { ClassData, DatabaseClassData, StudentData, DatabaseStudentData } from "./types";
 
-// Format single class data
-export const formatClassData = (classData: DatabaseClassData): ClassData => {
+// Format a single class object from database format to frontend format
+export const formatClassData = (dbClass: DatabaseClassData): ClassData => {
   return {
-    id: classData.id,
-    name: classData.name,
-    description: classData.description || "",
-    teacherId: classData.teacher_id || "",
-    schoolId: classData.school_id || "",
-    createdAt: classData.created_at,
-    updatedAt: classData.updated_at || classData.created_at,
-    students: classData.students || [],
-    isPublic: classData.is_public || false,
-    likes: classData.likes || [],
+    id: dbClass.id,
+    name: dbClass.name,
+    description: dbClass.description || "",
+    teacherId: dbClass.teacher_id || "",
+    schoolId: dbClass.school_id || "",
+    students: dbClass.students || [],
+    isPublic: dbClass.is_public || false,
+    likes: dbClass.likes || [],
+    createdAt: dbClass.created_at,
+    updatedAt: dbClass.updated_at || dbClass.created_at, // Use created_at as fallback if updated_at is not available
     additionalInfo: {}
   };
 };
 
-// Format multiple classes data
-export const formatClassesData = (classesData: DatabaseClassData[]): ClassData[] => {
-  return classesData.map(formatClassData);
+// Format multiple class objects
+export const formatClassesData = (dbClasses: DatabaseClassData[]): ClassData[] => {
+  return dbClasses.map(formatClassData);
 };
 
-// Format single student data
-export const formatStudentData = (studentData: DatabaseStudentData): StudentData => {
+// Format a single student object from database format to frontend format
+export const formatStudentData = (dbStudent: DatabaseStudentData): StudentData => {
   return {
-    id: studentData.id,
-    username: studentData.username,
-    display_name: studentData.display_name || "",
-    email: studentData.email || undefined,
-    class_id: studentData.class_id || undefined,
-    school_id: studentData.school_id || undefined,
-    teacher_id: studentData.teacher_id || undefined,
-    created_at: studentData.created_at,
-    updated_at: studentData.updated_at || studentData.created_at,
-    is_active: studentData.is_active || true,
-    last_login: studentData.last_login || undefined
+    id: dbStudent.id,
+    username: dbStudent.username,
+    display_name: dbStudent.display_name || dbStudent.username,
+    email: dbStudent.email,
+    class_id: dbStudent.class_id,
+    school_id: dbStudent.school_id,
+    teacher_id: dbStudent.teacher_id,
+    created_at: dbStudent.created_at,
+    updated_at: dbStudent.updated_at || dbStudent.created_at, // Use created_at as fallback
+    is_active: dbStudent.is_active
   };
 };
 
-// Format multiple students data
-export const formatStudentsData = (studentsData: DatabaseStudentData[]): StudentData[] => {
-  return studentsData.map(formatStudentData);
+// Format multiple student objects
+export const formatStudentsData = (dbStudents: DatabaseStudentData[]): StudentData[] => {
+  return dbStudents.map(formatStudentData);
 };

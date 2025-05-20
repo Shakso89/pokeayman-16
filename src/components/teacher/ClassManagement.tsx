@@ -133,6 +133,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         return;
       }
       
+      const currentTime = new Date().toISOString();
       const classData: Omit<ClassData, "id"> = {
         name: newClass.name,
         description: newClass.description,
@@ -141,7 +142,8 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         students: [],
         isPublic: true,
         likes: [],
-        createdAt: new Date().toISOString()
+        createdAt: currentTime,
+        updatedAt: currentTime // Add updatedAt field
       };
       
       console.log("Creating class with data:", classData);

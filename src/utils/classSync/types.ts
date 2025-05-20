@@ -7,7 +7,7 @@ export interface ClassData {
   teacherId: string;
   schoolId: string;
   createdAt: string;
-  updatedAt: string;
+  updatedAt?: string; // Make updatedAt optional
   students?: string[];
   isPublic?: boolean;
   likes?: string[];

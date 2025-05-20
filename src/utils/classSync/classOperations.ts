@@ -33,7 +33,8 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
       is_public: classData.isPublic || false,
       students: classData.students || [],
       likes: classData.likes || [],
-      created_at: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString() // Add updated_at field
     };
     
     // Check if current user is admin based on localStorage flag
@@ -62,6 +63,7 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
       
       // Generate a UUID for the class
       const id = crypto.randomUUID();
+      const currentTime = new Date().toISOString();
       const newClass: ClassData = {
         id,
         name: classData.name,
@@ -71,7 +73,8 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
         students: classData.students || [],
         isPublic: classData.isPublic || false,
         likes: classData.likes || [],
-        createdAt: new Date().toISOString()
+        createdAt: currentTime,
+        updatedAt: currentTime // Add updatedAt field
       };
       
       // Store in localStorage
