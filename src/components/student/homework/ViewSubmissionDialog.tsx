@@ -1,89 +1,78 @@
 
 import React from "react";
-import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
-import { HomeworkSubmission } from "@/types/homework";
+import { HomeworkAssignment } from "@/types/homework";
+import { format } from "date-fns";
 
-interface ViewSubmissionDialogProps {
-  submission: HomeworkSubmission | null;
-  onClose: () => void;
+export interface ViewSubmissionDialogProps {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+  homework: HomeworkAssignment;
+  submission: any;
 }
 
-export const ViewSubmissionDialog: React.FC<ViewSubmissionDialogProps> = ({
-  submission,
-  onClose
+const ViewSubmissionDialog: React.FC<ViewSubmissionDialogProps> = ({
+  open,
+  onOpenChange,
+  homework,
+  submission
 }) => {
   const { t } = useTranslation();
   
-  const isOpen = !!submission;
+  if (!submission) return null;
+  
+  const submittedDate = new Date(submission.submittedAt);
   
   return (
-    <Dialog open={isOpen} onOpenChange={(open) => {
-      if (!open) onClose();
-    }}>
-      <DialogContent>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("your-submission")}</DialogTitle>
+          <DialogDescription>
+            {homework.title}
+          </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
-          {submission && (
-            <>
-              {submission.type === "image" && submission.content.startsWith('data:image/') && (
-                <div className="flex justify-center">
-                  <img 
-                    src={submission.content} 
-                    alt="Your submission" 
-                    className="max-h-80 rounded-md"
-                  />
-                </div>
-              )}
+          <div>
+            <p className="text-sm text-gray-500">
+              {t("submitted-on")} {format(submittedDate, "PPP p")}
+            </p>
+            
+            <div className="mt-4">
+              <h4 className="text-sm font-medium mb-1">{t("assignment")}:</h4>
+              <p className="text-sm mb-4">{homework.description}</p>
               
-              {submission.type === "audio" && submission.content.startsWith('data:audio/') && (
-                <div className="flex flex-col space-y-4">
-                  <audio 
-                    src={submission.content} 
-                    controls 
-                    className="w-full"
-                    controlsList="nodownload"
-                  />
-                  <Button 
-                    variant="outline" 
-                    onClick={() => {
-                      const a = document.createElement('a');
-                      a.href = submission.content;
-                      a.download = "my_audio_submission.mp3";
-                      document.body.appendChild(a);
-                      a.click();
-                      document.body.removeChild(a);
-                    }}
-                  >
-                    {t("download-audio")}
-                  </Button>
+              <h4 className="text-sm font-medium mb-1">{t("your-answer")}:</h4>
+              <div className="border p-3 rounded-md bg-gray-50 text-sm whitespace-pre-wrap">
+                {submission.answer}
+              </div>
+            </div>
+            
+            {submission.teacherComment && (
+              <div className="mt-4">
+                <h4 className="text-sm font-medium mb-1">{t("teacher-feedback")}:</h4>
+                <div className="border p-3 rounded-md bg-blue-50 text-sm whitespace-pre-wrap">
+                  {submission.teacherComment}
                 </div>
-              )}
-              
-              {submission.type === "text" && (
-                <div className="bg-gray-50 p-4 rounded-md">
-                  <p>{submission.content}</p>
-                </div>
-              )}
-              
-              {submission.status !== "pending" && (
-                <div className="mt-4">
-                  <p className="font-medium text-sm">{t("teacher-feedback")}:</p>
-                  <p className="text-sm bg-gray-50 p-3 rounded-md mt-1">
-                    {submission.feedback || t("no-feedback-provided")}
-                  </p>
-                </div>
-              )}
-            </>
-          )}
+              </div>
+            )}
+            
+            {submission.grade && (
+              <div className="mt-4 flex items-center">
+                <h4 className="text-sm font-medium mr-2">{t("grade")}:</h4>
+                <span className="px-2 py-1 bg-green-100 text-green-800 rounded text-sm font-medium">
+                  {submission.grade}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
         
         <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
+          <Button onClick={() => onOpenChange(false)}>
             {t("close")}
           </Button>
         </DialogFooter>

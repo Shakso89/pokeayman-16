@@ -147,7 +147,7 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
         <h3 className="text-lg font-medium mb-4">{t("homework")}</h3>
         
         <HomeworkList 
-          homework={homeworkAssignments}
+          homeworks={homeworkAssignments}
           userSubmissions={userSubmissions}
           onSubmit={handleSubmitHomework}
           onView={handleViewSubmission}

@@ -38,6 +38,9 @@ const ClassDetails = () => {
   const [isTeacher, setIsTeacher] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
   
+  // Add the missing state variable for ManageClassDialog
+  const [isManageClassOpen, setIsManageClassOpen] = useState(false);
+  
   // Management dialogs state
   const [managePokemonDialog, setManagePokemonDialog] = useState({
     open: false,
@@ -481,12 +484,12 @@ const ClassDetails = () => {
         open={isManageClassOpen}
         onOpenChange={setIsManageClassOpen}
         classId={id || ""}
-        className={classData.name}
+        className={classData?.name || ""}
         students={students.map(student => ({
           id: student.id,
           displayName: student.display_name || student.displayName || student.username,
           username: student.username,
-          schoolId: classData.school_id || classData.schoolId
+          schoolId: classData?.school_id || classData?.schoolId
         }))}
         teacherId={teacherId}
       />
