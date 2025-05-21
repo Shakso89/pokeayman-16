@@ -3,16 +3,16 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { School } from "lucide-react";
-import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
-import { v4 as uuidv4 } from "uuid";
 import { createClass } from "@/utils/classSync/classOperations";
+import { toast } from "@/hooks/use-toast";
+import { useTranslation } from "@/hooks/useTranslation";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SelectSchoolDialogProps {
   open: boolean;
@@ -20,60 +20,62 @@ interface SelectSchoolDialogProps {
   teacherId: string;
 }
 
-export const SelectSchoolDialog: React.FC<SelectSchoolDialogProps> = ({
-  open,
-  onOpenChange,
-  teacherId
-}) => {
-  const { t } = useTranslation();
+export const SelectSchoolDialog = ({ open, onOpenChange, teacherId }: SelectSchoolDialogProps) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
   const [schools, setSchools] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState("");
-  const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
-  const [step, setStep] = useState<"selectSchool" | "createClass">("selectSchool");
-  const [className, setClassName] = useState("");
-  const [classDescription, setClassDescription] = useState("");
-  const [isCreating, setIsCreating] = useState(false);
+  const [selectedSchoolId, setSelectedSchoolId] = useState<string>("");
+  const [newClass, setNewClass] = useState({
+    name: "",
+    description: ""
+  });
+  const [creatingClass, setCreatingClass] = useState(false);
 
+  // Fetch schools from Supabase
   useEffect(() => {
     if (open) {
       fetchSchools();
-      setStep("selectSchool");
-      setSelectedSchoolId(null);
-      setClassName("");
-      setClassDescription("");
     }
   }, [open]);
 
   const fetchSchools = async () => {
     setLoading(true);
     try {
+      // Get schools data from Supabase
       const { data, error } = await supabase
         .from('schools')
         .select('*')
         .order('name', { ascending: true });
-        
-      if (error) throw error;
-      
+
+      if (error) {
+        throw error;
+      }
+
+      console.log("Schools fetched:", data);
       setSchools(data || []);
+      
+      // Auto-select first school if available
+      if (data && data.length > 0) {
+        setSelectedSchoolId(data[0].id);
+      }
     } catch (error) {
       console.error("Error fetching schools:", error);
       
-      // Fallback to localStorage
+      // Try to load from localStorage as fallback
       try {
-        const savedSchools = localStorage.getItem("schools");
-        if (savedSchools) {
-          const schoolsData = JSON.parse(savedSchools);
-          setSchools(schoolsData);
+        const storedSchools = localStorage.getItem("schools");
+        if (storedSchools) {
+          const parsedSchools = JSON.parse(storedSchools);
+          setSchools(parsedSchools);
+          
+          // Auto-select first school if available
+          if (parsedSchools.length > 0) {
+            setSelectedSchoolId(parsedSchools[0].id);
+          }
         }
-      } catch (localError) {
-        console.error("Error accessing localStorage:", localError);
-        toast({
-          title: t("error"),
-          description: t("failed-to-load-schools"),
-          variant: "destructive"
-        });
+      } catch (localStorageError) {
+        console.error("Error reading from localStorage:", localStorageError);
       }
     } finally {
       setLoading(false);
@@ -84,17 +86,17 @@ export const SelectSchoolDialog: React.FC<SelectSchoolDialogProps> = ({
     setSelectedSchoolId(schoolId);
   };
 
-  const handleContinue = () => {
-    if (!selectedSchoolId) return;
-    setStep("createClass");
-  };
-
-  const handleBack = () => {
-    setStep("selectSchool");
-  };
-
   const handleCreateClass = async () => {
-    if (!selectedSchoolId || !className.trim()) {
+    if (!selectedSchoolId) {
+      toast({
+        title: t("error"),
+        description: t("select-school-first"),
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!newClass.name.trim()) {
       toast({
         title: t("error"),
         description: t("class-name-required"),
@@ -103,38 +105,46 @@ export const SelectSchoolDialog: React.FC<SelectSchoolDialogProps> = ({
       return;
     }
 
-    setIsCreating(true);
-    
+    setCreatingClass(true);
     try {
-      // Check if we have a valid teacher ID
-      const isAdmin = localStorage.getItem("isAdmin") === "true";
+      console.log("Creating class in school:", selectedSchoolId);
       
-      // Create class using createClass utility function which better handles errors
-      const newClass = await createClass({
-        name: className.trim(),
-        description: classDescription.trim(),
+      const currentTime = new Date().toISOString();
+      
+      const classData = {
+        name: newClass.name,
+        description: newClass.description,
         schoolId: selectedSchoolId,
-        teacherId: isAdmin ? null : teacherId, // Set teacherId to null for admin users to bypass FK constraint
+        teacherId: teacherId,
         students: [],
         isPublic: true,
         likes: [],
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      });
+        createdAt: currentTime,
+        updatedAt: currentTime
+      };
+
+      const createdClass = await createClass(classData);
       
-      if (!newClass) {
+      if (createdClass) {
+        toast({
+          title: t("success"),
+          description: t("class-created-successfully")
+        });
+        
+        // Close dialog
+        onOpenChange(false);
+        
+        // Reset form
+        setNewClass({
+          name: "",
+          description: ""
+        });
+        
+        // Navigate to class details
+        navigate(`/class-details/${createdClass.id}`);
+      } else {
         throw new Error("Failed to create class");
       }
-      
-      toast({
-        title: t("success"),
-        description: t("class-created-successfully")
-      });
-      
-      // Navigate to the class details page
-      navigate(`/class-details/${newClass.id}`);
-      onOpenChange(false);
-      
     } catch (error) {
       console.error("Error creating class:", error);
       toast({
@@ -143,150 +153,120 @@ export const SelectSchoolDialog: React.FC<SelectSchoolDialogProps> = ({
         variant: "destructive"
       });
     } finally {
-      setIsCreating(false);
+      setCreatingClass(false);
     }
   };
-
-  // Filter schools based on search query
-  const filteredSchools = schools.filter(school => 
-    school.name.toLowerCase().includes(searchQuery.toLowerCase())
-  );
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>
-            {step === "selectSchool" ? t("select-school") : t("create-class")}
+          <DialogTitle className="flex items-center">
+            <School className="h-5 w-5 mr-2" />
+            {t("create-new-class")}
           </DialogTitle>
           <DialogDescription>
-            {step === "selectSchool" 
-              ? t("select-school-to-create-class")
-              : t("create-class-in-selected-school")}
+            {t("select-school-and-create-class")}
           </DialogDescription>
         </DialogHeader>
-        
-        {step === "selectSchool" ? (
-          <>
-            <div className="my-4">
-              <Label htmlFor="searchSchool">{t("search-schools")}</Label>
-              <Input 
-                id="searchSchool"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                placeholder={t("search-school-name")}
-                className="mt-1"
+
+        <Tabs defaultValue="create" className="w-full">
+          <TabsList className="grid w-full grid-cols-2">
+            <TabsTrigger value="create">{t("create-class")}</TabsTrigger>
+            <TabsTrigger value="schools">{t("view-schools")}</TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="create" className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="school">{t("select-school")}</Label>
+              <Select 
+                value={selectedSchoolId} 
+                onValueChange={handleSelectSchool}
+                disabled={loading}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={loading ? t("loading-schools") : t("select-school")} />
+                </SelectTrigger>
+                <SelectContent>
+                  {schools.map((school) => (
+                    <SelectItem key={school.id} value={school.id}>
+                      {school.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="className">{t("class-name")}</Label>
+              <Input
+                id="className"
+                placeholder={t("enter-class-name")}
+                value={newClass.name}
+                onChange={(e) => setNewClass({ ...newClass, name: e.target.value })}
               />
             </div>
-            
-            <div className="max-h-[40vh] overflow-y-auto py-2">
-              {loading ? (
-                <div className="flex justify-center py-8">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                </div>
-              ) : filteredSchools.length > 0 ? (
-                <div className="space-y-2">
-                  {filteredSchools.map(school => (
-                    <Card
-                      key={school.id}
-                      className={`p-3 hover:bg-gray-100 cursor-pointer transition-colors ${
-                        selectedSchoolId === school.id ? 'bg-blue-50 border-blue-300' : ''
-                      }`}
-                      onClick={() => handleSelectSchool(school.id)}
+
+            <div className="space-y-2">
+              <Label htmlFor="classDescription">{t("description")} ({t("optional")})</Label>
+              <Textarea
+                id="classDescription"
+                placeholder={t("enter-class-description")}
+                value={newClass.description}
+                onChange={(e) => setNewClass({ ...newClass, description: e.target.value })}
+              />
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="schools" className="max-h-[300px] overflow-y-auto">
+            {loading ? (
+              <p className="text-center py-4">{t("loading-schools")}...</p>
+            ) : schools.length > 0 ? (
+              <div className="space-y-2">
+                {schools.map((school) => (
+                  <div 
+                    key={school.id}
+                    className={`p-3 border rounded flex items-center justify-between cursor-pointer ${
+                      selectedSchoolId === school.id ? 'bg-primary/10 border-primary' : ''
+                    }`}
+                    onClick={() => handleSelectSchool(school.id)}
+                  >
+                    <div className="flex items-center">
+                      <School className="h-5 w-5 mr-2 text-blue-500" />
+                      <span>{school.name}</span>
+                    </div>
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setSelectedSchoolId(school.id);
+                        document.getElementById("create-tab")?.click();
+                      }}
                     >
-                      <div className="flex items-center">
-                        <School className="h-5 w-5 mr-2 text-blue-500" />
-                        <div>
-                          <p className="font-medium">{school.name}</p>
-                          <p className="text-xs text-gray-500">ID: {school.id.substring(0, 8)}...</p>
-                        </div>
-                      </div>
-                    </Card>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  {searchQuery ? t("no-matching-schools") : t("no-schools-available")}
-                </div>
-              )}
-            </div>
-            
-            <DialogFooter>
-              <Button
-                variant="outline"
-                onClick={() => onOpenChange(false)}
-              >
-                {t("cancel")}
-              </Button>
-              <Button
-                onClick={handleContinue}
-                disabled={!selectedSchoolId}
-              >
-                {t("continue")}
-              </Button>
-            </DialogFooter>
-          </>
-        ) : (
-          <>
-            <div className="space-y-4 py-2">
-              <div>
-                <Label htmlFor="className" className="text-base font-medium">
-                  {t("class-name")}
-                </Label>
-                <Input
-                  id="className"
-                  value={className}
-                  onChange={(e) => setClassName(e.target.value)}
-                  placeholder={t("enter-class-name")}
-                  className="mt-1"
-                  required
-                />
+                      {t("select")}
+                    </Button>
+                  </div>
+                ))}
               </div>
-              
-              <div>
-                <Label htmlFor="classDescription" className="text-base font-medium">
-                  {t("class-description")} ({t("optional")})
-                </Label>
-                <Input
-                  id="classDescription"
-                  value={classDescription}
-                  onChange={(e) => setClassDescription(e.target.value)}
-                  placeholder={t("enter-class-description")}
-                  className="mt-1"
-                />
-              </div>
-              
-              <div className="pt-2">
-                <p className="text-sm text-gray-500">
-                  {t("selected-school")}: {schools.find(s => s.id === selectedSchoolId)?.name}
-                </p>
-              </div>
-            </div>
-            
-            <DialogFooter className="flex justify-between">
-              <Button
-                variant="outline"
-                onClick={handleBack}
-                disabled={isCreating}
-              >
-                {t("back")}
-              </Button>
-              <Button
-                onClick={handleCreateClass}
-                disabled={isCreating || !className.trim()}
-              >
-                {isCreating ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t("creating")}...
-                  </>
-                ) : (
-                  t("create-class")
-                )}
-              </Button>
-            </DialogFooter>
-          </>
-        )}
+            ) : (
+              <p className="text-center py-4">{t("no-schools-available")}</p>
+            )}
+          </TabsContent>
+        </Tabs>
+
+        <DialogFooter className="sm:justify-between">
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t("cancel")}
+          </Button>
+          <Button 
+            onClick={handleCreateClass} 
+            disabled={creatingClass || !selectedSchoolId || !newClass.name.trim()}
+            className="ml-2"
+          >
+            {creatingClass ? t("creating") : t("create-class")}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );
