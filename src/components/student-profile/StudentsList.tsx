@@ -15,6 +15,7 @@ import { Input } from "@/components/ui/input";
 import { Search, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Student {
   id: string;
@@ -22,6 +23,7 @@ interface Student {
   username: string;
   avatar?: string;
   classId?: string;
+  display_name?: string; // For Supabase responses
 }
 
 interface StudentsListProps {
@@ -55,6 +57,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
     } else {
       // Reset selection when dialog closes
       setSelectedStudents([]);
+      setSearchQuery("");
     }
   }, [open, classId, onStudentsAdded]);
 
@@ -63,8 +66,9 @@ export const StudentsList: React.FC<StudentsListProps> = ({
       const query = searchQuery.toLowerCase();
       const filtered = students.filter(
         student => 
-          student.displayName.toLowerCase().includes(query) || 
-          student.username.toLowerCase().includes(query)
+          (student.displayName?.toLowerCase().includes(query) || 
+           student.display_name?.toLowerCase().includes(query) || 
+           student.username.toLowerCase().includes(query))
       );
       setFilteredStudents(filtered);
     } else {
@@ -72,17 +76,43 @@ export const StudentsList: React.FC<StudentsListProps> = ({
     }
   }, [searchQuery, students]);
 
-  const loadStudents = () => {
+  const loadStudents = async () => {
     setLoading(true);
     try {
-      // Get all students from localStorage
-      const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+      let displayStudents: Student[] = [];
       
-      // For view mode - filter students for this class
-      // For select mode - get students not in this class
-      const displayStudents = onStudentsAdded 
-        ? allStudents.filter((student: Student) => student.classId !== classId)
-        : allStudents.filter((student: Student) => student.classId === classId);
+      // First try to load from Supabase
+      try {
+        console.log("Fetching students from Supabase...");
+        // For select mode - get students not in this class
+        // For view mode - get students in this class
+        const { data: studentsData, error } = await supabase
+          .from('students')
+          .select('*')
+          .is(mode === 'select' ? 'class_id' : null, mode === 'select' ? null : classId);
+        
+        if (error) throw error;
+        
+        if (studentsData && studentsData.length > 0) {
+          console.log("Students fetched from Supabase:", studentsData);
+          displayStudents = studentsData.map(student => ({
+            id: student.id,
+            displayName: student.display_name || student.username,
+            username: student.username,
+            classId: student.class_id,
+            display_name: student.display_name
+          }));
+        }
+      } catch (supabaseError) {
+        console.error("Error loading students from Supabase:", supabaseError);
+        // Fall back to localStorage if Supabase fails
+        checkLocalStorage();
+      }
+      
+      // If we didn't get any students from Supabase, try localStorage
+      if (displayStudents.length === 0) {
+        displayStudents = checkLocalStorage();
+      }
       
       setStudents(displayStudents);
       setFilteredStudents(displayStudents);
@@ -95,6 +125,26 @@ export const StudentsList: React.FC<StudentsListProps> = ({
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const checkLocalStorage = (): Student[] => {
+    try {
+      console.log("Falling back to localStorage for students");
+      // Get all students from localStorage
+      const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+      
+      // For view mode - filter students for this class
+      // For select mode - get students not in this class
+      const displayStudents = mode === "select" 
+        ? allStudents.filter((student: any) => student.classId !== classId)
+        : allStudents.filter((student: any) => student.classId === classId);
+      
+      console.log(`Found ${displayStudents.length} students in localStorage`);
+      return displayStudents;
+    } catch (error) {
+      console.error("Error checking localStorage:", error);
+      return [];
     }
   };
 
@@ -175,11 +225,11 @@ export const StudentsList: React.FC<StudentsListProps> = ({
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={student.avatar} />
                     <AvatarFallback>
-                      {student.displayName?.substring(0, 2).toUpperCase() || "ST"}
+                      {student.displayName?.substring(0, 2).toUpperCase() || student.display_name?.substring(0, 2).toUpperCase() || "ST"}
                     </AvatarFallback>
                   </Avatar>
                   <div className="ml-3 flex-1">
-                    <p className="font-medium">{student.displayName}</p>
+                    <p className="font-medium">{student.displayName || student.display_name}</p>
                     <p className="text-sm text-gray-500">@{student.username}</p>
                   </div>
                   {mode === "select" && (

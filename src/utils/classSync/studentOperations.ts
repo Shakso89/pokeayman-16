@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { handleDatabaseError } from "./errorHandling";
 
@@ -6,6 +7,8 @@ import { handleDatabaseError } from "./errorHandling";
  */
 export const addStudentToClass = async (classId: string, studentId: string): Promise<boolean> => {
   try {
+    console.log(`Adding student ${studentId} to class ${classId}`);
+    
     // First get the current class data
     const { data: classData, error: fetchError } = await supabase
       .from('classes')
@@ -14,6 +17,7 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
       .single();
     
     if (fetchError) {
+      console.error("Error fetching class data:", fetchError);
       return handleDatabaseError(fetchError, false);
     }
     
@@ -21,10 +25,12 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
     const currentStudents = classData && Array.isArray(classData.students) ? classData.students : [];
     
     if (currentStudents.includes(studentId)) {
+      console.log("Student already in class");
       return true; // Student already in class
     }
     
     const updatedStudents = [...currentStudents, studentId];
+    console.log("Updated students array:", updatedStudents);
     
     // Update the class with the new students array
     const { error: updateError } = await supabase
@@ -33,6 +39,7 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
       .eq('id', classId);
     
     if (updateError) {
+      console.error("Error updating class students array:", updateError);
       return handleDatabaseError(updateError, false);
     }
     
@@ -47,47 +54,15 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
       // Continue anyway as the student is added to the class
     }
     
+    // Update localStorage as a fallback
+    updateLocalStorage(classId, studentId, true);
+    
     return true;
   } catch (error) {
     console.error("Error in addStudentToClass:", error);
     
     // Fallback to localStorage
-    try {
-      const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      const updatedClasses = existingClasses.map((cls: any) => {
-        if (cls.id === classId) {
-          const students = cls.students || [];
-          if (!students.includes(studentId)) {
-            return {
-              ...cls,
-              students: [...students, studentId]
-            };
-          }
-        }
-        return cls;
-      });
-      
-      localStorage.setItem("classes", JSON.stringify(updatedClasses));
-      
-      // Also update student record in localStorage
-      const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
-      const updatedStudents = allStudents.map((student: any) => {
-        if (student.id === studentId) {
-          return {
-            ...student,
-            classId
-          };
-        }
-        return student;
-      });
-      
-      localStorage.setItem("students", JSON.stringify(updatedStudents));
-      
-      return true;
-    } catch (localStorageError) {
-      console.error("Error updating localStorage:", localStorageError);
-      return false;
-    }
+    return updateLocalStorage(classId, studentId, true);
   }
 };
 
@@ -132,45 +107,15 @@ export const removeStudentFromClass = async (classId: string, studentId: string)
       // Continue anyway as the student is removed from the class
     }
     
+    // Update localStorage as a fallback
+    updateLocalStorage(classId, studentId, false);
+    
     return true;
   } catch (error) {
     console.error("Error in removeStudentFromClass:", error);
     
     // Fallback to localStorage
-    try {
-      const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      const updatedClasses = existingClasses.map((cls: any) => {
-        if (cls.id === classId) {
-          const students = cls.students || [];
-          return {
-            ...cls,
-            students: students.filter((id: string) => id !== studentId)
-          };
-        }
-        return cls;
-      });
-      
-      localStorage.setItem("classes", JSON.stringify(updatedClasses));
-      
-      // Also update student record in localStorage
-      const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
-      const updatedStudents = allStudents.map((student: any) => {
-        if (student.id === studentId) {
-          return {
-            ...student,
-            classId: null
-          };
-        }
-        return student;
-      });
-      
-      localStorage.setItem("students", JSON.stringify(updatedStudents));
-      
-      return true;
-    } catch (localStorageError) {
-      console.error("Error updating localStorage:", localStorageError);
-      return false;
-    }
+    return updateLocalStorage(classId, studentId, false);
   }
 };
 
@@ -179,6 +124,8 @@ export const removeStudentFromClass = async (classId: string, studentId: string)
  */
 export const addMultipleStudentsToClass = async (classId: string, studentIds: string[]): Promise<boolean> => {
   try {
+    console.log(`Adding ${studentIds.length} students to class ${classId}`);
+    
     // First get the current class data
     const { data: classData, error: fetchError } = await supabase
       .from('classes')
@@ -187,6 +134,7 @@ export const addMultipleStudentsToClass = async (classId: string, studentIds: st
       .single();
     
     if (fetchError) {
+      console.error("Error fetching class data:", fetchError);
       return handleDatabaseError(fetchError, false);
     }
     
@@ -197,10 +145,12 @@ export const addMultipleStudentsToClass = async (classId: string, studentIds: st
     const newStudents = studentIds.filter(id => !currentStudents.includes(id));
     
     if (newStudents.length === 0) {
+      console.log("All students already in class");
       return true; // All students already in class
     }
     
     const updatedStudents = [...currentStudents, ...newStudents];
+    console.log("Updated students array:", updatedStudents);
     
     // Update the class with the new students array
     const { error: updateError } = await supabase
@@ -209,6 +159,7 @@ export const addMultipleStudentsToClass = async (classId: string, studentIds: st
       .eq('id', classId);
     
     if (updateError) {
+      console.error("Error updating class students array:", updateError);
       return handleDatabaseError(updateError, false);
     }
     
@@ -225,52 +176,107 @@ export const addMultipleStudentsToClass = async (classId: string, studentIds: st
       }
     }
     
+    // Update localStorage as a fallback
+    updateMultipleLocalStorage(classId, studentIds);
+    
     return true;
   } catch (error) {
     console.error("Error in addMultipleStudentsToClass:", error);
     
     // Fallback to localStorage
-    try {
-      const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      const updatedClasses = existingClasses.map((cls: any) => {
-        if (cls.id === classId) {
-          const students = cls.students || [];
-          const newStudentsList = [...students];
-          
-          studentIds.forEach((id: string) => {
-            if (!newStudentsList.includes(id)) {
-              newStudentsList.push(id);
-            }
-          });
-          
+    return updateMultipleLocalStorage(classId, studentIds);
+  }
+};
+
+// Helper function to update localStorage
+const updateLocalStorage = (classId: string, studentId: string, isAdding: boolean): boolean => {
+  try {
+    const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+    const updatedClasses = existingClasses.map((cls: any) => {
+      if (cls.id === classId) {
+        const students = cls.students || [];
+        if (isAdding) {
+          if (!students.includes(studentId)) {
+            return {
+              ...cls,
+              students: [...students, studentId]
+            };
+          }
+        } else {
           return {
             ...cls,
-            students: newStudentsList
+            students: students.filter((id: string) => id !== studentId)
           };
         }
-        return cls;
-      });
-      
-      localStorage.setItem("classes", JSON.stringify(updatedClasses));
-      
-      // Also update student records in localStorage
-      const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
-      const updatedStudents = allStudents.map((student: any) => {
-        if (studentIds.includes(student.id)) {
-          return {
-            ...student,
-            classId
-          };
-        }
-        return student;
-      });
-      
-      localStorage.setItem("students", JSON.stringify(updatedStudents));
-      
-      return true;
-    } catch (localStorageError) {
-      console.error("Error updating localStorage:", localStorageError);
-      return false;
-    }
+      }
+      return cls;
+    });
+    
+    localStorage.setItem("classes", JSON.stringify(updatedClasses));
+    
+    // Also update student record in localStorage
+    const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+    const updatedStudents = allStudents.map((student: any) => {
+      if (student.id === studentId) {
+        return {
+          ...student,
+          classId: isAdding ? classId : null
+        };
+      }
+      return student;
+    });
+    
+    localStorage.setItem("students", JSON.stringify(updatedStudents));
+    
+    return true;
+  } catch (localStorageError) {
+    console.error("Error updating localStorage:", localStorageError);
+    return false;
+  }
+};
+
+// Helper function to update multiple students in localStorage
+const updateMultipleLocalStorage = (classId: string, studentIds: string[]): boolean => {
+  try {
+    const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+    const updatedClasses = existingClasses.map((cls: any) => {
+      if (cls.id === classId) {
+        const students = cls.students || [];
+        const newStudentsList = [...students];
+        
+        studentIds.forEach((id: string) => {
+          if (!newStudentsList.includes(id)) {
+            newStudentsList.push(id);
+          }
+        });
+        
+        return {
+          ...cls,
+          students: newStudentsList
+        };
+      }
+      return cls;
+    });
+    
+    localStorage.setItem("classes", JSON.stringify(updatedClasses));
+    
+    // Also update student records in localStorage
+    const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+    const updatedStudents = allStudents.map((student: any) => {
+      if (studentIds.includes(student.id)) {
+        return {
+          ...student,
+          classId
+        };
+      }
+      return student;
+    });
+    
+    localStorage.setItem("students", JSON.stringify(updatedStudents));
+    
+    return true;
+  } catch (localStorageError) {
+    console.error("Error updating localStorage:", localStorageError);
+    return false;
   }
 };

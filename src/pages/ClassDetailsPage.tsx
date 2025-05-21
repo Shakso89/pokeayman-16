@@ -24,42 +24,46 @@ const ClassDetailsPage: React.FC = () => {
   const [isStudentDialogOpen, setIsStudentDialogOpen] = useState(false);
 
   useEffect(() => {
-    const loadClassDetails = async () => {
-      if (!classId) return;
+    if (classId) {
+      loadClassDetails();
+    }
+  }, [classId, t]);
+  
+  const loadClassDetails = async () => {
+    if (!classId) return;
 
-      try {
-        setLoading(true);
-        const data = await getClassById(classId);
-        console.log("Loaded class data:", data);
+    try {
+      setLoading(true);
+      const data = await getClassById(classId);
+      console.log("Loaded class data:", data);
+      
+      if (data) {
+        setClassData(data);
         
-        if (data) {
-          setClassData(data);
-          
-          // Load student details if we have student IDs
-          if (data.students && data.students.length > 0) {
-            fetchStudentDetails(data.students);
-          }
+        // Load student details if we have student IDs
+        if (data.students && data.students.length > 0) {
+          fetchStudentDetails(data.students);
         } else {
-          toast({
-            title: t("error"),
-            description: t("class-not-found"),
-            variant: "destructive"
-          });
+          setStudents([]);
         }
-      } catch (error) {
-        console.error("Error loading class details:", error);
+      } else {
         toast({
           title: t("error"),
-          description: t("failed-to-load-class-details"),
+          description: t("class-not-found"),
           variant: "destructive"
         });
-      } finally {
-        setLoading(false);
       }
-    };
-
-    loadClassDetails();
-  }, [classId, t]);
+    } catch (error) {
+      console.error("Error loading class details:", error);
+      toast({
+        title: t("error"),
+        description: t("failed-to-load-class-details"),
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const fetchStudentDetails = async (studentIds: string[]) => {
     if (!studentIds.length) return;
@@ -73,6 +77,7 @@ const ClassDetailsPage: React.FC = () => {
         
       if (error) throw error;
       
+      console.log("Fetched student details:", data);
       setStudents(data || []);
     } catch (error) {
       console.error("Error fetching student details:", error);
@@ -81,6 +86,7 @@ const ClassDetailsPage: React.FC = () => {
       const matchingStudents = localStudents.filter(
         (s: any) => studentIds.includes(s.id)
       );
+      console.log("Fetched student details from localStorage:", matchingStudents);
       setStudents(matchingStudents);
     } finally {
       setLoadingStudents(false);
@@ -97,7 +103,9 @@ const ClassDetailsPage: React.FC = () => {
     if (!classId || studentIds.length === 0) return;
     
     try {
+      console.log("Adding students to class:", studentIds);
       const success = await addMultipleStudentsToClass(classId, studentIds);
+      
       if (success) {
         toast({
           title: t("success"),
