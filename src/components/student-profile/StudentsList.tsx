@@ -8,10 +8,11 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search } from "lucide-react";
+import { Search, Check } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 
@@ -20,23 +21,27 @@ interface Student {
   displayName: string;
   username: string;
   avatar?: string;
-  classId?: string; // Added classId property to match the expected type
+  classId?: string;
 }
 
 interface StudentsListProps {
   classId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  onStudentsAdded?: (studentIds: string[]) => Promise<void>;
 }
 
 export const StudentsList: React.FC<StudentsListProps> = ({
   classId,
   open,
-  onOpenChange
+  onOpenChange,
+  onStudentsAdded
 }) => {
   const [students, setStudents] = useState<Student[]>([]);
   const [filteredStudents, setFilteredStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [mode, setMode] = useState<"view" | "select">("view");
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -44,8 +49,13 @@ export const StudentsList: React.FC<StudentsListProps> = ({
   useEffect(() => {
     if (open) {
       loadStudents();
+      // If onStudentsAdded is provided, we're in selection mode
+      setMode(onStudentsAdded ? "select" : "view");
+    } else {
+      // Reset selection when dialog closes
+      setSelectedStudents([]);
     }
-  }, [open, classId]);
+  }, [open, classId, onStudentsAdded]);
 
   useEffect(() => {
     if (searchQuery) {
@@ -66,11 +76,14 @@ export const StudentsList: React.FC<StudentsListProps> = ({
       // Get all students from localStorage
       const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
       
-      // Filter students for this class
-      const classStudents = allStudents.filter((student: Student) => student.classId === classId);
+      // For view mode - filter students for this class
+      // For select mode - get students not in this class
+      const displayStudents = onStudentsAdded 
+        ? allStudents.filter((student: Student) => student.classId !== classId)
+        : allStudents.filter((student: Student) => student.classId === classId);
       
-      setStudents(classStudents);
-      setFilteredStudents(classStudents);
+      setStudents(displayStudents);
+      setFilteredStudents(displayStudents);
     } catch (error) {
       console.error("Error loading students:", error);
       toast({
@@ -82,17 +95,37 @@ export const StudentsList: React.FC<StudentsListProps> = ({
   };
 
   const handleStudentClick = (studentId: string) => {
-    navigate(`/student/profile/${studentId}`);
-    onOpenChange(false);
+    if (mode === "select") {
+      // Toggle student selection
+      setSelectedStudents(prev => 
+        prev.includes(studentId) 
+          ? prev.filter(id => id !== studentId) 
+          : [...prev, studentId]
+      );
+    } else {
+      navigate(`/student/profile/${studentId}`);
+      onOpenChange(false);
+    }
+  };
+
+  const handleAddStudents = async () => {
+    if (onStudentsAdded && selectedStudents.length > 0) {
+      await onStudentsAdded(selectedStudents);
+      onOpenChange(false);
+    }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
         <DialogHeader>
-          <DialogTitle>{t("class-students")}</DialogTitle>
+          <DialogTitle>
+            {mode === "select" ? t("add-students-to-class") : t("class-students")}
+          </DialogTitle>
           <DialogDescription>
-            {t("view-students-in-class")}
+            {mode === "select" 
+              ? t("select-students-to-add") 
+              : t("view-students-in-class")}
           </DialogDescription>
         </DialogHeader>
 
@@ -113,7 +146,11 @@ export const StudentsList: React.FC<StudentsListProps> = ({
                 <div 
                   key={student.id}
                   onClick={() => handleStudentClick(student.id)}
-                  className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+                  className={`flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors ${
+                    mode === "select" && selectedStudents.includes(student.id) 
+                      ? "bg-blue-50 border-blue-300" 
+                      : ""
+                  }`}
                 >
                   <Avatar className="h-10 w-10">
                     <AvatarImage src={student.avatar} />
@@ -121,19 +158,46 @@ export const StudentsList: React.FC<StudentsListProps> = ({
                       {student.displayName?.substring(0, 2).toUpperCase() || "ST"}
                     </AvatarFallback>
                   </Avatar>
-                  <div className="ml-3">
+                  <div className="ml-3 flex-1">
                     <p className="font-medium">{student.displayName}</p>
                     <p className="text-sm text-gray-500">@{student.username}</p>
                   </div>
+                  {mode === "select" && (
+                    <div className={`w-6 h-6 rounded-full border flex items-center justify-center ${
+                      selectedStudents.includes(student.id) 
+                        ? "bg-blue-500 border-blue-500 text-white" 
+                        : "border-gray-300"
+                    }`}>
+                      {selectedStudents.includes(student.id) && <Check className="h-4 w-4" />}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           ) : (
             <div className="text-center py-6">
-              <p className="text-gray-500">{searchQuery ? t("no-students-found") : t("no-students-in-class")}</p>
+              <p className="text-gray-500">
+                {searchQuery 
+                  ? t("no-students-found") 
+                  : mode === "select" 
+                    ? t("no-students-available") 
+                    : t("no-students-in-class")}
+              </p>
             </div>
           )}
         </div>
+
+        {mode === "select" && (
+          <DialogFooter>
+            <Button
+              disabled={selectedStudents.length === 0}
+              onClick={handleAddStudents}
+              className="w-full"
+            >
+              {t("add")} {selectedStudents.length} {t("students")}
+            </Button>
+          </DialogFooter>
+        )}
       </DialogContent>
     </Dialog>
   );

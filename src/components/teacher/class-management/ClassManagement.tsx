@@ -28,6 +28,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   const { t } = useTranslation();
   const [isSelectSchoolOpen, setIsSelectSchoolOpen] = useState(false);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   
   const { 
     classes,
@@ -70,6 +71,12 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       title: t("success"),
       description: t("class-created-successfully")
     });
+  };
+
+  // Properly handle opening the add student dialog
+  const handleOpenAddStudentDialog = (classId: string) => {
+    setSelectedClassId(classId);
+    openAddStudentDialog(classId);
   };
   
   return (
@@ -145,7 +152,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         teacherId={teacherId}
         isAdmin={isAdmin}
         loading={loading}
-        onOpenAddStudentDialog={openAddStudentDialog}
+        onOpenAddStudentDialog={handleOpenAddStudentDialog}
         onDeleteClass={openDeleteDialog}
       />
       
