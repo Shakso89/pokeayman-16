@@ -10,6 +10,8 @@ import { ClassData } from "@/utils/classSync/types";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
+import { StudentsList } from "@/components/student-profile/StudentsList";
+import { addMultipleStudentsToClass } from "@/utils/classSync/studentOperations";
 
 const ClassDetailsPage: React.FC = () => {
   const { classId } = useParams<{ classId: string }>();
@@ -19,6 +21,7 @@ const ClassDetailsPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [students, setStudents] = useState<any[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
+  const [isStudentDialogOpen, setIsStudentDialogOpen] = useState(false);
 
   useEffect(() => {
     const loadClassDetails = async () => {
@@ -89,6 +92,41 @@ const ClassDetailsPage: React.FC = () => {
   const teacherId = localStorage.getItem("teacherId");
   const isTeacherOrAdmin = isAdmin || (classData?.teacherId === teacherId);
 
+  // Handle adding students to the class
+  const handleAddStudents = async (studentIds: string[]) => {
+    if (!classId || studentIds.length === 0) return;
+    
+    try {
+      const success = await addMultipleStudentsToClass(classId, studentIds);
+      if (success) {
+        toast({
+          title: t("success"),
+          description: `${studentIds.length} ${t("students-added-to-class")}`
+        });
+        
+        // Refresh class details to show new students
+        if (classData) {
+          const updatedData = await getClassById(classId);
+          if (updatedData) {
+            setClassData(updatedData);
+            if (updatedData.students && updatedData.students.length > 0) {
+              fetchStudentDetails(updatedData.students);
+            }
+          }
+        }
+      } else {
+        throw new Error("Failed to add students to class");
+      }
+    } catch (error) {
+      console.error("Error adding students to class:", error);
+      toast({
+        title: t("error"),
+        description: t("failed-to-add-students"),
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="min-h-screen bg-blue-50">
       <NavBar userType="teacher" userName="Teacher" />
@@ -155,9 +193,19 @@ const ClassDetailsPage: React.FC = () => {
             <Card className="bg-white shadow-md">
               <CardHeader>
                 <CardTitle>
-                  <div className="flex items-center">
-                    <Users className="h-5 w-5 mr-2 text-blue-500" />
-                    {t("students")}
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex items-center">
+                      <Users className="h-5 w-5 mr-2 text-blue-500" />
+                      {t("students")}
+                    </div>
+                    {isTeacherOrAdmin && (
+                      <Button 
+                        className="bg-red-500 hover:bg-red-600 text-white"
+                        onClick={() => setIsStudentDialogOpen(true)}
+                      >
+                        {t("add-students")}
+                      </Button>
+                    )}
                   </div>
                 </CardTitle>
               </CardHeader>
@@ -188,15 +236,19 @@ const ClassDetailsPage: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-gray-500 text-center py-4">
-                    {t("no-students-yet")}
-                  </p>
-                )}
-                
-                {isTeacherOrAdmin && (
-                  <Button className="w-full mt-6 bg-pokemon-red text-white hover:bg-red-600">
-                    {t("add-students")}
-                  </Button>
+                  <div className="text-center py-8">
+                    <p className="text-gray-500 mb-6">
+                      {t("no-students-yet")}
+                    </p>
+                    {isTeacherOrAdmin && (
+                      <Button 
+                        className="bg-red-500 hover:bg-red-600 text-white"
+                        onClick={() => setIsStudentDialogOpen(true)}
+                      >
+                        {t("add-students")}
+                      </Button>
+                    )}
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -209,6 +261,16 @@ const ClassDetailsPage: React.FC = () => {
           </Card>
         )}
       </div>
+
+      {/* Student Selection Dialog */}
+      {classId && (
+        <StudentsList
+          classId={classId}
+          open={isStudentDialogOpen}
+          onOpenChange={setIsStudentDialogOpen}
+          onStudentsAdded={handleAddStudents}
+        />
+      )}
     </div>
   );
 };

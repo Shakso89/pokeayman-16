@@ -42,6 +42,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [mode, setMode] = useState<"view" | "select">("view");
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
   const { toast } = useToast();
   const { t } = useTranslation();
@@ -72,6 +73,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
   }, [searchQuery, students]);
 
   const loadStudents = () => {
+    setLoading(true);
     try {
       // Get all students from localStorage
       const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
@@ -91,6 +93,8 @@ export const StudentsList: React.FC<StudentsListProps> = ({
         description: t("failed-to-load-students"),
         variant: "destructive"
       });
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -110,8 +114,20 @@ export const StudentsList: React.FC<StudentsListProps> = ({
 
   const handleAddStudents = async () => {
     if (onStudentsAdded && selectedStudents.length > 0) {
-      await onStudentsAdded(selectedStudents);
-      onOpenChange(false);
+      try {
+        setLoading(true);
+        await onStudentsAdded(selectedStudents);
+        onOpenChange(false);
+      } catch (error) {
+        console.error("Error adding students:", error);
+        toast({
+          title: t("error"),
+          description: t("failed-to-add-students"),
+          variant: "destructive"
+        });
+      } finally {
+        setLoading(false);
+      }
     }
   };
 
@@ -140,7 +156,11 @@ export const StudentsList: React.FC<StudentsListProps> = ({
         </div>
 
         <div className="max-h-[60vh] overflow-y-auto">
-          {filteredStudents.length > 0 ? (
+          {loading ? (
+            <div className="flex justify-center items-center py-8">
+              <div className="animate-spin h-6 w-6 border-2 border-t-0 border-r-0 rounded-full border-blue-500" />
+            </div>
+          ) : filteredStudents.length > 0 ? (
             <div className="space-y-2">
               {filteredStudents.map(student => (
                 <div 
@@ -190,11 +210,20 @@ export const StudentsList: React.FC<StudentsListProps> = ({
         {mode === "select" && (
           <DialogFooter>
             <Button
-              disabled={selectedStudents.length === 0}
+              disabled={selectedStudents.length === 0 || loading}
               onClick={handleAddStudents}
-              className="w-full"
+              className="w-full bg-sky-500 hover:bg-sky-600"
             >
-              {t("add")} {selectedStudents.length} {t("students")}
+              {loading ? (
+                <>
+                  <span className="animate-spin mr-2">⟳</span>
+                  {t("adding")}...
+                </>
+              ) : (
+                <>
+                  {t("add")} {selectedStudents.length} {t("students")}
+                </>
+              )}
             </Button>
           </DialogFooter>
         )}
