@@ -1,8 +1,8 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, RefreshCw } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useClassManagement } from "./useClassManagement";
 import SchoolInfoCard from "./SchoolInfoCard";
@@ -10,6 +10,7 @@ import ClassList from "./ClassList";
 import AddStudentsDialog from "./AddStudentsDialog";
 import DeleteClassDialog from "./DeleteClassDialog";
 import { SelectSchoolDialog } from "./SelectSchoolDialog";
+import { toast } from "@/hooks/use-toast";
 
 interface ClassManagementProps {
   onBack: () => void;
@@ -26,6 +27,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
 }) => {
   const { t } = useTranslation();
   const [isSelectSchoolOpen, setIsSelectSchoolOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
   
   const { 
     classes,
@@ -45,11 +47,30 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     refreshClasses,
   } = useClassManagement({ schoolId, teacherId, directCreateMode });
   
-  // Add effect to refresh classes when component mounts
+  // Add effect to refresh classes when component mounts or when refreshTrigger changes
   React.useEffect(() => {
-    // Force refresh classes when component mounts
+    console.log("Refreshing classes due to trigger or mount");
     refreshClasses();
-  }, [schoolId]);
+  }, [refreshTrigger, schoolId]);
+  
+  // Function to manually refresh classes
+  const handleRefresh = () => {
+    toast({
+      title: t("refreshing"),
+      description: t("refreshing-class-list")
+    });
+    setRefreshTrigger(prev => prev + 1);
+  };
+
+  // Handle class creation success
+  const handleClassCreated = () => {
+    console.log("Class created, refreshing classes");
+    refreshClasses();
+    toast({
+      title: t("success"),
+      description: t("class-created-successfully")
+    });
+  };
   
   return (
     <div className="space-y-6">
@@ -58,7 +79,17 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
           <ChevronLeft className="h-4 w-4 mr-1" />
           {t("back")}
         </Button>
-        <h2 className="text-2xl font-bold">{directCreateMode ? t("manage-classes") : t("class-management")}</h2>
+        <div className="flex items-center gap-2">
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={handleRefresh}
+            className="h-9 w-9"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
+          <h2 className="text-2xl font-bold">{directCreateMode ? t("manage-classes") : t("class-management")}</h2>
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-1 gap-6">
@@ -74,7 +105,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
           <Button 
             variant="default" 
             onClick={() => setIsSelectSchoolOpen(true)}
-            className="w-full bg-pokemon-red hover:bg-red-600 text-white"
+            className="w-full bg-sky-500 hover:bg-sky-600 text-white shadow-md"
           >
             {t("create-class-in-any-school")}
           </Button>
@@ -104,7 +135,10 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       )}
       
       {/* Classes List */}
-      <h3 className="text-xl font-semibold mt-8">{t("your-classes")}</h3>
+      <h3 className="text-xl font-semibold mt-8 flex items-center justify-between">
+        {t("your-classes")}
+        <span className="text-sm text-gray-500">{classes.length} {t("classes-found")}</span>
+      </h3>
       
       <ClassList 
         classes={classes}
@@ -119,7 +153,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       <AddStudentsDialog
         isOpen={isAddStudentDialogOpen}
         onClose={() => setIsAddStudentDialogOpen(false)}
-        selectedClassId={null} // We pass this through the openAddStudentDialog function
+        selectedClassId={selectedClassId}
         availableStudents={availableStudents}
         onAddStudents={handleAddStudents}
       />
@@ -136,7 +170,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         open={isSelectSchoolOpen}
         onOpenChange={setIsSelectSchoolOpen}
         teacherId={teacherId}
-        onClassCreated={refreshClasses} // Add callback to refresh classes
+        onClassCreated={handleClassCreated} // Add callback to refresh classes
       />
     </div>
   );

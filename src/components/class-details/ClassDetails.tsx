@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, Loader2, Trash2, Award, BookText, Coins, Settings } from "lucide-react";
+import { ChevronLeft, Loader2, Trash2, Award, BookText, Coins, Settings, PlusCircle } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import {
@@ -17,6 +17,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { removeClass, getClassById } from "@/utils/classSync/classOperations";
+import { addMultipleStudentsToClass } from "@/utils/classSync/studentOperations";
 import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
 import { awardCoinsToStudent } from "@/utils/pokemon/studentPokemon";
@@ -25,6 +26,7 @@ import StudentsTab from "@/components/student/StudentsTab";
 import CreateHomeworkDialog from "@/components/teacher/CreateHomeworkDialog";
 import { HomeworkAssignment } from "@/types/homework";
 import ManageClassDialog from "@/components/dialogs/ManageClassDialog";
+import { StudentsList } from "@/components/student-profile/StudentsList";
 
 const ClassDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -38,6 +40,7 @@ const ClassDetails = () => {
   const [isTeacher, setIsTeacher] = useState(false);
   const [activeTab, setActiveTab] = useState("info");
   const [isManageClassOpen, setIsManageClassOpen] = useState(false);
+  const [isStudentListOpen, setIsStudentListOpen] = useState(false);
   
   // Management dialogs state
   const [managePokemonDialog, setManagePokemonDialog] = useState({
@@ -69,80 +72,68 @@ const ClassDetails = () => {
   useEffect(() => {
     if (!id) return;
     
-    const fetchClassDetails = async () => {
-      setLoading(true);
-      try {
-        // Try to use the classSync utility function first
-        const cls = await getClassById(id);
-        if (cls) {
-          setClassData(cls);
-          
-          // Determine permission level
-          const currentTeacherId = localStorage.getItem("teacherId") || "";
-          if (cls.teacherId === currentTeacherId) {
-            setUserPermissionLevel("owner");
-          } else if (isAdmin) {
-            setUserPermissionLevel("owner"); // Admin has full permissions
-          } else {
-            setUserPermissionLevel("viewer");
-          }
-          
-          // If class has students, fetch their details
-          if (cls.students && cls.students.length > 0) {
-            try {
-              const { data: studentsData, error: studentsError } = await supabase
-                .from('students')
-                .select('*')
-                .in('id', cls.students);
-                
-              if (!studentsError && studentsData) {
-                setStudents(studentsData);
-              }
-            } catch (err) {
-              console.error("Error fetching students:", err);
-              // Attempt localStorage fallback for students
-              fetchStudentsFromLocalStorage(cls.students);
-            }
-          }
-          return;
-        }
-        
-        // If getClassById failed, attempt direct Supabase query
-        const { data: classData, error: classError } = await supabase
-          .from('classes')
-          .select('*')
-          .eq('id', id)
-          .maybeSingle();
-          
-        if (classError) throw classError;
-        
-        if (!classData) {
-          // Check localStorage as fallback
-          checkLocalStorageFallback();
-          return;
-        }
-        
-        setClassData(classData);
-        
-        // Fetch student details if class has students
-        if (classData.students && classData.students.length > 0) {
-          fetchStudentsFromSupabase(classData.students);
-        }
-      } catch (error) {
-        console.error("Error fetching class details:", error);
-        toast({
-          title: t("error"),
-          description: t("failed-to-load-class-details"),
-          variant: "destructive"
-        });
-        checkLocalStorageFallback();
-      } finally {
-        setLoading(false);
-      }
-    };
-    
     fetchClassDetails();
   }, [id, t, isAdmin, teacherId]);
+
+  const fetchClassDetails = async () => {
+    setLoading(true);
+    try {
+      // Try to use the classSync utility function first
+      const cls = await getClassById(id || "");
+      if (cls) {
+        setClassData(cls);
+        
+        // Determine permission level
+        const currentTeacherId = localStorage.getItem("teacherId") || "";
+        if (cls.teacherId === currentTeacherId) {
+          setUserPermissionLevel("owner");
+        } else if (isAdmin) {
+          setUserPermissionLevel("owner"); // Admin has full permissions
+        } else {
+          setUserPermissionLevel("viewer");
+        }
+        
+        // If class has students, fetch their details
+        if (cls.students && cls.students.length > 0) {
+          fetchStudentsFromSupabase(cls.students);
+        }
+        setLoading(false);
+        return;
+      }
+      
+      // If getClassById failed, attempt direct Supabase query
+      const { data: classData, error: classError } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('id', id)
+        .maybeSingle();
+        
+      if (classError) throw classError;
+      
+      if (!classData) {
+        // Check localStorage as fallback
+        checkLocalStorageFallback();
+        return;
+      }
+      
+      setClassData(classData);
+      
+      // Fetch student details if class has students
+      if (classData.students && classData.students.length > 0) {
+        fetchStudentsFromSupabase(classData.students);
+      }
+    } catch (error) {
+      console.error("Error fetching class details:", error);
+      toast({
+        title: t("error"),
+        description: t("failed-to-load-class-details"),
+        variant: "destructive"
+      });
+      checkLocalStorageFallback();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const checkLocalStorageFallback = () => {
     // Check localStorage as fallback
@@ -233,6 +224,34 @@ const ClassDetails = () => {
     }
   };
 
+  // Handle adding students to class
+  const handleAddStudents = async (studentIds: string[]) => {
+    if (!id || !studentIds.length) return;
+    
+    try {
+      const success = await addMultipleStudentsToClass(id, studentIds);
+      
+      if (success) {
+        toast({
+          title: t("success"),
+          description: `${studentIds.length} ${t("students-added-to-class")}`
+        });
+        
+        // Refresh class details to show new students
+        fetchClassDetails();
+      } else {
+        throw new Error("Failed to add students to class");
+      }
+    } catch (error) {
+      console.error("Error adding students to class:", error);
+      toast({
+        title: t("error"),
+        description: t("failed-to-add-students"),
+        variant: "destructive"
+      });
+    }
+  };
+
   // Handle giving coins to a student
   const handleGiveCoins = (amount: number) => {
     if (!giveCoinsDialog.studentId) return;
@@ -284,7 +303,7 @@ const ClassDetails = () => {
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-2">{t("loading")}</span>
       </div>
     );
@@ -408,8 +427,18 @@ const ClassDetails = () => {
 
             {/* Students List Card */}
             <Card className="md:col-span-2">
-              <CardHeader>
+              <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>{t("students")} ({students.length})</CardTitle>
+                {isClassCreator() && (
+                  <Button 
+                    variant="default" 
+                    className="bg-sky-500 hover:bg-sky-600"
+                    onClick={() => setIsStudentListOpen(true)}
+                  >
+                    <PlusCircle className="h-4 w-4 mr-1" />
+                    {t("add-students")}
+                  </Button>
+                )}
               </CardHeader>
               <CardContent>
                 {students.length === 0 ? (
@@ -474,6 +503,14 @@ const ClassDetails = () => {
           {id && <StudentsTab classId={id} />}
         </TabsContent>
       </Tabs>
+
+      {/* Add Students Dialog */}
+      <StudentsList
+        classId={id || ""}
+        open={isStudentListOpen}
+        onOpenChange={setIsStudentListOpen}
+        onStudentsAdded={handleAddStudents}
+      />
 
       {/* Delete Class Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>

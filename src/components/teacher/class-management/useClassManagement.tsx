@@ -4,8 +4,9 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { ClassData } from "@/utils/classSync/types";
-import { removeClass } from "@/utils/classSync/classOperations";
+import { removeClass, getClassesBySchool } from "@/utils/classSync/classOperations";
 import { useTranslation } from "@/hooks/useTranslation";
+import { addMultipleStudentsToClass } from "@/utils/classSync/studentOperations";
 
 interface UseClassManagementProps {
   schoolId: string;
@@ -43,35 +44,54 @@ export const useClassManagement = ({
   
   // Load classes on component mount and subscribe to changes
   useEffect(() => {
-    fetchClasses();
-    
-    // Subscribe to class changes
-    const channel = supabase
-      .channel('schema-db-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'classes'
-        },
-        () => {
-          fetchClasses();
-        }
-      )
-      .subscribe();
+    if (schoolId) {
+      console.log("Initial fetch for classes in school:", schoolId);
+      fetchClasses();
       
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  }, [schoolId, teacherId]);
+      // Subscribe to class changes
+      const channel = supabase
+        .channel('schema-db-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'classes'
+          },
+          (payload) => {
+            console.log("Classes table changed:", payload);
+            fetchClasses();
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [schoolId]);
   
   const fetchClasses = async () => {
-    if (!schoolId) return;
+    if (!schoolId) {
+      console.log("No school ID provided, skipping fetch");
+      setLoading(false);
+      return;
+    }
     
     setLoading(true);
     try {
       console.log("Fetching classes for school:", schoolId);
+      
+      // First try using the utility function
+      const classesData = await getClassesBySchool(schoolId);
+      if (classesData && classesData.length > 0) {
+        console.log("Classes found via utility function:", classesData.length, classesData);
+        setClasses(classesData);
+        setLoading(false);
+        return;
+      }
+      
+      // If no classes found using utility function, try direct Supabase query
       const { data, error } = await supabase
         .from('classes')
         .select('*')
@@ -81,10 +101,10 @@ export const useClassManagement = ({
         throw error;
       }
       
-      console.log("Classes found:", data?.length || 0, data);
+      console.log("Classes found via direct query:", data?.length || 0, data);
       
       // Map database class format to ClassData
-      const formattedClasses = data.map(dbClass => ({
+      const formattedClasses = (data || []).map(dbClass => ({
         id: dbClass.id || '',
         name: dbClass.name || '',
         schoolId: dbClass.school_id || '',
@@ -174,71 +194,18 @@ export const useClassManagement = ({
     if (!selectedClassId || selectedStudents.length === 0) return;
     
     try {
-      // Get current class
-      const currentClass = classes.find(c => c.id === selectedClassId);
-      if (!currentClass) throw new Error("Class not found");
+      const success = await addMultipleStudentsToClass(selectedClassId, selectedStudents);
       
-      // Update students array
-      const updatedStudents = [...(currentClass.students || []), ...selectedStudents];
-      
-      // Update class in Supabase
-      const { error } = await supabase
-        .from('classes')
-        .update({ students: updatedStudents })
-        .eq('id', selectedClassId);
-        
-      if (error) {
-        console.error("Error updating class in Supabase:", error);
-        // Fallback to localStorage
-        const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-        const updatedClasses = allClasses.map((cls: any) => {
-          if (cls.id === selectedClassId) {
-            return {
-              ...cls,
-              students: updatedStudents
-            };
-          }
-          return cls;
+      if (success) {
+        toast({
+          title: t("success"),
+          description: `${selectedStudents.length} ${t("students-added-to-class")}`
         });
-        localStorage.setItem("classes", JSON.stringify(updatedClasses));
-        
-        // Also update in-memory classes
-        setClasses(classes.map(cls => 
-          cls.id === selectedClassId ? { ...cls, students: updatedStudents } : cls
-        ));
+        setIsAddStudentDialogOpen(false);
+        fetchClasses();
+      } else {
+        throw new Error("Failed to add students to class");
       }
-      
-      // Also update student class_id fields
-      for (const studentId of selectedStudents) {
-        try {
-          await supabase
-            .from('students')
-            .update({ class_id: selectedClassId })
-            .eq('id', studentId);
-        } catch (error) {
-          console.error(`Error updating student ${studentId} class_id:`, error);
-          // Fallback to localStorage for this student
-          const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
-          const updatedStudents = allStudents.map((student: any) => {
-            if (student.id === studentId) {
-              return {
-                ...student,
-                classId: selectedClassId
-              };
-            }
-            return student;
-          });
-          localStorage.setItem("students", JSON.stringify(updatedStudents));
-        }
-      }
-      
-      toast({
-        title: t("success"),
-        description: `${selectedStudents.length} ${t("students-added-to-class")}`
-      });
-      
-      setIsAddStudentDialogOpen(false);
-      fetchClasses();
     } catch (error) {
       console.error("Error adding students to class:", error);
       toast({

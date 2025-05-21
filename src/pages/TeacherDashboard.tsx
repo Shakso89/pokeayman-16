@@ -124,7 +124,7 @@ const TeacherDashboard: React.FC = () => {
             <div className="mt-6">
               <Button 
                 variant="outline" 
-                className="flex items-center bg-blue-100 hover:bg-blue-200 text-blue-800"
+                className="flex items-center bg-sky-100 hover:bg-sky-200 text-sky-800 border-sky-300"
                 onClick={handleManageHomework}
               >
                 <BookText className="h-4 w-4 mr-2" />

@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Card, CardHeader, CardTitle, CardDescription,
@@ -50,18 +51,21 @@ const ClassList: React.FC<ClassListProps> = ({
       {classes.map((cls) => {
         const creatorView = isAdmin || isClassCreator(cls);
         const studentCount = cls.students?.length || 0;
-        const creatorLabel = cls.teacherId === teacherId ? t("you") : `${cls.teacherId.slice(0, 8)}...`;
+        const creatorLabel = cls.teacherId === teacherId ? t("you") : `${cls.teacherId?.slice(0, 8) || ''}...`;
 
         return (
-          <Card key={cls.id} className="hover:shadow-md transition-shadow">
-            <CardHeader>
+          <Card key={cls.id} className="hover:shadow-lg transition-shadow border-t-4 border-t-sky-400">
+            <CardHeader className="bg-gradient-to-r from-sky-50 to-blue-50">
               <CardTitle className="flex items-center justify-between">
                 <span>{cls.name}</span>
                 {creatorView && (
                   <Button
                     variant="ghost"
                     size="icon"
-                    onClick={() => onDeleteClass(cls.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onDeleteClass(cls.id);
+                    }}
                     className="text-red-500 hover:text-red-700 hover:bg-red-50"
                   >
                     <Trash2 className="h-4 w-4" />
@@ -71,7 +75,7 @@ const ClassList: React.FC<ClassListProps> = ({
               {cls.description && <CardDescription>{cls.description}</CardDescription>}
             </CardHeader>
 
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-2 pt-4">
               <div className="flex items-center text-sm text-muted-foreground">
                 <Users className="h-4 w-4 mr-2 text-blue-500" />
                 {studentCount} {t("students")}
@@ -84,18 +88,31 @@ const ClassList: React.FC<ClassListProps> = ({
               )}
             </CardContent>
 
-            <CardFooter className="flex justify-between">
+            <CardFooter className="flex justify-between pt-2 pb-4">
               {creatorView ? (
                 <>
-                  <Button variant="outline" onClick={() => onOpenAddStudentDialog(cls.id)}>
+                  <Button 
+                    variant="outline" 
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      onOpenAddStudentDialog(cls.id);
+                    }}
+                    className="border-sky-200 hover:bg-sky-50"
+                  >
                     {t("add-students")}
                   </Button>
-                  <Button onClick={() => navigate(`/class-details/${cls.id}`)}>
+                  <Button 
+                    onClick={() => navigate(`/class-details/${cls.id}`)}
+                    className="bg-sky-500 hover:bg-sky-600"
+                  >
                     {t("manage-class")}
                   </Button>
                 </>
               ) : (
-                <Button className="w-full" onClick={() => navigate(`/class-details/${cls.id}`)}>
+                <Button 
+                  className="w-full bg-sky-500 hover:bg-sky-600" 
+                  onClick={() => navigate(`/class-details/${cls.id}`)}
+                >
                   {t("view-details")}
                 </Button>
               )}
