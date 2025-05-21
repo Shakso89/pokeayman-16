@@ -42,7 +42,14 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     handleDeleteClass,
     setIsAddStudentDialogOpen,
     setIsDeleteDialogOpen,
+    refreshClasses,
   } = useClassManagement({ schoolId, teacherId, directCreateMode });
+  
+  // Add effect to refresh classes when component mounts
+  React.useEffect(() => {
+    // Force refresh classes when component mounts
+    refreshClasses();
+  }, [schoolId]);
   
   return (
     <div className="space-y-6">
@@ -67,7 +74,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
           <Button 
             variant="default" 
             onClick={() => setIsSelectSchoolOpen(true)}
-            className="w-full"
+            className="w-full bg-pokemon-red hover:bg-red-600 text-white"
           >
             {t("create-class-in-any-school")}
           </Button>
@@ -129,6 +136,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         open={isSelectSchoolOpen}
         onOpenChange={setIsSelectSchoolOpen}
         teacherId={teacherId}
+        onClassCreated={refreshClasses} // Add callback to refresh classes
       />
     </div>
   );

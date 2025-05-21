@@ -67,8 +67,11 @@ export const useClassManagement = ({
   }, [schoolId, teacherId]);
   
   const fetchClasses = async () => {
+    if (!schoolId) return;
+    
     setLoading(true);
     try {
+      console.log("Fetching classes for school:", schoolId);
       const { data, error } = await supabase
         .from('classes')
         .select('*')
@@ -77,6 +80,8 @@ export const useClassManagement = ({
       if (error) {
         throw error;
       }
+      
+      console.log("Classes found:", data?.length || 0, data);
       
       // Map database class format to ClassData
       const formattedClasses = data.map(dbClass => ({
@@ -89,7 +94,7 @@ export const useClassManagement = ({
         description: dbClass.description || '',
         likes: dbClass.likes || [],
         createdAt: dbClass.created_at,
-        updatedAt: dbClass.updated_at || dbClass.created_at // Add updatedAt field with fallback
+        updatedAt: dbClass.updated_at || dbClass.created_at
       }));
       
       setClasses(formattedClasses);
@@ -100,6 +105,7 @@ export const useClassManagement = ({
       const filteredClasses = allClasses.filter((cls: any) => 
         cls.schoolId === schoolId
       );
+      console.log("Classes from localStorage:", filteredClasses.length, filteredClasses);
       setClasses(filteredClasses);
     } finally {
       setLoading(false);
@@ -290,5 +296,6 @@ export const useClassManagement = ({
     handleDeleteClass,
     setIsAddStudentDialogOpen,
     setIsDeleteDialogOpen,
+    refreshClasses: fetchClasses, // Expose the refresh function
   };
 };
