@@ -13,7 +13,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Search, Check, Loader2 } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { toast } from "@/hooks/use-toast"; // Fixed import for toast
 import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -46,7 +46,6 @@ export const StudentsList: React.FC<StudentsListProps> = ({
   const [mode, setMode] = useState<"view" | "select">("view");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { toast } = useToast();
   const { t } = useTranslation();
 
   useEffect(() => {
