@@ -17,24 +17,29 @@ const LogoutPage: React.FC = () => {
     const performLogout = async () => {
       if (!isLoggingOut) return;
       
-      setIsLoggingOut(false);
-      
       try {
-        const success = await logout();
-        if (!success) {
-          throw new Error("Logout failed");
-        }
+        setIsLoggingOut(false);
+        console.log("Starting logout process...");
         
+        // Call the logout function from the auth context
+        await logout();
+        
+        console.log("Logout successful, redirecting to home...");
+        // After a short delay, redirect to the home page
         timeoutId = setTimeout(() => {
           navigate('/', { replace: true });
         }, 1500);
       } catch (error: unknown) {
         console.error("Logout error:", error);
+        
+        // Handle errors and show appropriate message
         if (error instanceof Error) {
           setLogoutError(error.message);
         } else {
           setLogoutError("An error occurred during logout");
         }
+        
+        // Even on error, redirect to home after a slight delay
         timeoutId = setTimeout(() => {
           navigate('/', { replace: true });
         }, 2000);
@@ -43,7 +48,10 @@ const LogoutPage: React.FC = () => {
 
     performLogout();
 
-    return () => clearTimeout(timeoutId);
+    // Clean up timeout when component unmounts
+    return () => {
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [logout, navigate, isLoggingOut]);
 
   return (

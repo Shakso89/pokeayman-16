@@ -86,17 +86,10 @@ export const StudentsList: React.FC<StudentsListProps> = ({
   const loadStudents = async () => {
     setLoading(true);
     try {
+      console.log("Loading students in mode:", mode, "for class:", classId);
       let displayStudents: Student[] = [];
       
-      // For select mode - get students not in this class
-      // For view mode - get students in this class
-      
-      // Try to load from Supabase
       try {
-        console.log("Fetching students from Supabase...");
-        console.log("Mode:", mode);
-        console.log("Class ID:", classId);
-        
         if (mode === 'select') {
           // In select mode, get ALL students first, then filter out ones that are already in this class
           const { data: classData, error: classError } = await supabase
@@ -142,31 +135,49 @@ export const StudentsList: React.FC<StudentsListProps> = ({
             }));
           } else {
             console.log("No students found");
+            // Try to fetch from local storage as fallback
+            throw new Error("No students found in database");
           }
         } else {
           // In view mode, get students IN this class
-          const { data: studentsData, error } = await supabase
-            .from('students')
-            .select('*')
-            .eq('class_id', classId);
+          const { data: classData, error: classError } = await supabase
+            .from('classes')
+            .select('students')
+            .eq('id', classId)
+            .single();
           
-          if (error) {
-            console.error("Error loading class students:", error);
-            throw error;
+          if (classError) {
+            console.error("Error loading class data for view mode:", classError);
+            throw classError;
           }
           
-          if (studentsData && studentsData.length > 0) {
-            console.log("Class students fetched from Supabase:", studentsData.length);
+          const studentIds = classData?.students || [];
+          console.log("Students in this class:", studentIds.length);
+          
+          if (studentIds.length > 0) {
+            const { data: studentsData, error } = await supabase
+              .from('students')
+              .select('*')
+              .in('id', studentIds);
             
-            displayStudents = studentsData.map(student => ({
-              id: student.id,
-              displayName: student.display_name || student.username,
-              username: student.username,
-              classId: student.class_id,
-              display_name: student.display_name
-            }));
-          } else {
-            console.log("No students found in this class");
+            if (error) {
+              console.error("Error loading class students:", error);
+              throw error;
+            }
+            
+            if (studentsData && studentsData.length > 0) {
+              console.log("Class students fetched from Supabase:", studentsData.length);
+              
+              displayStudents = studentsData.map(student => ({
+                id: student.id,
+                displayName: student.display_name || student.username,
+                username: student.username,
+                classId: student.class_id,
+                display_name: student.display_name
+              }));
+            } else {
+              console.log("No students found in this class");
+            }
           }
         }
       } catch (supabaseError) {

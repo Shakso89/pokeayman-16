@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from './use-toast';
@@ -64,29 +65,44 @@ export const useAuth = () => {
     }
   };
 
-  // Logout function
+  // Logout function - modified to handle errors better
   const logout = async () => {
     try {
+      console.log("Attempting to log out...");
       setLoading(true);
 
+      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase signOut error:", error);
+        throw error;
+      }
 
+      console.log("Supabase signOut successful, clearing local state...");
+      
+      // Clear all auth state regardless of Supabase response
       clearAuthState();
 
+      // Show success toast
       toast({
         title: "Logged out successfully",
         description: "You have been logged out of your account.",
       });
+      
       return true;
     } catch (error: any) {
       console.error("Logout error:", error);
+      
+      // Still clear local state even if Supabase throws an error
+      clearAuthState();
+      
       toast({
-        title: "Logout failed",
-        description: error.message,
-        variant: "destructive",
+        title: "Logout process completed",
+        description: "You have been logged out, but there may have been an issue syncing with the server.",
       });
-      return false;
+      
+      // Return true anyway since local state is cleared
+      return true;
     } finally {
       setLoading(false);
     }
