@@ -12,8 +12,8 @@ import {
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Search, Check, Loader2, UserPlus } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
+import { Search, Check, Loader2 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -46,6 +46,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
   const [mode, setMode] = useState<"view" | "select">("view");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const { toast } = useToast();
   const { t } = useTranslation();
 
   useEffect(() => {
@@ -60,20 +61,27 @@ export const StudentsList: React.FC<StudentsListProps> = ({
     }
   }, [open, classId, onStudentsAdded]);
 
+  // Apply search filtering whenever searchQuery or students change
   useEffect(() => {
-    if (searchQuery) {
-      const query = searchQuery.toLowerCase();
-      const filtered = students.filter(
-        student => 
-          (student.displayName?.toLowerCase().includes(query) || 
-           student.display_name?.toLowerCase().includes(query) || 
-           student.username.toLowerCase().includes(query))
-      );
-      setFilteredStudents(filtered);
-    } else {
-      setFilteredStudents(students);
-    }
+    filterStudents();
   }, [searchQuery, students]);
+
+  // Separate filter function for clarity
+  const filterStudents = () => {
+    if (!searchQuery.trim()) {
+      setFilteredStudents(students);
+      return;
+    }
+    
+    const query = searchQuery.toLowerCase().trim();
+    const filtered = students.filter(student => 
+      (student.displayName?.toLowerCase().includes(query) || 
+       student.display_name?.toLowerCase().includes(query) || 
+       student.username.toLowerCase().includes(query))
+    );
+    console.log(`Search "${query}" found ${filtered.length} matches from ${students.length} students`);
+    setFilteredStudents(filtered);
+  };
 
   const loadStudents = async () => {
     setLoading(true);
@@ -90,21 +98,42 @@ export const StudentsList: React.FC<StudentsListProps> = ({
         console.log("Class ID:", classId);
         
         if (mode === 'select') {
-          // In select mode, get students NOT in this class
-          const { data: studentsData, error } = await supabase
-            .from('students')
-            .select('*')
-            .is('class_id', null);
+          // In select mode, get ALL students first, then filter out ones that are already in this class
+          const { data: classData, error: classError } = await supabase
+            .from('classes')
+            .select('students')
+            .eq('id', classId)
+            .single();
           
-          if (error) {
-            console.error("Error loading students:", error);
-            throw error;
+          if (classError) {
+            console.error("Error loading class data:", classError);
+            throw classError;
           }
           
-          if (studentsData && studentsData.length > 0) {
-            console.log("Students fetched from Supabase:", studentsData.length);
+          const currentStudentIds = classData?.students || [];
+          console.log("Current students in class:", currentStudentIds.length);
+          
+          // Get all students
+          const { data: allStudents, error: studentsError } = await supabase
+            .from('students')
+            .select('*');
+          
+          if (studentsError) {
+            console.error("Error loading students:", studentsError);
+            throw studentsError;
+          }
+          
+          if (allStudents && allStudents.length > 0) {
+            console.log("All students fetched from Supabase:", allStudents.length);
             
-            displayStudents = studentsData.map(student => ({
+            // Filter out students already in this class
+            const availableStudents = allStudents.filter(student => 
+              !currentStudentIds.includes(student.id)
+            );
+            
+            console.log("Available students to add:", availableStudents.length);
+            
+            displayStudents = availableStudents.map(student => ({
               id: student.id,
               displayName: student.display_name || student.username,
               username: student.username,
@@ -112,7 +141,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
               display_name: student.display_name
             }));
           } else {
-            console.log("No students found without class_id");
+            console.log("No students found");
           }
         } else {
           // In view mode, get students IN this class
@@ -147,11 +176,27 @@ export const StudentsList: React.FC<StudentsListProps> = ({
         const allStudentsLocal = JSON.parse(localStorage.getItem("students") || "[]");
         console.log(`Found ${allStudentsLocal.length} students in localStorage`);
         
-        const localDisplayStudents = mode === "select" 
-          ? allStudentsLocal.filter((student: any) => student.classId !== classId)
-          : allStudentsLocal.filter((student: any) => student.classId === classId);
+        if (mode === "select") {
+          // Get current class data to find students already in the class
+          const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+          const currentClass = allClasses.find((cls: any) => cls.id === classId);
+          const currentStudentIds = currentClass?.students || [];
           
-        displayStudents = localDisplayStudents;
+          // Filter out students already in this class
+          const localAvailableStudents = allStudentsLocal.filter((student: any) => 
+            !currentStudentIds.includes(student.id)
+          );
+          
+          console.log(`Found ${localAvailableStudents.length} available students in localStorage`);
+          displayStudents = localAvailableStudents;
+        } else {
+          const localClassStudents = allStudentsLocal.filter((student: any) => 
+            student.classId === classId || student.class_id === classId
+          );
+          
+          console.log(`Found ${localClassStudents.length} class students in localStorage`);
+          displayStudents = localClassStudents;
+        }
       }
       
       // Fallback: If we still don't have any students for selection,
@@ -245,6 +290,11 @@ export const StudentsList: React.FC<StudentsListProps> = ({
     }
   };
 
+  const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setSearchQuery(value);
+  };
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-md">
@@ -265,7 +315,7 @@ export const StudentsList: React.FC<StudentsListProps> = ({
             placeholder={t("search-students")}
             className="border-0 p-0 shadow-none focus-visible:ring-0"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={handleSearchChange}
           />
         </div>
 
