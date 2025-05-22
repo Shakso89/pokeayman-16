@@ -183,5 +183,8 @@ export const useStudentsData = (classId: string) => {
     sortStudents(students);
   };
 
-  return { students, isLoading, sortOrder, toggleSortOrder };
+  // Export the refreshStudents function (which is just an alias for loadStudents)
+  const refreshStudents = loadStudents;
+
+  return { students, isLoading, sortOrder, toggleSortOrder, refreshStudents };
 };
