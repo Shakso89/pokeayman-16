@@ -42,35 +42,7 @@ export const useClassManagement = ({
     setIsAdmin(isAdminUser);
   }, []);
   
-  // Load classes on component mount and subscribe to changes
-  useEffect(() => {
-    if (schoolId) {
-      console.log("Initial fetch for classes in school:", schoolId);
-      fetchClasses();
-      
-      // Subscribe to class changes
-      const channel = supabase
-        .channel('schema-db-changes')
-        .on(
-          'postgres_changes',
-          {
-            event: '*',
-            schema: 'public',
-            table: 'classes'
-          },
-          (payload) => {
-            console.log("Classes table changed:", payload);
-            fetchClasses();
-          }
-        )
-        .subscribe();
-        
-      return () => {
-        supabase.removeChannel(channel);
-      };
-    }
-  }, [schoolId]);
-  
+  // Improved fetch classes function with better error handling and logging
   const fetchClasses = async () => {
     if (!schoolId) {
       console.log("No school ID provided, skipping fetch");
@@ -80,18 +52,19 @@ export const useClassManagement = ({
     
     setLoading(true);
     try {
-      console.log("Fetching classes for school:", schoolId);
+      console.log(`Fetching classes for school: ${schoolId}`);
       
       // First try using the utility function
       const classesData = await getClassesBySchool(schoolId);
       if (classesData && classesData.length > 0) {
-        console.log("Classes found via utility function:", classesData.length, classesData);
+        console.log(`Classes found via utility function: ${classesData.length}`, classesData);
         setClasses(classesData);
         setLoading(false);
         return;
       }
       
       // If no classes found using utility function, try direct Supabase query
+      console.log("No classes found via utility function, trying direct Supabase query");
       const { data, error } = await supabase
         .from('classes')
         .select('*')
@@ -101,7 +74,7 @@ export const useClassManagement = ({
         throw error;
       }
       
-      console.log("Classes found via direct query:", data?.length || 0, data);
+      console.log(`Classes found via direct query: ${data?.length || 0}`, data);
       
       // Map database class format to ClassData
       const formattedClasses = (data || []).map(dbClass => ({
@@ -125,12 +98,41 @@ export const useClassManagement = ({
       const filteredClasses = allClasses.filter((cls: any) => 
         cls.schoolId === schoolId
       );
-      console.log("Classes from localStorage:", filteredClasses.length, filteredClasses);
+      console.log(`Classes from localStorage: ${filteredClasses.length}`, filteredClasses);
       setClasses(filteredClasses);
     } finally {
       setLoading(false);
     }
   };
+
+  // Subscribe to Supabase realtime changes for classes
+  useEffect(() => {
+    if (schoolId) {
+      console.log("Setting up realtime subscription for classes in school:", schoolId);
+      fetchClasses();
+      
+      const channel = supabase
+        .channel('schema-db-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'classes'
+          },
+          (payload) => {
+            console.log("Classes table changed:", payload);
+            fetchClasses();
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        console.log("Cleaning up realtime subscription");
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [schoolId]);
 
   const openAddStudentDialog = async (classId: string) => {
     setSelectedClassId(classId);
@@ -140,6 +142,9 @@ export const useClassManagement = ({
       const currentClass = classes.find(c => c.id === classId);
       const currentStudents = currentClass?.students || [];
       
+      console.log("Opening add student dialog for class:", classId);
+      console.log("Current students in class:", currentStudents);
+      
       // Get all available students to add
       const { data, error } = await supabase
         .from('students')
@@ -148,10 +153,14 @@ export const useClassManagement = ({
         
       if (error) throw error;
       
+      console.log("All students fetched:", data?.length || 0);
+      
       // Filter out students already in the class
       const availableStuds = (data || []).filter(student => 
         !currentStudents.includes(student.id)
       );
+      
+      console.log("Available students to add:", availableStuds.length);
       
       setAvailableStudents(availableStuds);
       setIsAddStudentDialogOpen(true);
@@ -169,6 +178,8 @@ export const useClassManagement = ({
           const availableStudents = allStudents.filter((student: any) => 
             !currentStudents.includes(student.id)
           );
+          
+          console.log("Available students from localStorage:", availableStudents.length);
           
           setAvailableStudents(availableStudents);
           setIsAddStudentDialogOpen(true);
@@ -194,6 +205,8 @@ export const useClassManagement = ({
     if (!selectedClassId || selectedStudents.length === 0) return;
     
     try {
+      console.log(`Adding ${selectedStudents.length} students to class ${selectedClassId}`);
+      
       const success = await addMultipleStudentsToClass(selectedClassId, selectedStudents);
       
       if (success) {
@@ -202,7 +215,7 @@ export const useClassManagement = ({
           description: `${selectedStudents.length} ${t("students-added-to-class")}`
         });
         setIsAddStudentDialogOpen(false);
-        fetchClasses();
+        fetchClasses(); // Refresh classes after adding students
       } else {
         throw new Error("Failed to add students to class");
       }
@@ -225,6 +238,8 @@ export const useClassManagement = ({
     if (!classToDelete) return;
     
     try {
+      console.log("Deleting class:", classToDelete);
+      
       const success = await removeClass(classToDelete);
       
       if (success) {
@@ -234,7 +249,7 @@ export const useClassManagement = ({
         });
         
         setIsDeleteDialogOpen(false);
-        fetchClasses();
+        fetchClasses(); // Refresh classes after deletion
       } else {
         throw new Error("Failed to delete class");
       }

@@ -63,10 +63,15 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     setRefreshTrigger(prev => prev + 1);
   };
 
-  // Handle class creation success
+  // Handle class creation success with proper refresh
   const handleClassCreated = () => {
     console.log("Class created, refreshing classes");
+    // Immediately refresh classes
     refreshClasses();
+    // Add a small delay and refresh again to ensure we get the latest data
+    setTimeout(() => {
+      refreshClasses();
+    }, 1000);
     toast({
       title: t("success"),
       description: t("class-created-successfully")
@@ -177,7 +182,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         open={isSelectSchoolOpen}
         onOpenChange={setIsSelectSchoolOpen}
         teacherId={teacherId}
-        onClassCreated={handleClassCreated} // Add callback to refresh classes
+        onClassCreated={handleClassCreated} // Updated callback to refresh classes
       />
     </div>
   );

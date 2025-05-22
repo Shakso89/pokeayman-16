@@ -220,7 +220,8 @@ const updateLocalStorage = (classId: string, studentId: string, isAdding: boolea
       if (student.id === studentId) {
         return {
           ...student,
-          classId: isAdding ? classId : null
+          classId: isAdding ? classId : null,
+          class_id: isAdding ? classId : null // Add both formats for compatibility
         };
       }
       return student;
@@ -266,7 +267,8 @@ const updateMultipleLocalStorage = (classId: string, studentIds: string[]): bool
       if (studentIds.includes(student.id)) {
         return {
           ...student,
-          classId
+          classId: classId,
+          class_id: classId // Add both formats for compatibility
         };
       }
       return student;

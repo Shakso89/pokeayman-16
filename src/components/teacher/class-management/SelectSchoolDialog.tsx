@@ -2,12 +2,11 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { School, Search, Loader2 } from "lucide-react";
+import { School, Loader2 } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { createClass } from "@/utils/classSync/classOperations";
 import { toast } from "@/hooks/use-toast";
@@ -31,7 +30,6 @@ export function SelectSchoolDialog({
   const [loading, setLoading] = useState(true);
   const [schools, setSchools] = useState<any[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [activeTab, setActiveTab] = useState<"select" | "create">("select");
   
   // For creating a class
   const [newClass, setNewClass] = useState({
@@ -45,6 +43,12 @@ export function SelectSchoolDialog({
   useEffect(() => {
     if (open) {
       fetchSchools();
+      // Reset form when dialog opens
+      setNewClass({
+        name: "",
+        description: "",
+        schoolId: ""
+      });
     }
   }, [open]);
 
@@ -77,17 +81,6 @@ export function SelectSchoolDialog({
       }
     } finally {
       setLoading(false);
-    }
-  };
-
-  const handleSelectSchool = (schoolId: string) => {
-    // For the create tab, just set the school ID
-    if (activeTab === "create") {
-      setNewClass({ ...newClass, schoolId });
-    } else {
-      // For select tab, navigate to create class page with this school
-      navigate(`/create-class/${schoolId}`);
-      onOpenChange(false);
     }
   };
   
@@ -177,125 +170,82 @@ export function SelectSchoolDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>{t("select-school-or-create-class")}</DialogTitle>
+          <DialogTitle>{t("create-class")}</DialogTitle>
         </DialogHeader>
         
-        <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as "select" | "create")}>
-          <TabsList className="w-full mb-6">
-            <TabsTrigger value="select" className="w-1/2">{t("select-school")}</TabsTrigger>
-            <TabsTrigger value="create" className="w-1/2">{t("create-class")}</TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="select">
-            <div className="space-y-4">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
-                <Input
-                  placeholder={t("search-schools")}
-                  className="pl-10"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                />
-              </div>
-              
+        <div className="space-y-4">
+          {/* School selection for new class */}
+          <div className="space-y-2">
+            <Label htmlFor="school">{t("select-school")}</Label>
+            <div className="relative mb-4">
+              <Input
+                placeholder={t("search-schools")}
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+              />
+            </div>
+            <div className="max-h-[20vh] overflow-y-auto space-y-2">
               {loading ? (
-                <div className="py-8 flex justify-center">
-                  <Loader2 className="h-8 w-8 animate-spin text-primary" />
+                <div className="py-3 flex justify-center">
+                  <Loader2 className="h-5 w-5 animate-spin text-primary" />
                 </div>
               ) : filteredSchools.length > 0 ? (
-                <div className="max-h-[40vh] overflow-y-auto space-y-2">
-                  {filteredSchools.map(school => (
-                    <Button
-                      key={school.id}
-                      variant="outline"
-                      className="w-full justify-start h-auto py-3 text-left flex items-center"
-                      onClick={() => handleSelectSchool(school.id)}
-                    >
-                      <School className="mr-2 h-5 w-5 text-blue-500 flex-shrink-0" />
-                      <div>
-                        <p className="font-medium">{school.name}</p>
-                        <p className="text-xs text-gray-500 truncate">{school.id}</p>
-                      </div>
-                    </Button>
-                  ))}
-                </div>
+                filteredSchools.map(school => (
+                  <Button
+                    key={school.id}
+                    variant={newClass.schoolId === school.id ? "default" : "outline"}
+                    className="w-full justify-start text-left flex items-center"
+                    onClick={() => setNewClass({...newClass, schoolId: school.id})}
+                  >
+                    <School className="mr-2 h-4 w-4 flex-shrink-0" />
+                    <span>{school.name}</span>
+                  </Button>
+                ))
               ) : (
-                <div className="py-8 text-center text-gray-500">
-                  {searchQuery ? t("no-schools-found") : t("no-schools-available")}
+                <div className="py-3 text-center text-gray-500">
+                  {t("no-schools-available")}
                 </div>
               )}
             </div>
-          </TabsContent>
+          </div>
           
-          <TabsContent value="create">
-            <div className="space-y-4">
-              {/* School selection for new class */}
-              <div className="space-y-2">
-                <Label htmlFor="school">{t("select-school")}</Label>
-                <div className="max-h-[20vh] overflow-y-auto space-y-2">
-                  {loading ? (
-                    <div className="py-3 flex justify-center">
-                      <Loader2 className="h-5 w-5 animate-spin text-primary" />
-                    </div>
-                  ) : schools.length > 0 ? (
-                    schools.map(school => (
-                      <Button
-                        key={school.id}
-                        variant={newClass.schoolId === school.id ? "default" : "outline"}
-                        className="w-full justify-start text-left flex items-center"
-                        onClick={() => setNewClass({...newClass, schoolId: school.id})}
-                      >
-                        <School className="mr-2 h-4 w-4 flex-shrink-0" />
-                        <span>{school.name}</span>
-                      </Button>
-                    ))
-                  ) : (
-                    <div className="py-3 text-center text-gray-500">
-                      {t("no-schools-available")}
-                    </div>
-                  )}
-                </div>
-              </div>
-              
-              {/* Class name and description inputs */}
-              <div className="space-y-2">
-                <Label htmlFor="className">{t("class-name")}</Label>
-                <Input 
-                  id="className"
-                  placeholder={t("enter-class-name")}
-                  value={newClass.name}
-                  onChange={(e) => setNewClass({...newClass, name: e.target.value})}
-                />
-              </div>
-              
-              <div className="space-y-2">
-                <Label htmlFor="classDescription">{t("description")} ({t("optional")})</Label>
-                <Textarea 
-                  id="classDescription"
-                  placeholder={t("enter-class-description")}
-                  value={newClass.description}
-                  onChange={(e) => setNewClass({...newClass, description: e.target.value})}
-                  rows={3}
-                />
-              </div>
-              
-              <Button 
-                className="w-full bg-pokemon-red hover:bg-red-600 text-white" 
-                onClick={handleCreateClass}
-                disabled={!newClass.name || !newClass.schoolId || creatingClass}
-              >
-                {creatingClass ? (
-                  <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    {t("creating")}...
-                  </>
-                ) : (
-                  t("create-class")
-                )}
-              </Button>
-            </div>
-          </TabsContent>
-        </Tabs>
+          {/* Class name and description inputs */}
+          <div className="space-y-2">
+            <Label htmlFor="className">{t("class-name")}</Label>
+            <Input 
+              id="className"
+              placeholder={t("enter-class-name")}
+              value={newClass.name}
+              onChange={(e) => setNewClass({...newClass, name: e.target.value})}
+            />
+          </div>
+          
+          <div className="space-y-2">
+            <Label htmlFor="classDescription">{t("description")} ({t("optional")})</Label>
+            <Textarea 
+              id="classDescription"
+              placeholder={t("enter-class-description")}
+              value={newClass.description}
+              onChange={(e) => setNewClass({...newClass, description: e.target.value})}
+              rows={3}
+            />
+          </div>
+          
+          <Button 
+            className="w-full bg-pokemon-red hover:bg-red-600 text-white" 
+            onClick={handleCreateClass}
+            disabled={!newClass.name || !newClass.schoolId || creatingClass}
+          >
+            {creatingClass ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                {t("creating")}...
+              </>
+            ) : (
+              t("create-class")
+            )}
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
