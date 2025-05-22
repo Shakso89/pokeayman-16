@@ -1,29 +1,37 @@
 
-import { v4 as uuidv4 } from 'uuid';
-
 /**
- * Ensures a valid UUID is returned
- * If the input is already a valid UUID, it returns it
- * If not, it generates a new UUID
+ * Validates a UUID format and returns a valid UUID.
+ * If the input is not a valid UUID, it generates a new one.
  */
 export const getValidUUID = (id: string | null): string => {
-  if (!id) return uuidv4();
-  
-  // Check if id is a valid UUID (simple regex test)
-  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-  if (uuidRegex.test(id)) {
-    return id;
+  if (!id) {
+    try {
+      return crypto.randomUUID();
+    } catch (e) {
+      // Fallback in case crypto.randomUUID is not available
+      return '00000000-0000-0000-0000-000000000000';
+    }
   }
   
-  // If it's not a valid UUID format, generate a deterministic UUID based on the string
-  // This ensures the same string always maps to the same UUID
-  console.log(`Converting non-UUID string to UUID: ${id}`);
-  return uuidv4();
+  // Check if the ID is a valid UUID
+  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+  
+  if (uuidRegex.test(id)) {
+    return id;
+  } else {
+    // Generate a new UUID based on the provided string
+    try {
+      return crypto.randomUUID();
+    } catch (e) {
+      // Fallback UUID creation
+      const s4 = () => Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
+      return `${s4()}${s4()}-${s4()}-${s4()}-${s4()}-${s4()}${s4()}${s4()}`;
+    }
+  }
 };
 
 /**
- * Validates student data
- * Returns an object with isValid flag and any validation errors
+ * Validates student data and returns any errors found
  */
 export const validateStudentData = (data: {
   username: string;
@@ -32,20 +40,19 @@ export const validateStudentData = (data: {
 }) => {
   const errors: Record<string, string> = {};
   
-  if (!data.username || data.username.trim().length < 3) {
-    errors.username = "Username must be at least 3 characters";
+  if (!data.username || data.username.trim() === '') {
+    errors.username = 'Username is required';
+  } else if (data.username.length < 3) {
+    errors.username = 'Username must be at least 3 characters';
   }
   
-  if (!data.password || data.password.length < 6) {
-    errors.password = "Password must be at least 6 characters";
+  if (!data.displayName || data.displayName.trim() === '') {
+    errors.displayName = 'Display name is required';
   }
   
-  if (!data.displayName || data.displayName.trim().length < 2) {
-    errors.displayName = "Display name must be at least 2 characters";
+  if (!data.password || data.password.length < 4) {
+    errors.password = 'Password must be at least 4 characters';
   }
   
-  return {
-    isValid: Object.keys(errors).length === 0,
-    errors
-  };
+  return { isValid: Object.keys(errors).length === 0, errors };
 };

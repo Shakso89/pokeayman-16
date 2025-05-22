@@ -128,9 +128,13 @@ export const updateClassDetails = async (classId: string, updates: Partial<Class
   }
 };
 
-// Remove a class
+// Remove a class - Updated to work for both teachers and admins
 export const removeClass = async (classId: string): Promise<boolean> => {
   try {
+    // Check if admin - admins can delete any class
+    const isAdmin = localStorage.getItem("isAdmin") === "true";
+    console.log("Deleting class as admin?", isAdmin);
+    
     const { error } = await supabase
       .from("classes")
       .delete()
