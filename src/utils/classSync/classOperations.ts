@@ -20,7 +20,7 @@ const toDbFormat = (classData: Partial<ClassData>): Partial<DatabaseClassData> =
 // Create a new class
 export const createClass = async (classData: Omit<ClassData, "id">): Promise<ClassData | null> => {
   try {
-    const dbClassData = toDbFormat(classData);
+    console.log("Creating class with data:", classData);
     
     // Create a properly typed object that satisfies Supabase's requirements
     const insertData = {
@@ -32,7 +32,7 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
       students: classData.students || [],
       likes: classData.likes || [],
       created_at: classData.createdAt || new Date().toISOString(),
-      updated_at: classData.updatedAt || new Date().toISOString() // Ensure updated_at is set
+      // Don't send updated_at as it doesn't exist in the table schema
     };
     
     // Check if current user is admin based on localStorage flag
@@ -92,7 +92,9 @@ export const updateClassDetails = async (classId: string, updates: Partial<Class
     const dbUpdates = toDbFormat(updates);
     
     // Make sure we have an object that Supabase can handle
-    const supabaseUpdates = Object.keys(dbUpdates).length > 0 ? dbUpdates : { updated_at: new Date().toISOString() };
+    // Remove updated_at as it doesn't exist in the table schema
+    const { updated_at, ...safeUpdates } = dbUpdates as any;
+    const supabaseUpdates = Object.keys(safeUpdates).length > 0 ? safeUpdates : {};
     
     const { error } = await supabase
       .from("classes")
@@ -159,6 +161,21 @@ export const removeClass = async (classId: string): Promise<boolean> => {
 // Get class by ID - Fix to correctly handle class data format and errors
 export const getClassById = async (classId: string): Promise<ClassData | null> => {
   try {
+    // First check in localStorage for fallback scenario
+    const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+    const foundClass = existingClasses.find((cls: any) => cls.id === classId);
+    
+    // If found in localStorage, return it
+    if (foundClass) {
+      console.log("Found class in localStorage:", foundClass);
+      // Ensure the class has the updatedAt field
+      if (!foundClass.updatedAt && foundClass.createdAt) {
+        foundClass.updatedAt = foundClass.createdAt;
+      }
+      return foundClass;
+    }
+    
+    // Otherwise try to fetch from Supabase
     const { data, error } = await supabase
       .from("classes")
       .select("*")
@@ -167,24 +184,7 @@ export const getClassById = async (classId: string): Promise<ClassData | null> =
     
     if (error) {
       console.error("Error fetching class from Supabase:", error);
-      
-      // Fallback to localStorage if Supabase fetch fails
-      try {
-        const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-        const foundClass = existingClasses.find((cls: any) => cls.id === classId);
-        
-        if (foundClass) {
-          // Ensure the class has the updatedAt field
-          if (!foundClass.updatedAt && foundClass.createdAt) {
-            foundClass.updatedAt = foundClass.createdAt;
-          }
-          return foundClass;
-        }
-      } catch (localStorageError) {
-        console.error("Error accessing localStorage:", localStorageError);
-      }
-      
-      return handleDatabaseError(error, null);
+      return null;
     }
     
     return formatClassData(data as DatabaseClassData);
@@ -197,6 +197,13 @@ export const getClassById = async (classId: string): Promise<ClassData | null> =
 // Get all classes for a school
 export const getClassesBySchool = async (schoolId: string): Promise<ClassData[]> => {
   try {
+    console.log(`Fetching classes for school: ${schoolId}`);
+    
+    // First try to get from localStorage to support offline mode
+    const localClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+    const schoolClassesFromLocal = localClasses.filter((cls: ClassData) => cls.schoolId === schoolId);
+    
+    // Also try to get from Supabase
     const { data, error } = await supabase
       .from("classes")
       .select("*")
@@ -204,20 +211,28 @@ export const getClassesBySchool = async (schoolId: string): Promise<ClassData[]>
     
     if (error) {
       console.error("Error fetching classes from Supabase:", error);
-      
-      // Fallback to localStorage if Supabase fetch fails
-      try {
-        const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-        return existingClasses.filter((cls: ClassData) => cls.schoolId === schoolId);
-      } catch (localStorageError) {
-        console.error("Error accessing localStorage:", localStorageError);
-        return [];
-      }
+      return schoolClassesFromLocal; // Return local classes as fallback
     }
     
-    return data.map(formatClassData);
+    // Format the Supabase data
+    const supabaseClasses = data.map(formatClassData);
+    
+    // Merge both sources (prioritizing Supabase data)
+    // This ensures we show all classes whether they're from Supabase or localStorage
+    const supabaseIds = new Set(supabaseClasses.map(cls => cls.id));
+    const uniqueLocalClasses = schoolClassesFromLocal.filter(cls => !supabaseIds.has(cls.id));
+    
+    return [...supabaseClasses, ...uniqueLocalClasses];
   } catch (error) {
     console.error("Error fetching classes:", error);
-    return [];
+    
+    // Fallback to localStorage
+    try {
+      const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+      return existingClasses.filter((cls: ClassData) => cls.schoolId === schoolId);
+    } catch (localError) {
+      console.error("Error accessing localStorage:", localError);
+      return [];
+    }
   }
 };

@@ -18,7 +18,8 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
     
     if (fetchError) {
       console.error("Error fetching class data:", fetchError);
-      return handleDatabaseError(fetchError, false);
+      // Try local storage if Supabase fails
+      return updateLocalStorage(classId, studentId, true);
     }
     
     // Prepare updated students array
@@ -40,7 +41,8 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
     
     if (updateError) {
       console.error("Error updating class students array:", updateError);
-      return handleDatabaseError(updateError, false);
+      // Try local storage if Supabase fails
+      return updateLocalStorage(classId, studentId, true);
     }
     
     // Also update the student's class_id field
@@ -79,7 +81,8 @@ export const removeStudentFromClass = async (classId: string, studentId: string)
       .single();
     
     if (fetchError) {
-      return handleDatabaseError(fetchError, false);
+      // Try local storage if Supabase fails
+      return updateLocalStorage(classId, studentId, false);
     }
     
     // Prepare updated students array
@@ -93,7 +96,8 @@ export const removeStudentFromClass = async (classId: string, studentId: string)
       .eq('id', classId);
     
     if (updateError) {
-      return handleDatabaseError(updateError, false);
+      // Try local storage if Supabase fails
+      return updateLocalStorage(classId, studentId, false);
     }
     
     // Also update the student's class_id field to null
@@ -126,60 +130,72 @@ export const addMultipleStudentsToClass = async (classId: string, studentIds: st
   try {
     console.log(`Adding ${studentIds.length} students to class ${classId}`);
     
-    // First get the current class data
-    const { data: classData, error: fetchError } = await supabase
-      .from('classes')
-      .select('students')
-      .eq('id', classId)
-      .single();
-    
-    if (fetchError) {
-      console.error("Error fetching class data:", fetchError);
-      return handleDatabaseError(fetchError, false);
+    if (studentIds.length === 0) {
+      return true; // Nothing to do
     }
     
-    // Prepare updated students array
-    const currentStudents = classData && Array.isArray(classData.students) ? classData.students : [];
+    // Try to get class data from localStorage first (fallback mechanism)
+    const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+    const classFromLocal = allClasses.find((cls: any) => cls.id === classId);
     
-    // Filter out students already in the class
-    const newStudents = studentIds.filter(id => !currentStudents.includes(id));
+    // Try to get class from Supabase
+    let currentStudents: string[] = [];
+    let supabaseSuccess = false;
     
-    if (newStudents.length === 0) {
-      console.log("All students already in class");
-      return true; // All students already in class
-    }
-    
-    const updatedStudents = [...currentStudents, ...newStudents];
-    console.log("Updated students array:", updatedStudents);
-    
-    // Update the class with the new students array
-    const { error: updateError } = await supabase
-      .from('classes')
-      .update({ students: updatedStudents })
-      .eq('id', classId);
-    
-    if (updateError) {
-      console.error("Error updating class students array:", updateError);
-      return handleDatabaseError(updateError, false);
-    }
-    
-    // Also update the students' class_id fields
-    for (const studentId of newStudents) {
-      const { error: studentError } = await supabase
-        .from('students')
-        .update({ class_id: classId })
-        .eq('id', studentId);
+    try {
+      // First get the current class data
+      const { data: classData, error: fetchError } = await supabase
+        .from('classes')
+        .select('students')
+        .eq('id', classId)
+        .single();
       
-      if (studentError) {
-        console.error(`Error updating student's class_id for ${studentId}:`, studentError);
-        // Continue anyway as the student is added to the class
+      if (!fetchError) {
+        currentStudents = classData && Array.isArray(classData.students) ? classData.students : [];
+        
+        // Filter out students already in the class
+        const newStudents = studentIds.filter(id => !currentStudents.includes(id));
+        
+        if (newStudents.length === 0) {
+          console.log("All students already in class");
+          return true; // All students already in class
+        }
+        
+        const updatedStudents = [...currentStudents, ...newStudents];
+        console.log("Updated students array:", updatedStudents);
+        
+        // Update the class with the new students array
+        const { error: updateError } = await supabase
+          .from('classes')
+          .update({ students: updatedStudents })
+          .eq('id', classId);
+        
+        if (!updateError) {
+          supabaseSuccess = true;
+        } else {
+          console.error("Error updating class students array:", updateError);
+        }
+        
+        // Also update the students' class_id fields
+        for (const studentId of newStudents) {
+          const { error: studentError } = await supabase
+            .from('students')
+            .update({ class_id: classId })
+            .eq('id', studentId);
+          
+          if (studentError) {
+            console.error(`Error updating student's class_id for ${studentId}:`, studentError);
+          }
+        }
       }
+    } catch (error) {
+      console.error("Supabase operations failed:", error);
     }
     
-    // Update localStorage as a fallback
-    updateMultipleLocalStorage(classId, studentIds);
+    // Always update localStorage as backup
+    const result = updateMultipleLocalStorage(classId, studentIds);
     
-    return true;
+    return supabaseSuccess || result; // Return true if either operation succeeded
   } catch (error) {
     console.error("Error in addMultipleStudentsToClass:", error);
     
@@ -263,6 +279,11 @@ const updateMultipleLocalStorage = (classId: string, studentIds: string[]): bool
     
     // Also update student records in localStorage
     const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
+    
+    // Check which students exist
+    const existingIds = new Set(allStudents.map((s: any) => s.id));
+    
+    // Update existing students
     const updatedStudents = allStudents.map((student: any) => {
       if (studentIds.includes(student.id)) {
         return {
@@ -272,6 +293,20 @@ const updateMultipleLocalStorage = (classId: string, studentIds: string[]): bool
         };
       }
       return student;
+    });
+    
+    // Add any students that don't exist yet
+    studentIds.forEach(id => {
+      if (!existingIds.has(id)) {
+        // Create a minimal student record
+        updatedStudents.push({
+          id,
+          username: `student-${id.substring(0, 5)}`,
+          display_name: `Student ${id.substring(0, 5)}`,
+          classId: classId,
+          class_id: classId
+        });
+      }
     });
     
     localStorage.setItem("students", JSON.stringify(updatedStudents));

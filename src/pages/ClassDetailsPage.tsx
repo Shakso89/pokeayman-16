@@ -4,7 +4,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, User, School, Calendar, Box, Loader2, Users } from "lucide-react";
+import { ChevronLeft, User, School, Calendar, Box, Loader2, Users, RefreshCw } from "lucide-react";
 import { getClassById } from "@/utils/classSync/classOperations";
 import { ClassData } from "@/utils/classSync/types";
 import { toast } from "@/hooks/use-toast";
@@ -22,12 +22,13 @@ const ClassDetailsPage: React.FC = () => {
   const [students, setStudents] = useState<any[]>([]);
   const [loadingStudents, setLoadingStudents] = useState(false);
   const [isStudentDialogOpen, setIsStudentDialogOpen] = useState(false);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     if (classId) {
       loadClassDetails();
     }
-  }, [classId, t]);
+  }, [classId, refreshTrigger, t]);
   
   const loadClassDetails = async () => {
     if (!classId) return;
@@ -70,27 +71,47 @@ const ClassDetailsPage: React.FC = () => {
     
     setLoadingStudents(true);
     try {
-      const { data, error } = await supabase
-        .from('students')
-        .select('*')
-        .in('id', studentIds);
-        
-      if (error) throw error;
-      
-      console.log("Fetched student details:", data);
-      setStudents(data || []);
-    } catch (error) {
-      console.error("Error fetching student details:", error);
-      // Try to get from localStorage
+      // Try local storage first as fallback
       const localStudents = JSON.parse(localStorage.getItem("students") || "[]");
-      const matchingStudents = localStudents.filter(
+      let matchingStudents = localStudents.filter(
         (s: any) => studentIds.includes(s.id)
       );
-      console.log("Fetched student details from localStorage:", matchingStudents);
-      setStudents(matchingStudents);
+      
+      try {
+        // Now try to get from Supabase
+        const { data, error } = await supabase
+          .from('students')
+          .select('*')
+          .in('id', studentIds);
+          
+        if (error) throw error;
+        
+        if (data && data.length > 0) {
+          console.log("Fetched student details from Supabase:", data);
+          setStudents(data);
+        } else {
+          console.log("Fetched student details from localStorage:", matchingStudents);
+          setStudents(matchingStudents);
+        }
+      } catch (error) {
+        console.error("Error fetching student details from Supabase:", error);
+        console.log("Fetched student details from localStorage:", matchingStudents);
+        setStudents(matchingStudents);
+      }
+    } catch (error) {
+      console.error("Error fetching student details:", error);
+      setStudents([]);
     } finally {
       setLoadingStudents(false);
     }
+  };
+  
+  const handleRefresh = () => {
+    toast({
+      title: t("refreshing"),
+      description: t("refreshing-class-data")
+    });
+    setRefreshTrigger(prev => prev + 1);
   };
   
   const username = localStorage.getItem("teacherUsername") || "";
@@ -113,15 +134,7 @@ const ClassDetailsPage: React.FC = () => {
         });
         
         // Refresh class details to show new students
-        if (classData) {
-          const updatedData = await getClassById(classId);
-          if (updatedData) {
-            setClassData(updatedData);
-            if (updatedData.students && updatedData.students.length > 0) {
-              fetchStudentDetails(updatedData.students);
-            }
-          }
-        }
+        handleRefresh();
       } else {
         throw new Error("Failed to add students to class");
       }
@@ -146,6 +159,15 @@ const ClassDetailsPage: React.FC = () => {
             {t("back")}
           </Button>
           <h1 className="text-2xl font-bold">{t("class-details")}</h1>
+          
+          <Button 
+            variant="outline" 
+            size="icon" 
+            onClick={handleRefresh} 
+            className="ml-auto h-9 w-9 bg-white"
+          >
+            <RefreshCw className="h-4 w-4" />
+          </Button>
         </div>
         
         {loading ? (
@@ -208,7 +230,7 @@ const ClassDetailsPage: React.FC = () => {
                     </div>
                     {isTeacherOrAdmin && (
                       <Button 
-                        className="bg-red-500 hover:bg-red-600 text-white"
+                        className="bg-pokemon-red hover:bg-red-600 text-white"
                         onClick={() => setIsStudentDialogOpen(true)}
                       >
                         {t("add-students")}
@@ -250,7 +272,7 @@ const ClassDetailsPage: React.FC = () => {
                     </p>
                     {isTeacherOrAdmin && (
                       <Button 
-                        className="bg-red-500 hover:bg-red-600 text-white"
+                        className="bg-pokemon-red hover:bg-red-600 text-white"
                         onClick={() => setIsStudentDialogOpen(true)}
                       >
                         {t("add-students")}

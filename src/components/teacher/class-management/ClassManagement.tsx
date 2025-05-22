@@ -71,6 +71,10 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     // Add a small delay and refresh again to ensure we get the latest data
     setTimeout(() => {
       refreshClasses();
+      // Add one more refresh after a longer delay to catch any delayed updates
+      setTimeout(() => {
+        refreshClasses();
+      }, 2000);
     }, 1000);
     toast({
       title: t("success"),
