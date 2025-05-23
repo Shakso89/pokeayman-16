@@ -1,155 +1,147 @@
+
 import React, { useState, useEffect } from "react";
 import { Student } from "@/types/pokemon";
 import { Button } from "@/components/ui/button";
+import { Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Loader2, Search, UserPlus, X } from "lucide-react";
-import { useTranslation } from "@/hooks/useTranslation";
-import { toast } from "@/hooks/use-toast";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
-import { motion } from "framer-motion";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { useTranslation } from "@/hooks/useTranslation";
+import { useNavigate } from "react-router-dom";
+import { useToast } from "@/hooks/use-toast";
 
 interface StudentsListProps {
   classId: string;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onStudentsAdded: (studentIds: string[]) => void;
+  viewMode?: boolean; // Add viewMode prop to indicate if we're just viewing students
 }
 
-export const StudentsList: React.FC<StudentsListProps> = ({
+export const StudentsList = ({
   classId,
   open,
   onOpenChange,
   onStudentsAdded,
-}) => {
+  viewMode = false
+}: StudentsListProps) => {
   const { t } = useTranslation();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [isSearching, setIsSearching] = useState(false);
-  const [students, setStudents] = useState<Student[]>([]);
-  const [selectedStudents, setSelectedStudents] = useState<Student[]>([]);
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  
+  const [students, setStudents] = useState<Student[]>([]); // Use Student type
+  const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [currentStudents, setCurrentStudents] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  // On component mount, fetch the current class data to get existing students
   useEffect(() => {
-    if (classId && open) {
-      fetchClassData();
-      handleSearch(""); // Load initial students when opened
+    if (open) {
+      setIsLoading(true);
+      getClassStudents();
+      searchStudents();
+    } else {
+      // Clear state when dialog closes
+      setSelectedStudents([]);
+      setSearchQuery("");
     }
-  }, [classId, open]);
+  }, [open, classId, searchQuery]);
 
-  // Fetch current class data to get list of students already in the class
-  const fetchClassData = async () => {
+  const getClassStudents = async () => {
     try {
-      console.log("Fetching class data for ID:", classId);
+      // Try to get class from localStorage
+      const classes = JSON.parse(localStorage.getItem("classes") || "[]");
+      const classData = classes.find((c: any) => c.id === classId);
       
-      // First try Supabase
-      const { data: classData, error } = await supabase
-        .from('classes')
-        .select('students')
-        .eq('id', classId)
-        .single();
-      
-      if (error) {
-        throw error;
-      }
-      
-      console.log("Class data retrieved:", classData);
-      setCurrentStudents(classData?.students || []);
-      
-    } catch (error) {
-      console.error("Error fetching class data:", error);
-      
-      // Fallback to localStorage
-      try {
-        const classes = JSON.parse(localStorage.getItem("classes") || "[]");
-        const currentClass = classes.find((c: any) => c.id === classId);
-        if (currentClass) {
-          console.log("Class found in localStorage:", currentClass);
-          setCurrentStudents(currentClass.students || []);
-        } else {
-          console.warn("Class not found in localStorage");
-          setCurrentStudents([]);
-        }
-      } catch (localError) {
-        console.error("Error fetching from localStorage:", localError);
+      if (classData && classData.students) {
+        setCurrentStudents(classData.students);
+      } else {
         setCurrentStudents([]);
       }
+      
+      setIsLoading(false);
+    } catch (error) {
+      console.error("Error fetching class students:", error);
+      setCurrentStudents([]);
+      setIsLoading(false);
     }
   };
 
-  // Handle search query when user types
-  const handleSearch = async (query: string) => {
-    setIsSearching(true);
-    setSearchQuery(query);
-    
+  const searchStudents = async () => {
     try {
-      console.log("Searching students with query:", query);
+      // Try to fetch from Supabase first
+      const query = supabase.from("students").select("*");
       
-      // First try to search in Supabase
-      const supabaseQuery = supabase
-        .from('students')
-        .select('*');
-      
-      // If there's a search query, filter by name or username
-      if (query) {
-        supabaseQuery.or(`display_name.ilike.%${query}%,username.ilike.%${query}%`);
+      if (searchQuery) {
+        query.ilike("username", `%${searchQuery}%`);
       }
       
-      const { data: supabaseStudents, error } = await supabaseQuery;
+      const { data: studentsData, error } = await query;
       
-      if (error) {
-        throw error;
-      }
+      if (error) throw error;
       
-      if (Array.isArray(supabaseStudents) && supabaseStudents.length > 0) {
-        console.log(`Found ${supabaseStudents.length} students in Supabase:`, supabaseStudents);
+      if (studentsData && studentsData.length > 0) {
+        console.log(`Found ${studentsData.length} students in Supabase:`, studentsData);
         
         // Filter out students already in the class
-        const filteredStudents = supabaseStudents.filter(student => 
+        const filteredStudents = studentsData.filter(
+          student => 
           !currentStudents.includes(student.id)
         );
         
-        // Fix the mapping to include teacherId
+        // Fix the mapping to include all required Student properties
         const mappedStudents = filteredStudents.map(student => ({
           id: student.id,
           username: student.username,
           displayName: student.display_name || student.username,
-          teacherId: student.teacher_id || "" // Include teacherId from DB or empty string
+          teacherId: student.teacher_id || "",
+          schoolId: "",  // Add required properties for the Student type
+          avatar: "",
+          class_id: student.class_id || null,
+          classId: student.class_id || null
         }));
         
         setStudents(mappedStudents);
       } else {
         throw new Error("No students found in Supabase");
       }
-    } catch (error) {
-      console.error("Error searching students in Supabase:", error);
+    } catch (supabaseError) {
+      console.error("Error searching in Supabase:", supabaseError);
       
       // Fallback to localStorage
       try {
-        let allStudents = JSON.parse(localStorage.getItem("students") || "[]");
-        console.log("Searching in localStorage with", allStudents.length, "students");
-        
-        if (query) {
-          allStudents = allStudents.filter((student: any) => {
-            const displayName = student.display_name || student.displayName || "";
-            const username = student.username || "";
-            return displayName.toLowerCase().includes(query.toLowerCase()) || 
-                   username.toLowerCase().includes(query.toLowerCase());
-          });
-        }
-        
-        // Filter out students already in the class
-        const filteredStudents = allStudents.filter((student: any) => 
-          !currentStudents.includes(student.id)
-        );
+        const storedStudents = JSON.parse(localStorage.getItem("students") || "[]");
+        const filteredStudents = storedStudents.filter((student: any) => {
+          // Filter by search query
+          const matchesSearch = !searchQuery || student.username.toLowerCase().includes(searchQuery.toLowerCase());
+          
+          // Filter out students already in the class
+          const notInClass = !currentStudents.includes(student.id);
+          
+          return matchesSearch && notInClass;
+        });
         
         console.log(`Found ${filteredStudents.length} students in localStorage:`, filteredStudents);
         
-        // Fix the mapping to include teacherId
+        // Map to correctly include all required Student properties
         const mappedStudents = filteredStudents.map((student: any) => ({
           id: student.id,
           username: student.username,
           displayName: student.display_name || student.displayName || student.username,
-          teacherId: student.teacher_id || student.teacherId || "" // Include teacherId from storage or empty string
+          teacherId: student.teacher_id || student.teacherId || "",
+          schoolId: student.school_id || student.schoolId || "", 
+          avatar: student.avatar || "",
+          class_id: student.class_id || student.classId || null,
+          classId: student.class_id || student.classId || null
         }));
         
         setStudents(mappedStudents);
@@ -157,213 +149,135 @@ export const StudentsList: React.FC<StudentsListProps> = ({
         console.error("Error searching in localStorage:", localError);
         setStudents([]);
       }
-    } finally {
-      setIsSearching(false);
     }
   };
 
-  // Toggle student selection
-  const toggleSelectStudent = (student: Student) => {
-    if (selectedStudents.some(s => s.id === student.id)) {
-      // If already selected, remove from selection
-      setSelectedStudents(selectedStudents.filter(s => s.id !== student.id));
+  const toggleStudent = (studentId: string) => {
+    setSelectedStudents(prev => 
+      prev.includes(studentId)
+        ? prev.filter(id => id !== studentId)
+        : [...prev, studentId]
+    );
+  };
+
+  const handleStudentClick = (student: Student) => {
+    if (viewMode) {
+      // In view mode, clicking navigates to student profile
+      navigate(`/teacher/student/${student.id}`);
     } else {
-      // If not selected, add to selection
-      setSelectedStudents([...selectedStudents, student]);
+      // In selection mode, clicking selects/deselects the student
+      toggleStudent(student.id);
     }
   };
 
-  // Clear all selected students
-  const clearSelectedStudents = () => {
+  const handleAddStudents = () => {
+    onStudentsAdded(selectedStudents);
     setSelectedStudents([]);
-  };
-
-  // Add selected students to class
-  const handleAddStudents = async () => {
-    if (selectedStudents.length === 0) {
-      toast({
-        title: t("error"),
-        description: t("select-at-least-one-student"),
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const studentIds = selectedStudents.map(s => s.id);
-    console.log("Adding students to class:", studentIds);
+    onOpenChange(false);
     
-    try {
-      // Call the callback to add students
-      await onStudentsAdded(studentIds);
-      
-      // Clear selection and close dialog
-      clearSelectedStudents();
-      onOpenChange(false);
-      
-      toast({
-        title: t("success"),
-        description: `${studentIds.length} ${t("students-added-to-class")}`
-      });
-    } catch (error) {
-      console.error("Error adding students:", error);
-      
-      toast({
-        title: t("error"),
-        description: t("failed-to-add-students"),
-        variant: "destructive",
-      });
-    }
+    toast({
+      title: t("success"),
+      description: t("students-added-to-class"),
+    });
   };
-
-  if (!open) return null;
-
-  const isStudentSelected = (id: string) => selectedStudents.some(s => s.id === id);
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-      <motion.div 
-        className="bg-white rounded-lg shadow-lg w-full max-w-2xl overflow-hidden"
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.3 }}
-      >
-        <div className="p-4 border-b flex justify-between items-center">
-          <h2 className="text-xl font-bold">{t("add-students-to-class")}</h2>
-          <Button 
-            variant="ghost" 
-            size="icon" 
-            onClick={() => onOpenChange(false)}
-            className="rounded-full"
-          >
-            <X />
-          </Button>
-        </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle>
+            {viewMode ? t("class-students") : t("add-students-to-class")}
+          </DialogTitle>
+          <DialogDescription>
+            {viewMode 
+              ? t("view-students-in-class") 
+              : t("search-and-select-students")}
+          </DialogDescription>
+        </DialogHeader>
         
-        <div className="p-4">
-          <div className="flex gap-2 mb-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder={t("search-students")}
-                value={searchQuery}
-                onChange={(e) => handleSearch(e.target.value)}
-                className="pl-9"
-              />
-            </div>
+        <div className="mt-2 space-y-4">
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4 text-gray-500" />
+            <Input
+              placeholder={t("search-students")}
+              className="flex-1"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+            />
           </div>
           
-          {/* Selected students */}
-          {selectedStudents.length > 0 && (
-            <div className="mb-4">
-              <div className="flex items-center justify-between mb-2">
-                <h3 className="font-medium text-sm text-gray-500">
-                  {selectedStudents.length} {t("students-selected")}
-                </h3>
-                <Button 
-                  variant="ghost" 
-                  size="sm" 
-                  onClick={clearSelectedStudents}
-                  className="h-8 text-xs"
-                >
-                  {t("clear-all")}
-                </Button>
+          <ScrollArea className="h-[300px] rounded-md border p-2">
+            {isLoading ? (
+              <div className="flex items-center justify-center h-full">
+                <p>{t("loading")}</p>
               </div>
-              <div className="flex flex-wrap gap-2">
-                {selectedStudents.map((student) => (
-                  <motion.div 
-                    key={`selected-${student.id}`}
-                    className="bg-blue-100 text-blue-700 px-2 py-1 rounded-full flex items-center gap-1"
-                    initial={{ opacity: 0, scale: 0.8 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    exit={{ opacity: 0, scale: 0.8 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <span className="text-sm">{student.displayName}</span>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      onClick={() => toggleSelectStudent(student)}
-                      className="h-5 w-5 p-0 rounded-full hover:bg-blue-200"
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </motion.div>
-                ))}
-              </div>
-            </div>
-          )}
-          
-          {/* Students list */}
-          <div className="border rounded-md overflow-hidden max-h-[400px] overflow-y-auto">
-            {isSearching ? (
-              <div className="flex items-center justify-center p-8">
-                <Loader2 className="h-6 w-6 animate-spin text-gray-400" />
-              </div>
-            ) : students.length === 0 ? (
-              <div className="p-8 text-center">
-                <p className="text-gray-500">{t("no-students-found")}</p>
-              </div>
-            ) : (
-              <ul className="divide-y">
+            ) : students.length > 0 ? (
+              <div className="space-y-2">
                 {students.map((student) => (
-                  <motion.li
+                  <div
                     key={student.id}
-                    className={`p-3 flex items-center justify-between hover:bg-gray-50 cursor-pointer ${
-                      isStudentSelected(student.id) ? "bg-blue-50" : ""
+                    className={`flex items-center justify-between p-2 rounded-md ${
+                      viewMode ? 'hover:bg-gray-100 cursor-pointer' : ''
                     }`}
-                    onClick={() => toggleSelectStudent(student)}
-                    whileHover={{ backgroundColor: "#f7f9fc" }}
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.2 }}
+                    onClick={viewMode ? () => handleStudentClick(student) : undefined}
                   >
-                    <div className="flex items-center">
-                      <div className="h-8 w-8 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center mr-3">
-                        {student.displayName?.[0]?.toUpperCase() || "S"}
-                      </div>
+                    <div className="flex items-center space-x-2">
+                      {!viewMode && (
+                        <Checkbox
+                          checked={selectedStudents.includes(student.id)}
+                          onCheckedChange={() => toggleStudent(student.id)}
+                        />
+                      )}
                       <div>
-                        <p className="font-medium">{student.displayName}</p>
-                        <p className="text-xs text-gray-500">@{student.username}</p>
+                        <p className="font-medium">
+                          {student.displayName}
+                        </p>
+                        <p className="text-sm text-gray-500">
+                          @{student.username}
+                        </p>
                       </div>
                     </div>
-                    
-                    <motion.button
-                      className={`p-2 rounded-full ${
-                        isStudentSelected(student.id)
-                          ? "bg-blue-100 text-blue-700"
-                          : "bg-gray-100 text-gray-700"
-                      }`}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      onClick={() => toggleSelectStudent(student)}
-                    >
-                      <UserPlus className="h-4 w-4" />
-                    </motion.button>
-                  </motion.li>
+                    {viewMode && (
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          navigate(`/teacher/student/${student.id}`);
+                        }}
+                      >
+                        {t("view-profile")}
+                      </Button>
+                    )}
+                  </div>
                 ))}
-              </ul>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center h-full">
+                <p className="text-gray-500">
+                  {searchQuery 
+                    ? t("no-matching-students") 
+                    : t("no-available-students")}
+                </p>
+              </div>
             )}
-          </div>
+          </ScrollArea>
         </div>
         
-        <div className="p-4 border-t flex justify-end gap-2">
-          <Button 
-            variant="outline" 
-            onClick={() => onOpenChange(false)}
-          >
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("cancel")}
           </Button>
-          <motion.div>
-            <Button 
+          {!viewMode && (
+            <Button
               onClick={handleAddStudents}
               disabled={selectedStudents.length === 0}
-              className={selectedStudents.length === 0 ? "opacity-50" : ""}
             >
-              {t("add-students")}
+              {t("add-selected-students")}
             </Button>
-          </motion.div>
-        </div>
-      </motion.div>
-    </div>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 };

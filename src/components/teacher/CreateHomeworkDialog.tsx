@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
   DialogContent, 
@@ -16,6 +16,7 @@ import { FileText } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkAssignment } from "@/types/homework";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 interface CreateHomeworkDialogProps {
   open: boolean;
@@ -36,6 +37,8 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
 }) => {
   const { t } = useTranslation();
   const { toast } = useToast();
+  const [classes, setClasses] = useState<{id: string, name: string}[]>([]);
+  const [selectedClassId, setSelectedClassId] = useState<string>(classId);
   
   const [homeworkData, setHomeworkData] = useState({
     title: "",
@@ -43,6 +46,40 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
     type: "text" as "text" | "image" | "audio",
     coinReward: 10
   });
+
+  // Fetch available classes when dialog opens
+  useEffect(() => {
+    if (open) {
+      fetchClasses();
+      // Initialize selected class to the provided classId
+      setSelectedClassId(classId);
+    }
+  }, [open, classId]);
+
+  const fetchClasses = () => {
+    try {
+      // First try to get classes from localStorage
+      const storedClasses = localStorage.getItem("classes");
+      if (storedClasses) {
+        const parsedClasses = JSON.parse(storedClasses);
+        // Filter classes by teacherId if teacherId is provided
+        const filteredClasses = teacherId 
+          ? parsedClasses.filter((cls: any) => 
+              cls.teacherId === teacherId || cls.teacher_id === teacherId
+            )
+          : parsedClasses;
+        
+        // Map to a simple format with id and name
+        setClasses(filteredClasses.map((cls: any) => ({
+          id: cls.id,
+          name: cls.name
+        })));
+      }
+    } catch (error) {
+      console.error("Error fetching classes:", error);
+      setClasses([]);
+    }
+  };
 
   const handleCreateHomework = () => {
     // Validate homework data
@@ -55,7 +92,7 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
       return;
     }
 
-    if (!classId) {
+    if (!selectedClassId) {
       toast({
         title: t("error"),
         description: t("select-class"),
@@ -72,7 +109,7 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
       title: homeworkData.title,
       description: homeworkData.description,
       type: homeworkData.type,
-      classId: classId,
+      classId: selectedClassId,
       teacherId,
       createdAt: now.toISOString(),
       expiresAt: expiresAt.toISOString(),
@@ -84,7 +121,7 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
     homeworkAssignments.push(newHomework);
     localStorage.setItem("homeworkAssignments", JSON.stringify(homeworkAssignments));
     
-    console.log("Created homework for class:", classId, "Homework:", newHomework);
+    console.log("Created homework for class:", selectedClassId, "Homework:", newHomework);
     
     // Call the callback
     onHomeworkCreated(newHomework);
@@ -116,6 +153,32 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
         </DialogHeader>
         
         <div className="grid gap-4 py-4">
+          {/* Class Selection Dropdown */}
+          <div className="space-y-2">
+            <Label htmlFor="class">{t("select-class")}</Label>
+            <Select 
+              value={selectedClassId} 
+              onValueChange={(value) => setSelectedClassId(value)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder={t("select-a-class")} />
+              </SelectTrigger>
+              <SelectContent>
+                {classes.length > 0 ? (
+                  classes.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name}
+                    </SelectItem>
+                  ))
+                ) : (
+                  <SelectItem value="no-classes" disabled>
+                    {t("no-classes-available")}
+                  </SelectItem>
+                )}
+              </SelectContent>
+            </Select>
+          </div>
+          
           <div className="space-y-2">
             <Label htmlFor="title">{t("title")}</Label>
             <Input

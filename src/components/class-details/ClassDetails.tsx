@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -307,6 +306,10 @@ const ClassDetails = () => {
     ) || isAdmin;
   };
 
+  const handleStudentClick = (studentId: string) => {
+    navigate(`/teacher/student/${studentId}`);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -501,11 +504,12 @@ const ClassDetails = () => {
                       {students.map((student) => (
                         <motion.div 
                           key={student.id} 
-                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
                           whileHover={{ scale: 1.01, backgroundColor: "#f9fafb" }}
                           initial={{ opacity: 0 }}
                           animate={{ opacity: 1 }}
                           transition={{ duration: 0.3 }}
+                          onClick={() => handleStudentClick(student.id)}
                         >
                           <div className="flex items-center">
                             <div className="h-10 w-10 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center mr-3">
@@ -523,11 +527,14 @@ const ClassDetails = () => {
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                onClick={() => setGiveCoinsDialog({
-                                  open: true, 
-                                  studentId: student.id,
-                                  studentName: student.display_name || student.displayName || student.username
-                                })}
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Stop click from bubbling up
+                                  setGiveCoinsDialog({
+                                    open: true, 
+                                    studentId: student.id,
+                                    studentName: student.display_name || student.displayName || student.username
+                                  })
+                                }}
                               >
                                 <Coins className="h-4 w-4 mr-1" />
                                 {t("award-coins")}
@@ -536,12 +543,15 @@ const ClassDetails = () => {
                               <Button 
                                 size="sm" 
                                 variant="outline"
-                                onClick={() => setManagePokemonDialog({
-                                  open: true, 
-                                  studentId: student.id,
-                                  studentName: student.display_name || student.displayName || student.username,
-                                  schoolId: classData.school_id || classData.schoolId
-                                })}
+                                onClick={(e) => {
+                                  e.stopPropagation(); // Stop click from bubbling up
+                                  setManagePokemonDialog({
+                                    open: true, 
+                                    studentId: student.id,
+                                    studentName: student.display_name || student.displayName || student.username,
+                                    schoolId: classData.school_id || classData.schoolId
+                                  })
+                                }}
                               >
                                 <Award className="h-4 w-4 mr-1" />
                                 {t("manage-pokemon")}
@@ -607,6 +617,7 @@ const ClassDetails = () => {
         open={isStudentListOpen}
         onOpenChange={setIsStudentListOpen}
         onStudentsAdded={handleAddStudents}
+        viewMode={false} // Set to false for adding students mode
       />
 
       {/* Delete Class Confirmation Dialog */}

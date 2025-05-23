@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -171,6 +172,7 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
           open={isStudentsListOpen}
           onOpenChange={setIsStudentsListOpen}
           onStudentsAdded={handleStudentsAdded} // Add the required prop
+          viewMode={true} // Set to true for viewing mode
         />
       )}
     </>
