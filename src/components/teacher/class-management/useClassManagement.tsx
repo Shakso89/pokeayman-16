@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -230,29 +229,45 @@ export const useClassManagement = ({
   };
   
   const openDeleteDialog = (classId: string) => {
+    console.log("Opening delete dialog for class:", classId);
     setClassToDelete(classId);
     setIsDeleteDialogOpen(true);
   };
   
   const handleDeleteClass = async () => {
-    if (!classToDelete) return;
+    if (!classToDelete) {
+      console.error("No class ID provided for deletion");
+      return;
+    }
     
     try {
       console.log("Deleting class:", classToDelete);
       
-      const success = await removeClass(classToDelete);
+      // First, try to delete directly from Supabase
+      const { error } = await supabase
+        .from('classes')
+        .delete()
+        .eq('id', classToDelete);
       
-      if (success) {
-        toast({
-          title: t("success"),
-          description: t("class-deleted-successfully")
-        });
+      if (error) {
+        console.error("Error deleting class from Supabase:", error);
         
-        setIsDeleteDialogOpen(false);
-        fetchClasses(); // Refresh classes after deletion
-      } else {
-        throw new Error("Failed to delete class");
+        // Fall back to the remove class utility function
+        const success = await removeClass(classToDelete);
+        
+        if (!success) {
+          throw new Error("Failed to delete class using both methods");
+        }
       }
+      
+      toast({
+        title: t("success"),
+        description: t("class-deleted-successfully")
+      });
+      
+      setIsDeleteDialogOpen(false);
+      setClassToDelete(null);
+      fetchClasses(); // Refresh classes after deletion
     } catch (error) {
       console.error("Error deleting class:", error);
       toast({
@@ -271,6 +286,7 @@ export const useClassManagement = ({
     isAddStudentDialogOpen,
     availableStudents,
     isDeleteDialogOpen,
+    classToDelete, // Export the classToDelete state
     setSuccessMessage,
     openAddStudentDialog,
     handleAddStudents,

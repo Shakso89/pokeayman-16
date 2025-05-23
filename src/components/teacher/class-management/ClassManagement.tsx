@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -38,6 +37,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     isAddStudentDialogOpen,
     availableStudents,
     isDeleteDialogOpen,
+    classToDelete,
     setSuccessMessage,
     openAddStudentDialog,
     handleAddStudents,
@@ -179,6 +179,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         isOpen={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
         onConfirmDelete={handleDeleteClass}
+        classId={classToDelete || undefined} // Pass the classId to be deleted
       />
       
       {/* School Selection Dialog */}

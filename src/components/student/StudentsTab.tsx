@@ -1,124 +1,218 @@
 
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PlusCircle, RefreshCw } from "lucide-react";
+import { Loader2, UserPlus, KeyRound, Eye, EyeOff } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "@/hooks/useTranslation";
-import StudentsList from "./students-tab/StudentsList";
-import SortControls from "./students-tab/SortControls";
-import LoadingState from "./students-tab/LoadingState";
-import { useStudentsData } from "./students-tab/useStudentsData";
-import { StudentsList as StudentsDialog } from "@/components/student-profile/StudentsList";
 import { toast } from "@/hooks/use-toast";
-import { addMultipleStudentsToClass } from "@/utils/classSync/studentOperations";
+import { StudentsList } from "@/components/student-profile/StudentsList";
+import { useNavigate } from "react-router-dom";
 
 interface StudentsTabProps {
   classId: string;
 }
 
 const StudentsTab: React.FC<StudentsTabProps> = ({ classId }) => {
+  const [students, setStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+  const [showPasswords, setShowPasswords] = useState(false); // State to toggle password visibility
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const [isStudentListOpen, setIsStudentListOpen] = useState(false);
-  const { students, isLoading, sortOrder, toggleSortOrder, refreshStudents } = useStudentsData(classId);
-  const [refreshCount, setRefreshCount] = useState(0);
 
-  // Effect to refresh data when classId changes or refresh is triggered
   useEffect(() => {
-    if (classId) {
-      refreshStudents();
-    }
-  }, [classId, refreshCount]);
-
-  const handleStudentClick = (studentId: string) => {
-    // Navigate to the student profile page
-    navigate(`/student/profile/${studentId}`);
-  };
+    fetchStudents();
+  }, [classId]);
   
-  const handleAddStudents = async (studentIds: string[]) => {
-    if (!classId || studentIds.length === 0) return;
-    
+  const fetchStudents = async () => {
+    setLoading(true);
     try {
-      const result = await addMultipleStudentsToClass(classId, studentIds);
-      
-      if (result) {
-        toast({
-          title: t("success"),
-          description: `${studentIds.length} students added to class`
-        });
+      // First try to get the class to retrieve student IDs
+      const { data: classData, error: classError } = await supabase
+        .from('classes')
+        .select('*')
+        .eq('id', classId)
+        .single();
         
-        // Refresh the student list after adding students
-        refreshStudents();
-        setRefreshCount(prev => prev + 1);
-      } else {
-        throw new Error("Failed to add students to class");
+      if (classError) throw classError;
+      
+      if (!classData || !classData.students || classData.students.length === 0) {
+        setStudents([]);
+        setLoading(false);
+        return;
       }
+      
+      // Fetch student details using the IDs from the class
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select('*')
+        .in('id', classData.students);
+        
+      if (studentsError) throw studentsError;
+      
+      setStudents(studentsData || []);
     } catch (error) {
-      console.error("Error adding students to class:", error);
+      console.error("Error fetching students:", error);
+      
+      // Try to get from localStorage as fallback
+      try {
+        // Get class data from localStorage
+        const savedClasses = localStorage.getItem("classes");
+        if (savedClasses) {
+          const parsedClasses = JSON.parse(savedClasses);
+          const foundClass = parsedClasses.find((cls: any) => cls.id === classId);
+          
+          if (foundClass && foundClass.students && foundClass.students.length > 0) {
+            // Get student data from localStorage
+            const savedStudents = localStorage.getItem("students");
+            if (savedStudents) {
+              const parsedStudents = JSON.parse(savedStudents);
+              const classStudents = parsedStudents.filter((student: any) => 
+                foundClass.students.includes(student.id)
+              );
+              setStudents(classStudents);
+            }
+          } else {
+            setStudents([]);
+          }
+        }
+      } catch (localStorageError) {
+        console.error("Error accessing localStorage:", localStorageError);
+        toast({
+          title: t("error"),
+          description: t("failed-to-load-students"),
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleStudentsAdded = (studentIds: string[]) => {
+    if (studentIds.length > 0) {
       toast({
-        title: t("error"),
-        description: t("failed-to-add-students"),
-        variant: "destructive"
+        title: t("success"),
+        description: `${studentIds.length} ${t("students-added-to-class")}`
       });
+      fetchStudents(); // Refresh student list
     }
   };
   
-  const handleManualRefresh = () => {
-    refreshStudents();
-    setRefreshCount(prev => prev + 1);
-    toast({
-      title: t("refreshing"),
-      description: t("refreshing-student-list")
-    });
+  const handleViewStudentProfile = (studentId: string) => {
+    navigate(`/teacher/student/${studentId}`);
   };
-
-  if (isLoading) {
-    return <LoadingState t={t} />;
+  
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center py-12">
+        <Loader2 className="h-6 w-6 mr-2 animate-spin text-primary" />
+        <span>{t("loading-students")}</span>
+      </div>
+    );
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="text-lg font-medium">{t("class-students")}</h3>
-          <div className="flex gap-2 items-center">
-            <Button
-              size="icon"
-              variant="outline"
-              onClick={handleManualRefresh}
-              className="h-8 w-8"
-              title={t("refresh")}
-            >
-              <RefreshCw className="h-4 w-4" />
-            </Button>
-            <SortControls sortOrder={sortOrder} toggleSortOrder={toggleSortOrder} t={t} />
-            <Button 
-              size="sm" 
-              onClick={() => setIsStudentListOpen(true)}
-              className="flex items-center gap-1"
-            >
-              <PlusCircle className="h-4 w-4" />
-              {t("add-student")}
-            </Button>
-          </div>
+    <div className="space-y-6">
+      <div className="flex justify-between items-center">
+        <h2 className="text-xl font-semibold">
+          {t("students")} ({students.length})
+        </h2>
+        <div className="flex space-x-2">
+          <Button
+            onClick={() => setShowPasswords(!showPasswords)}
+            variant="outline"
+            size="sm"
+            className="flex items-center"
+          >
+            {showPasswords ? (
+              <>
+                <EyeOff className="h-4 w-4 mr-1" />
+                {t("hide-passwords")}
+              </>
+            ) : (
+              <>
+                <Eye className="h-4 w-4 mr-1" />
+                {t("show-passwords")}
+              </>
+            )}
+          </Button>
+          <Button
+            onClick={() => setIsAddStudentOpen(true)}
+            size="sm"
+            className="flex items-center"
+          >
+            <UserPlus className="h-4 w-4 mr-1" />
+            {t("add-students")}
+          </Button>
         </div>
+      </div>
+      
+      {students.length === 0 ? (
+        <Card>
+          <CardContent className="text-center py-12">
+            <p className="text-gray-500">{t("no-students-in-class")}</p>
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="space-y-3">
+          {students.map((student) => (
+            <Card 
+              key={student.id} 
+              className="hover:shadow-md transition-shadow cursor-pointer" 
+              onClick={() => handleViewStudentProfile(student.id)}
+            >
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-3">
+                    <div className="h-10 w-10 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center">
+                      {(student.display_name || student.username || '??')[0]?.toUpperCase()}
+                    </div>
+                    <div>
+                      <p className="font-medium">{student.display_name || student.username}</p>
+                      <p className="text-sm text-gray-500">@{student.username}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center space-x-4">
+                    {/* Password display section */}
+                    <div className="flex items-center">
+                      <KeyRound className="h-4 w-4 mr-1 text-gray-400" />
+                      <span className="text-sm font-mono">
+                        {showPasswords 
+                          ? (student.password || student.password_hash || t("no-password")) 
+                          : '••••••••'
+                        }
+                      </span>
+                    </div>
+                    
+                    <Button 
+                      variant="ghost" 
+                      size="sm"
+                      onClick={(e) => {
+                        e.stopPropagation(); // Prevent triggering parent onClick
+                        handleViewStudentProfile(student.id);
+                      }}
+                    >
+                      {t("view-profile")}
+                    </Button>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
 
-        <StudentsList 
-          students={students} 
-          onStudentClick={handleStudentClick}
-          t={t}
-        />
-        
-        {/* Dialog for adding students to class */}
-        <StudentsDialog
-          classId={classId}
-          open={isStudentListOpen}
-          onOpenChange={setIsStudentListOpen}
-          onStudentsAdded={handleAddStudents}
-        />
-      </CardContent>
-    </Card>
+      <StudentsList
+        classId={classId}
+        open={isAddStudentOpen}
+        onOpenChange={setIsAddStudentOpen}
+        onStudentsAdded={handleStudentsAdded}
+        viewMode={false}
+      />
+    </div>
   );
 };
 
