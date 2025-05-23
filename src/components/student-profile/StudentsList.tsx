@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Student } from "@/types/pokemon";
 import { Button } from "@/components/ui/button";
@@ -109,12 +108,15 @@ export const StudentsList: React.FC<StudentsListProps> = ({
           !currentStudents.includes(student.id)
         );
         
-        // Map to common format
-        setStudents(filteredStudents.map(student => ({
+        // Fix the mapping to include teacherId
+        const mappedStudents = filteredStudents.map(student => ({
           id: student.id,
           username: student.username,
           displayName: student.display_name || student.username,
-        })));
+          teacherId: student.teacher_id || "" // Include teacherId from DB or empty string
+        }));
+        
+        setStudents(mappedStudents);
       } else {
         throw new Error("No students found in Supabase");
       }
@@ -142,12 +144,15 @@ export const StudentsList: React.FC<StudentsListProps> = ({
         
         console.log(`Found ${filteredStudents.length} students in localStorage:`, filteredStudents);
         
-        // Map to common format
-        setStudents(filteredStudents.map((student: any) => ({
+        // Fix the mapping to include teacherId
+        const mappedStudents = filteredStudents.map((student: any) => ({
           id: student.id,
           username: student.username,
           displayName: student.display_name || student.displayName || student.username,
-        })));
+          teacherId: student.teacher_id || student.teacherId || "" // Include teacherId from storage or empty string
+        }));
+        
+        setStudents(mappedStudents);
       } catch (localError) {
         console.error("Error searching in localStorage:", localError);
         setStudents([]);

@@ -10,9 +10,15 @@ interface DashboardCardsProps {
   onManageClasses: () => void;
   isAdmin?: boolean;
   teacherId?: string;
+  onNavigateToClass?: (classId: string) => void; // Added missing prop
 }
 
-const DashboardCards: React.FC<DashboardCardsProps> = ({ onManageClasses, isAdmin = false, teacherId }) => {
+const DashboardCards: React.FC<DashboardCardsProps> = ({ 
+  onManageClasses, 
+  isAdmin = false, 
+  teacherId,
+  onNavigateToClass 
+}) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
 

@@ -12,18 +12,21 @@ interface MainDashboardProps {
   setActiveTab: (tab: string) => void;
   onAddStudent: () => void;
   onManageClasses: () => void;
-  onCreateClass: () => void; // We'll keep this prop to avoid breaking interfaces
+  onCreateClass: () => void;
   teacherId: string;
   isAdmin: boolean;
+  onNavigateToClass?: (classId: string) => void; // Added the missing prop with optional marker
 }
+
 const MainDashboard: React.FC<MainDashboardProps> = ({
   activeTab,
   setActiveTab,
   onAddStudent,
   onManageClasses,
-  onCreateClass, // Keep this prop but we won't use it
+  onCreateClass,
   teacherId,
-  isAdmin
+  isAdmin,
+  onNavigateToClass
 }) => {
   const { t } = useTranslation();
   
@@ -43,9 +46,12 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
           </TabsList>
           
           <TabsContent value="dashboard">
-            <DashboardCards teacherId={teacherId} onManageClasses={onManageClasses} isAdmin={isAdmin} />
-            
-            {/* Create Class button removed */}
+            <DashboardCards 
+              teacherId={teacherId} 
+              onManageClasses={onManageClasses} 
+              isAdmin={isAdmin} 
+              onNavigateToClass={onNavigateToClass} // Pass the prop to DashboardCards
+            />
           </TabsContent>
           
           <TabsContent value="actions_and_requests">

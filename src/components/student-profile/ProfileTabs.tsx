@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,6 +33,12 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
   onEditDataChange
 }) => {
   const [isStudentsListOpen, setIsStudentsListOpen] = useState(false);
+  
+  // Add a dummy function for onStudentsAdded
+  const handleStudentsAdded = (studentIds: string[]) => {
+    console.log("Students added:", studentIds);
+    // This is just a placeholder since we're only viewing students in this context
+  };
 
   return (
     <>
@@ -165,6 +170,7 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
           classId={student.classId}
           open={isStudentsListOpen}
           onOpenChange={setIsStudentsListOpen}
+          onStudentsAdded={handleStudentsAdded} // Add the required prop
         />
       )}
     </>
