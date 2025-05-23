@@ -65,40 +65,47 @@ export const useAuth = () => {
     }
   };
 
-  // Logout function - modified to handle errors better
+  // Logout function - improved to better handle errors and clean up state
   const logout = async () => {
     try {
       console.log("Attempting to log out...");
       setLoading(true);
 
-      // Sign out from Supabase
+      // Clear the local state first for immediate UI response
+      clearAuthState();
+
+      // Then attempt to sign out from Supabase
       const { error } = await supabase.auth.signOut();
       if (error) {
         console.error("Supabase signOut error:", error);
-        throw error;
+        // Even if there's an error, we've already cleared local state
       }
 
-      console.log("Supabase signOut successful, clearing local state...");
+      console.log("Logout completed");
       
-      // Clear all auth state regardless of Supabase response
-      clearAuthState();
-
       // Show success toast
       toast({
         title: "Logged out successfully",
         description: "You have been logged out of your account.",
       });
       
+      // Remove any auth-related items from localStorage
+      localStorage.removeItem("authState");
+      localStorage.removeItem("userType");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("teacherId");
+      localStorage.removeItem("teacherUsername");
+      localStorage.removeItem("studentId");
+      localStorage.removeItem("studentUsername");
+      
       return true;
     } catch (error: any) {
       console.error("Logout error:", error);
       
-      // Still clear local state even if Supabase throws an error
-      clearAuthState();
-      
+      // We already cleared local state, so just show a message
       toast({
-        title: "Logout process completed",
-        description: "You have been logged out, but there may have been an issue syncing with the server.",
+        title: "Logged out",
+        description: "You have been logged out, but there may have been a syncing issue.",
       });
       
       // Return true anyway since local state is cleared
