@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, Loader2, Trash2, Award, BookText, Coins, Settings, PlusCircle } from "lucide-react";
+import { ChevronLeft, Loader2, Trash2, Award, BookText, Coins, Settings, PlusCircle, Minus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import {
@@ -20,7 +20,8 @@ import { removeClass, getClassById } from "@/utils/classSync/classOperations";
 import { addMultipleStudentsToClass } from "@/utils/classSync/studentOperations";
 import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
-import { awardCoinsToStudent } from "@/utils/pokemon/studentPokemon";
+import RemoveCoinsDialog from "@/components/dialogs/RemoveCoinsDialog";
+import { awardCoinsToStudent, removeCoinsFromStudent } from "@/utils/pokemon/studentPokemon";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import StudentsTab from "@/components/student/StudentsTab";
 import CreateHomeworkDialog from "@/components/teacher/CreateHomeworkDialog";
@@ -55,6 +56,11 @@ const ClassDetails = () => {
     studentId: "",
     studentName: ""
   });
+  const [removeCoinsDialog, setRemoveCoinsDialog] = useState({
+    open: false,
+    studentId: "",
+    studentName: ""
+  });
   const [isCreateHomeworkOpen, setIsCreateHomeworkOpen] = useState(false);
   const [teacherId, setTeacherId] = useState<string>("");
   const [userPermissionLevel, setUserPermissionLevel] = useState<"owner" | "teacher" | "viewer">("viewer");
@@ -64,9 +70,8 @@ const ClassDetails = () => {
   useEffect(() => {
     const username = localStorage.getItem("teacherUsername") || "";
     setIsAdmin(username === "Admin" || username === "Ayman");
-    setIsTeacher(true); // Assuming if they can access this page, they're a teacher
+    setIsTeacher(true);
     
-    // Get teacher ID from localStorage
     const teacherId = localStorage.getItem("teacherId") || "";
     setTeacherId(teacherId);
   }, []);
@@ -80,22 +85,19 @@ const ClassDetails = () => {
   const fetchClassDetails = async () => {
     setLoading(true);
     try {
-      // Try to use the classSync utility function first
       const cls = await getClassById(id || "");
       if (cls) {
         setClassData(cls);
         
-        // Determine permission level
         const currentTeacherId = localStorage.getItem("teacherId") || "";
         if (cls.teacherId === currentTeacherId) {
           setUserPermissionLevel("owner");
         } else if (isAdmin) {
-          setUserPermissionLevel("owner"); // Admin has full permissions
+          setUserPermissionLevel("owner");
         } else {
           setUserPermissionLevel("viewer");
         }
         
-        // If class has students, fetch their details
         if (cls.students && cls.students.length > 0) {
           fetchStudentsFromSupabase(cls.students);
         }
@@ -103,7 +105,6 @@ const ClassDetails = () => {
         return;
       }
       
-      // If getClassById failed, attempt direct Supabase query
       const { data: classData, error: classError } = await supabase
         .from('classes')
         .select('*')
@@ -113,14 +114,12 @@ const ClassDetails = () => {
       if (classError) throw classError;
       
       if (!classData) {
-        // Check localStorage as fallback
         checkLocalStorageFallback();
         return;
       }
       
       setClassData(classData);
       
-      // Fetch student details if class has students
       if (classData.students && classData.students.length > 0) {
         fetchStudentsFromSupabase(classData.students);
       }
@@ -138,7 +137,6 @@ const ClassDetails = () => {
   };
 
   const checkLocalStorageFallback = () => {
-    // Check localStorage as fallback
     const savedClasses = localStorage.getItem("classes");
     if (savedClasses && id) {
       const parsedClasses = JSON.parse(savedClasses);
@@ -146,17 +144,15 @@ const ClassDetails = () => {
       if (foundClass) {
         setClassData(foundClass);
         
-        // Determine permission level
         const currentTeacherId = localStorage.getItem("teacherId") || "";
         if (foundClass.teacherId === currentTeacherId) {
           setUserPermissionLevel("owner");
         } else if (isAdmin) {
-          setUserPermissionLevel("owner"); // Admin has full permissions
+          setUserPermissionLevel("owner");
         } else {
           setUserPermissionLevel("viewer");
         }
         
-        // Fetch student details if class has students
         if (foundClass.students && foundClass.students.length > 0) {
           fetchStudentsFromLocalStorage(foundClass.students);
         }
@@ -226,7 +222,6 @@ const ClassDetails = () => {
     }
   };
 
-  // Handle adding students to class
   const handleAddStudents = async (studentIds: string[]) => {
     if (!id || !studentIds.length) return;
     
@@ -239,7 +234,6 @@ const ClassDetails = () => {
           description: `${studentIds.length} ${t("students-added-to-class")}`
         });
         
-        // Refresh class details to show new students
         fetchClassDetails();
       } else {
         throw new Error("Failed to add students to class");
@@ -254,7 +248,6 @@ const ClassDetails = () => {
     }
   };
 
-  // Handle giving coins to a student
   const handleGiveCoins = (amount: number) => {
     if (!giveCoinsDialog.studentId) return;
     
@@ -277,19 +270,45 @@ const ClassDetails = () => {
     }
   };
 
-  // Handle homework creation
+  const handleRemoveCoins = (amount: number) => {
+    if (!removeCoinsDialog.studentId) return;
+    
+    try {
+      const success = removeCoinsFromStudent(removeCoinsDialog.studentId, amount);
+      
+      if (success) {
+        toast({
+          title: t("success"),
+          description: `${amount} coins removed from ${removeCoinsDialog.studentName}`
+        });
+      } else {
+        toast({
+          title: t("error"),
+          description: "Student doesn't have enough coins",
+          variant: "destructive"
+        });
+      }
+      
+      setRemoveCoinsDialog({ open: false, studentId: "", studentName: "" });
+    } catch (error) {
+      console.error("Error removing coins:", error);
+      toast({
+        title: t("error"),
+        description: "Failed to remove coins",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleHomeworkCreated = (homework: HomeworkAssignment) => {
     toast({
       title: t("success"),
       description: t("homework-created-successfully")
     });
     
-    // No need to refresh the whole class details, as homework is viewed in a separate tab
-    // We'll just close the dialog
     setIsCreateHomeworkOpen(false);
   };
 
-  // Handle Pokemon management
   const handlePokemonRemoved = () => {
     toast({
       title: t("success"),
@@ -297,7 +316,6 @@ const ClassDetails = () => {
     });
   };
 
-  // Function to check if current user is the class creator
   const isClassCreator = () => {
     const currentTeacherId = localStorage.getItem("teacherId") || "";
     return (classData && 
@@ -362,7 +380,6 @@ const ClassDetails = () => {
         </div>
         
         <div className="flex gap-2">
-          {/* Only show management options to class creator */}
           {isClassCreator() ? (
             <>
               <motion.div
@@ -415,7 +432,7 @@ const ClassDetails = () => {
             <Button
               variant="outline"
               className="mr-2"
-              disabled={true} // Replace with request access functionality
+              disabled={true}
             >
               {t("view-only-mode")}
             </Button>
@@ -432,7 +449,6 @@ const ClassDetails = () => {
         
         <TabsContent value="info">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {/* Class Info Card */}
             <motion.div 
               className="md:col-span-1"
               initial={{ opacity: 0, x: -20 }}
@@ -473,7 +489,6 @@ const ClassDetails = () => {
               </Card>
             </motion.div>
 
-            {/* Students List Card */}
             <motion.div 
               className="md:col-span-2"
               initial={{ opacity: 0, x: 20 }}
@@ -518,17 +533,19 @@ const ClassDetails = () => {
                             <div>
                               <p className="font-medium">{student.display_name || student.displayName || student.username}</p>
                               <p className="text-sm text-gray-500">@{student.username}</p>
+                              <p className="text-xs text-gray-400">
+                                Password: {student.password_hash || student.password || "•••••••"}
+                              </p>
                             </div>
                           </div>
                           
-                          {/* Only show student management options to class creator */}
                           {isClassCreator() && (
                             <div className="flex items-center space-x-2">
                               <Button 
                                 size="sm" 
                                 variant="outline"
                                 onClick={(e) => {
-                                  e.stopPropagation(); // Stop click from bubbling up
+                                  e.stopPropagation();
                                   setGiveCoinsDialog({
                                     open: true, 
                                     studentId: student.id,
@@ -543,8 +560,25 @@ const ClassDetails = () => {
                               <Button 
                                 size="sm" 
                                 variant="outline"
+                                className="text-red-500 hover:text-red-700"
                                 onClick={(e) => {
-                                  e.stopPropagation(); // Stop click from bubbling up
+                                  e.stopPropagation(); 
+                                  setRemoveCoinsDialog({
+                                    open: true, 
+                                    studentId: student.id,
+                                    studentName: student.display_name || student.displayName || student.username
+                                  })
+                                }}
+                              >
+                                <Minus className="h-4 w-4 mr-1" />
+                                {t("remove-coins")}
+                              </Button>
+                              
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setManagePokemonDialog({
                                     open: true, 
                                     studentId: student.id,
@@ -593,14 +627,12 @@ const ClassDetails = () => {
                 </TabsList>
                 
                 <TabsContent value="active">
-                  {/* In a real implementation, we would load and display active homework here */}
                   <div className="text-center py-8">
                     <p className="text-gray-500">{t("no-active-homework")}</p>
                   </div>
                 </TabsContent>
                 
                 <TabsContent value="submissions">
-                  {/* In a real implementation, we would load and display homework submissions here */}
                   <div className="text-center py-8">
                     <p className="text-gray-500">{t("no-homework-submissions")}</p>
                   </div>
@@ -617,7 +649,7 @@ const ClassDetails = () => {
         open={isStudentListOpen}
         onOpenChange={setIsStudentListOpen}
         onStudentsAdded={handleAddStudents}
-        viewMode={false} // Set to false for adding students mode
+        viewMode={false}
       />
 
       {/* Delete Class Confirmation Dialog */}
@@ -657,6 +689,15 @@ const ClassDetails = () => {
             onOpenChange={(open) => setGiveCoinsDialog({...giveCoinsDialog, open})}
             onGiveCoins={handleGiveCoins}
             studentId={giveCoinsDialog.studentId}
+          />
+          
+          {/* Remove Coins Dialog */}
+          <RemoveCoinsDialog
+            open={removeCoinsDialog.open}
+            onOpenChange={(open) => setRemoveCoinsDialog({...removeCoinsDialog, open})}
+            onRemoveCoins={handleRemoveCoins}
+            studentId={removeCoinsDialog.studentId}
+            studentName={removeCoinsDialog.studentName}
           />
           
           {/* Create Homework Dialog */}

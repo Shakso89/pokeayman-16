@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkAssignment } from "@/types/homework";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cleanupOldHomework, clearStorageIfFull } from "@/utils/storage/cleanup";
 
 interface CreateHomeworkDialogProps {
   open: boolean;
@@ -51,25 +52,21 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
   useEffect(() => {
     if (open) {
       fetchClasses();
-      // Initialize selected class to the provided classId
       setSelectedClassId(classId);
     }
   }, [open, classId]);
 
   const fetchClasses = () => {
     try {
-      // First try to get classes from localStorage
       const storedClasses = localStorage.getItem("classes");
       if (storedClasses) {
         const parsedClasses = JSON.parse(storedClasses);
-        // Filter classes by teacherId if teacherId is provided
         const filteredClasses = teacherId 
           ? parsedClasses.filter((cls: any) => 
               cls.teacherId === teacherId || cls.teacher_id === teacherId
             )
           : parsedClasses;
         
-        // Map to a simple format with id and name
         setClasses(filteredClasses.map((cls: any) => ({
           id: cls.id,
           name: cls.name
@@ -101,45 +98,65 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
       return;
     }
 
-    const now = new Date();
-    const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48 hours from now
-    
-    const newHomework: HomeworkAssignment = {
-      id: `homework-${Date.now()}`,
-      title: homeworkData.title,
-      description: homeworkData.description,
-      type: homeworkData.type,
-      classId: selectedClassId,
-      teacherId,
-      createdAt: now.toISOString(),
-      expiresAt: expiresAt.toISOString(),
-      coinReward: homeworkData.coinReward
-    };
-    
-    // Save homework to localStorage
-    const homeworkAssignments = JSON.parse(localStorage.getItem("homeworkAssignments") || "[]");
-    homeworkAssignments.push(newHomework);
-    localStorage.setItem("homeworkAssignments", JSON.stringify(homeworkAssignments));
-    
-    console.log("Created homework for class:", selectedClassId, "Homework:", newHomework);
-    
-    // Call the callback
-    onHomeworkCreated(newHomework);
-    
-    // Reset form and close dialog
-    setHomeworkData({
-      title: "",
-      description: "",
-      type: "text",
-      coinReward: 10
-    });
-    
-    toast({
-      title: t("success"),
-      description: t("homework-created"),
-    });
-    
-    onOpenChange(false);
+    try {
+      // Clean up storage before adding new homework
+      clearStorageIfFull();
+      
+      const now = new Date();
+      const expiresAt = new Date(now.getTime() + 48 * 60 * 60 * 1000); // 48 hours from now
+      
+      const newHomework: HomeworkAssignment = {
+        id: `homework-${Date.now()}`,
+        title: homeworkData.title,
+        description: homeworkData.description,
+        type: homeworkData.type,
+        classId: selectedClassId,
+        teacherId,
+        createdAt: now.toISOString(),
+        expiresAt: expiresAt.toISOString(),
+        coinReward: homeworkData.coinReward
+      };
+      
+      // Save homework to localStorage with error handling
+      const homeworkAssignments = JSON.parse(localStorage.getItem("homeworkAssignments") || "[]");
+      homeworkAssignments.push(newHomework);
+      
+      try {
+        localStorage.setItem("homeworkAssignments", JSON.stringify(homeworkAssignments));
+      } catch (storageError) {
+        // If storage fails, cleanup and try again
+        console.warn("Storage full, cleaning up and retrying...");
+        cleanupOldHomework();
+        localStorage.setItem("homeworkAssignments", JSON.stringify(homeworkAssignments));
+      }
+      
+      console.log("Created homework for class:", selectedClassId, "Homework:", newHomework);
+      
+      // Call the callback
+      onHomeworkCreated(newHomework);
+      
+      // Reset form and close dialog
+      setHomeworkData({
+        title: "",
+        description: "",
+        type: "text",
+        coinReward: 10
+      });
+      
+      toast({
+        title: t("success"),
+        description: t("homework-created"),
+      });
+      
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error creating homework:", error);
+      toast({
+        title: t("error"),
+        description: "Failed to create homework. Storage might be full.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
