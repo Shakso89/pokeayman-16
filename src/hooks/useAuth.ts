@@ -8,6 +8,7 @@ import {
   loadFromLocalStorage 
 } from './auth/authStateManagement';
 import { handleSession } from './auth/sessionHandler';
+import { motion } from 'framer-motion';
 
 // Initial auth state
 const initialAuthState: AuthState = {
@@ -74,11 +75,26 @@ export const useAuth = () => {
       // Clear the local state first for immediate UI response
       clearAuthState();
 
+      // Clean up localStorage items first, no matter what happens with the API call
+      localStorage.removeItem("isLoggedIn");
+      localStorage.removeItem("userType");
+      localStorage.removeItem("userId");
+      localStorage.removeItem("teacherId");
+      localStorage.removeItem("teacherUsername");
+      localStorage.removeItem("studentId");
+      localStorage.removeItem("studentUsername");
+      localStorage.removeItem("authState");
+      
       // Then attempt to sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Supabase signOut error:", error);
-        // Even if there's an error, we've already cleared local state
+      try {
+        const { error } = await supabase.auth.signOut();
+        if (error) {
+          console.error("Supabase signOut error:", error);
+          // Even if there's an error, we've already cleared local state
+        }
+      } catch (signOutError) {
+        console.error("Error during Supabase signOut:", signOutError);
+        // Continue with logout process regardless of Supabase error
       }
 
       console.log("Logout completed");
@@ -88,15 +104,6 @@ export const useAuth = () => {
         title: "Logged out successfully",
         description: "You have been logged out of your account.",
       });
-      
-      // Remove any auth-related items from localStorage
-      localStorage.removeItem("authState");
-      localStorage.removeItem("userType");
-      localStorage.removeItem("userId");
-      localStorage.removeItem("teacherId");
-      localStorage.removeItem("teacherUsername");
-      localStorage.removeItem("studentId");
-      localStorage.removeItem("studentUsername");
       
       return true;
     } catch (error: any) {

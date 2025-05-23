@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -9,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import SubmitHomeworkDialog from "./homework/SubmitHomeworkDialog";
 import ViewSubmissionDialog from "./homework/ViewSubmissionDialog";
 import HomeworkList from "./homework/HomeworkList";
-import { fetchHomeworkForClass, fetchStudentSubmissions } from "./homework/utils";
+import { motion } from "framer-motion";
 
 interface HomeworkTabProps {
   studentId: string;
@@ -46,8 +47,11 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
           schema: 'public', 
           table: 'homework' 
         },
-        () => {
-          loadHomeworkData();
+        (payload) => {
+          // Only refresh if the homework is for this class
+          if (payload.new && typeof payload.new === 'object' && 'classId' in payload.new && payload.new.classId === classId) {
+            loadHomeworkData();
+          }
         }
       )
       .on(
@@ -77,7 +81,17 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
   }, [classId, studentId]);
 
   const loadHomeworkData = async () => {
+    if (!classId) {
+      console.error("No classId provided to HomeworkTab");
+      setHomeworkAssignments([]);
+      setUserSubmissions([]);
+      setIsLoading(false);
+      return;
+    }
+    
     setIsLoading(true);
+    console.log(`Loading homework data for class: ${classId} and student: ${studentId}`);
+
     try {
       // Try to fetch from Supabase first
       const { data: homeworkData, error: homeworkError } = await supabase
@@ -94,8 +108,21 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
         
       if (submissionsError) throw submissionsError;
       
-      setHomeworkAssignments(homeworkData || []);
-      setUserSubmissions(submissionsData || []);
+      if (homeworkData) {
+        console.log(`Found ${homeworkData.length} homework assignments for class ${classId}`);
+        setHomeworkAssignments(homeworkData);
+      } else {
+        console.log("No homework found in Supabase, checking localStorage");
+        throw new Error("No homework found in database");
+      }
+      
+      if (submissionsData) {
+        console.log(`Found ${submissionsData.length} homework submissions for student ${studentId}`);
+        setUserSubmissions(submissionsData);
+      } else {
+        console.log("No submissions found in Supabase, checking localStorage");
+        throw new Error("No submissions found in database");
+      }
     } catch (error) {
       console.error("Error loading from Supabase, falling back to localStorage:", error);
       
@@ -106,10 +133,14 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
         
         if (savedHomework) {
           const allHomework = JSON.parse(savedHomework);
+          // IMPORTANT: Filter to only show homework for this specific class
           const classHomework = allHomework.filter(
             (hw: any) => hw.classId === classId
           );
+          console.log(`Found ${classHomework.length} homework assignments for class ${classId} in localStorage`);
           setHomeworkAssignments(classHomework);
+        } else {
+          setHomeworkAssignments([]);
         }
         
         if (savedSubmissions) {
@@ -117,7 +148,10 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
           const userSubs = allSubmissions.filter(
             (sub: any) => sub.studentId === studentId
           );
+          console.log(`Found ${userSubs.length} homework submissions for student ${studentId} in localStorage`);
           setUserSubmissions(userSubs);
+        } else {
+          setUserSubmissions([]);
         }
       } catch (localError) {
         console.error("Error with localStorage fallback:", localError);
@@ -127,6 +161,9 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
           description: t("failed-to-load-homework"),
           variant: "destructive"
         });
+        
+        setHomeworkAssignments([]);
+        setUserSubmissions([]);
       }
     } finally {
       setIsLoading(false);
@@ -198,39 +235,52 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
   }
 
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <h3 className="text-lg font-medium mb-4">{t("homework")}</h3>
-        
-        <HomeworkList 
-          homeworks={activeHomework}
-          userSubmissions={userSubmissions}
-          onSubmit={handleSubmitHomework}
-          onView={handleViewSubmission}
-          t={t}
-        />
-        
-        {selectedHomework && (
-          <>
-            <SubmitHomeworkDialog
-              open={isSubmitDialogOpen}
-              onOpenChange={setIsSubmitDialogOpen}
-              homework={selectedHomework}
-              studentId={studentId}
-              studentName={studentName}
-              onSubmissionComplete={handleSubmissionComplete}
-            />
-            
-            <ViewSubmissionDialog
-              open={isViewSubmissionOpen}
-              onOpenChange={setIsViewSubmissionOpen}
-              homework={selectedHomework}
-              submission={selectedSubmission}
-            />
-          </>
-        )}
-      </CardContent>
-    </Card>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+    >
+      <Card>
+        <CardContent className="pt-6">
+          <motion.h3 
+            className="text-lg font-medium mb-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
+            {t("homework")}
+          </motion.h3>
+          
+          <HomeworkList 
+            homeworks={activeHomework}
+            userSubmissions={userSubmissions}
+            onSubmit={handleSubmitHomework}
+            onView={handleViewSubmission}
+            t={t}
+          />
+          
+          {selectedHomework && (
+            <>
+              <SubmitHomeworkDialog
+                open={isSubmitDialogOpen}
+                onOpenChange={setIsSubmitDialogOpen}
+                homework={selectedHomework}
+                studentId={studentId}
+                studentName={studentName}
+                onSubmissionComplete={handleSubmissionComplete}
+              />
+              
+              <ViewSubmissionDialog
+                open={isViewSubmissionOpen}
+                onOpenChange={setIsViewSubmissionOpen}
+                homework={selectedHomework}
+                submission={selectedSubmission}
+              />
+            </>
+          )}
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 };
 

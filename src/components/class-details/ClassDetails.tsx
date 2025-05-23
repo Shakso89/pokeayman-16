@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -27,6 +28,7 @@ import CreateHomeworkDialog from "@/components/teacher/CreateHomeworkDialog";
 import { HomeworkAssignment } from "@/types/homework";
 import ManageClassDialog from "@/components/dialogs/ManageClassDialog";
 import { StudentsList } from "@/components/student-profile/StudentsList";
+import { motion } from "framer-motion";
 
 const ClassDetails = () => {
   const { id } = useParams<{ id: string }>();
@@ -57,6 +59,7 @@ const ClassDetails = () => {
   const [isCreateHomeworkOpen, setIsCreateHomeworkOpen] = useState(false);
   const [teacherId, setTeacherId] = useState<string>("");
   const [userPermissionLevel, setUserPermissionLevel] = useState<"owner" | "teacher" | "viewer">("viewer");
+  const [homeworkTab, setHomeworkTab] = useState<"active" | "submissions">("active");
 
   // Check if user is admin or teacher
   useEffect(() => {
@@ -281,6 +284,10 @@ const ClassDetails = () => {
       title: t("success"),
       description: t("homework-created-successfully")
     });
+    
+    // No need to refresh the whole class details, as homework is viewed in a separate tab
+    // We'll just close the dialog
+    setIsCreateHomeworkOpen(false);
   };
 
   // Handle Pokemon management
@@ -326,7 +333,12 @@ const ClassDetails = () => {
 
   return (
     <div className="container mx-auto py-8 px-4">
-      <div className="flex items-center justify-between mb-6">
+      <motion.div 
+        className="flex items-center justify-between mb-6"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+      >
         <div className="flex items-center">
           <Button
             variant="outline"
@@ -336,39 +348,64 @@ const ClassDetails = () => {
             <ChevronLeft className="h-4 w-4 mr-1" />
             {t("back-to-dashboard")}
           </Button>
-          <h1 className="text-2xl font-bold">{t("class-details")}</h1>
+          <motion.h1 
+            className="text-2xl font-bold"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+          >
+            {t("class-details")}
+          </motion.h1>
         </div>
         
         <div className="flex gap-2">
           {/* Only show management options to class creator */}
           {isClassCreator() ? (
             <>
-              <Button 
-                onClick={() => setIsCreateHomeworkOpen(true)}
-                className="mr-2"
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.3, duration: 0.5 }}
               >
-                <BookText className="h-4 w-4 mr-1" />
-                {t("assign-homework")}
-              </Button>
+                <Button 
+                  onClick={() => setIsCreateHomeworkOpen(true)}
+                  className="mr-2"
+                >
+                  <BookText className="h-4 w-4 mr-1" />
+                  {t("assign-homework")}
+                </Button>
+              </motion.div>
 
-              <Button 
-                onClick={() => setIsManageClassOpen(true)}
-                className="mr-2"
-                variant="secondary"
+              <motion.div
+                initial={{ opacity: 0, scale: 0.9 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.4, duration: 0.5 }}
               >
-                <Settings className="h-4 w-4 mr-1" />
-                {t("manage-class")}
-              </Button>
+                <Button 
+                  onClick={() => setIsManageClassOpen(true)}
+                  className="mr-2"
+                  variant="secondary"
+                >
+                  <Settings className="h-4 w-4 mr-1" />
+                  {t("manage-class")}
+                </Button>
+              </motion.div>
               
               {isAdmin && (
-                <Button
-                  variant="destructive"
-                  onClick={() => setDeleteDialogOpen(true)}
-                  size="sm"
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.9 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ delay: 0.5, duration: 0.5 }}
                 >
-                  <Trash2 className="h-4 w-4 mr-1" />
-                  {t("delete-class")}
-                </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => setDeleteDialogOpen(true)}
+                    size="sm"
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    {t("delete-class")}
+                  </Button>
+                </motion.div>
               )}
             </>
           ) : (
@@ -381,126 +418,186 @@ const ClassDetails = () => {
             </Button>
           )}
         </div>
-      </div>
+      </motion.div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
         <TabsList className="mb-4">
           <TabsTrigger value="info">{t("class-info")}</TabsTrigger>
           <TabsTrigger value="students">{t("students")}</TabsTrigger>
+          <TabsTrigger value="homework">{t("homework")}</TabsTrigger>
         </TabsList>
         
         <TabsContent value="info">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Class Info Card */}
-            <Card className="md:col-span-1">
-              <CardHeader>
-                <CardTitle>{t("class-information")}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <h3 className="font-medium text-gray-500">{t("name")}</h3>
-                  <p className="text-lg">{classData.name}</p>
-                </div>
-                {classData.description && (
+            <motion.div 
+              className="md:col-span-1"
+              initial={{ opacity: 0, x: -20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5 }}
+            >
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t("class-information")}</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
                   <div>
-                    <h3 className="font-medium text-gray-500">{t("description")}</h3>
-                    <p>{classData.description}</p>
+                    <h3 className="font-medium text-gray-500">{t("name")}</h3>
+                    <p className="text-lg">{classData.name}</p>
                   </div>
-                )}
-                <div>
-                  <h3 className="font-medium text-gray-500">{t("created")}</h3>
-                  <p>{new Date(classData.created_at || classData.createdAt).toLocaleDateString()}</p>
-                </div>
-                {(classData.teacher_id || classData.teacherId) && (
+                  {classData.description && (
+                    <div>
+                      <h3 className="font-medium text-gray-500">{t("description")}</h3>
+                      <p>{classData.description}</p>
+                    </div>
+                  )}
                   <div>
-                    <h3 className="font-medium text-gray-500">{t("creator")}</h3>
-                    <p>
-                      {isClassCreator() ? 
-                        t("you") : 
-                        `${(classData.teacher_id || classData.teacherId).substring(0, 8)}...`
-                      }
-                    </p>
+                    <h3 className="font-medium text-gray-500">{t("created")}</h3>
+                    <p>{new Date(classData.created_at || classData.createdAt).toLocaleDateString()}</p>
                   </div>
-                )}
-              </CardContent>
-            </Card>
+                  {(classData.teacher_id || classData.teacherId) && (
+                    <div>
+                      <h3 className="font-medium text-gray-500">{t("creator")}</h3>
+                      <p>
+                        {isClassCreator() ? 
+                          t("you") : 
+                          `${(classData.teacher_id || classData.teacherId).substring(0, 8)}...`
+                        }
+                      </p>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
 
             {/* Students List Card */}
-            <Card className="md:col-span-2">
-              <CardHeader className="flex flex-row items-center justify-between">
-                <CardTitle>{t("students")} ({students.length})</CardTitle>
-                {isClassCreator() && (
-                  <Button 
-                    variant="default" 
-                    className="bg-sky-500 hover:bg-sky-600"
-                    onClick={() => setIsStudentListOpen(true)}
-                  >
-                    <PlusCircle className="h-4 w-4 mr-1" />
-                    {t("add-students")}
-                  </Button>
-                )}
-              </CardHeader>
-              <CardContent>
-                {students.length === 0 ? (
-                  <p className="text-gray-500 text-center py-6">
-                    {t("no-students-in-class")}
-                  </p>
-                ) : (
-                  <div className="space-y-3">
-                    {students.map((student) => (
-                      <div key={student.id} className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50">
-                        <div className="flex items-center">
-                          <div className="h-10 w-10 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center mr-3">
-                            {(student.display_name || student.displayName || student.username || '??')[0]?.toUpperCase()}
+            <motion.div 
+              className="md:col-span-2"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.5, delay: 0.2 }}
+            >
+              <Card>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <CardTitle>{t("students")} ({students.length})</CardTitle>
+                  {isClassCreator() && (
+                    <Button 
+                      variant="default" 
+                      className="bg-sky-500 hover:bg-sky-600"
+                      onClick={() => setIsStudentListOpen(true)}
+                    >
+                      <PlusCircle className="h-4 w-4 mr-1" />
+                      {t("add-students")}
+                    </Button>
+                  )}
+                </CardHeader>
+                <CardContent>
+                  {students.length === 0 ? (
+                    <p className="text-gray-500 text-center py-6">
+                      {t("no-students-in-class")}
+                    </p>
+                  ) : (
+                    <div className="space-y-3">
+                      {students.map((student) => (
+                        <motion.div 
+                          key={student.id} 
+                          className="flex items-center justify-between p-3 border rounded-lg hover:bg-gray-50"
+                          whileHover={{ scale: 1.01, backgroundColor: "#f9fafb" }}
+                          initial={{ opacity: 0 }}
+                          animate={{ opacity: 1 }}
+                          transition={{ duration: 0.3 }}
+                        >
+                          <div className="flex items-center">
+                            <div className="h-10 w-10 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center mr-3">
+                              {(student.display_name || student.displayName || student.username || '??')[0]?.toUpperCase()}
+                            </div>
+                            <div>
+                              <p className="font-medium">{student.display_name || student.displayName || student.username}</p>
+                              <p className="text-sm text-gray-500">@{student.username}</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="font-medium">{student.display_name || student.displayName || student.username}</p>
-                            <p className="text-sm text-gray-500">@{student.username}</p>
-                          </div>
-                        </div>
-                        
-                        {/* Only show student management options to class creator */}
-                        {isClassCreator() && (
-                          <div className="flex items-center space-x-2">
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => setGiveCoinsDialog({
-                                open: true, 
-                                studentId: student.id,
-                                studentName: student.display_name || student.displayName || student.username
-                              })}
-                            >
-                              <Coins className="h-4 w-4 mr-1" />
-                              {t("award-coins")}
-                            </Button>
-                            
-                            <Button 
-                              size="sm" 
-                              variant="outline"
-                              onClick={() => setManagePokemonDialog({
-                                open: true, 
-                                studentId: student.id,
-                                studentName: student.display_name || student.displayName || student.username,
-                                schoolId: classData.school_id || classData.schoolId
-                              })}
-                            >
-                              <Award className="h-4 w-4 mr-1" />
-                              {t("manage-pokemon")}
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                          
+                          {/* Only show student management options to class creator */}
+                          {isClassCreator() && (
+                            <div className="flex items-center space-x-2">
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => setGiveCoinsDialog({
+                                  open: true, 
+                                  studentId: student.id,
+                                  studentName: student.display_name || student.displayName || student.username
+                                })}
+                              >
+                                <Coins className="h-4 w-4 mr-1" />
+                                {t("award-coins")}
+                              </Button>
+                              
+                              <Button 
+                                size="sm" 
+                                variant="outline"
+                                onClick={() => setManagePokemonDialog({
+                                  open: true, 
+                                  studentId: student.id,
+                                  studentName: student.display_name || student.displayName || student.username,
+                                  schoolId: classData.school_id || classData.schoolId
+                                })}
+                              >
+                                <Award className="h-4 w-4 mr-1" />
+                                {t("manage-pokemon")}
+                              </Button>
+                            </div>
+                          )}
+                        </motion.div>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </motion.div>
           </div>
         </TabsContent>
         
         <TabsContent value="students">
           {id && <StudentsTab classId={id} />}
+        </TabsContent>
+
+        <TabsContent value="homework">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <CardTitle>{t("class-homework")}</CardTitle>
+              {isClassCreator() && (
+                <Button 
+                  onClick={() => setIsCreateHomeworkOpen(true)}
+                >
+                  <BookText className="h-4 w-4 mr-1" />
+                  {t("create-homework")}
+                </Button>
+              )}
+            </CardHeader>
+            <CardContent>
+              <Tabs value={homeworkTab} onValueChange={(val) => setHomeworkTab(val as "active" | "submissions")} className="mt-2">
+                <TabsList className="grid grid-cols-2 mb-4 w-[400px]">
+                  <TabsTrigger value="active">{t("active-homework")}</TabsTrigger>
+                  <TabsTrigger value="submissions">{t("homework-submissions")}</TabsTrigger>
+                </TabsList>
+                
+                <TabsContent value="active">
+                  {/* In a real implementation, we would load and display active homework here */}
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">{t("no-active-homework")}</p>
+                  </div>
+                </TabsContent>
+                
+                <TabsContent value="submissions">
+                  {/* In a real implementation, we would load and display homework submissions here */}
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">{t("no-homework-submissions")}</p>
+                  </div>
+                </TabsContent>
+              </Tabs>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

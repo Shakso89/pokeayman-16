@@ -14,6 +14,7 @@ import AddStudentDialog from "@/components/teacher/dashboard/AddStudentDialog";
 import MainDashboard from "@/components/teacher/dashboard/MainDashboard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { motion } from "framer-motion";
 
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -24,6 +25,7 @@ const TeacherDashboard: React.FC = () => {
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [teacherData, setTeacherData] = useState<any>(null);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { t } = useTranslation();
   
@@ -88,13 +90,40 @@ const TeacherDashboard: React.FC = () => {
     console.log("Manage homework button clicked");
     setCurrentView("homework");
   };
+  
+  // Handle navigating directly to specific class
+  const handleNavigateToClass = (classId: string) => {
+    navigate(`/class/${classId}`);
+  };
 
   if (!isLoggedIn || userType !== "teacher") {
     return <Navigate to="/teacher-login" />;
   }
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { 
+      opacity: 1,
+      transition: { 
+        duration: 0.5,
+        when: "beforeChildren",
+        staggerChildren: 0.1
+      } 
+    }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1 }
+  };
+
   return (
-    <div className="min-h-screen bg-blue-50">
+    <motion.div 
+      className="min-h-screen bg-blue-50"
+      initial="hidden"
+      animate="visible"
+      variants={containerVariants}
+    >
       <NavBar 
         userType="teacher" 
         userName={teacherData?.display_name || username || "Teacher"} 
@@ -108,20 +137,30 @@ const TeacherDashboard: React.FC = () => {
           </div>
         ) : currentView === "main" ? (
           <>
-            <DashboardHeader isAdmin={isAdmin} />
+            <motion.div variants={itemVariants}>
+              <DashboardHeader isAdmin={isAdmin} />
+            </motion.div>
             
-            <MainDashboard 
-              activeTab={activeTab}
-              setActiveTab={setActiveTab}
-              onAddStudent={() => setIsAddStudentOpen(true)}
-              onManageClasses={handleManageClasses}
-              onCreateClass={() => {}} // No longer needed but kept for interface compatibility
-              teacherId={teacherId || ""}
-              isAdmin={isAdmin}
-            />
+            <motion.div variants={itemVariants}>
+              <MainDashboard 
+                activeTab={activeTab}
+                setActiveTab={setActiveTab}
+                onAddStudent={() => setIsAddStudentOpen(true)}
+                onManageClasses={handleManageClasses}
+                onNavigateToClass={handleNavigateToClass}
+                onCreateClass={() => {}} // No longer needed but kept for interface compatibility
+                teacherId={teacherId || ""}
+                isAdmin={isAdmin}
+              />
+            </motion.div>
             
             {/* Add button for homework management */}
-            <div className="mt-6">
+            <motion.div 
+              className="mt-6" 
+              variants={itemVariants}
+              whileHover={{ scale: 1.02 }}
+              transition={{ type: "spring", stiffness: 400, damping: 10 }}
+            >
               <Button 
                 variant="outline" 
                 className="flex items-center bg-sky-100 hover:bg-sky-200 text-sky-800 border-sky-300"
@@ -130,7 +169,7 @@ const TeacherDashboard: React.FC = () => {
                 <BookText className="h-4 w-4 mr-2" />
                 {t("manage-homework")}
               </Button>
-            </div>
+            </motion.div>
           </>
         ) : currentView === "classes" ? (
           selectedSchoolId ? (
@@ -176,7 +215,7 @@ const TeacherDashboard: React.FC = () => {
         teacherData={teacherData}
         onTeacherDataUpdate={setTeacherData}
       />
-    </div>
+    </motion.div>
   );
 };
 
