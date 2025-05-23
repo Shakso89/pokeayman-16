@@ -93,7 +93,7 @@ const TeacherDashboard: React.FC = () => {
   
   // Handle navigating directly to specific class
   const handleNavigateToClass = (classId: string) => {
-    navigate(`/class-details/${classId}`);
+    navigate(`/class/${classId}`);
   };
 
   if (!isLoggedIn || userType !== "teacher") {
@@ -147,8 +147,8 @@ const TeacherDashboard: React.FC = () => {
                 setActiveTab={setActiveTab}
                 onAddStudent={() => setIsAddStudentOpen(true)}
                 onManageClasses={handleManageClasses}
-                onCreateClass={() => {}} // No longer needed but kept for interface compatibility
                 onNavigateToClass={handleNavigateToClass}
+                onCreateClass={() => {}} // No longer needed but kept for interface compatibility
                 teacherId={teacherId || ""}
                 isAdmin={isAdmin}
               />

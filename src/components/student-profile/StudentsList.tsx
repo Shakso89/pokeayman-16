@@ -109,16 +109,12 @@ export const StudentsList: React.FC<StudentsListProps> = ({
           !currentStudents.includes(student.id)
         );
         
-        // Map to compatible Student type
-        const mappedStudents: Student[] = filteredStudents.map(student => ({
+        // Map to common format
+        setStudents(filteredStudents.map(student => ({
           id: student.id,
           username: student.username,
           displayName: student.display_name || student.username,
-          teacherId: student.teacher_id || '',
-          createdAt: student.created_at || new Date().toISOString(),
-        }));
-        
-        setStudents(mappedStudents);
+        })));
       } else {
         throw new Error("No students found in Supabase");
       }
@@ -146,16 +142,12 @@ export const StudentsList: React.FC<StudentsListProps> = ({
         
         console.log(`Found ${filteredStudents.length} students in localStorage:`, filteredStudents);
         
-        // Map to compatible Student type
-        const mappedStudents: Student[] = filteredStudents.map((student: any) => ({
+        // Map to common format
+        setStudents(filteredStudents.map((student: any) => ({
           id: student.id,
           username: student.username,
           displayName: student.display_name || student.displayName || student.username,
-          teacherId: student.teacher_id || student.teacherId || '',
-          createdAt: student.created_at || student.createdAt || new Date().toISOString(),
-        }));
-        
-        setStudents(mappedStudents);
+        })));
       } catch (localError) {
         console.error("Error searching in localStorage:", localError);
         setStudents([]);
