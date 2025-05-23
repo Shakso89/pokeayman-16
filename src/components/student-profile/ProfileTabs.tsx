@@ -35,6 +35,13 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
 }) => {
   const [isStudentsListOpen, setIsStudentsListOpen] = useState(false);
 
+  // Handler for when students are added to class
+  const handleStudentsAdded = (studentIds: string[]) => {
+    // This is a placeholder function since we're not actually adding students 
+    // from the student profile view, but we need to provide this prop
+    console.log("Students added:", studentIds);
+  };
+
   return (
     <>
       <Tabs defaultValue="photos">
@@ -165,6 +172,7 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
           classId={student.classId}
           open={isStudentsListOpen}
           onOpenChange={setIsStudentsListOpen}
+          onStudentsAdded={handleStudentsAdded}
         />
       )}
     </>

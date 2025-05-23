@@ -13,6 +13,7 @@ interface MainDashboardProps {
   onAddStudent: () => void;
   onManageClasses: () => void;
   onCreateClass: () => void; // We'll keep this prop to avoid breaking interfaces
+  onNavigateToClass?: (classId: string) => void; // Add this prop as optional
   teacherId: string;
   isAdmin: boolean;
 }
@@ -22,6 +23,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
   onAddStudent,
   onManageClasses,
   onCreateClass, // Keep this prop but we won't use it
+  onNavigateToClass, // New optional prop
   teacherId,
   isAdmin
 }) => {
@@ -43,7 +45,12 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
           </TabsList>
           
           <TabsContent value="dashboard">
-            <DashboardCards teacherId={teacherId} onManageClasses={onManageClasses} isAdmin={isAdmin} />
+            <DashboardCards 
+              teacherId={teacherId} 
+              onManageClasses={onManageClasses} 
+              isAdmin={isAdmin} 
+              onNavigateToClass={onNavigateToClass} // Pass the new prop
+            />
             
             {/* Create Class button removed */}
           </TabsContent>
