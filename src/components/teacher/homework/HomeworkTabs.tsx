@@ -46,7 +46,6 @@ const HomeworkTabs: React.FC<HomeworkTabsProps> = ({
   };
   
   return (
-    {/* Add unique key to isolate this Tabs component */}
     <Tabs 
       key="homework-management-tabs"
       value={activeTab} 
