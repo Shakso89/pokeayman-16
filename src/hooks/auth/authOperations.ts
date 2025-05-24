@@ -5,7 +5,6 @@ import { AuthState, UserType } from './types';
 import { checkIsAdmin, isSpecialAdminEmail } from './adminUtils';
 import { setupStudentAuth } from './studentAuth';
 import { setupTeacherAuth } from './teacherAuth';
-import { clearAuthState } from './authStateUtils';
 
 // Handle authentication session
 export const handleSession = async (
@@ -86,23 +85,5 @@ export const handleSession = async (
         isAdmin: isAdminUser
       });
     }
-  }
-};
-
-// Simplified logout function
-export const performLogout = async (): Promise<boolean> => {
-  try {
-    console.log("Starting logout process...");
-
-    // Sign out from Supabase (don't wait for it)
-    supabase.auth.signOut().catch((error) => {
-      console.error("Supabase signout error (ignored):", error);
-    });
-
-    console.log("Logout completed successfully");
-    return true;
-  } catch (error: any) {
-    console.error("Logout error:", error);
-    return true; // Return true even on error to allow redirect
   }
 };

@@ -18,33 +18,30 @@ const LogoutPage: React.FC = () => {
     
     const performLogout = async () => {
       try {
-        console.log("Starting logout process...");
+        console.log("LogoutPage: Starting logout process...");
         
-        // Force clear localStorage immediately
-        localStorage.clear();
-        
-        // Call the logout function
+        // Call the logout function and wait for it
         await logout();
         
-        console.log("Logout completed, redirecting to home");
+        console.log("LogoutPage: Logout completed, redirecting...");
         
-        // Redirect to home
-        navigate('/', { replace: true });
+        // Small delay to ensure state is cleared
+        setTimeout(() => {
+          navigate('/', { replace: true });
+        }, 500);
+        
       } catch (error: unknown) {
-        console.error("Logout error:", error);
+        console.error("LogoutPage: Logout error:", error);
         
-        // Force clear localStorage even on error
-        localStorage.clear();
-        
-        // Still redirect to home
-        navigate('/', { replace: true });
+        // Force redirect even on error
+        setTimeout(() => {
+          navigate('/', { replace: true });
+        }, 1000);
       }
     };
 
-    // Add a small delay to prevent race conditions
-    const timer = setTimeout(performLogout, 100);
-    
-    return () => clearTimeout(timer);
+    // Start logout process immediately
+    performLogout();
   }, [logout, navigate, hasStarted]);
 
   return (
