@@ -46,7 +46,13 @@ const HomeworkTabs: React.FC<HomeworkTabsProps> = ({
   };
   
   return (
-    <Tabs value={activeTab} onValueChange={(val) => onTabChange(val as "active" | "archived")} className="mt-6">
+    {/* Add unique key to isolate this Tabs component */}
+    <Tabs 
+      key="homework-management-tabs"
+      value={activeTab} 
+      onValueChange={(val) => onTabChange(val as "active" | "archived")} 
+      className="mt-6"
+    >
       <TabsList className="grid grid-cols-2 mb-6">
         <TabsTrigger value="active">{t("active-homework")}</TabsTrigger>
         <TabsTrigger value="archived">{t("archived-homework")}</TabsTrigger>

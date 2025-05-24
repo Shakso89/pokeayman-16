@@ -15,7 +15,7 @@ interface MainDashboardProps {
   onCreateClass: () => void;
   teacherId: string;
   isAdmin: boolean;
-  onNavigateToClass?: (classId: string) => void; // Added the missing prop with optional marker
+  onNavigateToClass?: (classId: string) => void;
 }
 
 const MainDashboard: React.FC<MainDashboardProps> = ({
@@ -33,7 +33,12 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
   return (
     <div className="grid grid-cols-1 gap-6">
       <div>
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
+        {/* Add unique key to isolate this Tabs component */}
+        <Tabs 
+          key="teacher-main-dashboard-tabs"
+          value={activeTab} 
+          onValueChange={setActiveTab}
+        >
           <TabsList className="mb-4">
             <TabsTrigger value="dashboard">
               <Home className="h-4 w-4 mr-2" />
@@ -50,7 +55,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
               teacherId={teacherId} 
               onManageClasses={onManageClasses} 
               isAdmin={isAdmin} 
-              onNavigateToClass={onNavigateToClass} // Pass the prop to DashboardCards
+              onNavigateToClass={onNavigateToClass}
             />
           </TabsContent>
           

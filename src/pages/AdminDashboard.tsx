@@ -236,7 +236,13 @@ const AdminDashboard: React.FC = () => {
         <AdminHeader />
         
         <div className="mb-6 flex justify-between items-center">
-          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full md:w-auto">
+          {/* Use a unique key to isolate this Tabs component */}
+          <Tabs 
+            key="admin-main-tabs"
+            value={activeTab} 
+            onValueChange={setActiveTab} 
+            className="w-full md:w-auto"
+          >
             <TabsList>
               <TabsTrigger value="teachers">{t("teachers") || "Teachers"}</TabsTrigger>
               <TabsTrigger value="students">{t("students") || "Students"}</TabsTrigger>
@@ -277,27 +283,31 @@ const AdminDashboard: React.FC = () => {
           </div>
         ) : null}
         
-        <TabsContent value="teachers" className="mt-0">
-          {isLoading ? (
-            <div className="text-center py-8 flex flex-col items-center">
-              <Loader2 className="h-8 w-8 mb-2 animate-spin text-blue-500" />
-              <p>Loading teachers...</p>
-            </div>
-          ) : (
-            <TeachersTab teachers={teachers} setTeachers={setTeachers} t={t} />
-          )}
-        </TabsContent>
+        {activeTab === "teachers" && (
+          <div className="mt-0">
+            {isLoading ? (
+              <div className="text-center py-8 flex flex-col items-center">
+                <Loader2 className="h-8 w-8 mb-2 animate-spin text-blue-500" />
+                <p>Loading teachers...</p>
+              </div>
+            ) : (
+              <TeachersTab teachers={teachers} setTeachers={setTeachers} t={t} />
+            )}
+          </div>
+        )}
         
-        <TabsContent value="students" className="mt-0">
-          {isLoading ? (
-            <div className="text-center py-8 flex flex-col items-center">
-              <Loader2 className="h-8 w-8 mb-2 animate-spin text-blue-500" />
-              <p>Loading students...</p>
-            </div>
-          ) : (
-            <StudentsTab students={students} setStudents={setStudents} t={t} />
-          )}
-        </TabsContent>
+        {activeTab === "students" && (
+          <div className="mt-0">
+            {isLoading ? (
+              <div className="text-center py-8 flex flex-col items-center">
+                <Loader2 className="h-8 w-8 mb-2 animate-spin text-blue-500" />
+                <p>Loading students...</p>
+              </div>
+            ) : (
+              <StudentsTab students={students} setStudents={setStudents} t={t} />
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
