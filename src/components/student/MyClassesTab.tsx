@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -138,14 +139,18 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
     );
   }
 
-  return <div>
+  return (
+    <div>
       <h2 className="text-2xl font-bold mb-6 text-center">{t("my-classes")}</h2>
       
-      {classes.length === 0 ? <Card>
+      {classes.length === 0 ? (
+        <Card>
           <CardContent className="pt-6 pb-6 text-center">
             <p className="text-gray-500">{t("no-classes-found")}</p>
           </CardContent>
-        </Card> : <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+        </Card>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Class List - Left Side */}
           <div className="md:col-span-1">
             <Card className="h-full">
@@ -154,10 +159,17 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {classes.map(cls => <Button key={cls.id} variant={selectedClass?.id === cls.id ? "default" : "outline"} className="w-full justify-between" onClick={() => setSelectedClass(cls)}>
+                  {classes.map(cls => (
+                    <Button 
+                      key={cls.id} 
+                      variant={selectedClass?.id === cls.id ? "default" : "outline"} 
+                      className="w-full justify-between" 
+                      onClick={() => setSelectedClass(cls)}
+                    >
                       <span>{cls.name}</span>
                       <ChevronRight className="h-4 w-4" />
-                    </Button>)}
+                    </Button>
+                  ))}
                 </div>
               </CardContent>
             </Card>
@@ -165,14 +177,22 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
           
           {/* Class Details - Right Side */}
           <div className="md:col-span-3">
-            {selectedClass ? <Card>
+            {selectedClass ? (
+              <Card>
                 <CardHeader>
                   <CardTitle>{selectedClass.name}</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  {selectedClass.description && <p className="text-sm text-gray-500 mb-6">{selectedClass.description}</p>}
+                  {selectedClass.description && (
+                    <p className="text-sm text-gray-500 mb-6">{selectedClass.description}</p>
+                  )}
                   
-                  <Tabs value={activeSubTab} onValueChange={setActiveSubTab}>
+                  {/* Create a unique key for this Tabs component to avoid conflicts */}
+                  <Tabs 
+                    key={`class-tabs-${selectedClass.id}`}
+                    value={activeSubTab} 
+                    onValueChange={setActiveSubTab}
+                  >
                     <TabsList className="grid w-full grid-cols-3 mb-6">
                       <TabsTrigger value="students" className="flex items-center gap-2">
                         <Users className="h-4 w-4" />
@@ -193,7 +213,11 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
                     </TabsContent>
                     
                     <TabsContent value="homework">
-                      <HomeworkTab studentId={studentId} studentName={studentName} classId={selectedClass.id} />
+                      <HomeworkTab 
+                        studentId={studentId} 
+                        studentName={studentName} 
+                        classId={selectedClass.id} 
+                      />
                     </TabsContent>
                     
                     <TabsContent value="ranking">
@@ -201,14 +225,19 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
                     </TabsContent>
                   </Tabs>
                 </CardContent>
-              </Card> : <Card>
+              </Card>
+            ) : (
+              <Card>
                 <CardContent className="pt-6 pb-6 text-center">
                   <p className="text-gray-500">{t("select-class")}</p>
                 </CardContent>
-              </Card>}
+              </Card>
+            )}
           </div>
-        </div>}
-    </div>;
+        </div>
+      )}
+    </div>
+  );
 };
 
 export default MyClassesTab;
