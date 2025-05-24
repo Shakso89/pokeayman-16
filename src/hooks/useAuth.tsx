@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from './use-toast';
@@ -75,14 +76,24 @@ export const useAuth = () => {
       // Store email in localStorage for reference
       if (currentUser.email) {
         localStorage.setItem("userEmail", currentUser.email);
+        
+        // Special handling for admin emails that were previously getting stuck
+        if (isSpecialAdminEmail(currentUser.email)) {
+          console.log("Special admin email detected:", currentUser.email);
+          setupTeacherAuth(currentUser.id, {
+            username: "Ayman", 
+            email: currentUser.email
+          }, true);
+          return;
+        }
       }
       
       // For admin users, set up as teacher type
       if (isAdminUser) {
         setupTeacherAuth(currentUser.id, {
           username: username || currentUser.email?.split('@')[0] || 'Admin',
-          isAdmin: true
-        });
+          email: currentUser.email
+        }, true);
         return;
       }
       
@@ -107,6 +118,7 @@ export const useAuth = () => {
       }
     } catch (error) {
       console.error("Error in handleSession:", error);
+      
       // Try to recover with basic session data
       if (newSession?.user) {
         const sessionUser = newSession.user;
@@ -122,6 +134,12 @@ export const useAuth = () => {
         });
       }
     }
+  };
+
+  // Helper function to check special admin emails
+  const isSpecialAdminEmail = (email: string): boolean => {
+    return email.toLowerCase() === "ayman.soliman.tr@gmail.com" || 
+           email.toLowerCase() === "ayman.soliman.cc@gmail.com";
   };
 
   // Setup student authentication
@@ -150,17 +168,12 @@ export const useAuth = () => {
     userData: any,
     isAdminUser: boolean = false
   ) => {
-    // If explicitly passed isAdmin flag, use that, otherwise check
-    const isAdmin = typeof isAdminUser === 'boolean' 
-      ? isAdminUser 
-      : checkIsAdmin(null, userData.username);
-    
     // Update state
     updateAuthState({
       isLoggedIn: true,
       userType: "teacher",
       userId: id,
-      isAdmin: isAdmin
+      isAdmin: isAdminUser
     });
 
     // Update localStorage with consistent values
@@ -172,13 +185,15 @@ export const useAuth = () => {
       userData.username || userData.email?.split("@")[0] || ""
     );
 
-    if (isAdmin) localStorage.setItem("isAdmin", "true");
+    if (isAdminUser) localStorage.setItem("isAdmin", "true");
     
-    console.log("Teacher auth setup complete", { id, isAdmin: isAdmin });
+    console.log("Teacher auth setup complete", { id, isAdmin: isAdminUser });
   };
 
   // Clear authentication state
   const clearAuthState = () => {
+    console.log("Clearing auth state...");
+    
     updateAuthState({
       isLoggedIn: false,
       userType: null,
@@ -188,15 +203,14 @@ export const useAuth = () => {
       isAdmin: false
     });
 
-    localStorage.removeItem("isLoggedIn");
-    localStorage.removeItem("userType");
-    localStorage.removeItem("teacherId");
-    localStorage.removeItem("studentId");
-    localStorage.removeItem("teacherUsername");
-    localStorage.removeItem("studentDisplayName");
-    localStorage.removeItem("isAdmin");
-    localStorage.removeItem("studentClassId");
-    localStorage.removeItem("userEmail");
+    // Clear all auth-related localStorage items
+    const authKeys = [
+      "isLoggedIn", "userType", "teacherId", "studentId", 
+      "teacherUsername", "studentDisplayName", "isAdmin", 
+      "studentClassId", "userEmail", "studentName", "studentSchoolId"
+    ];
+    
+    authKeys.forEach(key => localStorage.removeItem(key));
     
     console.log("Auth state cleared");
   };
@@ -268,28 +282,41 @@ export const useAuth = () => {
   };
 
   // Logout function
-  const logout = async () => {
+  const logout = async (): Promise<boolean> => {
     try {
+      console.log("Starting logout process in useAuth...");
       setLoading(true);
 
+      // Sign out from Supabase
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {
+        console.error("Supabase signout error:", error);
+        // Continue with logout even if Supabase fails
+      }
 
+      // Clear auth state
       clearAuthState();
 
+      console.log("Logout completed successfully");
+      
       toast({
         title: "Logged out successfully",
         description: "You have been logged out of your account.",
       });
+      
       return true;
     } catch (error: any) {
       console.error("Logout error:", error);
+      
+      // Force clear state even on error
+      clearAuthState();
+      
       toast({
-        title: "Logout failed",
-        description: error.message,
-        variant: "destructive",
+        title: "Logout completed",
+        description: "You have been logged out.",
       });
-      return false;
+      
+      return true; // Return true even on error to allow redirect
     } finally {
       setLoading(false);
     }

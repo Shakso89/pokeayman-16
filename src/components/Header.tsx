@@ -12,19 +12,28 @@ import {
 import { cn } from "@/lib/utils";
 import { Home } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Header: React.FC = () => {
   const navigate = useNavigate();
-  
-  // Check if user is logged in to determine where to redirect when home button is clicked
-  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-  const userType = localStorage.getItem("userType");
+  const { isLoggedIn, userType, isAdmin } = useAuth();
   
   const handleHomeClick = () => {
-    if (isLoggedIn && userType === "teacher") {
-      navigate("/teacher-dashboard");
-    } else if (isLoggedIn && userType === "student") {
-      navigate("/student-dashboard");
+    console.log("Home button clicked", { isLoggedIn, userType, isAdmin });
+    
+    if (isLoggedIn) {
+      if (userType === "teacher") {
+        if (isAdmin) {
+          navigate("/admin-dashboard");
+        } else {
+          navigate("/teacher-dashboard");
+        }
+      } else if (userType === "student") {
+        navigate("/student-dashboard");
+      } else {
+        // Fallback to home if userType is unclear
+        navigate("/");
+      }
     } else {
       navigate("/");
     }
