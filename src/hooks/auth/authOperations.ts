@@ -3,7 +3,9 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { AuthState, UserType } from './types';
 import { checkIsAdmin, isSpecialAdminEmail } from './adminUtils';
-import { setupStudentAuth, setupTeacherAuth, clearAuthState } from './authStateManagement';
+import { setupStudentAuth } from './studentAuth';
+import { setupTeacherAuth } from './teacherAuth';
+import { clearAuthState } from './authStateUtils';
 
 // Handle authentication session
 export const handleSession = async (
