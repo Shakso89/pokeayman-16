@@ -1,10 +1,11 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from './use-toast';
 import { Session } from '@supabase/supabase-js';
 import { AuthState } from './auth/types';
 import { handleSession } from './auth/sessionHandler';
-import { clearAuthState, loadFromLocalStorage } from './auth/authStateManagement';
+import { clearAuthState, loadFromLocalStorage } from './auth/authStateUtils';
 
 export const useAuth = () => {
   const [loading, setLoading] = useState(true);
@@ -22,6 +23,11 @@ export const useAuth = () => {
     setAuthState(prevState => ({ ...prevState, ...newState }));
   };
 
+  // Clear auth state wrapper
+  const clearAuthStateWrapper = () => {
+    clearAuthState(updateAuthState);
+  };
+
   // Refresh auth state
   const refreshAuthState = async () => {
     console.log("Refreshing auth state...");
@@ -37,11 +43,11 @@ export const useAuth = () => {
       } = await supabase.auth.getSession();
 
       if (existingSession) {
-        await handleSession(existingSession, updateAuthState, () => clearAuthState(updateAuthState));
+        await handleSession(existingSession, updateAuthState, clearAuthStateWrapper);
       } else {
         // If no session and localStorage failed, clear auth state
         if (!loadFromLocalStorage(updateAuthState)) {
-          clearAuthState(updateAuthState);
+          clearAuthStateWrapper();
           console.log("No auth session found");
         }
       }
@@ -49,7 +55,7 @@ export const useAuth = () => {
       console.error("Auth check error:", error);
       // Keep the localStorage state if it exists
       if (!authState.isLoggedIn) {
-        clearAuthState(updateAuthState);
+        clearAuthStateWrapper();
       }
     } finally {
       setLoading(false);
@@ -62,7 +68,7 @@ export const useAuth = () => {
       console.log("Starting logout process in useAuth...");
 
       // Clear auth state first
-      clearAuthState(updateAuthState);
+      clearAuthStateWrapper();
 
       // Sign out from Supabase (don't wait for it)
       supabase.auth.signOut().catch((error) => {
@@ -81,7 +87,7 @@ export const useAuth = () => {
       console.error("Logout error:", error);
       
       // Force clear state even on error
-      clearAuthState(updateAuthState);
+      clearAuthStateWrapper();
       
       toast({
         title: "Logout completed",
@@ -105,9 +111,9 @@ export const useAuth = () => {
       console.log("Auth state changed:", event);
 
       if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        if (newSession) await handleSession(newSession, updateAuthState, () => clearAuthState(updateAuthState));
+        if (newSession) await handleSession(newSession, updateAuthState, clearAuthStateWrapper);
       } else if (event === "SIGNED_OUT") {
-        clearAuthState(updateAuthState);
+        clearAuthStateWrapper();
       }
     });
 

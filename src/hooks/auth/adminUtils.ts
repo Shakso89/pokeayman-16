@@ -1,6 +1,6 @@
 
 import { User } from '@supabase/supabase-js';
-import { ADMIN_EMAILS, ADMIN_USERNAMES } from '@/utils/adminAuth';
+import { ADMIN_EMAILS, ADMIN_USERNAMES } from './constants';
 
 // Check if user is admin based on email or username
 export const checkIsAdmin = (user: User | null, username?: string): boolean => {

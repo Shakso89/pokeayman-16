@@ -3,7 +3,8 @@ import { Session } from '@supabase/supabase-js';
 import { supabase } from '@/integrations/supabase/client';
 import { AuthState } from './types';
 import { checkIsAdmin, isSpecialAdminEmail } from './adminUtils';
-import { setupStudentAuth, setupTeacherAuth } from './authStateManagement';
+import { setupStudentAuth } from './studentAuth';
+import { setupTeacherAuth } from './teacherAuth';
 
 // Handle changes in authentication session
 export const handleSession = async (

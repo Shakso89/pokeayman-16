@@ -3,17 +3,17 @@ import { supabase } from '@/integrations/supabase/client';
 import { Session, User } from '@supabase/supabase-js';
 import { AuthState, UserType } from './types';
 import { checkIsAdmin, isSpecialAdminEmail } from './adminUtils';
-import { setupStudentAuth, setupTeacherAuth } from './authStateManagement';
+import { setupStudentAuth, setupTeacherAuth, clearAuthState } from './authStateManagement';
 
 // Handle authentication session
 export const handleSession = async (
   newSession: Session | null,
   updateAuthState: (newState: Partial<AuthState>) => void,
-  clearAuthState: () => void
+  clearAuthStateFn: () => void
 ): Promise<void> => {
   try {
     if (!newSession || !newSession.user) {
-      clearAuthState();
+      clearAuthStateFn();
       return;
     }
     
@@ -34,15 +34,7 @@ export const handleSession = async (
         setupTeacherAuth(currentUser.id, {
           username: "Ayman", 
           email: currentUser.email
-        }, true);
-        updateAuthState({
-          isLoggedIn: true,
-          userType: "teacher",
-          userId: currentUser.id,
-          session: newSession,
-          user: currentUser,
-          isAdmin: true
-        });
+        }, updateAuthState, true);
         return;
       }
     }
@@ -52,15 +44,7 @@ export const handleSession = async (
       setupTeacherAuth(currentUser.id, {
         username: username || currentUser.email?.split('@')[0] || 'Admin',
         email: currentUser.email
-      }, true);
-      updateAuthState({
-        isLoggedIn: true,
-        userType: "teacher",
-        userId: currentUser.id,
-        session: newSession,
-        user: currentUser,
-        isAdmin: true
-      });
+      }, updateAuthState, true);
       return;
     }
     
@@ -68,15 +52,7 @@ export const handleSession = async (
     const userTypeFromMeta = userData.user_type as UserType;
     
     if (userTypeFromMeta === "student") {
-      setupStudentAuth(currentUser.id, userData);
-      updateAuthState({
-        isLoggedIn: true,
-        userType: "student",
-        userId: currentUser.id,
-        session: newSession,
-        user: currentUser,
-        isAdmin: false
-      });
+      setupStudentAuth(currentUser.id, userData, updateAuthState);
     } else {
       // Check database for student record
       const { data: studentData } = await supabase
@@ -86,25 +62,9 @@ export const handleSession = async (
         .maybeSingle();
 
       if (studentData) {
-        setupStudentAuth(currentUser.id, studentData);
-        updateAuthState({
-          isLoggedIn: true,
-          userType: "student",
-          userId: currentUser.id,
-          session: newSession,
-          user: currentUser,
-          isAdmin: false
-        });
+        setupStudentAuth(currentUser.id, studentData, updateAuthState);
       } else {
-        setupTeacherAuth(currentUser.id, userData, false);
-        updateAuthState({
-          isLoggedIn: true,
-          userType: "teacher",
-          userId: currentUser.id,
-          session: newSession,
-          user: currentUser,
-          isAdmin: false
-        });
+        setupTeacherAuth(currentUser.id, userData, updateAuthState, false);
       }
     }
   } catch (error) {
