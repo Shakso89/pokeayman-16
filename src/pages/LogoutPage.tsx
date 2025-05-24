@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
@@ -7,65 +8,44 @@ import { motion } from 'framer-motion';
 const LogoutPage: React.FC = () => {
   const { logout } = useAuth();
   const navigate = useNavigate();
-  const [logoutError, setLogoutError] = useState<string | null>(null);
-  const [logoutComplete, setLogoutComplete] = useState(false);
+  const [hasStarted, setHasStarted] = useState(false);
 
   useEffect(() => {
     // Prevent multiple logout attempts
-    if (logoutComplete) return;
+    if (hasStarted) return;
+    
+    setHasStarted(true);
     
     const performLogout = async () => {
       try {
         console.log("Starting logout process...");
         
-        // Call the logout function from the auth context
-        const success = await logout();
+        // Force clear localStorage immediately
+        localStorage.clear();
         
-        if (success) {
-          console.log("Logout successful");
-          setLogoutComplete(true);
-          
-          // Force clear any remaining localStorage items
-          localStorage.removeItem("isLoggedIn");
-          localStorage.removeItem("userType");
-          localStorage.removeItem("teacherId");
-          localStorage.removeItem("studentId");
-          localStorage.removeItem("teacherUsername");
-          localStorage.removeItem("studentDisplayName");
-          localStorage.removeItem("isAdmin");
-          localStorage.removeItem("studentClassId");
-          localStorage.removeItem("userEmail");
-          localStorage.removeItem("studentName");
-          localStorage.removeItem("studentSchoolId");
-          
-          // Redirect to home after a short delay
-          setTimeout(() => {
-            navigate('/', { replace: true });
-          }, 1000);
-        } else {
-          throw new Error("Logout failed");
-        }
+        // Call the logout function
+        await logout();
+        
+        console.log("Logout completed, redirecting to home");
+        
+        // Redirect to home
+        navigate('/', { replace: true });
       } catch (error: unknown) {
         console.error("Logout error:", error);
         
         // Force clear localStorage even on error
         localStorage.clear();
         
-        if (error instanceof Error) {
-          setLogoutError(error.message);
-        } else {
-          setLogoutError("An error occurred during logout");
-        }
-        
-        // Still redirect to home after error
-        setTimeout(() => {
-          navigate('/', { replace: true });
-        }, 2000);
+        // Still redirect to home
+        navigate('/', { replace: true });
       }
     };
 
-    performLogout();
-  }, [logout, navigate, logoutComplete]);
+    // Add a small delay to prevent race conditions
+    const timer = setTimeout(performLogout, 100);
+    
+    return () => clearTimeout(timer);
+  }, [logout, navigate, hasStarted]);
 
   return (
     <motion.div 
@@ -116,18 +96,6 @@ const LogoutPage: React.FC = () => {
         >
           Please wait while we securely sign you out
         </motion.p>
-
-        {logoutError && (
-          <motion.div
-            initial={{ opacity: 0, y: 10 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
-            aria-live="polite"
-            className="mt-4 p-3 bg-red-50 border border-red-200 text-red-600 rounded-md"
-          >
-            {logoutError}
-          </motion.div>
-        )}
       </motion.div>
     </motion.div>
   );

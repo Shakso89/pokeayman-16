@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from './use-toast';
@@ -281,21 +280,18 @@ export const useAuth = () => {
     }
   };
 
-  // Logout function
+  // Simplified logout function
   const logout = async (): Promise<boolean> => {
     try {
       console.log("Starting logout process in useAuth...");
-      setLoading(true);
 
-      // Sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Supabase signout error:", error);
-        // Continue with logout even if Supabase fails
-      }
-
-      // Clear auth state
+      // Clear auth state first
       clearAuthState();
+
+      // Sign out from Supabase (don't wait for it)
+      supabase.auth.signOut().catch((error) => {
+        console.error("Supabase signout error (ignored):", error);
+      });
 
       console.log("Logout completed successfully");
       
