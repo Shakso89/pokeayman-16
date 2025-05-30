@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getValidUUID } from "./studentUtils";
@@ -55,47 +56,78 @@ export const createStudent = async (
       throw new Error(`Username "${studentData.username}" is already taken. Please choose a different username.`);
     }
     
-    // First, verify the teacher exists in the database
+    // Get a valid UUID for the teacher ID
+    const validTeacherId = getValidUUID(teacherId);
+    
+    // First, check if teacher exists in the database
     const { data: teacherExists, error: teacherCheckError } = await supabase
       .from('teachers')
-      .select('id')
-      .eq('id', teacherId)
+      .select('id, username, email')
+      .eq('id', validTeacherId)
       .maybeSingle();
       
     if (teacherCheckError) {
       console.error("Error checking teacher existence:", teacherCheckError);
-      throw new Error(`Failed to verify teacher: ${teacherCheckError.message}`);
     }
     
+    // If teacher doesn't exist, create the teacher record
     if (!teacherExists) {
-      console.error("Teacher doesn't exist in database:", teacherId);
+      console.log("Teacher doesn't exist in database, creating teacher record:", validTeacherId);
       
-      // Instead of failing, try to create the teacher record first
-      const { data: newTeacher, error: createTeacherError } = await supabase
-        .from('teachers')
-        .insert({
-          id: teacherId,
-          username: localStorage.getItem('teacherUsername') || 'teacher',
-          display_name: localStorage.getItem('teacherDisplayName') || 'Teacher',
-          password: '***', // Placeholder
-          is_active: true
-        })
-        .select()
-        .single();
-        
-      if (createTeacherError) {
-        console.error("Failed to create teacher record:", createTeacherError);
-        throw new Error(`Teacher doesn't exist in database. Auto-creation failed: ${createTeacherError.message}`);
+      // Get teacher info from localStorage or auth context
+      const teacherUsername = localStorage.getItem('teacherUsername') || 'teacher';
+      const teacherEmail = localStorage.getItem('teacherEmail') || '';
+      const isAdmin = localStorage.getItem('isAdmin') === 'true';
+      
+      // Generate a unique username if there's a conflict
+      let finalUsername = teacherUsername;
+      let usernameCounter = 1;
+      
+      while (true) {
+        try {
+          const { data: newTeacher, error: createTeacherError } = await supabase
+            .from('teachers')
+            .insert({
+              id: validTeacherId,
+              username: finalUsername,
+              display_name: teacherUsername,
+              email: teacherEmail,
+              password: '***', // Placeholder
+              is_active: true,
+              subscription_type: isAdmin ? 'premium' : 'trial'
+            })
+            .select()
+            .single();
+            
+          if (createTeacherError) {
+            // If it's a unique constraint violation on username, try with a different username
+            if (createTeacherError.code === '23505' && createTeacherError.message.includes('teachers_username_key')) {
+              finalUsername = `${teacherUsername}_${usernameCounter}`;
+              usernameCounter++;
+              console.log(`Username conflict, trying with: ${finalUsername}`);
+              continue;
+            }
+            throw createTeacherError;
+          }
+          
+          console.log("Created teacher record:", newTeacher.id);
+          break;
+        } catch (error: any) {
+          if (error.code === '23505' && error.message.includes('teachers_username_key')) {
+            finalUsername = `${teacherUsername}_${usernameCounter}`;
+            usernameCounter++;
+            console.log(`Username conflict, trying with: ${finalUsername}`);
+            continue;
+          }
+          throw error;
+        }
       }
-      
-      console.log("Created missing teacher record:", newTeacher.id);
+    } else {
+      console.log("Teacher already exists in database:", teacherExists.id);
     }
     
     // Hash the password
     const password_hash = await bcrypt.hash(studentData.password, 10);
-    
-    // Get a valid UUID for the teacher ID
-    const validTeacherId = getValidUUID(teacherId);
     
     console.log("Creating student in database with teacherId:", validTeacherId);
     
