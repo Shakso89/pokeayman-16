@@ -62,13 +62,13 @@ export const useAuth = () => {
     }
   };
 
-  // Simplified logout function
+  // Simplified and reliable logout function
   const logout = async (): Promise<boolean> => {
     try {
       console.log("Starting logout process...");
       setLoading(true);
 
-      // Clear auth state immediately
+      // Clear auth state immediately for instant UI feedback
       clearAuthStateWrapper();
 
       // Sign out from Supabase
@@ -76,7 +76,7 @@ export const useAuth = () => {
       
       if (error) {
         console.error("Supabase signout error:", error);
-        // Don't throw error, just log it
+        // Don't throw error, just log it - logout should always succeed
       }
 
       console.log("Logout completed successfully");
@@ -90,7 +90,7 @@ export const useAuth = () => {
     } catch (error: any) {
       console.error("Logout error:", error);
       
-      // Force clear state even on error
+      // Force clear state even on error to ensure logout always works
       clearAuthStateWrapper();
       
       toast({

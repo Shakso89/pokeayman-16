@@ -12,6 +12,9 @@ import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Student } from "@/types/database";
+import { handleTeacherLogin, handleAdminLogin } from "@/hooks/auth/teacherAuthService";
+import { useAuth } from "@/contexts/AuthContext";
+import { checkDevAdminLogin, isAdminUsername, isAdminEmail, isValidAdminPassword } from "@/utils/adminAuth";
 
 export interface LoginFormProps {
   type: "teacher" | "student";
@@ -31,6 +34,7 @@ export const LoginForm: React.FC<LoginFormProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [emailUnverified, setEmailUnverified] = useState(false);
   const { t } = useTranslation();
+  const { refreshAuthState } = useAuth();
   
   const navigate = useNavigate();
 
@@ -80,146 +84,35 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
     try {
       if (type === "teacher") {
-        // Special case for admin login - Added "Ayman" and ayman.soliman.cc@gmail.com as admin
-        if ((usernameOrEmail === "Admin" || 
-             usernameOrEmail === "admin@pokeayman.com" || 
-             usernameOrEmail === "Ayman" ||
-             usernameOrEmail === "ayman.soliman.cc@gmail.com" ||
-             usernameOrEmail === "ayman.soliman.tr@gmail.com") && 
-            (password === "AdminAyman" || (usernameOrEmail === "Ayman" && password === "AymanPassword"))) {
-          
-          // For admin, still use local authentication for now, but can be migrated to proper admin roles later
-          const adminUsername = usernameOrEmail === "Ayman" || 
-                               usernameOrEmail === "ayman.soliman.cc@gmail.com" || 
-                               usernameOrEmail === "ayman.soliman.tr@gmail.com" ? "Ayman" : "Admin";
-          
-          toast({
-            title: "Success!",
-            description: `Welcome back, ${adminUsername}!`,
-          });
-          
-          localStorage.setItem("userType", "teacher");
-          localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("teacherUsername", adminUsername);
-          localStorage.setItem("isAdmin", "true");
-          localStorage.setItem("teacherId", `admin-${adminUsername}-${Date.now().toString()}`);
-          setActivationStatus(true);
-          
-          if (onLoginSuccess) {
-            onLoginSuccess(adminUsername, password);
-          }
-          
-          navigate("/admin-dashboard");
-          return;
-        }
+        // Check if this is an admin login
+        const isAdmin = (isAdminUsername(usernameOrEmail) || isAdminEmail(usernameOrEmail)) &&
+                       isValidAdminPassword(password);
 
-        // Check if input is email (contains @)
-        const isEmail = usernameOrEmail.includes('@');
-        
-        // Sign in with Supabase Auth
-        const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-          // If it's an email, use it as email, otherwise use placeholder pattern
-          email: isEmail ? usernameOrEmail : `${usernameOrEmail}@placeholder.com`,
-          password,
-        });
-
-        if (authError) {
-          // Check if the error is about email not being verified
-          if (authError.message?.includes("Email not confirmed")) {
-            console.log("Email not verified:", usernameOrEmail);
-            setEmailUnverified(true);
-            throw new Error("Please verify your email address before logging in. Check your inbox for a verification link.");
-          }
+        // Special handling for admin users
+        if (isAdmin || checkDevAdminLogin(usernameOrEmail, password) ||
+            usernameOrEmail.toLowerCase() === "ayman.soliman.tr@gmail.com" || 
+            usernameOrEmail.toLowerCase() === "ayman") {
           
-          // Try fallback for legacy users
-          console.log("Auth error:", authError.message);
-          
-          // Check localStorage for backward compatibility
-          const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-          const teacher = teachers.find((t: any) => 
-            t.username === usernameOrEmail || t.email === usernameOrEmail
-          );
-          
-          if (teacher && teacher.password === password) {
-            // For legacy users, create a Supabase account
-            const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
-              email: teacher.email || `${teacher.username}@placeholder.com`,
-              password,
-              options: {
-                data: {
-                  username: teacher.username,
-                  display_name: teacher.displayName,
-                  avatar_url: teacher.avatarUrl,
-                  user_type: "teacher",
-                },
-                emailRedirectTo: window.location.origin + "/teacher-login",
-              }
-            });
-            
-            if (signUpError) {
-              console.error("Error migrating legacy user:", signUpError);
-            } else {
-              console.log("Migrated legacy user to Supabase:", signUpData);
-            }
-            
-            toast({
-              title: "Success!",
-              description: "Welcome back, Teacher!",
-            });
-            
-            localStorage.setItem("userType", "teacher");
-            localStorage.setItem("isLoggedIn", "true");
-            localStorage.setItem("teacherUsername", teacher.username);
-            localStorage.setItem("isAdmin", "false");
-            localStorage.setItem("teacherId", teacher.id);
-            
-            if (teacher.isActive) {
-              setActivationStatus(true);
-            } else {
-              setActivationStatus(false);
-            }
-            
-            if (onLoginSuccess) {
-              onLoginSuccess(usernameOrEmail, password);
-            }
-            
-            navigate("/teacher-dashboard");
-          } else {
-            throw new Error("Invalid username/email or password.");
-          }
-        } else if (authData.user) {
-          // Check if email is verified
-          if (authData.user.email_confirmed_at === null) {
-            console.log("Email not verified:", authData.user.email);
-            setEmailUnverified(true);
-            throw new Error("Please verify your email address before logging in.");
-          }
-          
-          // Successfully authenticated with Supabase
-          const userMetadata = authData.user.user_metadata;
-          
-          toast({
-            title: "Success!",
-            description: "Welcome back, Teacher!",
-          });
-          
-          localStorage.setItem("userType", "teacher");
-          localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("teacherUsername", userMetadata.username || usernameOrEmail);
-          localStorage.setItem("isAdmin", "false");
-          localStorage.setItem("teacherId", authData.user.id);
+          const result = await handleAdminLogin(usernameOrEmail, password, () => {});
+          await refreshAuthState();
           
           if (onLoginSuccess) {
             onLoginSuccess(usernameOrEmail, password);
           }
           
-          navigate("/teacher-dashboard");
+          navigate(result.redirect);
+        } else {
+          const result = await handleTeacherLogin(usernameOrEmail, password, () => {});
+          await refreshAuthState();
+          
+          if (onLoginSuccess) {
+            onLoginSuccess(usernameOrEmail, password);
+          }
+          
+          navigate(result.redirect);
         }
       } else {
-        // Student login - similar approach using Supabase for newer students, 
-        // with fallback to localStorage for backward compatibility
-        
-        // Try Supabase first if using email format
+        // Student login logic - keeping existing implementation
         let isAuthenticated = false;
         
         if (usernameOrEmail.includes('@')) {
@@ -229,16 +122,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           });
           
           if (!authError && authData.user) {
-            // Check if email is verified for students as well
             if (authData.user.email_confirmed_at === null) {
               setEmailUnverified(true);
               throw new Error("Please verify your email address before logging in.");
             }
             
-            // Student authenticated via Supabase
             isAuthenticated = true;
             
-            // Get student details from database
             const { data: studentData, error: studentError } = await supabase
               .from('students')
               .select('*')
@@ -250,7 +140,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
               localStorage.setItem("studentName", studentData.display_name || studentData.username);
               localStorage.setItem("studentClassId", studentData.class_id || "");
               
-              // Update last login
               await supabase
                 .from('students')
                 .update({ last_login: new Date().toISOString() })
@@ -259,7 +148,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({
           }
         }
         
-        // Fallback to localStorage for backward compatibility
         if (!isAuthenticated) {
           const students = JSON.parse(localStorage.getItem("students") || "[]");
           const student = students.find((s: any) => s.username === usernameOrEmail && s.password === password);
@@ -270,13 +158,11 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             localStorage.setItem("studentName", student.displayName || student.username);
             localStorage.setItem("studentClassId", student.classId || "");
             
-            // Try to migrate student to database
             try {
-              // Create a properly typed student object for insertion
               const newStudent: Omit<Student, 'last_login'> & { last_login: string } = {
                 id: student.id,
                 username: student.username,
-                password_hash: student.password, // Will migrate to hashed later
+                password_hash: student.password,
                 display_name: student.displayName || student.username,
                 teacher_id: student.teacherId,
                 class_id: student.classId,
@@ -318,6 +204,10 @@ export const LoginForm: React.FC<LoginFormProps> = ({
         }
       }
     } catch (error: any) {
+      if (error.message?.includes("Email not confirmed")) {
+        setEmailUnverified(true);
+      }
+      
       toast({
         title: "Authentication failed",
         description: error.message || "Invalid username/email or password.",
