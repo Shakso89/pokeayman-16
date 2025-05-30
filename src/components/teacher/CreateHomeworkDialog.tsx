@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { 
   Dialog, 
@@ -18,6 +17,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkAssignment } from "@/types/homework";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cleanupOldHomework, clearStorageIfFull } from "@/utils/storage/cleanup";
+import { supabase } from "@/integrations/supabase/client";
 
 interface CreateHomeworkDialogProps {
   open: boolean;
@@ -40,6 +40,7 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
   const { toast } = useToast();
   const [classes, setClasses] = useState<{id: string, name: string}[]>([]);
   const [selectedClassId, setSelectedClassId] = useState<string>(classId);
+  const [isLoadingClasses, setIsLoadingClasses] = useState(false);
   
   const [homeworkData, setHomeworkData] = useState({
     title: "",
@@ -54,27 +55,85 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
       fetchClasses();
       setSelectedClassId(classId);
     }
-  }, [open, classId]);
+  }, [open, classId, teacherId]);
 
-  const fetchClasses = () => {
+  const fetchClasses = async () => {
+    setIsLoadingClasses(true);
+    console.log("Fetching classes for teacher:", teacherId);
+    
     try {
+      // First try to fetch from Supabase
+      const { data: supabaseClasses, error } = await supabase
+        .from('classes')
+        .select('id, name')
+        .eq('teacher_id', teacherId);
+        
+      if (error) {
+        console.error("Error fetching classes from Supabase:", error);
+        throw error;
+      }
+      
+      console.log("Classes from Supabase:", supabaseClasses);
+      
+      // Also get classes from localStorage as fallback
       const storedClasses = localStorage.getItem("classes");
+      let localClasses: any[] = [];
+      
       if (storedClasses) {
         const parsedClasses = JSON.parse(storedClasses);
-        const filteredClasses = teacherId 
-          ? parsedClasses.filter((cls: any) => 
-              cls.teacherId === teacherId || cls.teacher_id === teacherId
-            )
-          : parsedClasses;
-        
-        setClasses(filteredClasses.map((cls: any) => ({
-          id: cls.id,
-          name: cls.name
-        })));
+        localClasses = parsedClasses
+          .filter((cls: any) => cls.teacherId === teacherId || cls.teacher_id === teacherId)
+          .map((cls: any) => ({
+            id: cls.id,
+            name: cls.name
+          }));
+        console.log("Classes from localStorage:", localClasses);
+      }
+      
+      // Combine both sources and remove duplicates
+      const allClasses = [...(supabaseClasses || []), ...localClasses];
+      const uniqueClasses = allClasses.filter((cls, index, self) => 
+        index === self.findIndex(c => c.id === cls.id)
+      );
+      
+      console.log("Final combined classes:", uniqueClasses);
+      setClasses(uniqueClasses);
+      
+      if (uniqueClasses.length === 0) {
+        console.warn("No classes found for teacher:", teacherId);
+        toast({
+          title: t("warning"),
+          description: t("no-classes-found-create-class-first"),
+          variant: "destructive"
+        });
       }
     } catch (error) {
-      console.error("Error fetching classes:", error);
-      setClasses([]);
+      console.error("Error fetching classes, falling back to localStorage only:", error);
+      
+      // Fallback to localStorage only
+      try {
+        const storedClasses = localStorage.getItem("classes");
+        if (storedClasses) {
+          const parsedClasses = JSON.parse(storedClasses);
+          const filteredClasses = parsedClasses
+            .filter((cls: any) => cls.teacherId === teacherId || cls.teacher_id === teacherId)
+            .map((cls: any) => ({
+              id: cls.id,
+              name: cls.name
+            }));
+          
+          console.log("Fallback classes from localStorage:", filteredClasses);
+          setClasses(filteredClasses);
+        } else {
+          console.warn("No classes found in localStorage either");
+          setClasses([]);
+        }
+      } catch (localError) {
+        console.error("Error with localStorage fallback:", localError);
+        setClasses([]);
+      }
+    } finally {
+      setIsLoadingClasses(false);
     }
   };
 
@@ -176,12 +235,23 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
             <Select 
               value={selectedClassId} 
               onValueChange={(value) => setSelectedClassId(value)}
+              disabled={isLoadingClasses}
             >
-              <SelectTrigger>
-                <SelectValue placeholder={t("select-a-class")} />
+              <SelectTrigger className="bg-white">
+                <SelectValue placeholder={
+                  isLoadingClasses 
+                    ? t("loading-classes") 
+                    : classes.length > 0 
+                      ? t("select-a-class") 
+                      : t("no-classes-available")
+                } />
               </SelectTrigger>
-              <SelectContent>
-                {classes.length > 0 ? (
+              <SelectContent className="bg-white border shadow-lg z-50">
+                {isLoadingClasses ? (
+                  <SelectItem value="loading" disabled>
+                    {t("loading-classes")}
+                  </SelectItem>
+                ) : classes.length > 0 ? (
                   classes.map((cls) => (
                     <SelectItem key={cls.id} value={cls.id}>
                       {cls.name}
@@ -265,7 +335,7 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("cancel")}
           </Button>
-          <Button onClick={handleCreateHomework}>
+          <Button onClick={handleCreateHomework} disabled={isLoadingClasses || classes.length === 0}>
             {t("create-homework")}
           </Button>
         </DialogFooter>
