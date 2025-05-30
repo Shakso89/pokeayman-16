@@ -39,12 +39,12 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
 }) => {
   const { t } = useTranslation();
   const [showFriendDialog, setShowFriendDialog] = useState(false);
-  const [displayName, setDisplayName] = useState(student.displayName);
+  const [displayName, setDisplayName] = useState(student.displayName || student.username || "");
   
   useEffect(() => {
     // Keep displayName in sync with student data
-    setDisplayName(student.displayName);
-  }, [student.displayName]);
+    setDisplayName(student.displayName || student.username || "");
+  }, [student.displayName, student.username]);
   
   const handleSave = async () => {
     // If there's a database connection, update the name there
@@ -61,6 +61,12 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
     onSaveClick();
   };
   
+  // Safe display name for rendering
+  const safeDisplayName = student.displayName || student.username || "Student";
+  const avatarInitials = safeDisplayName.length >= 2 ? 
+    safeDisplayName.substring(0, 2).toUpperCase() : 
+    safeDisplayName.substring(0, 1).toUpperCase() || "S";
+  
   return (
     <Card className="shadow-md">
       <CardContent className="p-4">
@@ -70,12 +76,12 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
             {student.avatar ? (
               <img 
                 src={student.avatar} 
-                alt={student.displayName} 
+                alt={safeDisplayName} 
                 className="w-full h-full object-cover"
               />
             ) : (
               <div className="w-full h-full bg-gray-100 flex items-center justify-center text-3xl font-bold text-gray-400">
-                {student.displayName.substring(0, 2).toUpperCase()}
+                {avatarInitials}
               </div>
             )}
           </div>
@@ -88,11 +94,11 @@ export const ProfileSidebar: React.FC<ProfileSidebarProps> = ({
               onChange={(e) => setDisplayName(e.target.value)}
             />
           ) : (
-            <h2 className="text-xl font-bold mb-2">{student.displayName}</h2>
+            <h2 className="text-xl font-bold mb-2">{safeDisplayName}</h2>
           )}
           
           {/* Username */}
-          <p className="text-gray-500 text-sm mb-4">@{student.username}</p>
+          <p className="text-gray-500 text-sm mb-4">@{student.username || "unknown"}</p>
           
           {/* Actions */}
           <div className="flex flex-col w-full space-y-2">
