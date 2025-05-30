@@ -73,10 +73,6 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
     }
   };
 
-  const handleViewProfile = () => {
-    navigate(`/teacher/student/${student.id}`);
-  };
-
   const handleSendMessage = () => {
     // Navigate to messages page with this student selected
     navigate(userType === "teacher" ? "/teacher/messages" : "/student/messages");
@@ -106,7 +102,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
             displayName={student.displayName}
             isOwnProfile={isOwnProfile}
             onAvatarChange={handleAvatarChange}
-            onViewProfile={handleViewProfile}
+            onViewProfile={() => {}} // Remove since it's handled in ProfileActions now
           />
           
           <ProfileInfo
@@ -132,9 +128,9 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
           <ProfileActions
             isOwnProfile={isOwnProfile}
             isTeacherView={userType === "teacher"}
+            studentId={student.id}
             onGiveCoins={onGiveCoins}
             onSendMessage={handleSendMessage}
-            onViewProfile={handleViewProfile}
             onOpenSettings={handleOpenSettings}
           />
         </div>

@@ -3,25 +3,37 @@ import React from "react";
 import { Button } from "@/components/ui/button";
 import { Coins, MessageSquare, UserPlus, Settings } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useNavigate } from "react-router-dom";
 
 interface ProfileActionsProps {
   isOwnProfile: boolean;
   isTeacherView: boolean;
+  studentId?: string;
   onGiveCoins?: () => void;
   onSendMessage?: () => void;
-  onViewProfile?: () => void;
   onOpenSettings?: () => void;
 }
 
 const ProfileActions: React.FC<ProfileActionsProps> = ({
   isOwnProfile,
   isTeacherView,
+  studentId,
   onGiveCoins,
   onSendMessage,
-  onViewProfile,
   onOpenSettings
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const handleViewProfile = () => {
+    if (studentId) {
+      if (isTeacherView) {
+        navigate(`/teacher/student/${studentId}`);
+      } else {
+        navigate(`/student/profile/${studentId}`);
+      }
+    }
+  };
 
   return (
     <div className="flex flex-col gap-2">
@@ -45,7 +57,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
           <Button 
             variant="outline" 
             className="w-full flex items-center"
-            onClick={onViewProfile}
+            onClick={handleViewProfile}
           >
             <UserPlus className="h-4 w-4 mr-2" />
             {t("view-profile")}

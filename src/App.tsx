@@ -57,6 +57,10 @@ function Router() {
       {/* New route for creating classes in any school */}
       <Route path="/create-class/:schoolId" element={<CreateClassPage />} />
       
+      {/* Add missing teacher routes for student profiles */}
+      <Route path="/teacher/student/:studentId" element={<StudentDetailPage />} />
+      <Route path="/teacher/profile/:teacherId" element={<TeacherProfilePage />} />
+      
       <Route path="*" element={<NotFound />} />
     </Routes>
   );
