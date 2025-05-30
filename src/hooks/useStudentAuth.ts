@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import bcrypt from "bcryptjs";
 
 // Define StudentData interface for the return type that differs from database Student type
 interface StudentData {
@@ -98,8 +99,17 @@ export const useStudentAuth = () => {
       return { success: false, student: null };
     }
     
-    // Simple password comparison (avoid bcryptjs on browser)
-    const passwordValid = student.password_hash === password;
+    // Verify password - handle both hashed and plain text passwords
+    let passwordValid = false;
+    
+    try {
+      // First try bcrypt comparison (for properly hashed passwords)
+      passwordValid = await bcrypt.compare(password, student.password_hash);
+    } catch (error) {
+      // If bcrypt fails, it might be a plain text password (legacy)
+      console.log("Bcrypt comparison failed, trying plain text comparison");
+      passwordValid = student.password_hash === password;
+    }
     
     console.log("Password validation result:", passwordValid ? "Valid" : "Invalid");
     
@@ -225,8 +235,8 @@ export const useStudentAuth = () => {
   
   const migrateStudentToDatabase = async (student: any, password: string): Promise<void> => {
     try {
-      // Use regular password as hash for now (avoiding bcryptjs in browser)
-      const hashedPassword = password;
+      // Hash the password before storing
+      const hashedPassword = await bcrypt.hash(password, 10);
       
       // Create a new unique ID if one doesn't exist
       const newId = student.id || crypto.randomUUID();
