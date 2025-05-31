@@ -1,21 +1,22 @@
-
-import React from "react";
+import React, { memo } from "react";
 import { NavBar } from "@/components/NavBar";
 
-export const Messages: React.FC = () => {
+interface MessagesProps {
+  userType?: "teacher" | "student";
+  userName?: string;
+}
+
+const Messages: React.FC<MessagesProps> = ({ userType = "teacher", userName = "User" }) => {
   return (
     <div className="min-h-screen bg-gray-100">
-      <NavBar 
-        userType="teacher" 
-        userName="User" 
-      />
+      <NavBar userType={userType} userName={userName} />
       
-      <div className="container mx-auto py-8 px-4">
+      <main className="container mx-auto py-8 px-4">
         <h1 className="text-2xl font-bold mb-6">Messages</h1>
-        <p>Messages functionality is not yet implemented.</p>
-      </div>
+        <div className="text-gray-600">Messages functionality is not yet implemented.</div>
+      </main>
     </div>
   );
 };
 
-export default Messages;
+export default memo(Messages);
