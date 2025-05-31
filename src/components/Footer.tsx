@@ -5,7 +5,7 @@ const Footer: React.FC = () => {
   return <footer className="w-full bg-white/10 backdrop-blur-md py-6 text-center text-white">
       <div className="container mx-auto">
         <div className="flex justify-center mb-4">
-          <img src="/lovable-uploads/40c04be5-3d6e-4938-9a00-006177dbef3b.png" alt="PokéAyman Logo" onClick={() => navigate("/")} className="h-60 w-auto cursor-pointer hover:scale-110 transition-transform object-scale-down" />
+          
         </div>
         <p>© 2025 PokéAyman. All rights reserved</p>
         <div className="flex justify-center mt-4 gap-4">
