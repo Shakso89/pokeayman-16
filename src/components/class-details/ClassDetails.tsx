@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -407,92 +406,81 @@ const ClassDetails = () => {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <motion.div 
-        className="flex items-center justify-between mb-6"
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.5 }}
-      >
-        <div className="flex items-center">
-          <Button
-            variant="outline"
-            onClick={() => navigate("/teacher-dashboard")}
-            className="mr-4"
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            {t("back")}
-          </Button>
-          <motion.h1 
-            className="text-2xl font-bold"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            transition={{ delay: 0.2, duration: 0.5 }}
-          >
-            {classData.name}
-          </motion.h1>
-        </div>
-        
-        <div className="flex gap-2">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <div className="bg-white border-b border-gray-200 px-6 py-4">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Button
+              variant="ghost"
+              onClick={() => navigate("/teacher-dashboard")}
+              className="text-gray-600 hover:text-gray-800"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              back
+            </Button>
+            <h1 className="text-xl font-semibold text-gray-800">
+              {classData.name}
+            </h1>
+          </div>
+          
           {isClassCreator() && (
-            <>
-              <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                animate={{ opacity: 1, scale: 1 }}
-                transition={{ delay: 0.3, duration: 0.5 }}
+            <div className="flex items-center space-x-2">
+              <Button 
+                onClick={() => setIsStudentListOpen(true)}
+                variant="outline"
+                className="text-gray-600 border-gray-300 hover:bg-gray-50"
               >
-                <Button 
-                  onClick={() => setIsStudentListOpen(true)}
-                  className="mr-2"
-                  variant="outline"
-                >
-                  <PlusCircle className="h-4 w-4 mr-1" />
-                  {t("add-student")}
-                </Button>
-              </motion.div>
+                <PlusCircle className="h-4 w-4 mr-1" />
+                add-student
+              </Button>
               
               {isAdmin && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  transition={{ delay: 0.5, duration: 0.5 }}
+                <Button
+                  variant="destructive"
+                  onClick={() => setDeleteDialogOpen(true)}
+                  className="bg-red-500 hover:bg-red-600"
                 >
-                  <Button
-                    variant="destructive"
-                    onClick={() => setDeleteDialogOpen(true)}
-                    size="sm"
-                  >
-                    <Trash2 className="h-4 w-4 mr-1" />
-                    {t("delete-class")}
-                  </Button>
-                </motion.div>
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  delete-class
+                </Button>
               )}
-            </>
+            </div>
           )}
         </div>
-      </motion.div>
+      </div>
 
-      <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="mb-4">
-          <TabsTrigger value="students">{t("students")}</TabsTrigger>
-          <TabsTrigger value="homework">{t("homework")}</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="students">
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center justify-between">
-                <span>{t("students-in-class")} ({students.length})</span>
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
+      {/* Content */}
+      <div className="px-6 py-6">
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+          <TabsList className="bg-white border border-gray-200">
+            <TabsTrigger 
+              value="students" 
+              className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900"
+            >
+              students
+            </TabsTrigger>
+            <TabsTrigger 
+              value="homework"
+              className="data-[state=active]:bg-gray-100 data-[state=active]:text-gray-900"
+            >
+              homework
+            </TabsTrigger>
+          </TabsList>
+          
+          <TabsContent value="students" className="mt-6">
+            <div className="bg-white rounded-lg border border-gray-200">
+              <div className="px-6 py-4 border-b border-gray-200">
+                <h2 className="text-lg font-medium text-gray-900">students-in-class</h2>
+              </div>
+              
               {students.length === 0 ? (
-                <div className="text-center py-8">
+                <div className="text-center py-12">
                   <p className="text-gray-500 mb-4">{t("no-students-in-class")}</p>
                   {isClassCreator() && (
                     <Button 
                       onClick={() => setIsStudentListOpen(true)}
-                      className="bg-sky-500 hover:bg-sky-600"
+                      className="bg-blue-500 hover:bg-blue-600 text-white"
                     >
                       <PlusCircle className="h-4 w-4 mr-1" />
                       {t("add-students")}
@@ -502,51 +490,45 @@ const ClassDetails = () => {
               ) : (
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-2 font-medium text-gray-600">{t("name")}</th>
-                        <th className="text-left py-2 font-medium text-gray-600">{t("coins")}</th>
-                        <th className="text-right py-2 font-medium text-gray-600">{t("actions")}</th>
+                    <thead className="bg-gray-50 border-b border-gray-200">
+                      <tr>
+                        <th className="text-left py-3 px-6 text-sm font-medium text-gray-600">name</th>
+                        <th className="text-left py-3 px-6 text-sm font-medium text-gray-600">coins</th>
+                        <th className="text-right py-3 px-6 text-sm font-medium text-gray-600">actions</th>
                       </tr>
                     </thead>
-                    <tbody>
+                    <tbody className="divide-y divide-gray-200">
                       {students.map((student) => (
-                        <tr key={student.id} className="border-b hover:bg-gray-50">
-                          <td className="py-3">
-                            <div className="flex items-center">
-                              <div className="h-8 w-8 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center mr-3 text-sm">
-                                {(student.display_name || student.displayName || student.username || '??')[0]?.toUpperCase()}
-                              </div>
-                              <div>
-                                <p className="font-medium">{student.display_name || student.displayName || student.username}</p>
-                                <p className="text-sm text-gray-500">@{student.username}</p>
-                              </div>
+                        <tr key={student.id} className="hover:bg-gray-50">
+                          <td className="py-4 px-6">
+                            <div className="text-sm font-medium text-gray-900">
+                              {student.display_name || student.displayName || student.username}
                             </div>
                           </td>
-                          <td className="py-3">
-                            <span className="font-medium">{student.coins}</span>
+                          <td className="py-4 px-6">
+                            <span className="text-sm text-gray-900">{student.coins}</span>
                           </td>
-                          <td className="py-3">
+                          <td className="py-4 px-6">
                             {isClassCreator() && (
                               <div className="flex items-center justify-end space-x-2">
                                 <Button 
                                   size="sm" 
                                   variant="outline"
-                                  className="text-yellow-600 border-yellow-600 hover:bg-yellow-50"
+                                  className="text-yellow-600 border-yellow-600 hover:bg-yellow-50 text-xs"
                                   onClick={() => setGiveCoinsDialog({
                                     open: true, 
                                     studentId: student.id,
                                     studentName: student.display_name || student.displayName || student.username
                                   })}
                                 >
-                                  <Coins className="h-4 w-4 mr-1" />
-                                  {t("award-coins")}
+                                  <Coins className="h-3 w-3 mr-1" />
+                                  award-coins
                                 </Button>
                                 
                                 <Button 
                                   size="sm" 
                                   variant="outline"
-                                  className="text-blue-600 border-blue-600 hover:bg-blue-50"
+                                  className="text-blue-600 border-blue-600 hover:bg-blue-50 text-xs"
                                   onClick={() => setManagePokemonDialog({
                                     open: true, 
                                     studentId: student.id,
@@ -554,22 +536,22 @@ const ClassDetails = () => {
                                     schoolId: classData.school_id || classData.schoolId
                                   })}
                                 >
-                                  <Award className="h-4 w-4 mr-1" />
-                                  {t("manage-pokemon")}
+                                  <Award className="h-3 w-3 mr-1" />
+                                  Manage Pokémon
                                 </Button>
                                 
                                 <Button 
                                   size="sm" 
                                   variant="outline"
-                                  className="text-red-600 border-red-600 hover:bg-red-50"
+                                  className="text-red-600 border-red-600 hover:bg-red-50 text-xs"
                                   onClick={() => setRemoveStudentDialog({
                                     open: true, 
                                     studentId: student.id,
                                     studentName: student.display_name || student.displayName || student.username
                                   })}
                                 >
-                                  <UserMinus className="h-4 w-4 mr-1" />
-                                  {t("remove-student")}
+                                  <UserMinus className="h-3 w-3 mr-1" />
+                                  Remove Student
                                 </Button>
                               </div>
                             )}
@@ -580,25 +562,23 @@ const ClassDetails = () => {
                   </table>
                 </div>
               )}
-            </CardContent>
-          </Card>
-        </TabsContent>
+            </div>
+          </TabsContent>
 
-        <TabsContent value="homework">
-          {isClassCreator() ? (
-            <HomeworkManagement 
-              onBack={() => setActiveTab("students")}
-              teacherId={teacherId}
-            />
-          ) : (
-            <Card>
-              <CardContent className="py-8 text-center">
+          <TabsContent value="homework" className="mt-6">
+            {isClassCreator() ? (
+              <HomeworkManagement 
+                onBack={() => setActiveTab("students")}
+                teacherId={teacherId}
+              />
+            ) : (
+              <div className="bg-white rounded-lg border border-gray-200 p-8 text-center">
                 <p className="text-gray-500">{t("view-only-mode")}</p>
-              </CardContent>
-            </Card>
-          )}
-        </TabsContent>
-      </Tabs>
+              </div>
+            )}
+          </TabsContent>
+        </Tabs>
+      </div>
 
       {/* Add Students Dialog */}
       <StudentsList
