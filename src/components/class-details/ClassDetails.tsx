@@ -1,50 +1,35 @@
 
-import React, { useState, useEffect } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { supabase } from "@/integrations/supabase/client";
-import { ChevronLeft, Loader2, Trash2, Award, BookText, Coins, Settings, PlusCircle, UserMinus } from "lucide-react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Loader2 } from "lucide-react";
+import { Card, CardContent, Button } from "@/components/ui";
 import { toast } from "@/hooks/use-toast";
-import { useTranslation } from "@/hooks/useTranslation";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import { removeClass, getClassById } from "@/utils/classSync/classOperations";
+import { removeClass } from "@/utils/classSync/classOperations";
 import { addMultipleStudentsToClass } from "@/utils/classSync/studentOperations";
-import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
-import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
-import RemoveCoinsDialog from "@/components/dialogs/RemoveCoinsDialog";
-import { awardCoinsToStudent, removeCoinsFromStudent, getStudentPokemonCollection } from "@/utils/pokemon/studentPokemon";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import StudentsTab from "@/components/student/StudentsTab";
-import CreateHomeworkDialog from "@/components/teacher/CreateHomeworkDialog";
+import { awardCoinsToStudent, removeCoinsFromStudent } from "@/utils/pokemon/studentPokemon";
 import { HomeworkAssignment } from "@/types/homework";
-import ManageClassDialog from "@/components/dialogs/ManageClassDialog";
-import { StudentsList } from "@/components/student-profile/StudentsList";
-import { motion } from "framer-motion";
-import HomeworkManagement from "@/components/teacher/HomeworkManagement";
+import ClassHeader from "./ClassHeader";
+import ClassTabs from "./ClassTabs";
+import ClassDialogs from "./ClassDialogs";
+import { useClassDetails } from "./hooks/useClassDetails";
 
 const ClassDetails = () => {
-  const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const [classData, setClassData] = useState<any>(null);
-  const [students, setStudents] = useState<any[]>([]);
-  const [loading, setLoading] = useState(true);
+  const {
+    id,
+    classData,
+    students,
+    loading,
+    isAdmin,
+    teacherId,
+    isClassCreator,
+    fetchClassDetails,
+    t
+  } = useClassDetails();
+
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [removeStudentDialog, setRemoveStudentDialog] = useState({ open: false, studentId: "", studentName: "" });
-  const { t } = useTranslation();
-  const [isAdmin, setIsAdmin] = useState(false);
-  const [isTeacher, setIsTeacher] = useState(false);
   const [activeTab, setActiveTab] = useState("students");
-  const [isManageClassOpen, setIsManageClassOpen] = useState(false);
   const [isStudentListOpen, setIsStudentListOpen] = useState(false);
   
   // Management dialogs state
@@ -64,156 +49,6 @@ const ClassDetails = () => {
     studentId: "",
     studentName: ""
   });
-  const [isCreateHomeworkOpen, setIsCreateHomeworkOpen] = useState(false);
-  const [teacherId, setTeacherId] = useState<string>("");
-  const [userPermissionLevel, setUserPermissionLevel] = useState<"owner" | "teacher" | "viewer">("viewer");
-
-  // Check if user is admin or teacher
-  useEffect(() => {
-    const username = localStorage.getItem("teacherUsername") || "";
-    setIsAdmin(username === "Admin" || username === "Ayman");
-    setIsTeacher(true);
-    
-    const teacherId = localStorage.getItem("teacherId") || "";
-    setTeacherId(teacherId);
-  }, []);
-
-  useEffect(() => {
-    if (!id) return;
-    
-    fetchClassDetails();
-  }, [id, t, isAdmin, teacherId]);
-
-  const fetchClassDetails = async () => {
-    setLoading(true);
-    try {
-      const cls = await getClassById(id || "");
-      if (cls) {
-        setClassData(cls);
-        
-        const currentTeacherId = localStorage.getItem("teacherId") || "";
-        if (cls.teacherId === currentTeacherId) {
-          setUserPermissionLevel("owner");
-        } else if (isAdmin) {
-          setUserPermissionLevel("owner");
-        } else {
-          setUserPermissionLevel("viewer");
-        }
-        
-        if (cls.students && cls.students.length > 0) {
-          await fetchStudentsWithCoins(cls.students);
-        }
-        setLoading(false);
-        return;
-      }
-      
-      const { data: classData, error: classError } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('id', id)
-        .maybeSingle();
-        
-      if (classError) throw classError;
-      
-      if (!classData) {
-        checkLocalStorageFallback();
-        return;
-      }
-      
-      setClassData(classData);
-      
-      if (classData.students && classData.students.length > 0) {
-        await fetchStudentsWithCoins(classData.students);
-      }
-    } catch (error) {
-      console.error("Error fetching class details:", error);
-      toast({
-        title: t("error"),
-        description: t("failed-to-load-class-details"),
-        variant: "destructive"
-      });
-      checkLocalStorageFallback();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const checkLocalStorageFallback = () => {
-    const savedClasses = localStorage.getItem("classes");
-    if (savedClasses && id) {
-      const parsedClasses = JSON.parse(savedClasses);
-      const foundClass = parsedClasses.find((cls: any) => cls.id === id);
-      if (foundClass) {
-        setClassData(foundClass);
-        
-        const currentTeacherId = localStorage.getItem("teacherId") || "";
-        if (foundClass.teacherId === currentTeacherId) {
-          setUserPermissionLevel("owner");
-        } else if (isAdmin) {
-          setUserPermissionLevel("owner");
-        } else {
-          setUserPermissionLevel("viewer");
-        }
-        
-        if (foundClass.students && foundClass.students.length > 0) {
-          fetchStudentsWithCoins(foundClass.students);
-        }
-      } else {
-        setClassData(null);
-      }
-    } else {
-      setClassData(null);
-    }
-  };
-
-  const fetchStudentsWithCoins = async (studentIds: string[]) => {
-    try {
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('students')
-        .select('*')
-        .in('id', studentIds);
-        
-      if (studentsError) throw studentsError;
-      
-      // Add coin information to each student
-      const studentsWithCoins = (studentsData || []).map(student => {
-        const pokemonCollection = getStudentPokemonCollection(student.id);
-        return {
-          ...student,
-          coins: pokemonCollection?.coins || 0
-        };
-      });
-      
-      setStudents(studentsWithCoins);
-    } catch (error) {
-      console.error("Error fetching students from Supabase:", error);
-      fetchStudentsFromLocalStorage(studentIds);
-    }
-  };
-
-  const fetchStudentsFromLocalStorage = (studentIds: string[]) => {
-    try {
-      const savedStudents = localStorage.getItem("students");
-      if (savedStudents) {
-        const parsedStudents = JSON.parse(savedStudents);
-        const classStudents = parsedStudents.filter((student: any) => 
-          studentIds.includes(student.id)
-        ).map((student: any) => {
-          const pokemonCollection = getStudentPokemonCollection(student.id);
-          return {
-            ...student,
-            coins: pokemonCollection?.coins || 0
-          };
-        });
-        setStudents(classStudents);
-      } else {
-        setStudents([]);
-      }
-    } catch (error) {
-      console.error("Error fetching students from localStorage:", error);
-      setStudents([]);
-    }
-  };
 
   const handleDeleteClass = async () => {
     if (!id) return;
@@ -354,32 +189,11 @@ const ClassDetails = () => {
     }
   };
 
-  const handleHomeworkCreated = (homework: HomeworkAssignment) => {
-    toast({
-      title: t("success"),
-      description: t("homework-created-successfully")
-    });
-    
-    setIsCreateHomeworkOpen(false);
-  };
-
   const handlePokemonRemoved = () => {
     toast({
       title: t("success"),
       description: t("pokemon-removed-successfully")
     });
-  };
-
-  const isClassCreator = () => {
-    const currentTeacherId = localStorage.getItem("teacherId") || "";
-    return (classData && 
-      (classData.teacher_id === currentTeacherId || 
-       classData.teacherId === currentTeacherId)
-    ) || isAdmin;
-  };
-
-  const handleStudentClick = (studentId: string) => {
-    navigate(`/teacher/student/${studentId}`);
   };
 
   if (loading) {
@@ -408,295 +222,52 @@ const ClassDetails = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b px-6 py-6">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
-          <div className="flex items-center space-x-4">
-            <Button
-              variant="ghost"
-              onClick={() => navigate("/teacher-dashboard")}
-              className="text-gray-600 hover:text-gray-800 flex items-center"
-            >
-              <ChevronLeft className="h-5 w-5 mr-1" />
-              Back
-            </Button>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{classData.name}</h1>
-              <p className="text-gray-500 text-sm">{students.length} students</p>
-            </div>
-          </div>
-          
-          {isClassCreator() && (
-            <div className="flex items-center space-x-3">
-              <Button 
-                onClick={() => setIsStudentListOpen(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-              >
-                <PlusCircle className="h-4 w-4 mr-2" />
-                Add Student
-              </Button>
-              
-              {isAdmin && (
-                <Button
-                  variant="destructive"
-                  onClick={() => setDeleteDialogOpen(true)}
-                  className="bg-red-600 hover:bg-red-700"
-                >
-                  <Trash2 className="h-4 w-4 mr-2" />
-                  Delete Class
-                </Button>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Content */}
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-8 bg-white shadow-sm">
-            <TabsTrigger 
-              value="students" 
-              className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 font-medium"
-            >
-              Students
-            </TabsTrigger>
-            <TabsTrigger 
-              value="homework"
-              className="data-[state=active]:bg-blue-50 data-[state=active]:text-blue-700 font-medium"
-            >
-              Homework
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="students" className="mt-6">
-            <Card className="bg-white shadow-sm">
-              <CardHeader className="border-b bg-gray-50">
-                <CardTitle className="text-lg font-semibold text-gray-900">
-                  Class Students ({students.length})
-                </CardTitle>
-              </CardHeader>
-              
-              <CardContent className="p-0">
-                {students.length === 0 ? (
-                  <div className="text-center py-16">
-                    <div className="text-gray-400 mb-4">
-                      <PlusCircle className="h-16 w-16 mx-auto" />
-                    </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No students yet</h3>
-                    <p className="text-gray-500 mb-6">Add students to get started with your class</p>
-                    {isClassCreator() && (
-                      <Button 
-                        onClick={() => setIsStudentListOpen(true)}
-                        className="bg-blue-600 hover:bg-blue-700 text-white"
-                      >
-                        <PlusCircle className="h-4 w-4 mr-2" />
-                        Add Students
-                      </Button>
-                    )}
-                  </div>
-                ) : (
-                  <div className="overflow-x-auto">
-                    <table className="w-full">
-                      <thead className="bg-gray-50 border-b">
-                        <tr>
-                          <th className="text-left py-4 px-6 font-medium text-gray-700">Student</th>
-                          <th className="text-left py-4 px-6 font-medium text-gray-700">Coins</th>
-                          <th className="text-right py-4 px-6 font-medium text-gray-700">Actions</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-gray-200">
-                        {students.map((student, index) => (
-                          <motion.tr 
-                            key={student.id} 
-                            className="hover:bg-gray-50 transition-colors"
-                            initial={{ opacity: 0, y: 20 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ delay: index * 0.1 }}
-                          >
-                            <td className="py-4 px-6">
-                              <div className="flex items-center">
-                                <div className="flex-shrink-0 h-10 w-10">
-                                  <div className="h-10 w-10 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-                                    <span className="text-white font-medium text-sm">
-                                      {(student.display_name || student.displayName || student.username)
-                                        .substring(0, 1)
-                                        .toUpperCase()}
-                                    </span>
-                                  </div>
-                                </div>
-                                <div className="ml-4">
-                                  <div className="text-sm font-medium text-gray-900">
-                                    {student.display_name || student.displayName || student.username}
-                                  </div>
-                                  <div className="text-sm text-gray-500">
-                                    @{student.username}
-                                  </div>
-                                </div>
-                              </div>
-                            </td>
-                            <td className="py-4 px-6">
-                              <div className="flex items-center">
-                                <Coins className="h-4 w-4 text-yellow-500 mr-1" />
-                                <span className="text-sm font-medium text-gray-900">{student.coins}</span>
-                              </div>
-                            </td>
-                            <td className="py-4 px-6">
-                              {isClassCreator() && (
-                                <div className="flex items-center justify-end space-x-2">
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    className="text-yellow-600 border-yellow-600 hover:bg-yellow-50"
-                                    onClick={() => setGiveCoinsDialog({
-                                      open: true, 
-                                      studentId: student.id,
-                                      studentName: student.display_name || student.displayName || student.username
-                                    })}
-                                  >
-                                    <Coins className="h-3 w-3 mr-1" />
-                                    Award Coins
-                                  </Button>
-                                  
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    className="text-purple-600 border-purple-600 hover:bg-purple-50"
-                                    onClick={() => setManagePokemonDialog({
-                                      open: true, 
-                                      studentId: student.id,
-                                      studentName: student.display_name || student.displayName || student.username,
-                                      schoolId: classData.school_id || classData.schoolId
-                                    })}
-                                  >
-                                    <Award className="h-3 w-3 mr-1" />
-                                    Manage Pokémon
-                                  </Button>
-                                  
-                                  <Button 
-                                    size="sm" 
-                                    variant="outline"
-                                    className="text-red-600 border-red-600 hover:bg-red-50"
-                                    onClick={() => setRemoveStudentDialog({
-                                      open: true, 
-                                      studentId: student.id,
-                                      studentName: student.display_name || student.displayName || student.username
-                                    })}
-                                  >
-                                    <UserMinus className="h-3 w-3 mr-1" />
-                                    Remove
-                                  </Button>
-                                </div>
-                              )}
-                            </td>
-                          </motion.tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="homework" className="mt-6">
-            {isClassCreator() ? (
-              <HomeworkManagement 
-                onBack={() => setActiveTab("students")}
-                teacherId={teacherId}
-              />
-            ) : (
-              <Card className="bg-white shadow-sm">
-                <CardContent className="p-16 text-center">
-                  <BookText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-                  <h3 className="text-lg font-medium text-gray-900 mb-2">View Only</h3>
-                  <p className="text-gray-500">You don't have permission to manage homework for this class</p>
-                </CardContent>
-              </Card>
-            )}
-          </TabsContent>
-        </Tabs>
-      </div>
-
-      {/* Add Students Dialog */}
-      <StudentsList
-        classId={id || ""}
-        open={isStudentListOpen}
-        onOpenChange={setIsStudentListOpen}
-        onStudentsAdded={handleAddStudents}
-        viewMode={false}
+      <ClassHeader
+        classData={classData}
+        studentsCount={students.length}
+        isClassCreator={isClassCreator()}
+        isAdmin={isAdmin}
+        onAddStudent={() => setIsStudentListOpen(true)}
+        onDeleteClass={() => setDeleteDialogOpen(true)}
       />
 
-      {/* Delete Class Confirmation Dialog */}
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("delete-class")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("delete-class-confirmation")}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteClass} className="bg-red-600 hover:bg-red-700">
-              {t("delete")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <ClassTabs
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
+          students={students}
+          isClassCreator={isClassCreator()}
+          classData={classData}
+          teacherId={teacherId}
+          onAwardCoins={(studentId, studentName) => setGiveCoinsDialog({ open: true, studentId, studentName })}
+          onManagePokemon={(studentId, studentName, schoolId) => setManagePokemonDialog({ open: true, studentId, studentName, schoolId })}
+          onRemoveStudent={(studentId, studentName) => setRemoveStudentDialog({ open: true, studentId, studentName })}
+          onAddStudent={() => setIsStudentListOpen(true)}
+        />
+      </div>
 
-      {/* Remove Student Confirmation Dialog */}
-      <AlertDialog open={removeStudentDialog.open} onOpenChange={(open) => setRemoveStudentDialog({...removeStudentDialog, open})}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("remove-student")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              Are you sure you want to remove {removeStudentDialog.studentName} from this class?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => handleRemoveStudent(removeStudentDialog.studentId)} 
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {t("remove")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-      
-      {/* Only render these dialogs if the user is the class creator */}
-      {isClassCreator() && (
-        <>
-          {/* Manage Pokemon Dialog */}
-          <ManagePokemonDialog
-            open={managePokemonDialog.open}
-            onOpenChange={(open) => setManagePokemonDialog({...managePokemonDialog, open})}
-            studentId={managePokemonDialog.studentId}
-            studentName={managePokemonDialog.studentName}
-            schoolId={managePokemonDialog.schoolId}
-            onPokemonRemoved={handlePokemonRemoved}
-          />
-          
-          {/* Give Coins Dialog */}
-          <GiveCoinsDialog
-            open={giveCoinsDialog.open}
-            onOpenChange={(open) => setGiveCoinsDialog({...giveCoinsDialog, open})}
-            onGiveCoins={handleGiveCoins}
-            studentId={giveCoinsDialog.studentId}
-          />
-          
-          {/* Remove Coins Dialog */}
-          <RemoveCoinsDialog
-            open={removeCoinsDialog.open}
-            onOpenChange={(open) => setRemoveCoinsDialog({...removeCoinsDialog, open})}
-            onRemoveCoins={handleRemoveCoins}
-            studentId={removeCoinsDialog.studentId}
-            studentName={removeCoinsDialog.studentName}
-          />
-        </>
-      )}
+      <ClassDialogs
+        classId={id || ""}
+        isStudentListOpen={isStudentListOpen}
+        onStudentListOpenChange={setIsStudentListOpen}
+        onStudentsAdded={handleAddStudents}
+        deleteDialogOpen={deleteDialogOpen}
+        onDeleteDialogOpenChange={setDeleteDialogOpen}
+        onDeleteClass={handleDeleteClass}
+        removeStudentDialog={removeStudentDialog}
+        onRemoveStudentDialogChange={setRemoveStudentDialog}
+        onRemoveStudent={handleRemoveStudent}
+        isClassCreator={isClassCreator()}
+        managePokemonDialog={managePokemonDialog}
+        onManagePokemonDialogChange={setManagePokemonDialog}
+        onPokemonRemoved={handlePokemonRemoved}
+        giveCoinsDialog={giveCoinsDialog}
+        onGiveCoinsDialogChange={setGiveCoinsDialog}
+        onGiveCoins={handleGiveCoins}
+        removeCoinsDialog={removeCoinsDialog}
+        onRemoveCoinsDialogChange={setRemoveCoinsDialog}
+        onRemoveCoins={handleRemoveCoins}
+      />
     </div>
   );
 };
