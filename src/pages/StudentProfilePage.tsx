@@ -16,6 +16,7 @@ const StudentProfilePage: React.FC = () => {
   const [student, setStudent] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
+  const [editData, setEditData] = useState<any>({});
   const [friendRequestSent, setFriendRequestSent] = useState(false);
 
   // Check if this is the current user's profile
@@ -40,12 +41,18 @@ const StudentProfilePage: React.FC = () => {
       if (error) throw error;
       
       if (data) {
-        setStudent({
+        const studentData = {
           id: data.id,
           username: data.username,
           displayName: data.display_name,
-          avatar: null // Add avatar logic if needed
-        });
+          avatar: null, // Add avatar logic if needed
+          photos: [], // Initialize empty photos array
+          pokemonCollection: [], // Initialize empty pokemon collection
+          contactInfo: '', // Initialize empty contact info
+          classId: data.class_id
+        };
+        setStudent(studentData);
+        setEditData(studentData);
       }
     } catch (error) {
       console.error("Error loading from Supabase, falling back to localStorage:", error);
@@ -56,12 +63,18 @@ const StudentProfilePage: React.FC = () => {
         const students = JSON.parse(savedStudents);
         const foundStudent = students.find((s: any) => s.id === studentId);
         if (foundStudent) {
-          setStudent({
+          const studentData = {
             id: foundStudent.id,
             username: foundStudent.username,
             displayName: foundStudent.displayName || foundStudent.username,
-            avatar: foundStudent.avatar
-          });
+            avatar: foundStudent.avatar,
+            photos: foundStudent.photos || [],
+            pokemonCollection: foundStudent.pokemonCollection || [],
+            contactInfo: foundStudent.contactInfo || '',
+            classId: foundStudent.classId
+          };
+          setStudent(studentData);
+          setEditData(studentData);
         }
       }
     } finally {
@@ -75,13 +88,14 @@ const StudentProfilePage: React.FC = () => {
 
   const handleSaveClick = () => {
     setIsEditing(false);
+    setStudent(editData);
     // The ProfileSidebar component handles the actual saving
   };
 
   const handleCancelClick = () => {
     setIsEditing(false);
     // Reset any changes
-    loadStudentData();
+    setEditData(student);
   };
 
   const handleSendMessage = () => {
@@ -91,6 +105,10 @@ const StudentProfilePage: React.FC = () => {
   const handleAddFriend = () => {
     setFriendRequestSent(true);
     // Implement friend request logic here
+  };
+
+  const handleEditDataChange = (newData: any) => {
+    setEditData(newData);
   };
 
   if (loading) {
@@ -159,9 +177,10 @@ const StudentProfilePage: React.FC = () => {
           {/* Main Content */}
           <div className="lg:col-span-3">
             <ProfileTabs 
-              studentId={studentId || ""} 
-              isOwnProfile={isOwner}
               student={student}
+              isEditing={isEditing}
+              editData={editData}
+              onEditDataChange={handleEditDataChange}
             />
           </div>
         </div>
