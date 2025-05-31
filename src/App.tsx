@@ -8,7 +8,7 @@ import TeacherSignUp from "./pages/TeacherSignUp";
 import StudentDashboard from "./pages/StudentDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import ReportsPage from "./pages/ReportsPage";
-import { Messages } from "./pages/Messages";
+import Messages from "./pages/Messages";
 import RankingPage from "./pages/RankingPage";
 import AdminDashboard from "./pages/AdminDashboard";
 import Contact from "./pages/Contact";
@@ -45,6 +45,8 @@ function Router() {
       <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
       <Route path="/reports" element={<ReportsPage />} />
       <Route path="/messages" element={<Messages />} />
+      <Route path="/teacher/messages" element={<Messages userType="teacher" />} />
+      <Route path="/student/messages" element={<Messages userType="student" />} />
       <Route path="/rankings" element={<RankingPage />} />
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
       <Route path="/contact" element={<Contact />} />
