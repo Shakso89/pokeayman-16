@@ -85,7 +85,7 @@ const NotificationBadge: React.FC = () => {
   return <>
       <Popover>
         <PopoverTrigger asChild>
-          <Button variant="ghost" size="icon" className="relative bg-slate-400 hover:bg-slate-300 text-gray-800">
+          <Button variant="ghost" size="icon" className="relative text-gray-800 bg-slate-300 hover:bg-slate-200">
             <Bell size={20} />
             {unreadCount > 0 && <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
                 {unreadCount}
