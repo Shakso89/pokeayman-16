@@ -1,13 +1,13 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import { Card, CardContent, Button } from "@/components/ui";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 import { removeClass } from "@/utils/classSync/classOperations";
 import { addMultipleStudentsToClass } from "@/utils/classSync/studentOperations";
 import { awardCoinsToStudent, removeCoinsFromStudent } from "@/utils/pokemon/studentPokemon";
-import { HomeworkAssignment } from "@/types/homework";
 import ClassHeader from "./ClassHeader";
 import ClassTabs from "./ClassTabs";
 import ClassDialogs from "./ClassDialogs";
