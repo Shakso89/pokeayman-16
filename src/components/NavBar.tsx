@@ -24,12 +24,10 @@ export const NavBar: React.FC<NavBarProps> = ({
   } = useTranslation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSelectSchoolOpen, setIsSelectSchoolOpen] = useState(false);
-
   const handleLogout = () => {
     // Navigate to logout page which will handle the full logout process
     navigate("/logout");
   };
-
   const handleHomeClick = () => {
     // Direct to the appropriate dashboard based on user type
     if (userType === "teacher") {
@@ -38,12 +36,10 @@ export const NavBar: React.FC<NavBarProps> = ({
       navigate("/student-dashboard");
     }
   };
-
   const isAdmin = localStorage.getItem("isAdmin") === "true";
   const handleCloseSettings = () => {
     setIsSettingsOpen(false);
   };
-
   const handleViewProfile = () => {
     if (userType === "teacher") {
       const teacherId = localStorage.getItem("teacherId");
@@ -61,9 +57,7 @@ export const NavBar: React.FC<NavBarProps> = ({
       }
     }
   };
-
-  return (
-    <div className="bg-white border-b shadow-sm">
+  return <div className="bg-white border-b shadow-sm">
       <div className="flex items-center justify-between px-4 py-2 max-w-7xl mx-auto">
         <div className="flex items-center gap-4">
           <img src="/lovable-uploads/40c04be5-3d6e-4938-9a00-006177dbef3b.png" alt="PokéAyman Logo" className="h-12 w-auto" />
@@ -80,10 +74,7 @@ export const NavBar: React.FC<NavBarProps> = ({
           {/* Added Notification Badge */}
           <NotificationBadge />
 
-          {userType === "teacher" && <Button variant="secondary" onClick={() => setIsSelectSchoolOpen(true)} className="flex items-center gap-2">
-              <School size={20} />
-              <span className="hidden md:inline">{t("create-class")}</span>
-            </Button>}
+          {userType === "teacher"}
 
           <Button variant="secondary" onClick={() => navigate(`/${userType === "teacher" ? "teacher" : "student"}/messages`)} className="flex items-center gap-2">
             <MessageSquare size={20} />
@@ -131,6 +122,5 @@ export const NavBar: React.FC<NavBarProps> = ({
       {isSettingsOpen && <UserSettingsModal isOpen={isSettingsOpen} onClose={handleCloseSettings} userType={userType} />}
       
       {userType === "teacher" && <SelectSchoolDialog open={isSelectSchoolOpen} onOpenChange={setIsSelectSchoolOpen} teacherId={localStorage.getItem("teacherId") || ""} />}
-    </div>
-  );
+    </div>;
 };
