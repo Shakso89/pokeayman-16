@@ -71,9 +71,9 @@ const Index: React.FC = () => {
           <img alt="Pikachu" className="h-48 w-auto drop-shadow-lg animate-bounce" style={{
           animationDuration: "3s"
         }} src="/lovable-uploads/6643827c-343f-41b5-becf-e156015a18e7.png" />
-          <img src="/lovable-uploads/2c72122a-ed62-4276-b90f-0f0688bf9693.png" alt="Charizard" className="h-64 w-auto drop-shadow-lg animate-pulse" style={{
+          <img alt="Charizard" className="h-64 w-auto drop-shadow-lg animate-pulse" style={{
           animationDuration: "4s"
-        }} />
+        }} src="/lovable-uploads/b42f1e48-b772-4523-8290-871c5575c64d.png" />
           <img src="/lovable-uploads/d1c806ec-9607-4d94-af2a-bdbb8d2cb0c6.png" alt="Bulbasaur" className="h-48 w-auto drop-shadow-lg animate-bounce" style={{
           animationDuration: "3.5s"
         }} />
