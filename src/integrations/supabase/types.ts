@@ -92,6 +92,86 @@ export type Database = {
           },
         ]
       }
+      homework: {
+        Row: {
+          class_id: string | null
+          coin_reward: number
+          created_at: string
+          description: string | null
+          expires_at: string
+          id: string
+          teacher_id: string
+          title: string
+          type: string
+        }
+        Insert: {
+          class_id?: string | null
+          coin_reward?: number
+          created_at?: string
+          description?: string | null
+          expires_at: string
+          id?: string
+          teacher_id: string
+          title: string
+          type: string
+        }
+        Update: {
+          class_id?: string | null
+          coin_reward?: number
+          created_at?: string
+          description?: string | null
+          expires_at?: string
+          id?: string
+          teacher_id?: string
+          title?: string
+          type?: string
+        }
+        Relationships: []
+      }
+      homework_submissions: {
+        Row: {
+          content: string
+          feedback: string | null
+          homework_id: string
+          id: string
+          status: string
+          student_id: string
+          student_name: string
+          submitted_at: string
+          type: string
+        }
+        Insert: {
+          content: string
+          feedback?: string | null
+          homework_id: string
+          id?: string
+          status?: string
+          student_id: string
+          student_name: string
+          submitted_at?: string
+          type: string
+        }
+        Update: {
+          content?: string
+          feedback?: string | null
+          homework_id?: string
+          id?: string
+          status?: string
+          student_id?: string
+          student_name?: string
+          submitted_at?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "homework_submissions_homework_id_fkey"
+            columns: ["homework_id"]
+            isOneToOne: false
+            referencedRelation: "homework"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schools: {
         Row: {
           created_at: string

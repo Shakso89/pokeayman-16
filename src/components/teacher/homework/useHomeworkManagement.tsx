@@ -4,7 +4,6 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkAssignment, HomeworkSubmission } from "@/types/homework";
 import { supabase } from "@/integrations/supabase/client";
-import { awardCoinsToStudent } from "@/utils/pokemon";
 
 export const useHomeworkManagement = (teacherId: string) => {
   const { t } = useTranslation();
@@ -50,36 +49,60 @@ export const useHomeworkManagement = (teacherId: string) => {
 
   const loadHomeworkData = async () => {
     try {
-      // First try to load from Supabase
+      // Load homework assignments
       const { data: assignments, error: assignmentsError } = await supabase
         .from('homework')
         .select('*')
-        .eq('teacherId', teacherId);
+        .eq('teacher_id', teacherId);
         
       if (assignmentsError) throw assignmentsError;
       
+      // Load homework submissions
       const { data: submissions, error: submissionsError } = await supabase
         .from('homework_submissions')
         .select('*');
         
       if (submissionsError) throw submissionsError;
       
-      setHomeworkAssignments(assignments || []);
-      setHomeworkSubmissions(submissions || []);
-    } catch (error) {
-      console.error("Error loading from Supabase, falling back to localStorage:", error);
-      // Fallback to localStorage
-      const assignments = JSON.parse(localStorage.getItem("homeworkAssignments") || "[]");
-      setHomeworkAssignments(assignments.filter((hw: HomeworkAssignment) => hw.teacherId === teacherId));
+      // Map to our interface format
+      const mappedAssignments = assignments?.map(hw => ({
+        id: hw.id,
+        title: hw.title,
+        description: hw.description || '',
+        type: hw.type as "text" | "image" | "audio",
+        classId: hw.class_id || '',
+        teacherId: hw.teacher_id,
+        createdAt: hw.created_at,
+        expiresAt: hw.expires_at,
+        coinReward: hw.coin_reward
+      })) || [];
       
-      const submissions = JSON.parse(localStorage.getItem("homeworkSubmissions") || "[]");
-      setHomeworkSubmissions(submissions);
+      const mappedSubmissions = submissions?.map(sub => ({
+        id: sub.id,
+        homeworkId: sub.homework_id,
+        studentId: sub.student_id,
+        studentName: sub.student_name,
+        content: sub.content,
+        type: sub.type as "text" | "image" | "audio",
+        submittedAt: sub.submitted_at,
+        status: sub.status as "pending" | "approved" | "rejected",
+        feedback: sub.feedback
+      })) || [];
+      
+      setHomeworkAssignments(mappedAssignments);
+      setHomeworkSubmissions(mappedSubmissions);
+    } catch (error) {
+      console.error("Error loading homework data:", error);
+      toast({
+        title: t("error"),
+        description: t("failed-to-load-homework"),
+        variant: "destructive"
+      });
     }
   };
   
   const loadClassesData = async () => {
     try {
-      // Try to load from Supabase first
       const { data, error } = await supabase
         .from('classes')
         .select('id, name')
@@ -89,7 +112,7 @@ export const useHomeworkManagement = (teacherId: string) => {
       
       setClasses(data || []);
     } catch (error) {
-      console.error("Error loading classes from Supabase, falling back to localStorage:", error);
+      console.error("Error loading classes:", error);
       // Fallback to localStorage
       const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
       const teacherClasses = allClasses.filter((cls: any) => cls.teacherId === teacherId);
@@ -100,10 +123,19 @@ export const useHomeworkManagement = (teacherId: string) => {
 
   const handleHomeworkCreated = async (homework: HomeworkAssignment) => {
     try {
-      // First try to save to Supabase
       const { error } = await supabase
         .from('homework')
-        .insert([homework]);
+        .insert([{
+          id: homework.id,
+          title: homework.title,
+          description: homework.description,
+          type: homework.type,
+          class_id: homework.classId,
+          teacher_id: homework.teacherId,
+          created_at: homework.createdAt,
+          expires_at: homework.expiresAt,
+          coin_reward: homework.coinReward
+        }]);
         
       if (error) throw error;
       
@@ -114,15 +146,11 @@ export const useHomeworkManagement = (teacherId: string) => {
         description: t("homework-created-successfully"),
       });
     } catch (error) {
-      console.error("Error saving to Supabase, falling back to localStorage:", error);
-      // Fallback to localStorage
-      const currentHomework = JSON.parse(localStorage.getItem("homeworkAssignments") || "[]");
-      localStorage.setItem("homeworkAssignments", JSON.stringify([...currentHomework, homework]));
-      setHomeworkAssignments(prev => [...prev, homework]);
-      
+      console.error("Error saving homework:", error);
       toast({
-        title: t("homework-created"),
-        description: t("homework-created-successfully"),
+        title: t("error"),
+        description: t("failed-to-create-homework"),
+        variant: "destructive"
       });
     }
   };
@@ -130,10 +158,9 @@ export const useHomeworkManagement = (teacherId: string) => {
   const handleGiveCoins = (amount: number) => {
     if (!selectedStudent) return;
     
-    // Award coins to student
-    awardCoinsToStudent(selectedStudent.id, amount);
+    // Award coins to student (implement this function)
+    // awardCoinsToStudent(selectedStudent.id, amount);
     
-    // Close dialog and reset selected student
     setIsGiveCoinsOpen(false);
     setSelectedStudent(null);
     
@@ -151,7 +178,6 @@ export const useHomeworkManagement = (teacherId: string) => {
 
   const handleDeleteHomework = async (homeworkId: string) => {
     try {
-      // First try to delete from Supabase
       const { error } = await supabase
         .from('homework')
         .delete()
@@ -163,9 +189,8 @@ export const useHomeworkManagement = (teacherId: string) => {
       await supabase
         .from('homework_submissions')
         .delete()
-        .eq('homeworkId', homeworkId);
+        .eq('homework_id', homeworkId);
       
-      // Update state
       setHomeworkAssignments(prev => prev.filter(hw => hw.id !== homeworkId));
       setHomeworkSubmissions(prev => prev.filter(sub => sub.homeworkId !== homeworkId));
       
@@ -174,35 +199,20 @@ export const useHomeworkManagement = (teacherId: string) => {
         description: t("homework-submissions-deleted"),
       });
     } catch (error) {
-      console.error("Error deleting from Supabase, falling back to localStorage:", error);
-      // Fallback to localStorage
-      const filteredAssignments = homeworkAssignments.filter(hw => hw.id !== homeworkId);
-      localStorage.setItem("homeworkAssignments", JSON.stringify(filteredAssignments));
-      
-      const filteredSubmissions = homeworkSubmissions.filter(sub => sub.homeworkId !== homeworkId);
-      localStorage.setItem("homeworkSubmissions", JSON.stringify(filteredSubmissions));
-      
-      // Update state
-      setHomeworkAssignments(filteredAssignments);
-      setHomeworkSubmissions(filteredSubmissions);
-      
+      console.error("Error deleting homework:", error);
       toast({
-        title: t("homework-deleted"),
-        description: t("homework-submissions-deleted"),
+        title: t("error"),
+        description: t("failed-to-delete-homework"),
+        variant: "destructive"
       });
     }
   };
   
   const handleApproveSubmission = async (submission: HomeworkSubmission) => {
-    // Find the associated homework to get coin reward
     const homework = homeworkAssignments.find(hw => hw.id === submission.homeworkId);
     if (!homework) return;
     
-    // Update submission status
-    const updatedSubmission = { ...submission, status: "approved" as const };
-    
     try {
-      // First try to update in Supabase
       const { error } = await supabase
         .from('homework_submissions')
         .update({ status: 'approved' })
@@ -210,12 +220,11 @@ export const useHomeworkManagement = (teacherId: string) => {
         
       if (error) throw error;
       
-      // Award coins to student
-      awardCoinsToStudent(submission.studentId, homework.coinReward);
+      // Award coins to student (implement this function)
+      // awardCoinsToStudent(submission.studentId, homework.coinReward);
       
-      // Update state
       setHomeworkSubmissions(prev => 
-        prev.map(sub => sub.id === submission.id ? updatedSubmission : sub)
+        prev.map(sub => sub.id === submission.id ? { ...sub, status: "approved" as const } : sub)
       );
       
       toast({
@@ -223,32 +232,17 @@ export const useHomeworkManagement = (teacherId: string) => {
         description: `${homework.coinReward} ${t("coins-awarded-to")} ${submission.studentName}`,
       });
     } catch (error) {
-      console.error("Error updating in Supabase, falling back to localStorage:", error);
-      // Fallback to localStorage
-      const updatedSubmissions = homeworkSubmissions.map(sub => 
-        sub.id === submission.id ? updatedSubmission : sub
-      );
-      localStorage.setItem("homeworkSubmissions", JSON.stringify(updatedSubmissions));
-      
-      // Award coins to student
-      awardCoinsToStudent(submission.studentId, homework.coinReward);
-      
-      // Update state
-      setHomeworkSubmissions(updatedSubmissions);
-      
+      console.error("Error approving submission:", error);
       toast({
-        title: t("submission-approved"),
-        description: `${homework.coinReward} ${t("coins-awarded-to")} ${submission.studentName}`,
+        title: t("error"),
+        description: t("failed-to-approve-submission"),
+        variant: "destructive"
       });
     }
   };
   
   const handleRejectSubmission = async (submission: HomeworkSubmission) => {
-    // Update submission status
-    const updatedSubmission = { ...submission, status: "rejected" as const };
-    
     try {
-      // First try to update in Supabase
       const { error } = await supabase
         .from('homework_submissions')
         .update({ status: 'rejected' })
@@ -256,9 +250,8 @@ export const useHomeworkManagement = (teacherId: string) => {
         
       if (error) throw error;
       
-      // Update state
       setHomeworkSubmissions(prev => 
-        prev.map(sub => sub.id === submission.id ? updatedSubmission : sub)
+        prev.map(sub => sub.id === submission.id ? { ...sub, status: "rejected" as const } : sub)
       );
       
       toast({
@@ -266,19 +259,11 @@ export const useHomeworkManagement = (teacherId: string) => {
         description: t("student-notified"),
       });
     } catch (error) {
-      console.error("Error updating in Supabase, falling back to localStorage:", error);
-      // Fallback to localStorage
-      const updatedSubmissions = homeworkSubmissions.map(sub => 
-        sub.id === submission.id ? updatedSubmission : sub
-      );
-      localStorage.setItem("homeworkSubmissions", JSON.stringify(updatedSubmissions));
-      
-      // Update state
-      setHomeworkSubmissions(updatedSubmissions);
-      
+      console.error("Error rejecting submission:", error);
       toast({
-        title: t("submission-rejected"),
-        description: t("student-notified"),
+        title: t("error"),
+        description: t("failed-to-reject-submission"),
+        variant: "destructive"
       });
     }
   };

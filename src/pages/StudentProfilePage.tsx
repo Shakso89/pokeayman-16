@@ -1,110 +1,173 @@
 
-import React from "react";
-import { useParams } from "react-router-dom";
-import { NavBar } from "@/components/NavBar";
-import Footer from "@/components/Footer";
-import { useStudentProfile } from "@/hooks/useStudentProfile";
-import { ProfileHeader } from "@/components/student-profile/ProfileHeader";
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { ArrowLeft, MessageSquare } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 import { ProfileSidebar } from "@/components/student-profile/ProfileSidebar";
 import { ProfileTabs } from "@/components/student-profile/ProfileTabs";
-import { StudentCoinInfo } from "@/components/student-profile/StudentCoinInfo";
+import { supabase } from "@/integrations/supabase/client";
 
-export default function StudentProfilePage() {
-  const { studentId } = useParams<{ studentId: string }>();
-  
-  const {
-    student,
-    isLoading,
-    isEditing,
-    editData,
-    isOwner,
-    friendRequestSent,
-    setEditData,
-    setIsEditing,
-    handleSave,
-    handleCancel,
-    handleSendMessage,
-    handleAddFriend
-  } = useStudentProfile(studentId);
-  
-  if (isLoading) {
+const StudentProfilePage: React.FC = () => {
+  const { studentId } = useParams();
+  const navigate = useNavigate();
+  const { t } = useTranslation();
+  const [student, setStudent] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [isEditing, setIsEditing] = useState(false);
+  const [friendRequestSent, setFriendRequestSent] = useState(false);
+
+  // Check if this is the current user's profile
+  const currentUserId = localStorage.getItem("currentStudentId");
+  const isOwner = currentUserId === studentId;
+
+  useEffect(() => {
+    loadStudentData();
+  }, [studentId]);
+
+  const loadStudentData = async () => {
+    if (!studentId) return;
+    
+    try {
+      // Try to load from Supabase first
+      const { data, error } = await supabase
+        .from('students')
+        .select('*')
+        .eq('id', studentId)
+        .single();
+        
+      if (error) throw error;
+      
+      if (data) {
+        setStudent({
+          id: data.id,
+          username: data.username,
+          displayName: data.display_name,
+          avatar: null // Add avatar logic if needed
+        });
+      }
+    } catch (error) {
+      console.error("Error loading from Supabase, falling back to localStorage:", error);
+      
+      // Fallback to localStorage
+      const savedStudents = localStorage.getItem("students");
+      if (savedStudents) {
+        const students = JSON.parse(savedStudents);
+        const foundStudent = students.find((s: any) => s.id === studentId);
+        if (foundStudent) {
+          setStudent({
+            id: foundStudent.id,
+            username: foundStudent.username,
+            displayName: foundStudent.displayName || foundStudent.username,
+            avatar: foundStudent.avatar
+          });
+        }
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleEditClick = () => {
+    setIsEditing(true);
+  };
+
+  const handleSaveClick = () => {
+    setIsEditing(false);
+    // The ProfileSidebar component handles the actual saving
+  };
+
+  const handleCancelClick = () => {
+    setIsEditing(false);
+    // Reset any changes
+    loadStudentData();
+  };
+
+  const handleSendMessage = () => {
+    navigate("/messages", { state: { recipientId: studentId, recipientName: student?.displayName || student?.username } });
+  };
+
+  const handleAddFriend = () => {
+    setFriendRequestSent(true);
+    // Implement friend request logic here
+  };
+
+  if (loading) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p>Loading profile...</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="mt-4 text-gray-600">{t("loading")}</p>
+        </div>
       </div>
     );
   }
-  
+
   if (!student) {
     return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <p>Student not found</p>
+      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+        <Card className="p-8 text-center">
+          <h2 className="text-2xl font-bold text-gray-800 mb-4">{t("student-not-found")}</h2>
+          <Button onClick={() => navigate(-1)}>{t("go-back")}</Button>
+        </Card>
       </div>
     );
   }
-  
-  // Create a compatible student object that has required displayName property
-  const sidebarStudent = {
-    id: student.id,
-    username: student.username,
-    displayName: student.display_name || student.displayName || student.username, // Ensure displayName is available
-    avatar: student.avatar
-  };
-  
-  // Create a compatible student object for the tabs component
-  const tabsStudent = {
-    id: student.id,
-    username: student.username,
-    displayName: student.display_name || student.displayName || student.username, // Ensure displayName is available
-    avatar: student.avatar,
-    photos: student.photos,
-    classId: student.class_id || student.classId,
-    pokemonCollection: student.pokemonCollection,
-    contactInfo: student.contactInfo
-  };
-  
+
   return (
-    <div className="min-h-screen bg-gray-100 flex flex-col">
-      <NavBar 
-        userType={localStorage.getItem("userType") as "teacher" | "student"}
-        userName={localStorage.getItem("studentName") || localStorage.getItem("teacherUsername") || ""}
-      />
-      
-      <div className="container mx-auto py-8 px-4 flex-grow">
-        <ProfileHeader title="Student Profile" />
-        
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      <div className="container mx-auto px-4 py-8">
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <Button
+            variant="outline"
+            onClick={() => navigate(-1)}
+            className="flex items-center"
+          >
+            <ArrowLeft className="mr-2 h-4 w-4" />
+            {t("back")}
+          </Button>
+          
+          {!isOwner && (
+            <Button
+              onClick={handleSendMessage}
+              className="flex items-center"
+            >
+              <MessageSquare className="mr-2 h-4 w-4" />
+              {t("send-message")}
+            </Button>
+          )}
+        </div>
+
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Profile Card */}
-          <div className="col-span-1">
+          {/* Profile Sidebar */}
+          <div className="lg:col-span-1">
             <ProfileSidebar
-              student={sidebarStudent}
+              student={student}
               isOwner={isOwner}
               isEditing={isEditing}
               friendRequestSent={friendRequestSent}
-              onEditClick={() => setIsEditing(true)}
+              onEditClick={handleEditClick}
               onSendMessageClick={handleSendMessage}
               onAddFriendClick={handleAddFriend}
-              onSaveClick={handleSave}
-              onCancelClick={handleCancel}
+              onSaveClick={handleSaveClick}
+              onCancelClick={handleCancelClick}
             />
-            
-            {/* Student Coin Information */}
-            {student.id && <StudentCoinInfo studentId={student.id} />}
           </div>
-          
+
           {/* Main Content */}
-          <div className="col-span-1 lg:col-span-3">
+          <div className="lg:col-span-3">
             <ProfileTabs 
-              student={tabsStudent}
-              isEditing={isEditing}
-              editData={editData}
-              onEditDataChange={setEditData}
+              studentId={studentId || ""} 
+              isOwnProfile={isOwner}
+              student={student}
             />
           </div>
         </div>
       </div>
-      
-      <Footer />
     </div>
   );
-}
+};
+
+export default StudentProfilePage;

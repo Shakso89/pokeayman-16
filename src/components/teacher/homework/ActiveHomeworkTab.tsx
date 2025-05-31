@@ -3,8 +3,7 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkAssignment, HomeworkSubmission } from "@/types/homework";
-import { HomeworkCard } from "./HomeworkCard";
-import { useToast } from "@/hooks/use-toast";
+import { TeacherHomeworkCard } from "./TeacherHomeworkCard";
 
 interface ActiveHomeworkTabProps {
   activeHomework: HomeworkAssignment[];
@@ -31,7 +30,6 @@ const ActiveHomeworkTab: React.FC<ActiveHomeworkTabProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { toast } = useToast();
   
   // Get class name for a homework
   const getClassName = (classId: string) => {
@@ -43,7 +41,7 @@ const ActiveHomeworkTab: React.FC<ActiveHomeworkTabProps> = ({
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {activeHomework && activeHomework.length > 0 ? (
         activeHomework.map(homework => (
-          <HomeworkCard
+          <TeacherHomeworkCard
             key={homework.id}
             homework={homework}
             className={getClassName(homework.classId)}

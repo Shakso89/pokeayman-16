@@ -1,7 +1,7 @@
 
 import React from "react";
 import { HomeworkAssignment, HomeworkSubmission } from "@/types/homework";
-import { HomeworkCard } from "./HomeworkCard";
+import { TeacherHomeworkCard } from "./TeacherHomeworkCard";
 import { useTranslation } from "@/hooks/useTranslation";
 
 interface ArchivedHomeworkTabProps {
@@ -23,7 +23,7 @@ const ArchivedHomeworkTab: React.FC<ArchivedHomeworkTabProps> = ({
 }) => {
   const { t } = useTranslation();
   
-  // Dummy functions for the HomeworkCard component since we don't approve/reject archived homework
+  // Dummy functions for approval/rejection since archived homework doesn't need these
   const dummyApprove = () => {};
   const dummyReject = () => {};
 
@@ -31,7 +31,7 @@ const ArchivedHomeworkTab: React.FC<ArchivedHomeworkTabProps> = ({
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
       {archivedHomework && archivedHomework.length > 0 ? (
         archivedHomework.map(homework => (
-          <HomeworkCard
+          <TeacherHomeworkCard
             key={homework.id}
             homework={homework}
             className={getClassNameById(homework.classId)}
