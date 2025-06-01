@@ -5,7 +5,6 @@ import { ArrowLeft, Plus } from "lucide-react";
 import { useHomeworkManagement } from "./homework/hooks/useHomeworkManagement";
 import CreateHomeworkDialog from "./CreateHomeworkDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
-import HomeworkManagementHeader from "./homework/HomeworkManagementHeader";
 import HomeworkTabs from "./homework/HomeworkTabs";
 
 interface HomeworkManagementProps {
@@ -76,10 +75,14 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({
               <ArrowLeft className="h-4 w-4 mr-2" />
               Back
             </Button>
-            <HomeworkManagementHeader 
-              title={classId ? "Class Homework Management" : "Homework Management"}
-              subtitle={classId ? "Manage homework for this specific class" : "Create and manage homework assignments"}
-            />
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">
+                {classId ? "Class Homework Management" : "Homework Management"}
+              </h1>
+              <p className="text-gray-600">
+                {classId ? "Manage homework for this specific class" : "Create and manage homework assignments"}
+              </p>
+            </div>
           </div>
           <Button
             onClick={() => {
@@ -122,15 +125,15 @@ const HomeworkManagement: React.FC<HomeworkManagementProps> = ({
           onOpenChange={setIsCreateHomeworkOpen}
           onHomeworkCreated={handleHomeworkCreated}
           teacherId={teacherId}
-          selectedClassId={selectedClassId}
-          selectedClassName={selectedClassName}
+          classId={selectedClassId}
+          className={selectedClassName}
         />
 
         <GiveCoinsDialog
           open={isGiveCoinsOpen}
           onOpenChange={setIsGiveCoinsOpen}
-          onConfirm={handleGiveCoins}
-          studentName={selectedStudent?.name || ""}
+          onGiveCoins={handleGiveCoins}
+          studentId={selectedStudent?.id || ""}
         />
       </div>
     </div>
