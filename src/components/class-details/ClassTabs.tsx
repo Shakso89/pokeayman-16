@@ -1,9 +1,11 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { BookText, Plus } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { BookText, Plus, FileText } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 import StudentsTable from "./StudentsTable";
 import HomeworkManagement from "@/components/teacher/HomeworkManagement";
 
@@ -32,6 +34,66 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
   onRemoveStudent,
   onAddStudent,
 }) => {
+  const [pendingSubmissions, setPendingSubmissions] = useState(0);
+
+  useEffect(() => {
+    if (isClassCreator && classData?.id) {
+      loadPendingSubmissions();
+      
+      // Subscribe to submission changes
+      const channel = supabase
+        .channel(`homework-submissions-${classData.id}`)
+        .on(
+          'postgres_changes',
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'homework_submissions' 
+          },
+          () => {
+            loadPendingSubmissions();
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [isClassCreator, classData?.id]);
+
+  const loadPendingSubmissions = async () => {
+    try {
+      // Get homework assignments for this class
+      const { data: homework, error: homeworkError } = await supabase
+        .from('homework')
+        .select('id')
+        .eq('class_id', classData.id);
+        
+      if (homeworkError) throw homeworkError;
+      
+      if (homework && homework.length > 0) {
+        const homeworkIds = homework.map(hw => hw.id);
+        
+        // Get pending submissions for this class's homework
+        const { data: submissions, error: submissionsError } = await supabase
+          .from('homework_submissions')
+          .select('id')
+          .in('homework_id', homeworkIds)
+          .eq('status', 'pending');
+          
+        if (submissionsError) throw submissionsError;
+        
+        setPendingSubmissions(submissions?.length || 0);
+      } else {
+        setPendingSubmissions(0);
+      }
+    } catch (error) {
+      console.error("Error loading pending submissions:", error);
+      setPendingSubmissions(0);
+    }
+  };
+
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
       <TabsList className="grid w-full grid-cols-2 mb-8 bg-white shadow-sm">
@@ -51,22 +113,44 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
       
       <TabsContent value="students" className="mt-6">
         <div className="space-y-4">
-          {/* Homework Quick Actions for Class Creator */}
+          {/* Homework Management Quick Actions for Class Creator */}
           {isClassCreator && (
             <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-medium text-blue-900 mb-1">Homework Management</h3>
-                    <p className="text-sm text-blue-700">Create and manage homework for this class</p>
+                  <div className="flex items-center space-x-4">
+                    <div>
+                      <h3 className="font-medium text-blue-900 mb-1 flex items-center gap-2">
+                        <FileText className="h-5 w-5" />
+                        Homework Management
+                      </h3>
+                      <p className="text-sm text-blue-700">Create and review homework for this class</p>
+                    </div>
+                    {pendingSubmissions > 0 && (
+                      <div className="flex items-center gap-2">
+                        <Badge variant="destructive" className="animate-pulse">
+                          {pendingSubmissions} pending review{pendingSubmissions > 1 ? 's' : ''}
+                        </Badge>
+                      </div>
+                    )}
                   </div>
-                  <Button 
-                    onClick={() => onTabChange("homework")}
-                    className="bg-blue-600 hover:bg-blue-700 text-white"
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Create Homework
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button 
+                      onClick={() => onTabChange("homework")}
+                      variant="outline"
+                      className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50"
+                    >
+                      <BookText className="h-4 w-4 mr-2" />
+                      Manage Homework
+                    </Button>
+                    <Button 
+                      onClick={() => onTabChange("homework")}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      <Plus className="h-4 w-4 mr-2" />
+                      Create Homework
+                    </Button>
+                  </div>
                 </div>
               </CardContent>
             </Card>
@@ -89,6 +173,7 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
           <HomeworkManagement 
             onBack={() => onTabChange("students")}
             teacherId={teacherId}
+            classId={classData?.id}
           />
         ) : (
           <Card className="bg-white shadow-sm">

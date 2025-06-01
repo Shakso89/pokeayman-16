@@ -23,7 +23,7 @@ export const useHomeworkData = (teacherId: string) => {
         
       if (assignmentsError) throw assignmentsError;
       
-      // Load homework submissions
+      // Load homework submissions for all homework by this teacher
       const { data: submissions, error: submissionsError } = await supabase
         .from('homework_submissions')
         .select('*');
@@ -44,7 +44,13 @@ export const useHomeworkData = (teacherId: string) => {
         questions: hw.questions ? JSON.parse(hw.questions) : undefined
       })) || [];
       
-      const mappedSubmissions = submissions?.map(sub => ({
+      // Filter submissions to only include those for this teacher's homework
+      const teacherHomeworkIds = mappedAssignments.map(hw => hw.id);
+      const filteredSubmissions = submissions?.filter(sub => 
+        teacherHomeworkIds.includes(sub.homework_id)
+      ) || [];
+      
+      const mappedSubmissions = filteredSubmissions.map(sub => ({
         id: sub.id,
         homeworkId: sub.homework_id,
         studentId: sub.student_id,
@@ -55,7 +61,7 @@ export const useHomeworkData = (teacherId: string) => {
         status: sub.status as "pending" | "approved" | "rejected",
         feedback: sub.feedback,
         answers: sub.answers ? JSON.parse(sub.answers) : undefined
-      })) || [];
+      }));
       
       setHomeworkAssignments(mappedAssignments);
       setHomeworkSubmissions(mappedSubmissions);
@@ -106,6 +112,20 @@ export const useHomeworkData = (teacherId: string) => {
           },
           () => {
             loadHomeworkData();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'homework' 
+          },
+          (payload) => {
+            // Only reload if it's this teacher's homework
+            if (payload.new && typeof payload.new === 'object' && 'teacher_id' in payload.new && payload.new.teacher_id === teacherId) {
+              loadHomeworkData();
+            }
           }
         )
         .subscribe();
