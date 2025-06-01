@@ -43,7 +43,7 @@ export const useHomeworkData = (teacherId: string) => {
       
       setHomeworkAssignments(mappedAssignments);
       
-      // If we have homework assignments, load their submissions
+      // Load ALL submissions for this teacher's homework
       if (mappedAssignments.length > 0) {
         const homeworkIds = mappedAssignments.map(hw => hw.id);
         console.log("Loading submissions for homework IDs:", homeworkIds);
@@ -55,7 +55,7 @@ export const useHomeworkData = (teacherId: string) => {
           
         if (submissionsError) throw submissionsError;
         
-        console.log("Loaded submissions:", submissions);
+        console.log("Loaded submissions from database:", submissions);
         
         const mappedSubmissions = submissions?.map(sub => ({
           id: sub.id,
@@ -71,6 +71,7 @@ export const useHomeworkData = (teacherId: string) => {
         })) || [];
         
         console.log("Mapped submissions:", mappedSubmissions);
+        console.log("Pending submissions:", mappedSubmissions.filter(s => s.status === 'pending'));
         setHomeworkSubmissions(mappedSubmissions);
       } else {
         console.log("No homework assignments found, setting empty submissions");

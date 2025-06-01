@@ -37,12 +37,12 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
   const [pendingSubmissions, setPendingSubmissions] = useState(0);
 
   useEffect(() => {
-    if (isClassCreator && classData?.id) {
+    if (isClassCreator && classData?.id && teacherId) {
       loadPendingSubmissions();
       
-      // Subscribe to submission changes
+      // Subscribe to submission changes for this specific class
       const channel = supabase
-        .channel(`homework-submissions-${classData.id}`)
+        .channel(`homework-submissions-class-${classData.id}`)
         .on(
           'postgres_changes',
           { 
@@ -51,7 +51,19 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
             table: 'homework_submissions' 
           },
           () => {
-            console.log("Submission change detected, reloading pending count");
+            console.log("Submission change detected for class, reloading pending count");
+            loadPendingSubmissions();
+          }
+        )
+        .on(
+          'postgres_changes',
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'homework' 
+          },
+          () => {
+            console.log("Homework change detected for class, reloading pending count");
             loadPendingSubmissions();
           }
         )
@@ -74,7 +86,11 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
         .eq('class_id', classData.id)
         .eq('teacher_id', teacherId);
         
-      if (homeworkError) throw homeworkError;
+      if (homeworkError) {
+        console.error("Error loading homework:", homeworkError);
+        setPendingSubmissions(0);
+        return;
+      }
       
       console.log("Found homework for this class:", homework);
       
@@ -88,9 +104,13 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
           .in('homework_id', homeworkIds)
           .eq('status', 'pending');
           
-        if (submissionsError) throw submissionsError;
+        if (submissionsError) {
+          console.error("Error loading submissions:", submissionsError);
+          setPendingSubmissions(0);
+          return;
+        }
         
-        console.log("Found pending submissions:", submissions);
+        console.log("Found pending submissions for class:", submissions);
         setPendingSubmissions(submissions?.length || 0);
       } else {
         console.log("No homework found for this class");

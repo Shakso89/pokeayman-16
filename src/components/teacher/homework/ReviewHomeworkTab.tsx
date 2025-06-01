@@ -31,6 +31,11 @@ const ReviewHomeworkTab: React.FC<ReviewHomeworkTabProps> = ({
   const [playingAudio, setPlayingAudio] = useState<string | null>(null);
   const [viewingImage, setViewingImage] = useState<string | null>(null);
 
+  // Debug logging
+  console.log("ReviewHomeworkTab - activeHomework:", activeHomework);
+  console.log("ReviewHomeworkTab - submissions:", submissions);
+  console.log("ReviewHomeworkTab - classes:", classes);
+
   const getClassName = (classId: string) => {
     const foundClass = classes?.find(c => c.id === classId);
     return foundClass?.name || t("unknown-class");
@@ -122,6 +127,8 @@ const ReviewHomeworkTab: React.FC<ReviewHomeworkTabProps> = ({
   };
 
   const pendingSubmissions = submissions.filter(s => s.status === "pending");
+  
+  console.log("Filtered pending submissions:", pendingSubmissions);
 
   return (
     <div className="space-y-6">
@@ -134,6 +141,9 @@ const ReviewHomeworkTab: React.FC<ReviewHomeworkTabProps> = ({
         <Card>
           <CardContent className="py-10 text-center">
             <p className="text-gray-500">{t("no-pending-submissions")}</p>
+            <p className="text-sm text-gray-400 mt-2">
+              Debug: Total submissions: {submissions.length}, Active homework: {activeHomework.length}
+            </p>
           </CardContent>
         </Card>
       ) : (
@@ -143,7 +153,10 @@ const ReviewHomeworkTab: React.FC<ReviewHomeworkTabProps> = ({
             <h4 className="font-medium">{t("pending-submissions")}</h4>
             {pendingSubmissions.map(submission => {
               const homework = getHomeworkForSubmission(submission.id);
-              if (!homework) return null;
+              if (!homework) {
+                console.log("No homework found for submission:", submission.id, submission.homeworkId);
+                return null;
+              }
 
               return (
                 <Card 
