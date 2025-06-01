@@ -25,27 +25,43 @@ const ReviewHomeworkTab: React.FC<ReviewHomeworkTabProps> = ({
   const { t } = useTranslation();
   const [selectedSubmission, setSelectedSubmission] = useState<HomeworkSubmission | null>(null);
 
-  // Debug logging
-  console.log("ReviewHomeworkTab - activeHomework:", activeHomework);
-  console.log("ReviewHomeworkTab - submissions:", submissions);
-  console.log("ReviewHomeworkTab - classes:", classes);
+  // Debug logging with more detail
+  console.log("=== ReviewHomeworkTab Debug ===");
+  console.log("Active homework count:", activeHomework.length);
+  console.log("Active homework:", activeHomework);
+  console.log("Total submissions count:", submissions.length);
+  console.log("All submissions:", submissions);
+  console.log("Classes count:", classes.length);
+  console.log("Classes:", classes);
 
   const getHomeworkForSubmission = (submissionId: string) => {
     const submission = submissions.find(s => s.id === submissionId);
-    if (!submission) return null;
-    return activeHomework.find(hw => hw.id === submission.homeworkId);
+    if (!submission) {
+      console.log("No submission found for ID:", submissionId);
+      return null;
+    }
+    
+    const homework = activeHomework.find(hw => hw.id === submission.homeworkId);
+    console.log("Found homework for submission:", homework ? homework.title : "NOT FOUND", "homeworkId:", submission.homeworkId);
+    return homework;
   };
 
-  const pendingSubmissions = submissions.filter(s => s.status === "pending");
+  const pendingSubmissions = submissions.filter(s => {
+    console.log("Checking submission status:", s.id, s.status);
+    return s.status === "pending";
+  });
   
-  console.log("Filtered pending submissions:", pendingSubmissions);
+  console.log("Filtered pending submissions count:", pendingSubmissions.length);
+  console.log("Pending submissions:", pendingSubmissions);
 
   const handleApprove = (submission: HomeworkSubmission) => {
+    console.log("Approving submission:", submission.id);
     onApproveSubmission(submission);
     setSelectedSubmission(null);
   };
 
   const handleReject = (submission: HomeworkSubmission, feedback: string) => {
+    console.log("Rejecting submission:", submission.id, "with feedback:", feedback);
     onRejectSubmission(submission, feedback);
     setSelectedSubmission(null);
   };
@@ -61,9 +77,13 @@ const ReviewHomeworkTab: React.FC<ReviewHomeworkTabProps> = ({
         <Card>
           <CardContent className="py-10 text-center">
             <p className="text-gray-500">{t("no-pending-submissions")}</p>
-            <p className="text-sm text-gray-400 mt-2">
-              Debug: Total submissions: {submissions.length}, Active homework: {activeHomework.length}
-            </p>
+            <div className="text-sm text-gray-400 mt-4 space-y-1">
+              <p>Debug Info:</p>
+              <p>Total submissions: {submissions.length}</p>
+              <p>Active homework: {activeHomework.length}</p>
+              <p>Classes: {classes.length}</p>
+              <p>Submission statuses: {submissions.map(s => s.status).join(", ")}</p>
+            </div>
           </CardContent>
         </Card>
       ) : (

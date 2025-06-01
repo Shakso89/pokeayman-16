@@ -23,7 +23,10 @@ export const useHomeworkData = (teacherId: string) => {
         .select('*')
         .eq('teacher_id', teacherId);
         
-      if (assignmentsError) throw assignmentsError;
+      if (assignmentsError) {
+        console.error("Error loading homework assignments:", assignmentsError);
+        throw assignmentsError;
+      }
       
       console.log("Loaded homework assignments:", assignments);
       
@@ -43,40 +46,43 @@ export const useHomeworkData = (teacherId: string) => {
       
       setHomeworkAssignments(mappedAssignments);
       
-      // Load ALL submissions for this teacher's homework
-      if (mappedAssignments.length > 0) {
-        const homeworkIds = mappedAssignments.map(hw => hw.id);
-        console.log("Loading submissions for homework IDs:", homeworkIds);
+      // Load ALL submissions for ANY homework (not just this teacher's)
+      const { data: allSubmissions, error: submissionsError } = await supabase
+        .from('homework_submissions')
+        .select('*');
         
-        const { data: submissions, error: submissionsError } = await supabase
-          .from('homework_submissions')
-          .select('*')
-          .in('homework_id', homeworkIds);
-          
-        if (submissionsError) throw submissionsError;
-        
-        console.log("Loaded submissions from database:", submissions);
-        
-        const mappedSubmissions = submissions?.map(sub => ({
-          id: sub.id,
-          homeworkId: sub.homework_id,
-          studentId: sub.student_id,
-          studentName: sub.student_name,
-          content: sub.content,
-          type: sub.type as "text" | "image" | "audio" | "multiple_choice",
-          submittedAt: sub.submitted_at,
-          status: sub.status as "pending" | "approved" | "rejected",
-          feedback: sub.feedback,
-          answers: sub.answers ? JSON.parse(sub.answers) : undefined
-        })) || [];
-        
-        console.log("Mapped submissions:", mappedSubmissions);
-        console.log("Pending submissions:", mappedSubmissions.filter(s => s.status === 'pending'));
-        setHomeworkSubmissions(mappedSubmissions);
-      } else {
-        console.log("No homework assignments found, setting empty submissions");
-        setHomeworkSubmissions([]);
+      if (submissionsError) {
+        console.error("Error loading submissions:", submissionsError);
+        throw submissionsError;
       }
+      
+      console.log("All submissions from database:", allSubmissions);
+      
+      // Filter submissions to only include those for this teacher's homework
+      const relevantSubmissions = allSubmissions?.filter(sub => {
+        const homework = mappedAssignments.find(hw => hw.id === sub.homework_id);
+        return homework !== undefined;
+      }) || [];
+      
+      console.log("Relevant submissions for teacher:", relevantSubmissions);
+      
+      const mappedSubmissions = relevantSubmissions.map(sub => ({
+        id: sub.id,
+        homeworkId: sub.homework_id,
+        studentId: sub.student_id,
+        studentName: sub.student_name,
+        content: sub.content,
+        type: sub.type as "text" | "image" | "audio" | "multiple_choice",
+        submittedAt: sub.submitted_at,
+        status: sub.status as "pending" | "approved" | "rejected",
+        feedback: sub.feedback,
+        answers: sub.answers ? JSON.parse(sub.answers) : undefined
+      }));
+      
+      console.log("Final mapped submissions:", mappedSubmissions);
+      console.log("Pending submissions count:", mappedSubmissions.filter(s => s.status === 'pending').length);
+      setHomeworkSubmissions(mappedSubmissions);
+      
     } catch (error) {
       console.error("Error loading homework data:", error);
       toast({
@@ -107,14 +113,15 @@ export const useHomeworkData = (teacherId: string) => {
     }
   };
 
-  // Setup realtime subscription
+  // Setup realtime subscription for immediate updates
   useEffect(() => {
     if (teacherId) {
       loadHomeworkData();
       loadClassesData();
       
-      const channel = supabase
-        .channel('homework-changes')
+      // More aggressive realtime subscription
+      const submissionsChannel = supabase
+        .channel('homework-submissions-realtime')
         .on(
           'postgres_changes',
           { 
@@ -123,10 +130,15 @@ export const useHomeworkData = (teacherId: string) => {
             table: 'homework_submissions' 
           },
           (payload) => {
-            console.log("Homework submission change detected:", payload);
+            console.log("Realtime submission change detected:", payload);
+            // Reload data immediately when any submission changes
             loadHomeworkData();
           }
         )
+        .subscribe();
+        
+      const homeworkChannel = supabase
+        .channel('homework-realtime')
         .on(
           'postgres_changes',
           { 
@@ -135,9 +147,9 @@ export const useHomeworkData = (teacherId: string) => {
             table: 'homework' 
           },
           (payload) => {
+            console.log("Realtime homework change detected:", payload);
             // Only reload if it's this teacher's homework
             if (payload.new && typeof payload.new === 'object' && 'teacher_id' in payload.new && payload.new.teacher_id === teacherId) {
-              console.log("Teacher homework change detected:", payload);
               loadHomeworkData();
             }
           }
@@ -145,7 +157,8 @@ export const useHomeworkData = (teacherId: string) => {
         .subscribe();
         
       return () => {
-        supabase.removeChannel(channel);
+        supabase.removeChannel(submissionsChannel);
+        supabase.removeChannel(homeworkChannel);
       };
     }
   }, [teacherId]);
