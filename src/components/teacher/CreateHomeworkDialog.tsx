@@ -11,11 +11,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { FileText } from "lucide-react";
+import { FileText, Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
-import { HomeworkAssignment } from "@/types/homework";
+import { HomeworkAssignment, MultipleChoiceQuestion } from "@/types/homework";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cleanupOldHomework, clearStorageIfFull } from "@/utils/storage/cleanup";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -45,9 +46,18 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
   const [homeworkData, setHomeworkData] = useState({
     title: "",
     description: "",
-    type: "text" as "text" | "image" | "audio",
+    type: "text" as "text" | "image" | "audio" | "multiple_choice",
     coinReward: 10
   });
+
+  const [questions, setQuestions] = useState<MultipleChoiceQuestion[]>([
+    {
+      id: '1',
+      question: '',
+      options: ['', ''],
+      correctAnswers: []
+    }
+  ]);
 
   // Fetch available classes when dialog opens
   useEffect(() => {
@@ -137,6 +147,83 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
     }
   };
 
+  const addQuestion = () => {
+    const newQuestion: MultipleChoiceQuestion = {
+      id: Date.now().toString(),
+      question: '',
+      options: ['', ''],
+      correctAnswers: []
+    };
+    setQuestions([...questions, newQuestion]);
+  };
+
+  const removeQuestion = (questionId: string) => {
+    setQuestions(questions.filter(q => q.id !== questionId));
+  };
+
+  const updateQuestion = (questionId: string, field: keyof MultipleChoiceQuestion, value: any) => {
+    setQuestions(questions.map(q => 
+      q.id === questionId ? { ...q, [field]: value } : q
+    ));
+  };
+
+  const addOption = (questionId: string) => {
+    updateQuestion(questionId, 'options', 
+      questions.find(q => q.id === questionId)?.options.concat('') || ['']
+    );
+  };
+
+  const removeOption = (questionId: string, optionIndex: number) => {
+    const question = questions.find(q => q.id === questionId);
+    if (!question || question.options.length <= 2) return;
+    
+    const newOptions = question.options.filter((_, index) => index !== optionIndex);
+    const newCorrectAnswers = question.correctAnswers
+      .filter(ca => ca !== optionIndex)
+      .map(ca => ca > optionIndex ? ca - 1 : ca);
+    
+    updateQuestion(questionId, 'options', newOptions);
+    updateQuestion(questionId, 'correctAnswers', newCorrectAnswers);
+  };
+
+  const updateOption = (questionId: string, optionIndex: number, value: string) => {
+    const question = questions.find(q => q.id === questionId);
+    if (!question) return;
+    
+    const newOptions = [...question.options];
+    newOptions[optionIndex] = value;
+    updateQuestion(questionId, 'options', newOptions);
+  };
+
+  const toggleCorrectAnswer = (questionId: string, optionIndex: number) => {
+    const question = questions.find(q => q.id === questionId);
+    if (!question) return;
+    
+    const newCorrectAnswers = question.correctAnswers.includes(optionIndex)
+      ? question.correctAnswers.filter(ca => ca !== optionIndex)
+      : [...question.correctAnswers, optionIndex];
+    
+    updateQuestion(questionId, 'correctAnswers', newCorrectAnswers);
+  };
+
+  const validateMultipleChoiceQuestions = (): string | null => {
+    for (const question of questions) {
+      if (!question.question.trim()) {
+        return "All questions must have text";
+      }
+      
+      const validOptions = question.options.filter(opt => opt.trim());
+      if (validOptions.length < 2) {
+        return "Each question must have at least 2 options";
+      }
+      
+      if (question.correctAnswers.length === 0) {
+        return "Each question must have at least one correct answer";
+      }
+    }
+    return null;
+  };
+
   const handleCreateHomework = () => {
     // Validate homework data
     if (!homeworkData.title || !homeworkData.description) {
@@ -157,6 +244,19 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
       return;
     }
 
+    // Validate multiple choice questions if that type is selected
+    if (homeworkData.type === "multiple_choice") {
+      const validationError = validateMultipleChoiceQuestions();
+      if (validationError) {
+        toast({
+          title: t("error"),
+          description: validationError,
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+
     try {
       // Clean up storage before adding new homework
       clearStorageIfFull();
@@ -173,7 +273,8 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
         teacherId,
         createdAt: now.toISOString(),
         expiresAt: expiresAt.toISOString(),
-        coinReward: homeworkData.coinReward
+        coinReward: homeworkData.coinReward,
+        questions: homeworkData.type === "multiple_choice" ? questions : undefined
       };
       
       // Save homework to localStorage with error handling
@@ -201,6 +302,12 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
         type: "text",
         coinReward: 10
       });
+      setQuestions([{
+        id: '1',
+        question: '',
+        options: ['', ''],
+        correctAnswers: []
+      }]);
       
       toast({
         title: t("success"),
@@ -220,7 +327,7 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t("create-homework")}</DialogTitle>
           <DialogDescription>
@@ -288,7 +395,7 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
           
           <div className="space-y-2">
             <Label>{t("homework-type")}</Label>
-            <div className="flex gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <Button
                 type="button"
                 variant={homeworkData.type === "text" ? "default" : "outline"}
@@ -316,8 +423,96 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
                 <MicIcon className="mr-2 h-4 w-4" />
                 {t("audio")}
               </Button>
+              <Button
+                type="button"
+                variant={homeworkData.type === "multiple_choice" ? "default" : "outline"}
+                className="flex-1"
+                onClick={() => setHomeworkData({...homeworkData, type: "multiple_choice"})}
+              >
+                <CheckSquareIcon className="mr-2 h-4 w-4" />
+                Multiple Choice
+              </Button>
             </div>
           </div>
+
+          {/* Multiple Choice Questions */}
+          {homeworkData.type === "multiple_choice" && (
+            <div className="space-y-4">
+              <div className="flex justify-between items-center">
+                <Label>Questions</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={addQuestion}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Question
+                </Button>
+              </div>
+              
+              {questions.map((question, questionIndex) => (
+                <div key={question.id} className="border rounded-lg p-4 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <Label>Question {questionIndex + 1}</Label>
+                    {questions.length > 1 && (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeQuestion(question.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    )}
+                  </div>
+                  
+                  <Input
+                    value={question.question}
+                    onChange={(e) => updateQuestion(question.id, 'question', e.target.value)}
+                    placeholder="Enter your question..."
+                  />
+                  
+                  <div className="space-y-2">
+                    <Label>Options (check correct answers)</Label>
+                    {question.options.map((option, optionIndex) => (
+                      <div key={optionIndex} className="flex items-center space-x-2">
+                        <Checkbox
+                          checked={question.correctAnswers.includes(optionIndex)}
+                          onCheckedChange={() => toggleCorrectAnswer(question.id, optionIndex)}
+                        />
+                        <Input
+                          value={option}
+                          onChange={(e) => updateOption(question.id, optionIndex, e.target.value)}
+                          placeholder={`Option ${optionIndex + 1}`}
+                          className="flex-1"
+                        />
+                        {question.options.length > 2 && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => removeOption(question.id, optionIndex)}
+                          >
+                            <X className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => addOption(question.id)}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Add Option
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
           
           <div className="space-y-2">
             <Label htmlFor="coinReward">{t("coin-reward")}</Label>
@@ -344,7 +539,7 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
   );
 };
 
-// Create Icon components for image and mic with proper props type
+// Create Icon components for image, mic, and checkbox with proper props type
 interface IconProps {
   className?: string;
 }
@@ -362,6 +557,13 @@ const MicIcon: React.FC<IconProps> = ({ className }) => (
     <path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/>
     <path d="M19 10v2a7 7 0 0 1-14 0v-2"/>
     <line x1="12" x2="12" y1="19" y2="22"/>
+  </svg>
+);
+
+const CheckSquareIcon: React.FC<IconProps> = ({ className }) => (
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}>
+    <polyline points="9,11 12,14 22,4"/>
+    <path d="m21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/>
   </svg>
 );
 

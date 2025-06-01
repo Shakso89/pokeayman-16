@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
@@ -9,7 +8,7 @@ export const useHomeworkManagement = (teacherId: string) => {
   const { t } = useTranslation();
   const { toast } = useToast();
   
-  const [activeTab, setActiveTab] = useState<"active" | "archived">("active");
+  const [activeTab, setActiveTab] = useState<"active" | "archived" | "review">("active");
   const [isCreateHomeworkOpen, setIsCreateHomeworkOpen] = useState(false);
   const [homeworkAssignments, setHomeworkAssignments] = useState<HomeworkAssignment[]>([]);
   const [homeworkSubmissions, setHomeworkSubmissions] = useState<HomeworkSubmission[]>([]);
@@ -69,12 +68,13 @@ export const useHomeworkManagement = (teacherId: string) => {
         id: hw.id,
         title: hw.title,
         description: hw.description || '',
-        type: hw.type as "text" | "image" | "audio",
+        type: hw.type as "text" | "image" | "audio" | "multiple_choice",
         classId: hw.class_id || '',
         teacherId: hw.teacher_id,
         createdAt: hw.created_at,
         expiresAt: hw.expires_at,
-        coinReward: hw.coin_reward
+        coinReward: hw.coin_reward,
+        questions: hw.questions ? JSON.parse(hw.questions) : undefined
       })) || [];
       
       const mappedSubmissions = submissions?.map(sub => ({
@@ -83,10 +83,11 @@ export const useHomeworkManagement = (teacherId: string) => {
         studentId: sub.student_id,
         studentName: sub.student_name,
         content: sub.content,
-        type: sub.type as "text" | "image" | "audio",
+        type: sub.type as "text" | "image" | "audio" | "multiple_choice",
         submittedAt: sub.submitted_at,
         status: sub.status as "pending" | "approved" | "rejected",
-        feedback: sub.feedback
+        feedback: sub.feedback,
+        answers: sub.answers ? JSON.parse(sub.answers) : undefined
       })) || [];
       
       setHomeworkAssignments(mappedAssignments);
@@ -134,7 +135,8 @@ export const useHomeworkManagement = (teacherId: string) => {
           teacher_id: homework.teacherId,
           created_at: homework.createdAt,
           expires_at: homework.expiresAt,
-          coin_reward: homework.coinReward
+          coin_reward: homework.coinReward,
+          questions: homework.questions ? JSON.stringify(homework.questions) : null
         }]);
         
       if (error) throw error;
@@ -241,17 +243,24 @@ export const useHomeworkManagement = (teacherId: string) => {
     }
   };
   
-  const handleRejectSubmission = async (submission: HomeworkSubmission) => {
+  const handleRejectSubmission = async (submission: HomeworkSubmission, feedback?: string) => {
     try {
       const { error } = await supabase
         .from('homework_submissions')
-        .update({ status: 'rejected' })
+        .update({ 
+          status: 'rejected',
+          feedback: feedback || ''
+        })
         .eq('id', submission.id);
         
       if (error) throw error;
       
       setHomeworkSubmissions(prev => 
-        prev.map(sub => sub.id === submission.id ? { ...sub, status: "rejected" as const } : sub)
+        prev.map(sub => sub.id === submission.id ? { 
+          ...sub, 
+          status: "rejected" as const,
+          feedback: feedback 
+        } : sub)
       );
       
       toast({
