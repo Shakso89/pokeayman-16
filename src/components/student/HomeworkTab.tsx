@@ -183,6 +183,10 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({
     if (submission) {
       setSelectedSubmission(submission);
       setIsViewSubmissionOpen(true);
+    } else {
+      // Handle case where no submission is found
+      setSelectedSubmission(null);
+      setIsViewSubmissionOpen(true);
     }
   };
 

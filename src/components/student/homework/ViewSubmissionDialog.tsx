@@ -9,7 +9,7 @@ import { CheckCircle, XCircle, Clock, Coins } from "lucide-react";
 interface ViewSubmissionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  submission: HomeworkSubmission;
+  submission: HomeworkSubmission | null;
   homework: HomeworkAssignment;
 }
 
@@ -20,6 +20,22 @@ const ViewSubmissionDialog: React.FC<ViewSubmissionDialogProps> = ({
   homework
 }) => {
   const { t } = useTranslation();
+
+  // Early return if submission is null
+  if (!submission) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>{t("no-submission")}</DialogTitle>
+            <DialogDescription>
+              {t("no-submission-found")}
+            </DialogDescription>
+          </DialogHeader>
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   const getStatusIcon = () => {
     switch (submission.status) {
