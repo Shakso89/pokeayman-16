@@ -51,6 +51,7 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
             table: 'homework_submissions' 
           },
           () => {
+            console.log("Submission change detected, reloading pending count");
             loadPendingSubmissions();
           }
         )
@@ -60,17 +61,22 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
         supabase.removeChannel(channel);
       };
     }
-  }, [isClassCreator, classData?.id]);
+  }, [isClassCreator, classData?.id, teacherId]);
 
   const loadPendingSubmissions = async () => {
     try {
-      // Get homework assignments for this class
+      console.log("Loading pending submissions for class:", classData.id, "teacher:", teacherId);
+      
+      // Get homework assignments for this class created by this teacher
       const { data: homework, error: homeworkError } = await supabase
         .from('homework')
         .select('id')
-        .eq('class_id', classData.id);
+        .eq('class_id', classData.id)
+        .eq('teacher_id', teacherId);
         
       if (homeworkError) throw homeworkError;
+      
+      console.log("Found homework for this class:", homework);
       
       if (homework && homework.length > 0) {
         const homeworkIds = homework.map(hw => hw.id);
@@ -84,8 +90,10 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
           
         if (submissionsError) throw submissionsError;
         
+        console.log("Found pending submissions:", submissions);
         setPendingSubmissions(submissions?.length || 0);
       } else {
+        console.log("No homework found for this class");
         setPendingSubmissions(0);
       }
     } catch (error) {

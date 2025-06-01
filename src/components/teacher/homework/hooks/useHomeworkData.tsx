@@ -15,6 +15,8 @@ export const useHomeworkData = (teacherId: string) => {
 
   const loadHomeworkData = async () => {
     try {
+      console.log("Loading homework data for teacher:", teacherId);
+      
       // Load homework assignments
       const { data: assignments, error: assignmentsError } = await supabase
         .from('homework')
@@ -23,12 +25,7 @@ export const useHomeworkData = (teacherId: string) => {
         
       if (assignmentsError) throw assignmentsError;
       
-      // Load homework submissions for all homework by this teacher
-      const { data: submissions, error: submissionsError } = await supabase
-        .from('homework_submissions')
-        .select('*');
-        
-      if (submissionsError) throw submissionsError;
+      console.log("Loaded homework assignments:", assignments);
       
       // Map to our interface format
       const mappedAssignments = assignments?.map(hw => ({
@@ -44,27 +41,41 @@ export const useHomeworkData = (teacherId: string) => {
         questions: hw.questions ? JSON.parse(hw.questions) : undefined
       })) || [];
       
-      // Filter submissions to only include those for this teacher's homework
-      const teacherHomeworkIds = mappedAssignments.map(hw => hw.id);
-      const filteredSubmissions = submissions?.filter(sub => 
-        teacherHomeworkIds.includes(sub.homework_id)
-      ) || [];
-      
-      const mappedSubmissions = filteredSubmissions.map(sub => ({
-        id: sub.id,
-        homeworkId: sub.homework_id,
-        studentId: sub.student_id,
-        studentName: sub.student_name,
-        content: sub.content,
-        type: sub.type as "text" | "image" | "audio" | "multiple_choice",
-        submittedAt: sub.submitted_at,
-        status: sub.status as "pending" | "approved" | "rejected",
-        feedback: sub.feedback,
-        answers: sub.answers ? JSON.parse(sub.answers) : undefined
-      }));
-      
       setHomeworkAssignments(mappedAssignments);
-      setHomeworkSubmissions(mappedSubmissions);
+      
+      // If we have homework assignments, load their submissions
+      if (mappedAssignments.length > 0) {
+        const homeworkIds = mappedAssignments.map(hw => hw.id);
+        console.log("Loading submissions for homework IDs:", homeworkIds);
+        
+        const { data: submissions, error: submissionsError } = await supabase
+          .from('homework_submissions')
+          .select('*')
+          .in('homework_id', homeworkIds);
+          
+        if (submissionsError) throw submissionsError;
+        
+        console.log("Loaded submissions:", submissions);
+        
+        const mappedSubmissions = submissions?.map(sub => ({
+          id: sub.id,
+          homeworkId: sub.homework_id,
+          studentId: sub.student_id,
+          studentName: sub.student_name,
+          content: sub.content,
+          type: sub.type as "text" | "image" | "audio" | "multiple_choice",
+          submittedAt: sub.submitted_at,
+          status: sub.status as "pending" | "approved" | "rejected",
+          feedback: sub.feedback,
+          answers: sub.answers ? JSON.parse(sub.answers) : undefined
+        })) || [];
+        
+        console.log("Mapped submissions:", mappedSubmissions);
+        setHomeworkSubmissions(mappedSubmissions);
+      } else {
+        console.log("No homework assignments found, setting empty submissions");
+        setHomeworkSubmissions([]);
+      }
     } catch (error) {
       console.error("Error loading homework data:", error);
       toast({
@@ -110,7 +121,8 @@ export const useHomeworkData = (teacherId: string) => {
             schema: 'public', 
             table: 'homework_submissions' 
           },
-          () => {
+          (payload) => {
+            console.log("Homework submission change detected:", payload);
             loadHomeworkData();
           }
         )
@@ -124,6 +136,7 @@ export const useHomeworkData = (teacherId: string) => {
           (payload) => {
             // Only reload if it's this teacher's homework
             if (payload.new && typeof payload.new === 'object' && 'teacher_id' in payload.new && payload.new.teacher_id === teacherId) {
+              console.log("Teacher homework change detected:", payload);
               loadHomeworkData();
             }
           }
