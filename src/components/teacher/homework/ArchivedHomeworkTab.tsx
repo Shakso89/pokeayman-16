@@ -7,25 +7,32 @@ import { useTranslation } from "@/hooks/useTranslation";
 interface ArchivedHomeworkTabProps {
   archivedHomework: HomeworkAssignment[];
   submissions: HomeworkSubmission[];
-  getClassNameById: (classId: string) => string;
+  classes: { id: string, name: string }[];
   onAwardCoins: (studentId: string, studentName: string) => void;
+  onApproveSubmission: (submission: HomeworkSubmission) => void;
+  onRejectSubmission: (submission: HomeworkSubmission, feedback?: string) => void;
   onDeleteHomework: (homeworkId: string) => void;
   onNavigateToStudentProfile: (studentId: string) => void;
+  onCreateHomework: (classId: string, className: string) => void;
 }
 
 const ArchivedHomeworkTab: React.FC<ArchivedHomeworkTabProps> = ({
   archivedHomework,
   submissions,
-  getClassNameById,
+  classes,
   onAwardCoins,
+  onApproveSubmission,
+  onRejectSubmission,
   onDeleteHomework,
   onNavigateToStudentProfile,
+  onCreateHomework,
 }) => {
   const { t } = useTranslation();
   
-  // Dummy functions for approval/rejection since archived homework doesn't need these
-  const dummyApprove = () => {};
-  const dummyReject = () => {};
+  const getClassNameById = (classId: string) => {
+    const foundClass = classes?.find(c => c.id === classId);
+    return foundClass?.name || t("unknown-class");
+  };
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -36,8 +43,8 @@ const ArchivedHomeworkTab: React.FC<ArchivedHomeworkTabProps> = ({
             homework={homework}
             className={getClassNameById(homework.classId)}
             submissions={submissions.filter(sub => sub.homeworkId === homework.id)}
-            onApproveSubmission={dummyApprove}
-            onRejectSubmission={dummyReject}
+            onApproveSubmission={onApproveSubmission}
+            onRejectSubmission={onRejectSubmission}
             onAwardCoins={onAwardCoins}
             onDeleteHomework={onDeleteHomework}
             onNavigateToStudentProfile={onNavigateToStudentProfile}
