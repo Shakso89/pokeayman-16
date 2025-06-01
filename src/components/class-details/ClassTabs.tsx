@@ -2,7 +2,8 @@
 import React from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { BookText } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { BookText, Plus } from "lucide-react";
 import StudentsTable from "./StudentsTable";
 import HomeworkManagement from "@/components/teacher/HomeworkManagement";
 
@@ -49,15 +50,38 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
       </TabsList>
       
       <TabsContent value="students" className="mt-6">
-        <StudentsTable
-          students={students}
-          isClassCreator={isClassCreator}
-          onAwardCoins={onAwardCoins}
-          onManagePokemon={onManagePokemon}
-          onRemoveStudent={onRemoveStudent}
-          onAddStudent={onAddStudent}
-          classData={classData}
-        />
+        <div className="space-y-4">
+          {/* Homework Quick Actions for Class Creator */}
+          {isClassCreator && (
+            <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h3 className="font-medium text-blue-900 mb-1">Homework Management</h3>
+                    <p className="text-sm text-blue-700">Create and manage homework for this class</p>
+                  </div>
+                  <Button 
+                    onClick={() => onTabChange("homework")}
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Create Homework
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+          
+          <StudentsTable
+            students={students}
+            isClassCreator={isClassCreator}
+            onAwardCoins={onAwardCoins}
+            onManagePokemon={onManagePokemon}
+            onRemoveStudent={onRemoveStudent}
+            onAddStudent={onAddStudent}
+            classData={classData}
+          />
+        </div>
       </TabsContent>
 
       <TabsContent value="homework" className="mt-6">

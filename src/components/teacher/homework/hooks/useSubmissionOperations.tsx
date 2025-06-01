@@ -3,6 +3,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { HomeworkAssignment, HomeworkSubmission } from "@/types/homework";
 import { supabase } from "@/integrations/supabase/client";
+import { awardCoinsToStudent } from "@/utils/pokemon/studentPokemon";
 
 export const useSubmissionOperations = () => {
   const { t } = useTranslation();
@@ -24,8 +25,8 @@ export const useSubmissionOperations = () => {
         
       if (error) throw error;
       
-      // Award coins to student (implement this function)
-      // awardCoinsToStudent(submission.studentId, homework.coinReward);
+      // Award coins to student
+      awardCoinsToStudent(submission.studentId, homework.coinReward);
       
       setHomeworkSubmissions(prev => 
         prev.map(sub => sub.id === submission.id ? { ...sub, status: "approved" as const } : sub)
