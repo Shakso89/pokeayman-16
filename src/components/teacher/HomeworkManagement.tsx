@@ -1,11 +1,10 @@
-
 import React from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import CreateHomeworkDialog from "./CreateHomeworkDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
 import HomeworkManagementHeader from "./homework/HomeworkManagementHeader";
 import HomeworkTabs from "./homework/HomeworkTabs";
-import { useHomeworkManagement } from "./homework/useHomeworkManagement";
+import { useHomeworkManagement } from "./homework/hooks/useHomeworkManagement";
 
 interface HomeworkManagementProps {
   onBack: () => void;
