@@ -4,7 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookText, Plus, FileText, ClipboardList } from "lucide-react";
+import { BookText, Plus, FileText, ClipboardList, PenTool, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import StudentsTable from "./StudentsTable";
 import HomeworkManagement from "@/components/teacher/HomeworkManagement";
@@ -122,6 +122,16 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
     }
   };
 
+  const handleRemoveCoins = (studentId: string, studentName: string) => {
+    // TODO: Implement remove coins functionality
+    console.log("Remove coins for student:", studentName);
+  };
+
+  const handleRemovePokemon = (studentId: string, studentName: string) => {
+    // TODO: Implement remove pokemon functionality
+    console.log("Remove pokemon for student:", studentName);
+  };
+
   return (
     <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
       <TabsList className="grid w-full grid-cols-2 mb-8 bg-white shadow-sm">
@@ -183,20 +193,20 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
                       variant="outline"
                       className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50 flex items-center gap-2"
                     >
-                      <FileText className="h-4 w-4" />
-                      Review Submissions
-                      {pendingSubmissions > 0 && (
-                        <Badge variant="destructive" className="ml-1">
-                          {pendingSubmissions}
-                        </Badge>
-                      )}
+                      <PenTool className="h-4 w-4" />
+                      Post Homework
                     </Button>
                     <Button 
                       onClick={() => onTabChange("homework")}
                       className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
                     >
-                      <Plus className="h-4 w-4" />
-                      Create Assignment
+                      <Eye className="h-4 w-4" />
+                      Review Homework
+                      {pendingSubmissions > 0 && (
+                        <Badge variant="destructive" className="ml-1">
+                          {pendingSubmissions}
+                        </Badge>
+                      )}
                     </Button>
                   </div>
                 </div>
@@ -212,6 +222,8 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
             onRemoveStudent={onRemoveStudent}
             onAddStudent={onAddStudent}
             classData={classData}
+            onRemoveCoins={handleRemoveCoins}
+            onRemovePokemon={handleRemovePokemon}
           />
         </div>
       </TabsContent>
