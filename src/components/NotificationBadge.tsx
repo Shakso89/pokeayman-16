@@ -33,6 +33,7 @@ const NotificationBadge: React.FC = () => {
     if (!teacherId) return;
     
     try {
+      console.log("Loading notifications for teacher:", teacherId);
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -58,6 +59,7 @@ const NotificationBadge: React.FC = () => {
     if (teacherId) {
       loadNotifications();
       
+      console.log("Setting up realtime subscription for notifications");
       // Subscribe to new notifications
       const channel = supabase
         .channel('notifications-realtime')
@@ -84,6 +86,7 @@ const NotificationBadge: React.FC = () => {
         .subscribe();
         
       return () => {
+        console.log("Cleaning up notification subscription");
         supabase.removeChannel(channel);
       };
     }
@@ -112,7 +115,7 @@ const NotificationBadge: React.FC = () => {
 
     // If has link, navigate
     if (notification.link) {
-      if (notification.link.startsWith('/teacher/homework')) {
+      if (notification.link.includes('/teacher/homework')) {
         navigate('/teacher-dashboard');
         // Small delay to ensure navigation completes
         setTimeout(() => {
@@ -141,7 +144,7 @@ const NotificationBadge: React.FC = () => {
         
       if (!error) {
         setNotifications([]);
-        toast(t("notifications-cleared"));
+        toast("Notifications cleared");
       }
     } catch (error) {
       console.error("Error clearing notifications:", error);
@@ -177,7 +180,7 @@ const NotificationBadge: React.FC = () => {
             <h3 className="font-medium">{t("notifications")}</h3>
             {notifications.length > 0 && (
               <Button variant="ghost" size="sm" onClick={clearAllNotifications} className="text-xs">
-                {t("clear-all")}
+                Clear All
               </Button>
             )}
           </div>
@@ -211,7 +214,7 @@ const NotificationBadge: React.FC = () => {
               </div>
             ) : (
               <div className="p-8 text-center text-gray-500">
-                {t("no-notifications")}
+                No notifications
               </div>
             )}
           </div>
