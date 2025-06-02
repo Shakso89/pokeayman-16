@@ -100,6 +100,7 @@ export type Database = {
           description: string | null
           expires_at: string
           id: string
+          questions: string | null
           teacher_id: string
           title: string
           type: string
@@ -111,6 +112,7 @@ export type Database = {
           description?: string | null
           expires_at: string
           id?: string
+          questions?: string | null
           teacher_id: string
           title: string
           type: string
@@ -122,6 +124,7 @@ export type Database = {
           description?: string | null
           expires_at?: string
           id?: string
+          questions?: string | null
           teacher_id?: string
           title?: string
           type?: string
@@ -130,6 +133,7 @@ export type Database = {
       }
       homework_submissions: {
         Row: {
+          answers: string | null
           content: string
           feedback: string | null
           homework_id: string
@@ -141,6 +145,7 @@ export type Database = {
           type: string
         }
         Insert: {
+          answers?: string | null
           content: string
           feedback?: string | null
           homework_id: string
@@ -152,6 +157,7 @@ export type Database = {
           type: string
         }
         Update: {
+          answers?: string | null
           content?: string
           feedback?: string | null
           homework_id?: string
@@ -171,6 +177,75 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          read: boolean
+          recipient_id: string
+          sender_id: string
+          subject: string | null
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          recipient_id: string
+          sender_id: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          read?: boolean
+          recipient_id?: string
+          sender_id?: string
+          subject?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      notifications: {
+        Row: {
+          created_at: string
+          id: string
+          link: string | null
+          message: string
+          read: boolean
+          recipient_id: string
+          title: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          link?: string | null
+          message: string
+          read?: boolean
+          recipient_id: string
+          title: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          link?: string | null
+          message?: string
+          read?: boolean
+          recipient_id?: string
+          title?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: []
       }
       schools: {
         Row: {

@@ -5,103 +5,197 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "sonner";
 import { useTranslation } from "@/hooks/useTranslation";
+import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
+
 interface Notification {
   id: string;
   title: string;
   message: string;
   read: boolean;
-  date: string;
+  created_at: string;
   link?: string;
+  type: string;
 }
+
 const NotificationBadge: React.FC = () => {
-  const {
-    t
-  } = useTranslation();
+  const { t } = useTranslation();
+  const navigate = useNavigate();
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // Load notifications from localStorage
-  useEffect(() => {
-    const storedNotifications = localStorage.getItem("notifications");
-    if (storedNotifications) {
-      try {
-        setNotifications(JSON.parse(storedNotifications));
-      } catch (error) {
-        console.error("Error parsing notifications:", error);
-        setNotifications([]);
+  const teacherId = localStorage.getItem("teacherId");
+
+  // Load notifications from Supabase
+  const loadNotifications = async () => {
+    if (!teacherId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('recipient_id', teacherId)
+        .order('created_at', { ascending: false });
+        
+      if (error) {
+        console.error("Error loading notifications:", error);
+        return;
       }
-    } else {
-      // Demo notifications for testing
-      const demoNotifications = [{
-        id: "1",
-        title: t("new-pokemon-available"),
-        message: t("new-pokemon-message"),
-        read: false,
-        date: new Date().toISOString()
-      }, {
-        id: "2",
-        title: t("welcome"),
-        message: t("welcome-message"),
-        read: true,
-        date: new Date(Date.now() - 86400000).toISOString() // 1 day ago
-      }];
-      setNotifications(demoNotifications);
-      localStorage.setItem("notifications", JSON.stringify(demoNotifications));
+      
+      console.log("Loaded notifications:", data);
+      setNotifications(data || []);
+    } catch (error) {
+      console.error("Error loading notifications:", error);
+    } finally {
+      setIsLoading(false);
     }
-  }, [t]);
+  };
+
+  // Setup realtime subscription for notifications
+  useEffect(() => {
+    if (teacherId) {
+      loadNotifications();
+      
+      // Subscribe to new notifications
+      const channel = supabase
+        .channel('notifications-realtime')
+        .on(
+          'postgres_changes',
+          { 
+            event: 'INSERT', 
+            schema: 'public', 
+            table: 'notifications',
+            filter: `recipient_id=eq.${teacherId}`
+          },
+          (payload) => {
+            console.log("New notification received:", payload.new);
+            setNotifications(prev => 
+              [payload.new as Notification, ...prev]
+            );
+            
+            // Show toast for new notification
+            toast(payload.new.title as string, {
+              description: payload.new.message as string,
+            });
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        supabase.removeChannel(channel);
+      };
+    }
+  }, [teacherId]);
+
   const unreadCount = notifications.filter(n => !n.read).length;
-  const handleNotificationClick = (notification: Notification) => {
+
+  const handleNotificationClick = async (notification: Notification) => {
     // Mark as read
-    const updatedNotifications = notifications.map(n => n.id === notification.id ? {
-      ...n,
-      read: true
-    } : n);
-    setNotifications(updatedNotifications);
-    localStorage.setItem("notifications", JSON.stringify(updatedNotifications));
+    if (!notification.read) {
+      try {
+        const { error } = await supabase
+          .from('notifications')
+          .update({ read: true })
+          .eq('id', notification.id);
+          
+        if (!error) {
+          setNotifications(prev => 
+            prev.map(n => n.id === notification.id ? { ...n, read: true } : n)
+          );
+        }
+      } catch (error) {
+        console.error("Error marking notification as read:", error);
+      }
+    }
 
     // If has link, navigate
     if (notification.link) {
-      window.location.href = notification.link;
+      if (notification.link.startsWith('/teacher/homework')) {
+        navigate('/teacher-dashboard');
+        // Small delay to ensure navigation completes
+        setTimeout(() => {
+          // Trigger homework management view with review tab
+          const event = new CustomEvent('openHomeworkReview');
+          window.dispatchEvent(event);
+        }, 100);
+      } else {
+        navigate(notification.link);
+      }
     } else {
       // Otherwise show dialog
       setSelectedNotification(notification);
       setIsDialogOpen(true);
     }
   };
-  const clearAllNotifications = () => {
-    setNotifications([]);
-    localStorage.setItem("notifications", JSON.stringify([]));
-    toast(t("notifications-cleared"));
+
+  const clearAllNotifications = async () => {
+    if (!teacherId) return;
+    
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .delete()
+        .eq('recipient_id', teacherId);
+        
+      if (!error) {
+        setNotifications([]);
+        toast(t("notifications-cleared"));
+      }
+    } catch (error) {
+      console.error("Error clearing notifications:", error);
+    }
   };
+
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString(undefined, {
       year: 'numeric',
       month: 'short',
-      day: 'numeric'
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
     });
   };
-  return <>
+
+  return (
+    <>
       <Popover>
         <PopoverTrigger asChild>
           <Button variant="ghost" size="icon" className="relative text-gray-800 bg-slate-300 hover:bg-slate-200">
             <Bell size={20} />
-            {unreadCount > 0 && <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-500 text-[10px] text-white">
                 {unreadCount}
-              </span>}
+              </span>
+            )}
           </Button>
         </PopoverTrigger>
         <PopoverContent className="w-80 p-0" align="end">
           <div className="flex items-center justify-between p-4 border-b">
             <h3 className="font-medium">{t("notifications")}</h3>
-            {notifications.length > 0 && <Button variant="ghost" size="sm" onClick={clearAllNotifications} className="text-xs">
+            {notifications.length > 0 && (
+              <Button variant="ghost" size="sm" onClick={clearAllNotifications} className="text-xs">
                 {t("clear-all")}
-              </Button>}
+              </Button>
+            )}
           </div>
           <div className="max-h-80 overflow-y-auto">
-            {notifications.length > 0 ? <div>
-                {notifications.map(notification => <div key={notification.id} className={`p-4 border-b last:border-0 cursor-pointer hover:bg-gray-50 transition-colors ${!notification.read ? "bg-blue-50" : ""}`} onClick={() => handleNotificationClick(notification)}>
+            {isLoading ? (
+              <div className="p-8 text-center text-gray-500">
+                Loading notifications...
+              </div>
+            ) : notifications.length > 0 ? (
+              <div>
+                {notifications.map(notification => (
+                  <div 
+                    key={notification.id} 
+                    className={`p-4 border-b last:border-0 cursor-pointer hover:bg-gray-50 transition-colors ${
+                      !notification.read ? "bg-blue-50" : ""
+                    }`} 
+                    onClick={() => handleNotificationClick(notification)}
+                  >
                     <div className="flex justify-between">
                       <h4 className="font-medium">{notification.title}</h4>
                       {!notification.read && <span className="w-2 h-2 bg-blue-500 rounded-full" />}
@@ -110,12 +204,16 @@ const NotificationBadge: React.FC = () => {
                       {notification.message}
                     </p>
                     <p className="text-xs text-gray-400 mt-1">
-                      {formatDate(notification.date)}
+                      {formatDate(notification.created_at)}
                     </p>
-                  </div>)}
-              </div> : <div className="p-8 text-center text-gray-500">
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="p-8 text-center text-gray-500">
                 {t("no-notifications")}
-              </div>}
+              </div>
+            )}
           </div>
         </PopoverContent>
       </Popover>
@@ -131,11 +229,13 @@ const NotificationBadge: React.FC = () => {
           <div className="pt-2">
             <p>{selectedNotification?.message}</p>
             <p className="text-xs text-gray-400 mt-4">
-              {selectedNotification ? formatDate(selectedNotification.date) : ""}
+              {selectedNotification ? formatDate(selectedNotification.created_at) : ""}
             </p>
           </div>
         </DialogContent>
       </Dialog>
-    </>;
+    </>
+  );
 };
+
 export default NotificationBadge;

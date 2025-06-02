@@ -25,34 +25,19 @@ const ReviewHomeworkTab: React.FC<ReviewHomeworkTabProps> = ({
   const { t } = useTranslation();
   const [selectedSubmission, setSelectedSubmission] = useState<HomeworkSubmission | null>(null);
 
-  // Debug logging with more detail
-  console.log("=== ReviewHomeworkTab Debug ===");
-  console.log("Active homework count:", activeHomework.length);
-  console.log("Active homework:", activeHomework);
-  console.log("Total submissions count:", submissions.length);
-  console.log("All submissions:", submissions);
-  console.log("Classes count:", classes.length);
-  console.log("Classes:", classes);
-
   const getHomeworkForSubmission = (submissionId: string) => {
     const submission = submissions.find(s => s.id === submissionId);
-    if (!submission) {
-      console.log("No submission found for ID:", submissionId);
-      return null;
-    }
+    if (!submission) return null;
     
     const homework = activeHomework.find(hw => hw.id === submission.homeworkId);
-    console.log("Found homework for submission:", homework ? homework.title : "NOT FOUND", "homeworkId:", submission.homeworkId);
     return homework;
   };
 
-  const pendingSubmissions = submissions.filter(s => {
-    console.log("Checking submission status:", s.id, s.status);
-    return s.status === "pending";
-  });
+  const pendingSubmissions = submissions.filter(s => s.status === "pending");
   
-  console.log("Filtered pending submissions count:", pendingSubmissions.length);
-  console.log("Pending submissions:", pendingSubmissions);
+  console.log("ReviewHomeworkTab - Active homework:", activeHomework.length);
+  console.log("ReviewHomeworkTab - Total submissions:", submissions.length);
+  console.log("ReviewHomeworkTab - Pending submissions:", pendingSubmissions.length);
 
   const handleApprove = (submission: HomeworkSubmission) => {
     console.log("Approving submission:", submission.id);
@@ -70,7 +55,9 @@ const ReviewHomeworkTab: React.FC<ReviewHomeworkTabProps> = ({
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-semibold">{t("review-homework-submissions")}</h3>
-        <Badge variant="secondary">{pendingSubmissions.length} pending reviews</Badge>
+        <Badge variant="secondary" className={pendingSubmissions.length > 0 ? "bg-orange-100 text-orange-800" : ""}>
+          {pendingSubmissions.length} pending reviews
+        </Badge>
       </div>
 
       {pendingSubmissions.length === 0 ? (

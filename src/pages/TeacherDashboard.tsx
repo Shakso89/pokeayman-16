@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { ChevronLeft, BookText } from "lucide-react";
@@ -34,6 +33,19 @@ const TeacherDashboard: React.FC = () => {
   const teacherId = localStorage.getItem("teacherId");
   const username = localStorage.getItem("teacherUsername") || "";
   const isAdmin = username === "Admin" || username === "Ayman";
+
+  // Add event listener for homework notification clicks
+  useEffect(() => {
+    const handleOpenHomeworkReview = () => {
+      setCurrentView("homework");
+    };
+    
+    window.addEventListener('openHomeworkReview', handleOpenHomeworkReview);
+    
+    return () => {
+      window.removeEventListener('openHomeworkReview', handleOpenHomeworkReview);
+    };
+  }, []);
 
   useEffect(() => {
     // Load teacher data from Supabase
