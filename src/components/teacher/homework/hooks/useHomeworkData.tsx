@@ -12,16 +12,21 @@ export const useHomeworkData = (teacherId: string) => {
   const [homeworkAssignments, setHomeworkAssignments] = useState<HomeworkAssignment[]>([]);
   const [homeworkSubmissions, setHomeworkSubmissions] = useState<HomeworkSubmission[]>([]);
   const [classes, setClasses] = useState<Array<{ id: string; name: string }>>([]);
+  const [isLoading, setIsLoading] = useState(true);
 
   const loadHomeworkData = async () => {
+    if (!teacherId) return;
+    
     try {
       console.log("Loading homework data for teacher:", teacherId);
+      setIsLoading(true);
       
       // Load homework assignments
       const { data: assignments, error: assignmentsError } = await supabase
         .from('homework')
         .select('*')
-        .eq('teacher_id', teacherId);
+        .eq('teacher_id', teacherId)
+        .order('created_at', { ascending: false });
         
       if (assignmentsError) {
         console.error("Error loading homework assignments:", assignmentsError);
@@ -53,7 +58,8 @@ export const useHomeworkData = (teacherId: string) => {
         const { data: submissions, error: submissionsError } = await supabase
           .from('homework_submissions')
           .select('*')
-          .in('homework_id', homeworkIds);
+          .in('homework_id', homeworkIds)
+          .order('submitted_at', { ascending: false });
           
         if (submissionsError) {
           console.error("Error loading submissions:", submissionsError);
@@ -90,18 +96,27 @@ export const useHomeworkData = (teacherId: string) => {
         description: t("failed-to-load-homework"),
         variant: "destructive"
       });
+    } finally {
+      setIsLoading(false);
     }
   };
   
   const loadClassesData = async () => {
+    if (!teacherId) return;
+    
     try {
+      console.log("Loading classes for teacher:", teacherId);
       const { data, error } = await supabase
         .from('classes')
         .select('id, name')
         .eq('teacher_id', teacherId);
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error loading classes:", error);
+        throw error;
+      }
       
+      console.log("Loaded classes:", data);
       setClasses(data || []);
     } catch (error) {
       console.error("Error loading classes:", error);
@@ -113,52 +128,60 @@ export const useHomeworkData = (teacherId: string) => {
     }
   };
 
-  // Setup realtime subscription for immediate updates
+  // Initial data load
   useEffect(() => {
     if (teacherId) {
       loadHomeworkData();
       loadClassesData();
-      
-      // Realtime subscription for homework submissions
-      const submissionsChannel = supabase
-        .channel('homework-submissions-teacher')
-        .on(
-          'postgres_changes',
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'homework_submissions' 
-          },
-          (payload) => {
-            console.log("Realtime submission change detected:", payload);
-            // Reload data immediately when any submission changes
-            loadHomeworkData();
-          }
-        )
-        .subscribe();
-        
-      const homeworkChannel = supabase
-        .channel('homework-teacher')
-        .on(
-          'postgres_changes',
-          { 
-            event: '*', 
-            schema: 'public', 
-            table: 'homework',
-            filter: `teacher_id=eq.${teacherId}`
-          },
-          (payload) => {
-            console.log("Realtime homework change detected:", payload);
-            loadHomeworkData();
-          }
-        )
-        .subscribe();
-        
-      return () => {
-        supabase.removeChannel(submissionsChannel);
-        supabase.removeChannel(homeworkChannel);
-      };
     }
+  }, [teacherId]);
+
+  // Setup realtime subscription for immediate updates
+  useEffect(() => {
+    if (!teacherId) return;
+
+    console.log("Setting up realtime subscriptions for teacher:", teacherId);
+    
+    // Realtime subscription for homework submissions
+    const submissionsChannel = supabase
+      .channel('homework-submissions-teacher')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'homework_submissions' 
+        },
+        (payload) => {
+          console.log("Realtime submission change detected:", payload);
+          // Reload data immediately when any submission changes
+          loadHomeworkData();
+        }
+      )
+      .subscribe();
+      
+    const homeworkChannel = supabase
+      .channel('homework-teacher')
+      .on(
+        'postgres_changes',
+        { 
+          event: '*', 
+          schema: 'public', 
+          table: 'homework',
+          filter: `teacher_id=eq.${teacherId}`
+        },
+        (payload) => {
+          console.log("Realtime homework change detected:", payload);
+          loadHomeworkData();
+        }
+      )
+      .subscribe();
+      
+    return () => {
+      console.log("Cleaning up realtime subscriptions");
+      supabase.removeChannel(submissionsChannel);
+      supabase.removeChannel(homeworkChannel);
+    };
   }, [teacherId]);
 
   return {
@@ -168,6 +191,7 @@ export const useHomeworkData = (teacherId: string) => {
     setHomeworkSubmissions,
     classes,
     setClasses,
-    loadHomeworkData
+    loadHomeworkData,
+    isLoading
   };
 };

@@ -47,6 +47,7 @@ const Messages: React.FC<MessagesProps> = ({ userType = "teacher", userName = "U
   const [searchTerm, setSearchTerm] = useState("");
   const [isNewMessageOpen, setIsNewMessageOpen] = useState(false);
   const [selectedRecipient, setSelectedRecipient] = useState<string>("");
+  const [isLoading, setIsLoading] = useState(true);
 
   const currentUserId = userType === "teacher" 
     ? localStorage.getItem("teacherId") 
@@ -68,7 +69,8 @@ const Messages: React.FC<MessagesProps> = ({ userType = "teacher", userName = "U
             schema: 'public', 
             table: 'messages' 
           },
-          () => {
+          (payload) => {
+            console.log("Message change detected:", payload);
             loadMessages();
           }
         )
@@ -84,13 +86,19 @@ const Messages: React.FC<MessagesProps> = ({ userType = "teacher", userName = "U
     if (!currentUserId) return;
     
     try {
+      console.log("Loading messages for user:", currentUserId);
       const { data, error } = await supabase
         .from('messages')
         .select('*')
         .or(`sender_id.eq.${currentUserId},recipient_id.eq.${currentUserId}`)
         .order('created_at', { ascending: false });
         
-      if (error) throw error;
+      if (error) {
+        console.error("Error loading messages:", error);
+        throw error;
+      }
+      
+      console.log("Loaded messages:", data);
       
       // Add sender/recipient names
       const messagesWithNames = await Promise.all(
@@ -108,17 +116,25 @@ const Messages: React.FC<MessagesProps> = ({ userType = "teacher", userName = "U
       setMessages(messagesWithNames);
     } catch (error) {
       console.error("Error loading messages:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load messages",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const loadContacts = async () => {
     try {
+      console.log("Loading contacts...");
       // Load teachers
       const { data: teachers, error: teachersError } = await supabase
         .from('teachers')
         .select('id, display_name');
         
-      // Load students
+      // Load students  
       const { data: students, error: studentsError } = await supabase
         .from('students')
         .select('id, display_name');
@@ -139,6 +155,7 @@ const Messages: React.FC<MessagesProps> = ({ userType = "teacher", userName = "U
         }))
       ].filter(contact => contact.id !== currentUserId);
       
+      console.log("Loaded contacts:", allContacts);
       setContacts(allContacts);
     } catch (error) {
       console.error("Error loading contacts:", error);
@@ -170,9 +187,23 @@ const Messages: React.FC<MessagesProps> = ({ userType = "teacher", userName = "U
   };
 
   const sendMessage = async () => {
-    if (!newMessage.trim() || !selectedRecipient || !currentUserId) return;
+    if (!newMessage.trim() || !selectedRecipient || !currentUserId) {
+      toast({
+        title: "Error",
+        description: "Please select a recipient and enter a message",
+        variant: "destructive"
+      });
+      return;
+    }
     
     try {
+      console.log("Sending message:", {
+        sender_id: currentUserId,
+        recipient_id: selectedRecipient,
+        subject: newSubject.trim() || 'No Subject',
+        content: newMessage.trim()
+      });
+
       const { error } = await supabase
         .from('messages')
         .insert({
@@ -182,7 +213,10 @@ const Messages: React.FC<MessagesProps> = ({ userType = "teacher", userName = "U
           content: newMessage.trim()
         });
         
-      if (error) throw error;
+      if (error) {
+        console.error("Insert error:", error);
+        throw error;
+      }
       
       setNewMessage("");
       setNewSubject("");
@@ -190,16 +224,19 @@ const Messages: React.FC<MessagesProps> = ({ userType = "teacher", userName = "U
       setIsNewMessageOpen(false);
       
       toast({
-        title: "Message sent",
-        description: "Your message has been sent successfully"
+        title: "Success",
+        description: "Message sent successfully"
       });
       
-      loadMessages();
+      // Reload messages to show the new one
+      setTimeout(() => {
+        loadMessages();
+      }, 500);
     } catch (error) {
       console.error("Error sending message:", error);
       toast({
         title: "Error",
-        description: "Failed to send message",
+        description: "Failed to send message. Please try again.",
         variant: "destructive"
       });
     }
@@ -312,27 +349,33 @@ const Messages: React.FC<MessagesProps> = ({ userType = "teacher", userName = "U
             </CardHeader>
             <CardContent className="p-0">
               <ScrollArea className="h-[400px]">
-                {filteredContacts.map(contact => (
-                  <div
-                    key={contact.id}
-                    className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${
-                      selectedContact === contact.id ? 'bg-blue-50' : ''
-                    }`}
-                    onClick={() => setSelectedContact(contact.id)}
-                  >
-                    <div className="flex items-center space-x-3">
-                      <Avatar>
-                        <AvatarFallback>
-                          {contact.name.substring(0, 2).toUpperCase()}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <p className="font-medium">{contact.name}</p>
-                        <p className="text-sm text-gray-500 capitalize">{contact.type}</p>
+                {isLoading ? (
+                  <div className="p-4 text-center text-gray-500">Loading contacts...</div>
+                ) : filteredContacts.length === 0 ? (
+                  <div className="p-4 text-center text-gray-500">No contacts found</div>
+                ) : (
+                  filteredContacts.map(contact => (
+                    <div
+                      key={contact.id}
+                      className={`p-4 border-b cursor-pointer hover:bg-gray-50 ${
+                        selectedContact === contact.id ? 'bg-blue-50' : ''
+                      }`}
+                      onClick={() => setSelectedContact(contact.id)}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <Avatar>
+                          <AvatarFallback>
+                            {contact.name.substring(0, 2).toUpperCase()}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{contact.name}</p>
+                          <p className="text-sm text-gray-500 capitalize">{contact.type}</p>
+                        </div>
                       </div>
                     </div>
-                  </div>
-                ))}
+                  ))
+                )}
               </ScrollArea>
             </CardContent>
           </Card>
@@ -353,33 +396,39 @@ const Messages: React.FC<MessagesProps> = ({ userType = "teacher", userName = "U
                   <>
                     <ScrollArea className="flex-1 mb-4">
                       <div className="space-y-4">
-                        {conversationMessages.map(message => (
-                          <div
-                            key={message.id}
-                            className={`flex ${
-                              message.sender_id === currentUserId ? 'justify-end' : 'justify-start'
-                            }`}
-                            onClick={() => !message.read && message.recipient_id === currentUserId && markAsRead(message.id)}
-                          >
-                            <div
-                              className={`max-w-[70%] p-3 rounded-lg ${
-                                message.sender_id === currentUserId
-                                  ? 'bg-blue-600 text-white'
-                                  : 'bg-gray-200 text-gray-900'
-                              }`}
-                            >
-                              {message.subject && (
-                                <p className="font-medium text-sm mb-1">{message.subject}</p>
-                              )}
-                              <p>{message.content}</p>
-                              <p className={`text-xs mt-1 ${
-                                message.sender_id === currentUserId ? 'text-blue-100' : 'text-gray-500'
-                              }`}>
-                                {new Date(message.created_at).toLocaleString()}
-                              </p>
-                            </div>
+                        {conversationMessages.length === 0 ? (
+                          <div className="text-center text-gray-500 mt-8">
+                            No messages yet. Start the conversation!
                           </div>
-                        ))}
+                        ) : (
+                          conversationMessages.map(message => (
+                            <div
+                              key={message.id}
+                              className={`flex ${
+                                message.sender_id === currentUserId ? 'justify-end' : 'justify-start'
+                              }`}
+                              onClick={() => !message.read && message.recipient_id === currentUserId && markAsRead(message.id)}
+                            >
+                              <div
+                                className={`max-w-[70%] p-3 rounded-lg ${
+                                  message.sender_id === currentUserId
+                                    ? 'bg-blue-600 text-white'
+                                    : 'bg-gray-200 text-gray-900'
+                                }`}
+                              >
+                                {message.subject && message.subject !== 'No Subject' && (
+                                  <p className="font-medium text-sm mb-1">{message.subject}</p>
+                                )}
+                                <p>{message.content}</p>
+                                <p className={`text-xs mt-1 ${
+                                  message.sender_id === currentUserId ? 'text-blue-100' : 'text-gray-500'
+                                }`}>
+                                  {new Date(message.created_at).toLocaleString()}
+                                </p>
+                              </div>
+                            </div>
+                          ))
+                        )}
                       </div>
                     </ScrollArea>
                     
@@ -388,9 +437,25 @@ const Messages: React.FC<MessagesProps> = ({ userType = "teacher", userName = "U
                         placeholder="Type a message..."
                         value={newMessage}
                         onChange={(e) => setNewMessage(e.target.value)}
-                        onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+                        onKeyPress={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (selectedContact && newMessage.trim()) {
+                              setSelectedRecipient(selectedContact);
+                              sendMessage();
+                            }
+                          }
+                        }}
                       />
-                      <Button onClick={sendMessage} disabled={!newMessage.trim()}>
+                      <Button 
+                        onClick={() => {
+                          if (selectedContact && newMessage.trim()) {
+                            setSelectedRecipient(selectedContact);
+                            sendMessage();
+                          }
+                        }} 
+                        disabled={!newMessage.trim()}
+                      >
                         <Send className="h-4 w-4" />
                       </Button>
                     </div>
