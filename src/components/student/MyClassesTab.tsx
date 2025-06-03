@@ -1,15 +1,10 @@
 
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ChevronRight, Users, Book, Trophy, Loader2 } from "lucide-react";
-import { useTranslation } from "@/hooks/useTranslation";
-import HomeworkTab from "./HomeworkTab";
-import StudentsTab from "./StudentsTab";
-import ClassRankingTab from "./ClassRankingTab";
+import { Badge } from "@/components/ui/badge";
+import { Users, BookOpen, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "@/hooks/use-toast";
+import StudentHomeworkTab from "./StudentHomeworkTab";
 
 interface MyClassesTabProps {
   studentId: string;
@@ -17,225 +12,105 @@ interface MyClassesTabProps {
   classId: string;
 }
 
-const MyClassesTab: React.FC<MyClassesTabProps> = ({
-  studentId,
-  studentName,
-  classId
-}) => {
-  const { t } = useTranslation();
-  const [classes, setClasses] = useState<Array<{
-    id: string;
-    name: string;
-    description?: string;
-  }>>([]);
-  const [selectedClass, setSelectedClass] = useState<{
-    id: string;
-    name: string;
-    description?: string;
-  } | null>(null);
-  const [activeSubTab, setActiveSubTab] = useState("students");
+const MyClassesTab: React.FC<MyClassesTabProps> = ({ studentId, studentName, classId }) => {
+  const [classData, setClassData] = useState<any>(null);
+  const [activeHomework, setActiveHomework] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    loadClasses();
-
-    // Subscribe to class changes
-    const channel = supabase
-      .channel('schema-db-changes')
-      .on(
-        'postgres_changes',
-        {
-          event: '*', // Listen for all events
-          schema: 'public',
-          table: 'classes'
-        },
-        (payload) => {
-          console.log('Class change detected:', payload);
-          loadClasses();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    loadClassData();
+    loadHomeworkCount();
   }, [classId]);
 
-  const loadClasses = async () => {
-    setIsLoading(true);
+  const loadClassData = async () => {
+    if (!classId) return;
+    
     try {
-      // First try to load from database - get all classes that include the student ID
       const { data, error } = await supabase
         .from('classes')
-        .select('id, name, description, students')
-        .contains('students', [studentId]);
+        .select('*')
+        .eq('id', classId)
+        .single();
 
-      if (error) {
-        throw error;
-      }
-
-      if (data && Array.isArray(data) && data.length > 0) {
-        // Transform the data to match our interface
-        const formattedClasses = data.map(cls => ({
-          id: cls.id || '',
-          name: cls.name || '',
-          description: cls.description || ''
-        }));
-        
-        setClasses(formattedClasses);
-        
-        // Auto-select the class with matching classId or first class
-        const targetClass = formattedClasses.find(cls => cls.id === classId) || formattedClasses[0];
-        if (targetClass) {
-          setSelectedClass(targetClass);
-        }
-      } else {
-        // Fallback to localStorage if no classes found in database
-        const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-        const studentClasses = allClasses.filter((cls: any) => 
-          cls.id === classId || (cls.students && cls.students.includes(studentId))
-        );
-        
-        console.log("Found classes for student in localStorage:", studentClasses);
-        setClasses(studentClasses);
-
-        if (studentClasses.length > 0) {
-          const targetClass = studentClasses.find((cls: any) => cls.id === classId) || studentClasses[0];
-          setSelectedClass(targetClass);
-        }
-      }
+      if (error) throw error;
+      setClassData(data);
     } catch (error) {
-      console.error("Error loading classes:", error);
-      toast({
-        title: t("error"),
-        description: t("error-loading-classes"),
-        variant: "destructive"
-      });
-      
-      // Fallback to localStorage on error
-      const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      const studentClasses = allClasses.filter((cls: any) => 
-        cls.id === classId || (cls.students && cls.students.includes(studentId))
-      );
-      setClasses(studentClasses);
-      
-      if (studentClasses.length > 0) {
-        const targetClass = studentClasses.find((cls: any) => cls.id === classId) || studentClasses[0];
-        setSelectedClass(targetClass);
-      }
+      console.error('Error loading class data:', error);
     } finally {
       setIsLoading(false);
     }
   };
 
+  const loadHomeworkCount = async () => {
+    if (!classId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('homework')
+        .select('id')
+        .eq('class_id', classId)
+        .gt('expires_at', new Date().toISOString());
+
+      if (error) throw error;
+      setActiveHomework(data?.length || 0);
+    } catch (error) {
+      console.error('Error loading homework count:', error);
+    }
+  };
+
   if (isLoading) {
     return (
-      <div className="flex justify-center items-center p-12">
-        <div className="text-center">
-          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4 text-primary" />
-          <p>{t("loading-classes")}</p>
-        </div>
+      <div className="flex justify-center items-center p-8">
+        <p className="text-gray-500">Loading class information...</p>
       </div>
     );
   }
 
+  if (!classData) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center">
+          <p className="text-gray-500">No class assigned</p>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
-    <div>
-      <h2 className="text-2xl font-bold mb-6 text-center">{t("my-classes")}</h2>
-      
-      {classes.length === 0 ? (
-        <Card>
-          <CardContent className="pt-6 pb-6 text-center">
-            <p className="text-gray-500">{t("no-classes-found")}</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          {/* Class List - Left Side */}
-          <div className="md:col-span-1">
-            <Card className="h-full">
-              <CardHeader>
-                <CardTitle>{t("classes")}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {classes.map(cls => (
-                    <Button 
-                      key={cls.id} 
-                      variant={selectedClass?.id === cls.id ? "default" : "outline"} 
-                      className="w-full justify-between" 
-                      onClick={() => setSelectedClass(cls)}
-                    >
-                      <span>{cls.name}</span>
-                      <ChevronRight className="h-4 w-4" />
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+    <div className="space-y-6">
+      {/* Class Info Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Users className="h-5 w-5" />
+            {classData.name}
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="flex items-center gap-2">
+              <BookOpen className="h-4 w-4 text-blue-500" />
+              <span className="text-sm text-gray-600">Active Homework:</span>
+              <Badge variant="outline">{activeHomework}</Badge>
+            </div>
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-green-500" />
+              <span className="text-sm text-gray-600">Status:</span>
+              <Badge className="bg-green-100 text-green-800">Enrolled</Badge>
+            </div>
           </div>
-          
-          {/* Class Details - Right Side */}
-          <div className="md:col-span-3">
-            {selectedClass ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle>{selectedClass.name}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  {selectedClass.description && (
-                    <p className="text-sm text-gray-500 mb-6">{selectedClass.description}</p>
-                  )}
-                  
-                  {/* Create a unique key for this Tabs component to avoid conflicts */}
-                  <Tabs 
-                    key={`class-tabs-${selectedClass.id}`}
-                    value={activeSubTab} 
-                    onValueChange={setActiveSubTab}
-                  >
-                    <TabsList className="grid w-full grid-cols-3 mb-6">
-                      <TabsTrigger value="students" className="flex items-center gap-2">
-                        <Users className="h-4 w-4" />
-                        {t("students")}
-                      </TabsTrigger>
-                      <TabsTrigger value="homework" className="flex items-center gap-2">
-                        <Book className="h-4 w-4" />
-                        {t("homework")}
-                      </TabsTrigger>
-                      <TabsTrigger value="ranking" className="flex items-center gap-2">
-                        <Trophy className="h-4 w-4" />
-                        {t("ranking")}
-                      </TabsTrigger>
-                    </TabsList>
-                    
-                    <TabsContent value="students">
-                      <StudentsTab classId={selectedClass.id} />
-                    </TabsContent>
-                    
-                    <TabsContent value="homework">
-                      <HomeworkTab 
-                        studentId={studentId} 
-                        studentName={studentName} 
-                        classId={selectedClass.id} 
-                      />
-                    </TabsContent>
-                    
-                    <TabsContent value="ranking">
-                      <ClassRankingTab classId={selectedClass.id} />
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
-            ) : (
-              <Card>
-                <CardContent className="pt-6 pb-6 text-center">
-                  <p className="text-gray-500">{t("select-class")}</p>
-                </CardContent>
-              </Card>
-            )}
-          </div>
-        </div>
-      )}
+          {classData.description && (
+            <p className="text-sm text-gray-600 mt-3">{classData.description}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      {/* Homework Section */}
+      <StudentHomeworkTab 
+        studentId={studentId}
+        studentName={studentName}
+        classId={classId}
+      />
     </div>
   );
 };

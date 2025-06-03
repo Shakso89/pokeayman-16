@@ -1,13 +1,13 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
-import { ChevronLeft, BookText } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { NavBar } from "@/components/NavBar";
 import { useTranslation } from "@/hooks/useTranslation";
 import ClassManagement from "@/components/teacher/class-management/ClassManagement";
 import SchoolCollaboration from "@/components/teacher/SchoolCollaboration";
 import SchoolManagement from "@/components/teacher/SchoolManagement";
-import HomeworkManagement from "@/components/teacher/HomeworkManagement";
 import DashboardHeader from "@/components/teacher/dashboard/DashboardHeader";
 import AddStudentDialog from "@/components/teacher/dashboard/AddStudentDialog";
 import MainDashboard from "@/components/teacher/dashboard/MainDashboard";
@@ -18,7 +18,7 @@ import { motion } from "framer-motion";
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
   const [currentView, setCurrentView] = useState<
-    "main" | "classes" | "collaboration" | "homework"
+    "main" | "classes" | "collaboration"
   >("main");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
@@ -33,19 +33,6 @@ const TeacherDashboard: React.FC = () => {
   const teacherId = localStorage.getItem("teacherId");
   const username = localStorage.getItem("teacherUsername") || "";
   const isAdmin = username === "Admin" || username === "Ayman";
-
-  // Add event listener for homework notification clicks
-  useEffect(() => {
-    const handleOpenHomeworkReview = () => {
-      setCurrentView("homework");
-    };
-    
-    window.addEventListener('openHomeworkReview', handleOpenHomeworkReview);
-    
-    return () => {
-      window.removeEventListener('openHomeworkReview', handleOpenHomeworkReview);
-    };
-  }, []);
 
   useEffect(() => {
     // Load teacher data from Supabase
@@ -95,12 +82,6 @@ const TeacherDashboard: React.FC = () => {
   const handleManageClasses = () => {
     console.log("Manage classes button clicked");
     setCurrentView("classes");
-  };
-  
-  // Handle navigating to homework management
-  const handleManageHomework = () => {
-    console.log("Manage homework button clicked");
-    setCurrentView("homework");
   };
   
   // Handle navigating directly to specific class
@@ -165,23 +146,6 @@ const TeacherDashboard: React.FC = () => {
                 isAdmin={isAdmin}
               />
             </motion.div>
-            
-            {/* Add button for homework management */}
-            <motion.div 
-              className="mt-6" 
-              variants={itemVariants}
-              whileHover={{ scale: 1.02 }}
-              transition={{ type: "spring", stiffness: 400, damping: 10 }}
-            >
-              <Button 
-                variant="outline" 
-                className="flex items-center bg-sky-100 hover:bg-sky-200 text-sky-800 border-sky-300"
-                onClick={handleManageHomework}
-              >
-                <BookText className="h-4 w-4 mr-2" />
-                {t("manage-homework")}
-              </Button>
-            </motion.div>
           </>
         ) : currentView === "classes" ? (
           selectedSchoolId ? (
@@ -197,11 +161,6 @@ const TeacherDashboard: React.FC = () => {
               teacherId={teacherId || ""}
             />
           )
-        ) : currentView === "homework" ? (
-          <HomeworkManagement
-            onBack={() => setCurrentView("main")}
-            teacherId={teacherId || ""}
-          />
         ) : (
           <div>
             <div className="flex items-center mb-6">

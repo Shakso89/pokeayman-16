@@ -94,37 +94,52 @@ export type Database = {
       }
       homework: {
         Row: {
-          class_id: string | null
+          class_id: string
           coin_reward: number
+          correct_option: string | null
           created_at: string
-          description: string | null
+          description: string
           expires_at: string
           id: string
-          questions: string | null
+          option_a: string | null
+          option_b: string | null
+          option_c: string | null
+          option_d: string | null
+          question: string | null
           teacher_id: string
           title: string
           type: string
         }
         Insert: {
-          class_id?: string | null
+          class_id: string
           coin_reward?: number
+          correct_option?: string | null
           created_at?: string
-          description?: string | null
+          description: string
           expires_at: string
           id?: string
-          questions?: string | null
+          option_a?: string | null
+          option_b?: string | null
+          option_c?: string | null
+          option_d?: string | null
+          question?: string | null
           teacher_id: string
           title: string
           type: string
         }
         Update: {
-          class_id?: string | null
+          class_id?: string
           coin_reward?: number
+          correct_option?: string | null
           created_at?: string
-          description?: string | null
+          description?: string
           expires_at?: string
           id?: string
-          questions?: string | null
+          option_a?: string | null
+          option_b?: string | null
+          option_c?: string | null
+          option_d?: string | null
+          question?: string | null
           teacher_id?: string
           title?: string
           type?: string
@@ -133,40 +148,37 @@ export type Database = {
       }
       homework_submissions: {
         Row: {
-          answers: string | null
           content: string
           feedback: string | null
           homework_id: string
           id: string
+          is_correct: boolean | null
           status: string
           student_id: string
           student_name: string
           submitted_at: string
-          type: string
         }
         Insert: {
-          answers?: string | null
           content: string
           feedback?: string | null
           homework_id: string
           id?: string
+          is_correct?: boolean | null
           status?: string
           student_id: string
           student_name: string
           submitted_at?: string
-          type: string
         }
         Update: {
-          answers?: string | null
           content?: string
           feedback?: string | null
           homework_id?: string
           id?: string
+          is_correct?: boolean | null
           status?: string
           student_id?: string
           student_name?: string
           submitted_at?: string
-          type?: string
         }
         Relationships: [
           {
@@ -409,7 +421,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      delete_expired_homework: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

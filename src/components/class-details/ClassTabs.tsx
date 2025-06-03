@@ -4,10 +4,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { BookText, Plus, FileText, ClipboardList, PenTool, Eye } from "lucide-react";
+import { BookText, ClipboardList, PenTool, Eye } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import StudentsTable from "./StudentsTable";
-import HomeworkManagement from "@/components/teacher/HomeworkManagement";
+import HomeworkList from "@/components/homework/HomeworkList";
 
 interface ClassTabsProps {
   activeTab: string;
@@ -194,20 +194,20 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
                       className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50 flex items-center gap-2"
                     >
                       <PenTool className="h-4 w-4" />
-                      Post Homework
+                      Manage Homework
                     </Button>
-                    <Button 
-                      onClick={() => onTabChange("homework")}
-                      className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
-                    >
-                      <Eye className="h-4 w-4" />
-                      Review Homework
-                      {pendingSubmissions > 0 && (
+                    {pendingSubmissions > 0 && (
+                      <Button 
+                        onClick={() => onTabChange("homework")}
+                        className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
+                      >
+                        <Eye className="h-4 w-4" />
+                        Review Submissions
                         <Badge variant="destructive" className="ml-1">
                           {pendingSubmissions}
                         </Badge>
-                      )}
-                    </Button>
+                      </Button>
+                    )}
                   </div>
                 </div>
               </CardContent>
@@ -240,7 +240,7 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
                       📚 {classData?.name} - Homework Management
                     </h3>
                     <p className="text-sm text-indigo-700">
-                      Manage assignments and review submissions for this class
+                      Create assignments and review submissions for this class
                     </p>
                   </div>
                   <Button 
@@ -255,10 +255,10 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
               </CardContent>
             </Card>
             
-            <HomeworkManagement 
-              onBack={() => onTabChange("students")}
-              teacherId={teacherId}
+            <HomeworkList 
               classId={classData?.id}
+              teacherId={teacherId}
+              isTeacher={true}
             />
           </div>
         ) : (
