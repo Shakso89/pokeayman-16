@@ -217,7 +217,6 @@ const ManageClassDialog: React.FC<ManageClassDialogProps> = ({
         onHomeworkCreated={handleHomeworkCreated}
         teacherId={teacherId}
         classId={classId}
-        className={className}
       />
 
       {/* Give Coins Dialog */}
