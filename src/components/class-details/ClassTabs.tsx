@@ -229,47 +229,37 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
       </TabsContent>
 
       <TabsContent value="homework" className="mt-6">
-        {isClassCreator ? (
-          <div className="space-y-4">
-            {/* Class context header */}
-            <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="font-semibold text-indigo-900 mb-1">
-                      📚 {classData?.name} - Homework Management
-                    </h3>
-                    <p className="text-sm text-indigo-700">
-                      Create assignments and review submissions for this class
-                    </p>
-                  </div>
-                  <Button 
-                    onClick={() => onTabChange("students")}
-                    variant="outline"
-                    size="sm"
-                    className="text-indigo-700 border-indigo-300"
-                  >
-                    ← Back to Students
-                  </Button>
+        <div className="space-y-4">
+          {/* Class context header */}
+          <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-semibold text-indigo-900 mb-1">
+                    📚 {classData?.name} - Homework Management
+                  </h3>
+                  <p className="text-sm text-indigo-700">
+                    Create assignments and review submissions for this class
+                  </p>
                 </div>
-              </CardContent>
-            </Card>
-            
-            <HomeworkList 
-              classId={classData?.id}
-              teacherId={teacherId}
-              isTeacher={true}
-            />
-          </div>
-        ) : (
-          <Card className="bg-white shadow-sm">
-            <CardContent className="p-16 text-center">
-              <BookText className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">View Only</h3>
-              <p className="text-gray-500">You don't have permission to manage homework for this class</p>
+                <Button 
+                  onClick={() => onTabChange("students")}
+                  variant="outline"
+                  size="sm"
+                  className="text-indigo-700 border-indigo-300"
+                >
+                  ← Back to Students
+                </Button>
+              </div>
             </CardContent>
           </Card>
-        )}
+          
+          <HomeworkList 
+            classId={classData?.id}
+            teacherId={teacherId}
+            isTeacher={isClassCreator}
+          />
+        </div>
       </TabsContent>
     </Tabs>
   );
