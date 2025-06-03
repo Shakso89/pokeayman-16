@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -14,13 +13,17 @@ interface HomeworkReviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   homework: Homework | null;
-  onSubmissionReviewed: () => void;
+  submissions?: HomeworkSubmission[];
+  onSubmissionUpdated?: () => void;
+  onSubmissionReviewed?: () => void;
 }
 
 const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
   open,
   onOpenChange,
   homework,
+  submissions: externalSubmissions,
+  onSubmissionUpdated,
   onSubmissionReviewed
 }) => {
   const [submissions, setSubmissions] = useState<HomeworkSubmission[]>([]);
@@ -30,9 +33,13 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
 
   useEffect(() => {
     if (homework && open) {
-      loadSubmissions();
+      if (externalSubmissions) {
+        setSubmissions(externalSubmissions);
+      } else {
+        loadSubmissions();
+      }
     }
-  }, [homework, open]);
+  }, [homework, open, externalSubmissions]);
 
   const loadSubmissions = async () => {
     if (!homework) return;
@@ -69,10 +76,14 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
         description: `Submission approved for ${submission.student_name}`
       });
 
-      loadSubmissions();
+      if (externalSubmissions) {
+        onSubmissionUpdated?.();
+      } else {
+        loadSubmissions();
+      }
       setSelectedSubmission(null);
       setFeedback("");
-      onSubmissionReviewed();
+      onSubmissionReviewed?.();
     } catch (error) {
       console.error('Error approving submission:', error);
       toast({
@@ -112,10 +123,14 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
         description: `Submission rejected for ${submission.student_name}`
       });
 
-      loadSubmissions();
+      if (externalSubmissions) {
+        onSubmissionUpdated?.();
+      } else {
+        loadSubmissions();
+      }
       setSelectedSubmission(null);
       setFeedback("");
-      onSubmissionReviewed();
+      onSubmissionReviewed?.();
     } catch (error) {
       console.error('Error rejecting submission:', error);
       toast({
