@@ -1,10 +1,11 @@
+
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Coins, Award, BookText } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
-import CreateHomeworkDialog from "@/components/teacher/CreateHomeworkDialog";
+import CreateHomeworkDialog from "@/components/homework/CreateHomeworkDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
 import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
 import { awardCoinsToStudent } from "@/utils/pokemon/studentPokemon";

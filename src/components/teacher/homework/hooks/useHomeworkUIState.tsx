@@ -2,7 +2,7 @@
 import { useState } from "react";
 import { useToast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
-import { HomeworkManagementState, StudentSelection } from "./types";
+import { StudentSelection } from "./types";
 
 export const useHomeworkUIState = () => {
   const { t } = useTranslation();

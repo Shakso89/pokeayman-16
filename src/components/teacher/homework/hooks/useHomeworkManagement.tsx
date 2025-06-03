@@ -7,10 +7,10 @@ import { useHomeworkUIState } from "./useHomeworkUIState";
 export const useHomeworkManagement = (teacherId: string) => {
   // Data management
   const {
-    homeworkAssignments,
-    setHomeworkAssignments,
-    homeworkSubmissions,
-    setHomeworkSubmissions,
+    homework,
+    setHomework,
+    submissions,
+    setSubmissions,
     classes,
     setClasses
   } = useHomeworkData(teacherId);
@@ -40,31 +40,31 @@ export const useHomeworkManagement = (teacherId: string) => {
 
   // Create wrapped handlers that include state setters
   const wrappedHandleHomeworkCreated = (homework: any) => 
-    handleHomeworkCreated(homework, setHomeworkAssignments);
+    handleHomeworkCreated(homework, setHomework);
 
   const wrappedHandleDeleteHomework = (homeworkId: string) => 
-    handleDeleteHomework(homeworkId, setHomeworkAssignments, setHomeworkSubmissions);
+    handleDeleteHomework(homeworkId, setHomework, setSubmissions);
 
   const wrappedHandleApproveSubmission = (submission: any) => 
-    handleApproveSubmission(submission, homeworkAssignments, setHomeworkSubmissions);
+    handleApproveSubmission(submission, homework, setSubmissions);
 
   const wrappedHandleRejectSubmission = (submission: any, feedback?: string) => 
-    handleRejectSubmission(submission, feedback, setHomeworkSubmissions);
+    handleRejectSubmission(submission, feedback, setSubmissions);
 
   // Filter homework based on expiration
   const now = new Date();
-  const activeHomework = homeworkAssignments.filter(hw => new Date(hw.expiresAt) > now);
-  const archivedHomework = homeworkAssignments.filter(hw => new Date(hw.expiresAt) <= now);
+  const activeHomework = homework.filter(hw => new Date(hw.expires_at) > now);
+  const archivedHomework = homework.filter(hw => new Date(hw.expires_at) <= now);
 
   return {
     activeTab,
     setActiveTab,
     isCreateHomeworkOpen,
     setIsCreateHomeworkOpen,
-    homeworkAssignments,
-    setHomeworkAssignments,
-    homeworkSubmissions,
-    setHomeworkSubmissions,
+    homework,
+    setHomework,
+    submissions,
+    setSubmissions,
     classes,
     setClasses,
     isGiveCoinsOpen,
