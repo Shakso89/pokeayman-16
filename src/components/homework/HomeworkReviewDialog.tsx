@@ -1,58 +1,78 @@
 
-import React, { useState } from 'react';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Textarea } from '@/components/ui/textarea';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { CheckCircle, XCircle, Clock, User, Coins } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
-import { toast } from '@/hooks/use-toast';
-import { Homework, HomeworkSubmission } from '@/types/homework';
+import React, { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/textarea";
+import { CheckCircle, XCircle, Clock, User } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Homework, HomeworkSubmission } from "@/types/homework";
 import { formatDistanceToNow } from 'date-fns';
+import { toast } from "@/hooks/use-toast";
 
 interface HomeworkReviewDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  homework: Homework;
-  submissions: HomeworkSubmission[];
-  onSubmissionUpdated: () => void;
+  homework: Homework | null;
+  onSubmissionReviewed: () => void;
 }
 
 const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
   open,
   onOpenChange,
   homework,
-  submissions,
-  onSubmissionUpdated
+  onSubmissionReviewed
 }) => {
+  const [submissions, setSubmissions] = useState<HomeworkSubmission[]>([]);
   const [selectedSubmission, setSelectedSubmission] = useState<HomeworkSubmission | null>(null);
-  const [feedback, setFeedback] = useState('');
-  const [isUpdating, setIsUpdating] = useState(false);
+  const [feedback, setFeedback] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (homework && open) {
+      loadSubmissions();
+    }
+  }, [homework, open]);
+
+  const loadSubmissions = async () => {
+    if (!homework) return;
+
+    try {
+      const { data, error } = await supabase
+        .from('homework_submissions')
+        .select('*')
+        .eq('homework_id', homework.id)
+        .order('submitted_at', { ascending: false });
+
+      if (error) throw error;
+      setSubmissions(data || []);
+    } catch (error) {
+      console.error('Error loading submissions:', error);
+    }
+  };
 
   const handleApprove = async (submission: HomeworkSubmission) => {
-    setIsUpdating(true);
+    setIsLoading(true);
     try {
       const { error } = await supabase
         .from('homework_submissions')
         .update({ 
           status: 'approved',
-          is_correct: homework.type === 'multiple_choice' ? submission.content === homework.correct_option : true
+          feedback: feedback || 'Great work!'
         })
         .eq('id', submission.id);
 
       if (error) throw error;
 
-      // Award coins to student
-      // Note: You'll need to implement the coin awarding system
-
       toast({
         title: "Success",
-        description: `Submission approved and ${homework.coin_reward} coins awarded!`
+        description: `Submission approved for ${submission.student_name}`
       });
 
-      onSubmissionUpdated();
+      loadSubmissions();
       setSelectedSubmission(null);
+      setFeedback("");
+      onSubmissionReviewed();
     } catch (error) {
       console.error('Error approving submission:', error);
       toast({
@@ -61,7 +81,7 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
         variant: "destructive"
       });
     } finally {
-      setIsUpdating(false);
+      setIsLoading(false);
     }
   };
 
@@ -69,19 +89,19 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
     if (!feedback.trim()) {
       toast({
         title: "Error",
-        description: "Please provide feedback for rejection",
+        description: "Please provide feedback when rejecting a submission",
         variant: "destructive"
       });
       return;
     }
 
-    setIsUpdating(true);
+    setIsLoading(true);
     try {
       const { error } = await supabase
         .from('homework_submissions')
         .update({ 
           status: 'rejected',
-          feedback: feedback.trim()
+          feedback: feedback
         })
         .eq('id', submission.id);
 
@@ -89,12 +109,13 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
 
       toast({
         title: "Success",
-        description: "Submission rejected with feedback"
+        description: `Submission rejected for ${submission.student_name}`
       });
 
-      onSubmissionUpdated();
+      loadSubmissions();
       setSelectedSubmission(null);
-      setFeedback('');
+      setFeedback("");
+      onSubmissionReviewed();
     } catch (error) {
       console.error('Error rejecting submission:', error);
       toast({
@@ -103,7 +124,7 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
         variant: "destructive"
       });
     } finally {
-      setIsUpdating(false);
+      setIsLoading(false);
     }
   };
 
@@ -115,72 +136,21 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
     }
   };
 
-  const renderSubmissionContent = (submission: HomeworkSubmission) => {
-    switch (homework.type) {
-      case 'image':
-        return (
-          <div className="mt-2">
-            <img 
-              src={submission.content} 
-              alt="Student submission" 
-              className="max-w-full max-h-64 rounded-lg border"
-            />
-          </div>
-        );
-      case 'audio':
-        return (
-          <div className="mt-2">
-            <audio controls className="w-full">
-              <source src={submission.content} type="audio/mpeg" />
-              Your browser does not support the audio element.
-            </audio>
-          </div>
-        );
-      case 'multiple_choice':
-        return (
-          <div className="mt-2 space-y-2">
-            <p className="font-medium">{homework.question}</p>
-            <div className="grid grid-cols-2 gap-2">
-              {[
-                { key: 'A', value: homework.option_a },
-                { key: 'B', value: homework.option_b },
-                { key: 'C', value: homework.option_c },
-                { key: 'D', value: homework.option_d }
-              ].filter(option => option.value).map(option => (
-                <div 
-                  key={option.key}
-                  className={`p-2 rounded border ${
-                    submission.content === option.key 
-                      ? 'bg-blue-100 border-blue-300' 
-                      : 'bg-gray-50'
-                  }`}
-                >
-                  <span className="font-medium">{option.key}:</span> {option.value}
-                  {option.key === homework.correct_option && (
-                    <CheckCircle className="inline-block ml-2 h-4 w-4 text-green-500" />
-                  )}
-                </div>
-              ))}
-            </div>
-            <p className="text-sm">
-              Student selected: <strong>Option {submission.content}</strong>
-              {submission.content === homework.correct_option ? 
-                <span className="text-green-600 ml-2">✓ Correct</span> : 
-                <span className="text-red-600 ml-2">✗ Incorrect</span>
-              }
-            </p>
-          </div>
-        );
-      default:
-        return <p className="mt-2">{submission.content}</p>;
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case 'approved': return <CheckCircle className="h-4 w-4" />;
+      case 'rejected': return <XCircle className="h-4 w-4" />;
+      default: return <Clock className="h-4 w-4" />;
     }
   };
 
+  if (!homework) return null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Review Homework: {homework.title}</DialogTitle>
+          <DialogTitle>{homework.title} - Review Submissions</DialogTitle>
         </DialogHeader>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -189,36 +159,36 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
             <h3 className="font-semibold">Submissions ({submissions.length})</h3>
             
             {submissions.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center text-gray-500">
-                  No submissions yet
-                </CardContent>
-              </Card>
+              <div className="text-center py-8 text-gray-500">
+                No submissions yet
+              </div>
             ) : (
-              <div className="space-y-2 max-h-96 overflow-y-auto">
+              <div className="space-y-3 max-h-96 overflow-y-auto">
                 {submissions.map((submission) => (
-                  <Card 
+                  <div
                     key={submission.id}
-                    className={`cursor-pointer transition-colors ${
-                      selectedSubmission?.id === submission.id ? 'ring-2 ring-blue-500' : ''
+                    className={`p-3 border rounded-lg cursor-pointer transition-colors ${
+                      selectedSubmission?.id === submission.id ? 'border-blue-500 bg-blue-50' : 'hover:bg-gray-50'
                     }`}
-                    onClick={() => setSelectedSubmission(submission)}
+                    onClick={() => {
+                      setSelectedSubmission(submission);
+                      setFeedback(submission.feedback || "");
+                    }}
                   >
-                    <CardContent className="p-4">
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-2">
-                          <User className="h-4 w-4" />
-                          <span className="font-medium">{submission.student_name}</span>
-                        </div>
-                        <Badge className={getStatusColor(submission.status)}>
-                          {submission.status}
-                        </Badge>
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="flex items-center gap-2">
+                        <User className="h-4 w-4" />
+                        <span className="font-medium">{submission.student_name}</span>
                       </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        Submitted {formatDistanceToNow(new Date(submission.submitted_at), { addSuffix: true })}
-                      </p>
-                    </CardContent>
-                  </Card>
+                      <Badge className={getStatusColor(submission.status)}>
+                        {getStatusIcon(submission.status)}
+                        {submission.status}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-gray-500">
+                      {formatDistanceToNow(new Date(submission.submitted_at), { addSuffix: true })}
+                    </p>
+                  </div>
                 ))}
               </div>
             )}
@@ -227,62 +197,89 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
           {/* Submission Review Panel */}
           <div className="space-y-4">
             {selectedSubmission ? (
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center justify-between">
-                    <span>{selectedSubmission.student_name}'s Submission</span>
-                    <Badge className={getStatusColor(selectedSubmission.status)}>
-                      {selectedSubmission.status}
-                    </Badge>
-                  </CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {renderSubmissionContent(selectedSubmission)}
+              <>
+                <h3 className="font-semibold">Review Submission</h3>
+                
+                <div className="p-4 border rounded-lg bg-gray-50">
+                  <div className="mb-3">
+                    <span className="font-medium">Student:</span> {selectedSubmission.student_name}
+                  </div>
+                  
+                  <div className="mb-3">
+                    <span className="font-medium">Submitted:</span>{" "}
+                    {formatDistanceToNow(new Date(selectedSubmission.submitted_at), { addSuffix: true })}
+                  </div>
 
-                  {selectedSubmission.feedback && (
-                    <div className="p-3 bg-gray-50 rounded-lg">
-                      <p className="text-sm font-medium text-gray-700">Feedback:</p>
-                      <p className="text-sm">{selectedSubmission.feedback}</p>
+                  {homework.type === 'multiple_choice' ? (
+                    <div>
+                      <span className="font-medium">Answer:</span> {selectedSubmission.content}
+                      {selectedSubmission.is_correct !== null && (
+                        <Badge className={selectedSubmission.is_correct ? 'bg-green-100 text-green-800 ml-2' : 'bg-red-100 text-red-800 ml-2'}>
+                          {selectedSubmission.is_correct ? 'Correct' : 'Incorrect'}
+                        </Badge>
+                      )}
+                    </div>
+                  ) : homework.type === 'image' ? (
+                    <div>
+                      <span className="font-medium">Image:</span>
+                      <img src={selectedSubmission.content} alt="Submission" className="mt-2 max-w-full h-auto rounded" />
+                    </div>
+                  ) : homework.type === 'audio' ? (
+                    <div>
+                      <span className="font-medium">Audio:</span>
+                      <audio controls className="mt-2 w-full">
+                        <source src={selectedSubmission.content} />
+                      </audio>
+                    </div>
+                  ) : (
+                    <div>
+                      <span className="font-medium">Content:</span>
+                      <p className="mt-1">{selectedSubmission.content}</p>
                     </div>
                   )}
+                </div>
 
-                  {selectedSubmission.status === 'pending' && (
-                    <div className="space-y-3">
-                      <Textarea
-                        placeholder="Provide feedback (required for rejection)"
-                        value={feedback}
-                        onChange={(e) => setFeedback(e.target.value)}
-                      />
-                      
-                      <div className="flex gap-2">
-                        <Button
-                          onClick={() => handleApprove(selectedSubmission)}
-                          disabled={isUpdating}
-                          className="flex-1 bg-green-600 hover:bg-green-700"
-                        >
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          Approve & Award {homework.coin_reward} <Coins className="h-4 w-4 ml-1" />
-                        </Button>
-                        <Button
-                          onClick={() => handleReject(selectedSubmission)}
-                          disabled={isUpdating}
-                          variant="destructive"
-                          className="flex-1"
-                        >
-                          <XCircle className="h-4 w-4 mr-2" />
-                          Reject
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </CardContent>
-              </Card>
+                <div>
+                  <label className="block text-sm font-medium mb-2">Feedback</label>
+                  <Textarea
+                    value={feedback}
+                    onChange={(e) => setFeedback(e.target.value)}
+                    placeholder="Provide feedback for the student..."
+                    rows={3}
+                  />
+                </div>
+
+                {selectedSubmission.status === 'pending' && (
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={() => handleApprove(selectedSubmission)}
+                      disabled={isLoading}
+                      className="bg-green-600 hover:bg-green-700"
+                    >
+                      <CheckCircle className="h-4 w-4 mr-1" />
+                      Approve
+                    </Button>
+                    <Button
+                      onClick={() => handleReject(selectedSubmission)}
+                      disabled={isLoading}
+                      variant="destructive"
+                    >
+                      <XCircle className="h-4 w-4 mr-1" />
+                      Reject
+                    </Button>
+                  </div>
+                )}
+
+                {selectedSubmission.status !== 'pending' && (
+                  <div className="text-sm text-gray-500">
+                    This submission has already been reviewed.
+                  </div>
+                )}
+              </>
             ) : (
-              <Card>
-                <CardContent className="py-8 text-center text-gray-500">
-                  Select a submission to review
-                </CardContent>
-              </Card>
+              <div className="text-center py-8 text-gray-500">
+                Select a submission to review
+              </div>
             )}
           </div>
         </div>

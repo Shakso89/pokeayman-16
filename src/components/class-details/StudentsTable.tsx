@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, User, Coins, Award, UserMinus, Minus } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useNavigate } from "react-router-dom";
 
 interface StudentsTableProps {
   students: any[];
@@ -29,6 +30,12 @@ const StudentsTable: React.FC<StudentsTableProps> = ({
   onRemovePokemon
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const handleStudentClick = (studentId: string) => {
+    // Navigate to student detail page
+    navigate(`/student-detail/${studentId}`);
+  };
 
   const handleRemoveCoins = (studentId: string, studentName: string) => {
     if (onRemoveCoins) {
@@ -83,14 +90,17 @@ const StudentsTable: React.FC<StudentsTableProps> = ({
                 key={student.id}
                 className="flex items-center justify-between p-4 border rounded-lg hover:bg-gray-50 transition-colors"
               >
-                <div className="flex items-center space-x-4">
+                <div 
+                  className="flex items-center space-x-4 cursor-pointer flex-1"
+                  onClick={() => handleStudentClick(student.id)}
+                >
                   <div className="h-12 w-12 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-full flex items-center justify-center font-semibold text-lg">
                     {(student.display_name || student.displayName || student.username || '')
                       .substring(0, 1)
                       .toUpperCase()}
                   </div>
                   <div>
-                    <p className="font-semibold text-gray-900">
+                    <p className="font-semibold text-gray-900 hover:text-blue-600">
                       {student.display_name || student.displayName || student.username}
                     </p>
                     <p className="text-sm text-gray-500">@{student.username}</p>
@@ -111,7 +121,10 @@ const StudentsTable: React.FC<StudentsTableProps> = ({
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => onAwardCoins(student.id, student.display_name || student.displayName || student.username)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onAwardCoins(student.id, student.display_name || student.displayName || student.username);
+                      }}
                       className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100 flex items-center gap-1"
                     >
                       <Coins className="h-4 w-4" />
@@ -122,7 +135,10 @@ const StudentsTable: React.FC<StudentsTableProps> = ({
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleRemoveCoins(student.id, student.display_name || student.displayName || student.username)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemoveCoins(student.id, student.display_name || student.displayName || student.username);
+                      }}
                       className="bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100 flex items-center gap-1"
                     >
                       <Minus className="h-4 w-4" />
@@ -133,11 +149,14 @@ const StudentsTable: React.FC<StudentsTableProps> = ({
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => onManagePokemon(
-                        student.id, 
-                        student.display_name || student.displayName || student.username,
-                        student.schoolId || classData?.school_id || ''
-                      )}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onManagePokemon(
+                          student.id, 
+                          student.display_name || student.displayName || student.username,
+                          student.schoolId || classData?.school_id || ''
+                        );
+                      }}
                       className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100 flex items-center gap-1"
                     >
                       <Award className="h-4 w-4" />
@@ -148,7 +167,10 @@ const StudentsTable: React.FC<StudentsTableProps> = ({
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => handleRemovePokemon(student.id, student.display_name || student.displayName || student.username)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleRemovePokemon(student.id, student.display_name || student.displayName || student.username);
+                      }}
                       className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 flex items-center gap-1"
                     >
                       <Minus className="h-4 w-4" />
@@ -159,7 +181,10 @@ const StudentsTable: React.FC<StudentsTableProps> = ({
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => onRemoveStudent(student.id, student.display_name || student.displayName || student.username)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onRemoveStudent(student.id, student.display_name || student.displayName || student.username);
+                      }}
                       className="bg-red-50 border-red-200 text-red-700 hover:bg-red-100 flex items-center gap-1"
                     >
                       <UserMinus className="h-4 w-4" />

@@ -27,17 +27,14 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
 
   const handleViewProfile = () => {
     if (studentId) {
-      if (isTeacherView) {
-        navigate(`/teacher/student/${studentId}`);
-      } else {
-        navigate(`/student/profile/${studentId}`);
-      }
+      // Navigate to the correct student profile route
+      navigate(`/student-detail/${studentId}`);
     }
   };
 
   return (
     <div className="flex flex-col gap-2">
-      {isTeacherView && (
+      {isTeacherView && onGiveCoins && (
         <Button className="w-full flex items-center" onClick={onGiveCoins}>
           <Coins className="h-4 w-4 mr-2" />
           {t("give-coins")}
