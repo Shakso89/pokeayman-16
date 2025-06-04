@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,6 +16,11 @@ export const useClassDetails = () => {
   const [teacherId, setTeacherId] = useState<string>("");
   const [userPermissionLevel, setUserPermissionLevel] = useState<"owner" | "teacher" | "viewer">("viewer");
 
+  // Add debugging
+  console.log("useClassDetails - ID from params:", id);
+  console.log("useClassDetails - Loading state:", loading);
+  console.log("useClassDetails - ClassData:", classData);
+
   // Check if user is admin or teacher
   useEffect(() => {
     const username = localStorage.getItem("teacherUsername") || "";
@@ -24,17 +28,27 @@ export const useClassDetails = () => {
     
     const teacherId = localStorage.getItem("teacherId") || "";
     setTeacherId(teacherId);
+    console.log("useClassDetails - Teacher ID:", teacherId);
+    console.log("useClassDetails - Is Admin:", username === "Admin" || username === "Ayman");
   }, []);
 
   useEffect(() => {
-    if (!id) return;
+    if (!id) {
+      console.log("useClassDetails - No ID provided, skipping fetch");
+      setLoading(false);
+      return;
+    }
+    console.log("useClassDetails - Starting fetch for ID:", id);
     fetchClassDetails();
   }, [id, t, isAdmin, teacherId]);
 
   const fetchClassDetails = async () => {
+    console.log("useClassDetails - fetchClassDetails called for ID:", id);
     setLoading(true);
     try {
       const cls = await getClassById(id || "");
+      console.log("useClassDetails - getClassById result:", cls);
+      
       if (cls) {
         setClassData(cls);
         
@@ -54,15 +68,22 @@ export const useClassDetails = () => {
         return;
       }
       
+      console.log("useClassDetails - Trying Supabase direct query");
       const { data: classData, error: classError } = await supabase
         .from('classes')
         .select('*')
         .eq('id', id)
         .maybeSingle();
         
-      if (classError) throw classError;
+      if (classError) {
+        console.error("useClassDetails - Supabase error:", classError);
+        throw classError;
+      }
+      
+      console.log("useClassDetails - Supabase result:", classData);
       
       if (!classData) {
+        console.log("useClassDetails - No class found, checking localStorage");
         checkLocalStorageFallback();
         return;
       }
@@ -86,10 +107,14 @@ export const useClassDetails = () => {
   };
 
   const checkLocalStorageFallback = () => {
+    console.log("useClassDetails - checkLocalStorageFallback called");
     const savedClasses = localStorage.getItem("classes");
     if (savedClasses && id) {
       const parsedClasses = JSON.parse(savedClasses);
+      console.log("useClassDetails - Local classes:", parsedClasses);
       const foundClass = parsedClasses.find((cls: any) => cls.id === id);
+      console.log("useClassDetails - Found local class:", foundClass);
+      
       if (foundClass) {
         setClassData(foundClass);
         
@@ -106,9 +131,11 @@ export const useClassDetails = () => {
           fetchStudentsWithCoins(foundClass.students);
         }
       } else {
+        console.log("useClassDetails - No class found in localStorage");
         setClassData(null);
       }
     } else {
+      console.log("useClassDetails - No saved classes or ID");
       setClassData(null);
     }
   };
