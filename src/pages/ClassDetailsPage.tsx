@@ -1,14 +1,13 @@
 
 import React from "react";
-import { NavBar } from "@/components/NavBar";
-import ClassDetails from "@/components/class-details/ClassDetails";
+import ClassPageLayout from "@/components/layouts/ClassPageLayout";
+import ClassDetailsContainer from "@/components/class-details/ClassDetailsContainer";
 
 const ClassDetailsPage: React.FC = () => {
   return (
-    <div className="min-h-screen bg-gray-50">
-      <NavBar userType="teacher" userName="Teacher" />
-      <ClassDetails />
-    </div>
+    <ClassPageLayout userType="teacher" userName="Teacher">
+      <ClassDetailsContainer />
+    </ClassPageLayout>
   );
 };
 
