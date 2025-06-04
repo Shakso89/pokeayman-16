@@ -8,7 +8,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { removeClass } from "@/utils/classSync/classOperations";
 import { addMultipleStudentsToClass } from "@/utils/classSync/studentOperations";
 import { awardCoinsToStudent, removeCoinsFromStudent } from "@/utils/pokemon/studentPokemon";
-import ClassHeader from "./ClassHeader";
+import ClassManagementHeader from "./ClassManagementHeader";
+import StudentsGrid from "./StudentsGrid";
 import ClassTabs from "./ClassTabs";
 import ClassDialogs from "./ClassDialogs";
 import { useClassDetails } from "./hooks/useClassDetails";
@@ -31,6 +32,7 @@ const ClassDetails = () => {
   const [removeStudentDialog, setRemoveStudentDialog] = useState({ open: false, studentId: "", studentName: "" });
   const [activeTab, setActiveTab] = useState("students");
   const [isStudentListOpen, setIsStudentListOpen] = useState(false);
+  const [pendingSubmissions, setPendingSubmissions] = useState(0);
   
   // Management dialogs state
   const [managePokemonDialog, setManagePokemonDialog] = useState({
@@ -196,6 +198,10 @@ const ClassDetails = () => {
     });
   };
 
+  const handleSwitchToHomework = () => {
+    setActiveTab("homework");
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -221,29 +227,57 @@ const ClassDetails = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-purple-50">
-      <ClassHeader
+    <div className="min-h-screen bg-gray-50">
+      {/* New Management Header */}
+      <ClassManagementHeader
         classData={classData}
         studentsCount={students.length}
         isClassCreator={isClassCreator()}
-        isAdmin={isAdmin}
         onAddStudent={() => setIsStudentListOpen(true)}
-        onDeleteClass={() => setDeleteDialogOpen(true)}
+        onSwitchToHomework={handleSwitchToHomework}
+        pendingSubmissions={pendingSubmissions}
       />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
-        <ClassTabs
-          activeTab={activeTab}
-          onTabChange={setActiveTab}
-          students={students}
-          isClassCreator={isClassCreator()}
-          classData={classData}
-          teacherId={teacherId}
-          onAwardCoins={(studentId, studentName) => setGiveCoinsDialog({ open: true, studentId, studentName })}
-          onManagePokemon={(studentId, studentName, schoolId) => setManagePokemonDialog({ open: true, studentId, studentName, schoolId })}
-          onRemoveStudent={(studentId, studentName) => setRemoveStudentDialog({ open: true, studentId, studentName })}
-          onAddStudent={() => setIsStudentListOpen(true)}
-        />
+        {activeTab === "students" ? (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <h2 className="text-2xl font-bold text-gray-900">Class Students</h2>
+              {isClassCreator() && (
+                <Button 
+                  onClick={() => setIsStudentListOpen(true)}
+                  className="bg-blue-600 hover:bg-blue-700"
+                >
+                  Add More Students
+                </Button>
+              )}
+            </div>
+            
+            <StudentsGrid
+              students={students}
+              isClassCreator={isClassCreator()}
+              onAwardCoins={(studentId, studentName) => setGiveCoinsDialog({ open: true, studentId, studentName })}
+              onManagePokemon={(studentId, studentName, schoolId) => setManagePokemonDialog({ open: true, studentId, studentName, schoolId })}
+              onRemoveStudent={(studentId, studentName) => setRemoveStudentDialog({ open: true, studentId, studentName })}
+              onRemoveCoins={(studentId, studentName) => setRemoveCoinsDialog({ open: true, studentId, studentName })}
+              onRemovePokemon={(studentId, studentName) => console.log("Remove pokemon:", studentName)}
+              classData={classData}
+            />
+          </div>
+        ) : (
+          <ClassTabs
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            students={students}
+            isClassCreator={isClassCreator()}
+            classData={classData}
+            teacherId={teacherId}
+            onAwardCoins={(studentId, studentName) => setGiveCoinsDialog({ open: true, studentId, studentName })}
+            onManagePokemon={(studentId, studentName, schoolId) => setManagePokemonDialog({ open: true, studentId, studentName, schoolId })}
+            onRemoveStudent={(studentId, studentName) => setRemoveStudentDialog({ open: true, studentId, studentName })}
+            onAddStudent={() => setIsStudentListOpen(true)}
+          />
+        )}
       </div>
 
       <ClassDialogs

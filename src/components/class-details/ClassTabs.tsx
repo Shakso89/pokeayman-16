@@ -1,12 +1,9 @@
-
 import React, { useState, useEffect } from "react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { BookText, ClipboardList, PenTool, Eye } from "lucide-react";
+import { ChevronLeft } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import StudentsTable from "./StudentsTable";
 import HomeworkList from "@/components/homework/HomeworkList";
 
 interface ClassTabsProps {
@@ -132,142 +129,60 @@ const ClassTabs: React.FC<ClassTabsProps> = ({
     console.log("Remove pokemon for student:", studentName);
   };
 
-  return (
-    <div className="w-full">
-      {/* Tab Navigation - Make it more prominent */}
-      <div className="mb-8">
-        <Tabs value={activeTab} onValueChange={onTabChange} className="w-full">
-          <TabsList className="grid w-full grid-cols-2 h-12 bg-white shadow-lg border border-gray-200 rounded-lg p-1">
-            <TabsTrigger 
-              value="students" 
-              className="data-[state=active]:bg-blue-500 data-[state=active]:text-white font-semibold text-lg py-3 rounded-md transition-all duration-200"
-            >
-              👥 Students
-            </TabsTrigger>
-            <TabsTrigger 
-              value="homework"
-              className="data-[state=active]:bg-green-500 data-[state=active]:text-white font-semibold text-lg py-3 rounded-md transition-all duration-200 relative"
-            >
-              📚 Homework
-              {pendingSubmissions > 0 && (
-                <Badge 
-                  variant="destructive" 
-                  className="absolute -top-2 -right-2 h-6 w-6 p-0 flex items-center justify-center text-xs animate-pulse rounded-full"
-                >
-                  {pendingSubmissions}
-                </Badge>
-              )}
-            </TabsTrigger>
-          </TabsList>
-          
-          <TabsContent value="students" className="mt-6">
-            <div className="space-y-4">
-              {/* Enhanced Homework Management Quick Actions for Class Creator */}
-              {isClassCreator && (
-                <Card className="bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200">
-                  <CardContent className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-4">
-                        <div className="p-3 bg-blue-100 rounded-lg">
-                          <ClipboardList className="h-6 w-6 text-blue-600" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-blue-900 mb-1 flex items-center gap-2">
-                            Class Homework Management
-                          </h3>
-                          <p className="text-sm text-blue-700 mb-2">
-                            Create assignments and review submissions for {classData?.name}
-                          </p>
-                          <div className="flex items-center gap-4 text-sm">
-                            <span className="text-blue-600">
-                              📚 Students: {students.length}
-                            </span>
-                            {pendingSubmissions > 0 && (
-                              <span className="text-orange-600 font-medium animate-pulse">
-                                ⏰ {pendingSubmissions} pending review{pendingSubmissions > 1 ? 's' : ''}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex gap-3">
-                        <Button 
-                          onClick={() => onTabChange("homework")}
-                          variant="outline"
-                          className="bg-white border-blue-300 text-blue-700 hover:bg-blue-50 flex items-center gap-2"
-                        >
-                          <PenTool className="h-4 w-4" />
-                          Manage Homework
-                        </Button>
-                        {pendingSubmissions > 0 && (
-                          <Button 
-                            onClick={() => onTabChange("homework")}
-                            className="bg-blue-600 hover:bg-blue-700 text-white flex items-center gap-2"
-                          >
-                            <Eye className="h-4 w-4" />
-                            Review Submissions
-                            <Badge variant="destructive" className="ml-1">
-                              {pendingSubmissions}
-                            </Badge>
-                          </Button>
-                        )}
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-              
-              <StudentsTable
-                students={students}
-                isClassCreator={isClassCreator}
-                onAwardCoins={onAwardCoins}
-                onManagePokemon={onManagePokemon}
-                onRemoveStudent={onRemoveStudent}
-                onAddStudent={onAddStudent}
-                classData={classData}
-                onRemoveCoins={handleRemoveCoins}
-                onRemovePokemon={handleRemovePokemon}
-              />
+  if (activeTab === "homework") {
+    return (
+      <div className="space-y-6">
+        {/* Back to Students Button */}
+        <div className="flex items-center justify-between">
+          <Button 
+            onClick={() => onTabChange("students")}
+            variant="outline"
+            className="flex items-center"
+          >
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back to Students
+          </Button>
+          <Badge variant="secondary" className="text-lg px-4 py-2">
+            📚 Homework Management
+          </Badge>
+        </div>
+        
+        {/* Homework Management Section */}
+        <Card className="bg-gradient-to-r from-green-50 to-blue-50 border-green-200">
+          <CardContent className="p-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-bold text-green-800 mb-2">
+                📚 {classData?.name} - Homework Center
+              </h2>
+              <p className="text-green-700 mb-4">
+                Create assignments, review submissions, and manage homework for this class
+              </p>
+              <div className="flex items-center justify-center gap-4 text-sm">
+                <span className="text-blue-600 font-medium">
+                  👥 {students.length} Students
+                </span>
+                {pendingSubmissions > 0 && (
+                  <Badge variant="destructive" className="animate-pulse">
+                    ⏰ {pendingSubmissions} Pending Reviews
+                  </Badge>
+                )}
+              </div>
             </div>
-          </TabsContent>
-
-          <TabsContent value="homework" className="mt-6">
-            <div className="space-y-4">
-              {/* Class context header */}
-              <Card className="bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200">
-                <CardContent className="p-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold text-indigo-900 mb-1">
-                        📚 {classData?.name} - Homework Management
-                      </h3>
-                      <p className="text-sm text-indigo-700">
-                        Create assignments and review submissions for this class
-                      </p>
-                    </div>
-                    <Button 
-                      onClick={() => onTabChange("students")}
-                      variant="outline"
-                      size="sm"
-                      className="text-indigo-700 border-indigo-300"
-                    >
-                      ← Back to Students
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-              
-              <HomeworkList 
-                classId={classData?.id}
-                teacherId={teacherId}
-                isTeacher={isClassCreator}
-              />
-            </div>
-          </TabsContent>
-        </Tabs>
+          </CardContent>
+        </Card>
+        
+        {/* Homework List Component */}
+        <HomeworkList 
+          classId={classData?.id}
+          teacherId={teacherId}
+          isTeacher={isClassCreator}
+        />
       </div>
-    </div>
-  );
+    );
+  }
+
+  // This should not render anything for students tab as it's handled in ClassDetails
+  return null;
 };
 
 export default ClassTabs;
