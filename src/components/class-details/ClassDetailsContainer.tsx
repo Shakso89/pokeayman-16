@@ -8,9 +8,17 @@ const ClassDetailsContainer: React.FC = () => {
   const { id } = useParams<{ id: string }>();
 
   // Add debugging to see what's happening
+  console.log("ClassDetailsContainer - Route params:", useParams());
   console.log("ClassDetailsContainer - Route ID:", id);
+  console.log("ClassDetailsContainer - Current URL:", window.location.pathname);
 
-  if (!id) {
+  // Check if we have an ID in a different format
+  const pathSegments = window.location.pathname.split('/');
+  const classId = id || pathSegments[pathSegments.length - 1];
+  
+  console.log("ClassDetailsContainer - Extracted Class ID:", classId);
+
+  if (!classId || classId === 'class-details') {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-center">
@@ -21,7 +29,7 @@ const ClassDetailsContainer: React.FC = () => {
     );
   }
 
-  return <ClassDetails />;
+  return <ClassDetails classId={classId} />;
 };
 
 export default ClassDetailsContainer;

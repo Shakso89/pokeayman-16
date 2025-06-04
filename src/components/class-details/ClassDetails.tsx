@@ -12,12 +12,15 @@ import ClassManagementHeader from "./ClassManagementHeader";
 import StudentsGrid from "./StudentsGrid";
 import ClassTabs from "./ClassTabs";
 import ClassDialogs from "./ClassDialogs";
-import { useClassDetails } from "./hooks/useClassDetails";
+import { useClassDetailsWithId } from "./hooks/useClassDetailsWithId";
 
-const ClassDetails = () => {
+interface ClassDetailsProps {
+  classId?: string;
+}
+
+const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
   const navigate = useNavigate();
   const {
-    id,
     classData,
     students,
     loading,
@@ -26,7 +29,7 @@ const ClassDetails = () => {
     isClassCreator,
     fetchClassDetails,
     t
-  } = useClassDetails();
+  } = useClassDetailsWithId(classId);
 
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [removeStudentDialog, setRemoveStudentDialog] = useState({ open: false, studentId: "", studentName: "" });
@@ -53,10 +56,10 @@ const ClassDetails = () => {
   });
 
   const handleDeleteClass = async () => {
-    if (!id) return;
+    if (!classId) return;
     
     try {
-      const success = await removeClass(id);
+      const success = await removeClass(classId);
       
       if (success) {
         toast({
@@ -78,7 +81,7 @@ const ClassDetails = () => {
   };
 
   const handleRemoveStudent = async (studentId: string) => {
-    if (!id || !studentId) return;
+    if (!classId || !studentId) return;
     
     try {
       // Update class data to remove student
@@ -87,7 +90,7 @@ const ClassDetails = () => {
       const { error } = await supabase
         .from('classes')
         .update({ students: updatedStudents })
-        .eq('id', id);
+        .eq('id', classId);
       
       if (error) throw error;
       
@@ -110,10 +113,10 @@ const ClassDetails = () => {
   };
 
   const handleAddStudents = async (studentIds: string[]) => {
-    if (!id || !studentIds.length) return;
+    if (!classId || !studentIds.length) return;
     
     try {
-      const success = await addMultipleStudentsToClass(id, studentIds);
+      const success = await addMultipleStudentsToClass(classId, studentIds);
       
       if (success) {
         toast({
@@ -281,7 +284,7 @@ const ClassDetails = () => {
       </div>
 
       <ClassDialogs
-        classId={id || ""}
+        classId={classId || ""}
         isStudentListOpen={isStudentListOpen}
         onStudentListOpenChange={setIsStudentListOpen}
         onStudentsAdded={handleAddStudents}
