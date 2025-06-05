@@ -131,10 +131,11 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
           
           {/* Give Coins Dialog */}
           <GiveCoinsDialog
-            open={giveCoinsDialog.open}
-            onOpenChange={(open) => onGiveCoinsDialogChange({...giveCoinsDialog, open})}
-            onGiveCoins={onGiveCoins}
+            isOpen={giveCoinsDialog.open}
+            onClose={() => onGiveCoinsDialogChange({...giveCoinsDialog, open: false})}
             studentId={giveCoinsDialog.studentId}
+            studentName={giveCoinsDialog.studentName}
+            onCoinsAwarded={() => onGiveCoins(0)}
           />
           
           {/* Remove Coins Dialog */}

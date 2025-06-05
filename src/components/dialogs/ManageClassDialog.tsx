@@ -221,10 +221,11 @@ const ManageClassDialog: React.FC<ManageClassDialogProps> = ({
 
       {/* Give Coins Dialog */}
       <GiveCoinsDialog
-        open={giveCoinsDialog.open}
-        onOpenChange={(open) => setGiveCoinsDialog({...giveCoinsDialog, open})}
-        onGiveCoins={handleGiveCoins}
+        isOpen={giveCoinsDialog.open}
+        onClose={() => setGiveCoinsDialog({...giveCoinsDialog, open: false})}
         studentId={giveCoinsDialog.studentId}
+        studentName={giveCoinsDialog.studentName}
+        onCoinsAwarded={() => handleGiveCoins(0)}
       />
 
       {/* Manage Pokemon Dialog */}
