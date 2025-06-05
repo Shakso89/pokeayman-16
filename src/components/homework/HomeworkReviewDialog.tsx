@@ -361,22 +361,6 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
       </DialogContent>
     </Dialog>
   );
-
-  function getStatusColor(status: string) {
-    switch (status) {
-      case 'approved': return 'bg-green-100 text-green-800';
-      case 'rejected': return 'bg-red-100 text-red-800';
-      default: return 'bg-yellow-100 text-yellow-800';
-    }
-  }
-
-  function getStatusIcon(status: string) {
-    switch (status) {
-      case 'approved': return <CheckCircle className="h-4 w-4" />;
-      case 'rejected': return <XCircle className="h-4 w-4" />;
-      default: return <Clock className="h-4 w-4" />;
-    }
-  }
 };
 
 export default HomeworkReviewDialog;
