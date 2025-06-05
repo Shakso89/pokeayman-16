@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Coins, MessageSquare, Sword } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import NotificationBadge from "../NotificationBadge";
 
 interface StudentHeaderProps {
   studentName: string;
@@ -23,7 +24,10 @@ const StudentHeader: React.FC<StudentHeaderProps> = ({
   return (
     <Card className="mb-6 border-4 border-yellow-400 shadow-lg bg-gradient-to-r from-blue-400 to-purple-400 text-white rounded-xl">
       <CardContent className="p-6">
-        <h2 className="text-3xl font-bold mb-4 text-center">Hi {studentName}!</h2>
+        <div className="flex justify-between items-start mb-4">
+          <h2 className="text-3xl font-bold">Hi {studentName}!</h2>
+          <NotificationBadge />
+        </div>
         <div className="flex flex-col md:flex-row items-center justify-between gap-4">
           <Button 
             onClick={onOpenSchoolPool}

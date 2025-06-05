@@ -79,8 +79,8 @@ export const NavBar: React.FC<NavBarProps> = ({
             <Home size={20} />
           </Button>
           
-          {/* Notification Badge - only show for teachers for now */}
-          {userType === "teacher" && <NotificationBadge />}
+          {/* Notification Badge - show for both teachers and students */}
+          <NotificationBadge />
 
           <Button variant="secondary" onClick={() => navigate(`/messages`)} className="flex items-center gap-2">
             <MessageSquare size={20} />

@@ -6,6 +6,7 @@ import { Users } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import StudentHomeworkTab from "./StudentHomeworkTab";
 import ClassRankingTab from "./ClassRankingTab";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MyClassesTabProps {
   studentId: string;
@@ -20,26 +21,81 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
 }) => {
   const { t } = useTranslation();
   const [classData, setClassData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     loadClassData();
-  }, [classId]);
+  }, [classId, studentId]);
 
-  const loadClassData = () => {
+  const loadClassData = async () => {
     try {
-      // Load class data from localStorage
+      setLoading(true);
+      console.log("Loading class data for classId:", classId, "studentId:", studentId);
+      
+      // First try to load from Supabase
+      if (classId && classId !== "") {
+        const { data: classFromDB, error } = await supabase
+          .from('classes')
+          .select('*')
+          .eq('id', classId)
+          .single();
+          
+        if (classFromDB && !error) {
+          console.log("Found class in Supabase:", classFromDB);
+          setClassData(classFromDB);
+          setLoading(false);
+          return;
+        }
+      }
+      
+      // Fallback to localStorage
       const savedClasses = localStorage.getItem("classes");
       if (savedClasses) {
         const classes = JSON.parse(savedClasses);
-        const currentClass = classes.find((cls: any) => cls.id === classId);
+        let currentClass = null;
+        
+        if (classId && classId !== "") {
+          currentClass = classes.find((cls: any) => cls.id === classId);
+        }
+        
+        // If no class found by classId, try to find by student membership
+        if (!currentClass) {
+          currentClass = classes.find((cls: any) => 
+            cls.students && cls.students.includes(studentId)
+          );
+          
+          // Update localStorage with correct classId if found
+          if (currentClass) {
+            localStorage.setItem("studentClassId", currentClass.id);
+          }
+        }
+        
         if (currentClass) {
+          console.log("Found class in localStorage:", currentClass);
           setClassData(currentClass);
+        } else {
+          console.log("No class found for student");
+          setClassData(null);
         }
       }
     } catch (error) {
       console.error("Error loading class data:", error);
+      setClassData(null);
+    } finally {
+      setLoading(false);
     }
   };
+
+  if (loading) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center">
+          <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+          <p className="text-gray-500">Loading class...</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   if (!classData) {
     return (
@@ -47,6 +103,9 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
         <CardContent className="py-8 text-center">
           <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
           <p className="text-gray-500">No class found</p>
+          <p className="text-sm text-gray-400 mt-2">
+            Please contact your teacher to be added to a class.
+          </p>
         </CardContent>
       </Card>
     );
@@ -75,12 +134,12 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
           <StudentHomeworkTab
             studentId={studentId}
             studentName={studentName}
-            classId={classId}
+            classId={classData.id}
           />
         </TabsContent>
 
         <TabsContent value="ranking" className="mt-6">
-          <ClassRankingTab classId={classId} />
+          <ClassRankingTab classId={classData.id} />
         </TabsContent>
       </Tabs>
     </div>
