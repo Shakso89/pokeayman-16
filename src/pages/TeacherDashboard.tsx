@@ -78,6 +78,21 @@ const TeacherDashboard: React.FC = () => {
     }
   }, [teacherId, username, isLoggedIn, userType]);
 
+  // Listen for custom events from notifications
+  useEffect(() => {
+    const handleSwitchToHomeworkTab = () => {
+      console.log("Switching to homework tab from notification");
+      setCurrentView("main");
+      setActiveTab("homework");
+    };
+
+    window.addEventListener('switchToHomeworkTab', handleSwitchToHomeworkTab);
+    
+    return () => {
+      window.removeEventListener('switchToHomeworkTab', handleSwitchToHomeworkTab);
+    };
+  }, []);
+
   // Handle navigating to manage classes (shows school list first)
   const handleManageClasses = () => {
     console.log("Manage classes button clicked");

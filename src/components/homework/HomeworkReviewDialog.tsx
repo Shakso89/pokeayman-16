@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -319,12 +318,22 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
       return (
         <div>
           <span className="font-medium">Audio:</span>
-          <audio controls className="mt-2 w-full" preload="metadata">
+          <audio 
+            controls 
+            className="mt-2 w-full" 
+            preload="metadata"
+            key={submission.content} // Force re-render when content changes
+          >
             <source src={submission.content} type="audio/mpeg" />
             <source src={submission.content} type="audio/wav" />
             <source src={submission.content} type="audio/ogg" />
+            <source src={submission.content} type="audio/mp4" />
+            <source src={submission.content} type="audio/webm" />
             Your browser does not support the audio element.
           </audio>
+          <p className="text-xs text-gray-500 mt-1">
+            If audio doesn't play, try <a href={submission.content} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">opening in new tab</a>
+          </p>
         </div>
       );
     } else {
