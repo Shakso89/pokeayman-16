@@ -130,21 +130,28 @@ const NotificationBadge: React.FC = () => {
       }
     }
 
+    console.log("Handling notification click:", notification.type, "User type:", userType);
+
     // Handle navigation based on notification type and user type
-    if (notification.type === 'homework_submission' && userType === 'teacher') {
-      // Navigate to teacher dashboard and open homework review
+    if (notification.type === 'homework_update' && userType === 'teacher') {
+      // Navigate to teacher dashboard homework tab
       navigate('/teacher-dashboard');
-      // Trigger homework tab opening with a slight delay
       setTimeout(() => {
-        const event = new CustomEvent('openHomeworkManagement');
+        const event = new CustomEvent('switchToHomeworkTab');
         window.dispatchEvent(event);
       }, 100);
-    } else if (notification.type === 'homework_feedback' && userType === 'student') {
-      // Navigate to student dashboard and open homework tab
+    } else if (notification.type === 'homework_update' && userType === 'student') {
+      // Navigate to student dashboard homework tab
       navigate('/student-dashboard');
-      // Trigger opening the homework tab
       setTimeout(() => {
-        const event = new CustomEvent('openHomeworkTab');
+        const event = new CustomEvent('switchToHomeworkTab');
+        window.dispatchEvent(event);
+      }, 100);
+    } else if (notification.type === 'homework_submission' && userType === 'teacher') {
+      // Navigate to teacher dashboard and open homework review
+      navigate('/teacher-dashboard');
+      setTimeout(() => {
+        const event = new CustomEvent('switchToHomeworkTab');
         window.dispatchEvent(event);
       }, 100);
     } else if (notification.type === 'coin_award' || notification.type === 'coin_removal') {
@@ -158,7 +165,6 @@ const NotificationBadge: React.FC = () => {
       // Navigate to Pokemon collection
       if (userType === 'student') {
         navigate('/student-dashboard');
-        // Trigger opening the Pokemon tab
         setTimeout(() => {
           const event = new CustomEvent('openPokemonTab');
           window.dispatchEvent(event);

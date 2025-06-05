@@ -56,7 +56,11 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
           },
           (payload) => {
             console.log("Real-time submission update:", payload);
-            loadSubmissions();
+            if (externalSubmissions) {
+              onSubmissionUpdated?.();
+            } else {
+              loadSubmissions();
+            }
           }
         )
         .subscribe();
@@ -219,11 +223,125 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
     }
   };
 
+  const renderSubmissionContent = (submission: HomeworkSubmission) => {
+    if (!homework) return null;
+
+    if (homework.type === 'multiple_choice') {
+      try {
+        const answers = submission.answers || JSON.parse(submission.content || '{}');
+        const questions = homework.questions || [];
+        
+        if (questions.length > 0) {
+          return (
+            <div className="space-y-4">
+              {questions.map((question, index) => {
+                const questionKey = question.id || `question_${index}`;
+                const studentAnswer = answers[questionKey] || answers[index.toString()];
+                const isCorrect = studentAnswer === question.correct_option;
+                
+                return (
+                  <div key={questionKey} className="border rounded-lg p-4 bg-gray-50">
+                    <h4 className="font-medium mb-2">Question {index + 1}:</h4>
+                    <p className="mb-3">{question.question}</p>
+                    
+                    <div className="grid grid-cols-2 gap-2 mb-3">
+                      {['A', 'B', 'C', 'D'].map((option) => {
+                        const optionText = question[`option_${option.toLowerCase()}` as keyof typeof question];
+                        const isSelected = studentAnswer === option;
+                        const isCorrectOption = question.correct_option === option;
+                        
+                        return (
+                          <div
+                            key={option}
+                            className={`p-2 rounded border text-sm ${
+                              isSelected && isCorrectOption ? 'bg-green-100 border-green-300' :
+                              isSelected && !isCorrectOption ? 'bg-red-100 border-red-300' :
+                              !isSelected && isCorrectOption ? 'bg-blue-100 border-blue-300' :
+                              'bg-white border-gray-200'
+                            }`}
+                          >
+                            <span className="font-medium">{option}:</span> {optionText}
+                            {isSelected && <span className="ml-2 text-xs">(Selected)</span>}
+                            {!isSelected && isCorrectOption && <span className="ml-2 text-xs text-blue-600">(Correct)</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+                    
+                    <Badge className={isCorrect ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                      {isCorrect ? '✓ Correct' : '✗ Incorrect'}
+                    </Badge>
+                  </div>
+                );
+              })}
+            </div>
+          );
+        } else {
+          // Legacy single question format
+          const answer = submission.content;
+          return (
+            <div>
+              <div className="mb-2">
+                <span className="font-medium">Question:</span> {homework.question}
+              </div>
+              <div className="mb-2">
+                <span className="font-medium">Student Answer:</span> {answer}
+              </div>
+              {submission.is_correct !== null && (
+                <Badge className={submission.is_correct ? 'bg-green-100 text-green-800' : 'bg-red-100 text-red-800'}>
+                  {submission.is_correct ? 'Correct' : 'Incorrect'}
+                </Badge>
+              )}
+            </div>
+          );
+        }
+      } catch (error) {
+        console.error("Error parsing answers:", error);
+        return (
+          <div>
+            <span className="font-medium">Answer:</span> {submission.content}
+          </div>
+        );
+      }
+    } else if (homework.type === 'image') {
+      return (
+        <div>
+          <span className="font-medium">Image:</span>
+          <img 
+            src={submission.content} 
+            alt="Submission" 
+            className="mt-2 max-w-full h-auto rounded cursor-pointer"
+            onClick={() => window.open(submission.content, '_blank')}
+          />
+        </div>
+      );
+    } else if (homework.type === 'audio') {
+      return (
+        <div>
+          <span className="font-medium">Audio:</span>
+          <audio controls className="mt-2 w-full" preload="metadata">
+            <source src={submission.content} type="audio/mpeg" />
+            <source src={submission.content} type="audio/wav" />
+            <source src={submission.content} type="audio/ogg" />
+            Your browser does not support the audio element.
+          </audio>
+        </div>
+      );
+    } else {
+      return (
+        <div>
+          <span className="font-medium">Content:</span>
+          <p className="mt-1">{submission.content}</p>
+        </div>
+      );
+    }
+  };
+
   if (!homework) return null;
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="sm:max-w-6xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{homework.title} - Review Submissions</DialogTitle>
         </DialogHeader>
@@ -285,33 +403,7 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
                     {formatDistanceToNow(new Date(selectedSubmission.submitted_at), { addSuffix: true })}
                   </div>
 
-                  {homework.type === 'multiple_choice' ? (
-                    <div>
-                      <span className="font-medium">Answer:</span> {selectedSubmission.content}
-                      {selectedSubmission.is_correct !== null && (
-                        <Badge className={selectedSubmission.is_correct ? 'bg-green-100 text-green-800 ml-2' : 'bg-red-100 text-red-800 ml-2'}>
-                          {selectedSubmission.is_correct ? 'Correct' : 'Incorrect'}
-                        </Badge>
-                      )}
-                    </div>
-                  ) : homework.type === 'image' ? (
-                    <div>
-                      <span className="font-medium">Image:</span>
-                      <img src={selectedSubmission.content} alt="Submission" className="mt-2 max-w-full h-auto rounded" />
-                    </div>
-                  ) : homework.type === 'audio' ? (
-                    <div>
-                      <span className="font-medium">Audio:</span>
-                      <audio controls className="mt-2 w-full">
-                        <source src={selectedSubmission.content} />
-                      </audio>
-                    </div>
-                  ) : (
-                    <div>
-                      <span className="font-medium">Content:</span>
-                      <p className="mt-1">{selectedSubmission.content}</p>
-                    </div>
-                  )}
+                  {renderSubmissionContent(selectedSubmission)}
                 </div>
 
                 <div>

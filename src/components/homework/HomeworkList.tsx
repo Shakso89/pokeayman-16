@@ -9,6 +9,7 @@ import { Homework, HomeworkSubmission } from '@/types/homework';
 import { formatDistanceToNow } from 'date-fns';
 import CreateHomeworkDialog from './CreateHomeworkDialog';
 import HomeworkReviewDialog from './HomeworkReviewDialog';
+import { notifyStudentsOfNewHomework } from '@/utils/notificationService';
 
 interface HomeworkListProps {
   classId: string;
@@ -38,9 +39,16 @@ const HomeworkList: React.FC<HomeworkListProps> = ({ classId, teacherId, isTeach
         schema: 'public', 
         table: 'homework', 
         filter: `class_id=eq.${classId}` 
-      }, () => {
+      }, (payload) => {
         console.log("Homework change detected, reloading...");
         loadHomework();
+        
+        // If a new homework was created, send notifications to students
+        if (payload.eventType === 'INSERT' && payload.new) {
+          const newHomework = payload.new as Homework;
+          console.log("New homework created, sending notifications...");
+          notifyStudentsOfNewHomework(classId, newHomework.title);
+        }
       })
       .subscribe();
 
@@ -145,6 +153,14 @@ const HomeworkList: React.FC<HomeworkListProps> = ({ classId, teacherId, isTeach
     loadAllSubmissions();
   };
 
+  const handleHomeworkCreated = (newHomework: Homework) => {
+    console.log("New homework created:", newHomework);
+    setHomework(prev => [newHomework, ...prev]);
+    
+    // Send notifications to students in the class
+    notifyStudentsOfNewHomework(classId, newHomework.title);
+  };
+
   if (isLoading) {
     return (
       <div className="flex justify-center items-center p-8">
@@ -234,9 +250,7 @@ const HomeworkList: React.FC<HomeworkListProps> = ({ classId, teacherId, isTeach
         onOpenChange={setIsCreateDialogOpen}
         classId={classId}
         teacherId={teacherId}
-        onHomeworkCreated={(newHomework) => {
-          setHomework(prev => [newHomework, ...prev]);
-        }}
+        onHomeworkCreated={handleHomeworkCreated}
       />
 
       {selectedHomework && (

@@ -105,3 +105,47 @@ export const createHomeworkNotification = async (
 
   await createNotification(studentId, title, message, type);
 };
+
+export const createHomeworkSubmissionNotification = async (
+  teacherId: string,
+  studentName: string,
+  homeworkTitle: string
+) => {
+  await createNotification(
+    teacherId,
+    'New Homework Submission 📝',
+    `${studentName} submitted homework for "${homeworkTitle}"`,
+    'homework_submission'
+  );
+};
+
+export const notifyStudentsOfNewHomework = async (
+  classId: string,
+  homeworkTitle: string
+) => {
+  try {
+    // Get all students in the class
+    const { data: students, error } = await supabase
+      .from('student_classes')
+      .select('student_id')
+      .eq('class_id', classId);
+
+    if (error) {
+      console.error('Error getting students for notifications:', error);
+      return;
+    }
+
+    // Send notification to each student
+    for (const student of students || []) {
+      await createHomeworkNotification(
+        student.student_id,
+        homeworkTitle,
+        'new'
+      );
+    }
+
+    console.log(`Sent new homework notifications to ${students?.length || 0} students`);
+  } catch (error) {
+    console.error('Error sending homework notifications:', error);
+  }
+};
