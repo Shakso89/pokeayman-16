@@ -27,22 +27,33 @@ const HomeworkList: React.FC<HomeworkListProps> = ({ classId, teacherId, isTeach
   useEffect(() => {
     loadHomework();
     if (isTeacher) {
-      loadSubmissions();
+      loadAllSubmissions();
     }
 
     // Subscribe to real-time updates
     const homeworkChannel = supabase
       .channel('homework-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'homework', filter: `class_id=eq.${classId}` }, () => {
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'homework', 
+        filter: `class_id=eq.${classId}` 
+      }, () => {
+        console.log("Homework change detected, reloading...");
         loadHomework();
       })
       .subscribe();
 
     const submissionChannel = supabase
       .channel('submission-changes')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'homework_submissions' }, () => {
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'homework_submissions' 
+      }, () => {
+        console.log("Submission change detected, reloading...");
         if (isTeacher) {
-          loadSubmissions();
+          loadAllSubmissions();
         }
       })
       .subscribe();
@@ -55,6 +66,7 @@ const HomeworkList: React.FC<HomeworkListProps> = ({ classId, teacherId, isTeach
 
   const loadHomework = async () => {
     try {
+      console.log("Loading homework for class:", classId);
       const { data, error } = await supabase
         .from('homework')
         .select('*')
@@ -63,6 +75,7 @@ const HomeworkList: React.FC<HomeworkListProps> = ({ classId, teacherId, isTeach
         .order('created_at', { ascending: false });
 
       if (error) throw error;
+      console.log("Loaded homework:", data);
       setHomework(data || []);
     } catch (error) {
       console.error('Error loading homework:', error);
@@ -71,10 +84,25 @@ const HomeworkList: React.FC<HomeworkListProps> = ({ classId, teacherId, isTeach
     }
   };
 
-  const loadSubmissions = async () => {
+  const loadAllSubmissions = async () => {
     try {
-      const homeworkIds = homework.map(hw => hw.id);
-      if (homeworkIds.length === 0) return;
+      console.log("Loading all submissions for homework in class:", classId);
+      
+      // Get all homework IDs for this class
+      const { data: homeworkData, error: homeworkError } = await supabase
+        .from('homework')
+        .select('id')
+        .eq('class_id', classId);
+        
+      if (homeworkError) throw homeworkError;
+      
+      const homeworkIds = homeworkData?.map(hw => hw.id) || [];
+      console.log("Found homework IDs:", homeworkIds);
+      
+      if (homeworkIds.length === 0) {
+        setSubmissions([]);
+        return;
+      }
 
       const { data, error } = await supabase
         .from('homework_submissions')
@@ -82,6 +110,7 @@ const HomeworkList: React.FC<HomeworkListProps> = ({ classId, teacherId, isTeach
         .in('homework_id', homeworkIds);
 
       if (error) throw error;
+      console.log("Loaded submissions:", data);
       setSubmissions(data || []);
     } catch (error) {
       console.error('Error loading submissions:', error);
@@ -106,8 +135,14 @@ const HomeworkList: React.FC<HomeworkListProps> = ({ classId, teacherId, isTeach
   };
 
   const handleReviewHomework = (hw: Homework) => {
+    console.log("Opening review for homework:", hw.id);
     setSelectedHomework(hw);
     setIsReviewDialogOpen(true);
+  };
+
+  const handleSubmissionUpdated = () => {
+    console.log("Submission updated, reloading submissions...");
+    loadAllSubmissions();
   };
 
   if (isLoading) {
@@ -210,7 +245,7 @@ const HomeworkList: React.FC<HomeworkListProps> = ({ classId, teacherId, isTeach
           onOpenChange={setIsReviewDialogOpen}
           homework={selectedHomework}
           submissions={submissions.filter(sub => sub.homework_id === selectedHomework.id)}
-          onSubmissionUpdated={loadSubmissions}
+          onSubmissionUpdated={handleSubmissionUpdated}
         />
       )}
     </div>

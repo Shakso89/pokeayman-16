@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import { Homework, HomeworkSubmission } from "@/types/homework";
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from "@/hooks/use-toast";
 import { awardCoinsToStudent } from "@/utils/pokemon/studentPokemon";
+import { createHomeworkNotification } from "@/utils/notificationService";
 
 interface HomeworkReviewDialogProps {
   open: boolean;
@@ -35,10 +37,33 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
   useEffect(() => {
     if (homework && open) {
       if (externalSubmissions) {
+        console.log("Using external submissions:", externalSubmissions);
         setSubmissions(externalSubmissions);
       } else {
         loadSubmissions();
       }
+      
+      // Set up real-time subscription for submissions
+      const channel = supabase
+        .channel(`homework-submissions-${homework.id}`)
+        .on(
+          'postgres_changes',
+          { 
+            event: '*', 
+            schema: 'public', 
+            table: 'homework_submissions',
+            filter: `homework_id=eq.${homework.id}`
+          },
+          (payload) => {
+            console.log("Real-time submission update:", payload);
+            loadSubmissions();
+          }
+        )
+        .subscribe();
+        
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [homework, open, externalSubmissions]);
 
@@ -46,31 +71,27 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
     if (!homework) return;
 
     try {
+      console.log("Loading submissions for homework:", homework.id);
       const { data, error } = await supabase
         .from('homework_submissions')
         .select('*')
         .eq('homework_id', homework.id)
         .order('submitted_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error loading submissions:", error);
+        throw error;
+      }
+      
+      console.log("Loaded submissions:", data);
       setSubmissions(data || []);
     } catch (error) {
       console.error('Error loading submissions:', error);
-    }
-  };
-
-  const createNotification = async (studentId: string, title: string, message: string) => {
-    try {
-      await supabase
-        .from('notifications')
-        .insert({
-          recipient_id: studentId,
-          title: title,
-          message: message,
-          type: 'homework_feedback'
-        });
-    } catch (error) {
-      console.error('Error creating notification:', error);
+      toast({
+        title: "Error",
+        description: "Failed to load submissions",
+        variant: "destructive"
+      });
     }
   };
 
@@ -92,10 +113,11 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
         awardCoinsToStudent(submission.student_id, homework.coin_reward);
         
         // Create notification for student
-        await createNotification(
+        await createHomeworkNotification(
           submission.student_id,
-          'Homework Approved! 🎉',
-          `Your homework "${homework.title}" has been approved! You earned ${homework.coin_reward} coins.`
+          homework.title,
+          'approved',
+          feedback || 'Great work!'
         );
       }
 
@@ -148,10 +170,11 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
 
       // Create notification for student
       if (homework) {
-        await createNotification(
+        await createHomeworkNotification(
           submission.student_id,
-          'Homework Needs Revision',
-          `Your homework "${homework.title}" needs some improvements. Check the feedback and try again!`
+          homework.title,
+          'rejected',
+          feedback
         );
       }
 
@@ -338,6 +361,22 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
       </DialogContent>
     </Dialog>
   );
+
+  function getStatusColor(status: string) {
+    switch (status) {
+      case 'approved': return 'bg-green-100 text-green-800';
+      case 'rejected': return 'bg-red-100 text-red-800';
+      default: return 'bg-yellow-100 text-yellow-800';
+    }
+  }
+
+  function getStatusIcon(status: string) {
+    switch (status) {
+      case 'approved': return <CheckCircle className="h-4 w-4" />;
+      case 'rejected': return <XCircle className="h-4 w-4" />;
+      default: return <Clock className="h-4 w-4" />;
+    }
+  }
 };
 
 export default HomeworkReviewDialog;

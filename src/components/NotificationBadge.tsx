@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -131,19 +130,45 @@ const NotificationBadge: React.FC = () => {
       }
     }
 
-    // If has link, navigate
-    if (notification.link) {
-      if (notification.link.includes('/teacher/homework')) {
+    // Handle navigation based on notification type and user type
+    if (notification.type === 'homework_submission' && userType === 'teacher') {
+      // Navigate to teacher dashboard and open homework review
+      navigate('/teacher-dashboard');
+      // Trigger homework tab opening with a slight delay
+      setTimeout(() => {
+        const event = new CustomEvent('openHomeworkManagement');
+        window.dispatchEvent(event);
+      }, 100);
+    } else if (notification.type === 'homework_feedback' && userType === 'student') {
+      // Navigate to student dashboard and open homework tab
+      navigate('/student-dashboard');
+      // Trigger opening the homework tab
+      setTimeout(() => {
+        const event = new CustomEvent('openHomeworkTab');
+        window.dispatchEvent(event);
+      }, 100);
+    } else if (notification.type === 'coin_award' || notification.type === 'coin_removal') {
+      // Navigate to appropriate dashboard
+      if (userType === 'student') {
+        navigate('/student-dashboard');
+      } else {
         navigate('/teacher-dashboard');
-        // Small delay to ensure navigation completes
+      }
+    } else if (notification.type === 'pokemon_award' || notification.type === 'pokemon_removal') {
+      // Navigate to Pokemon collection
+      if (userType === 'student') {
+        navigate('/student-dashboard');
+        // Trigger opening the Pokemon tab
         setTimeout(() => {
-          // Trigger homework management view with review tab
-          const event = new CustomEvent('openHomeworkReview');
+          const event = new CustomEvent('openPokemonTab');
           window.dispatchEvent(event);
         }, 100);
       } else {
-        navigate(notification.link);
+        navigate('/teacher-dashboard');
       }
+    } else if (notification.link) {
+      // Use the provided link
+      navigate(notification.link);
     } else {
       // Otherwise show dialog
       setSelectedNotification(notification);
