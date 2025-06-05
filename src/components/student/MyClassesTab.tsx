@@ -1,10 +1,11 @@
 
 import React, { useState, useEffect } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Users, BookOpen, Clock } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Users } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
 import StudentHomeworkTab from "./StudentHomeworkTab";
+import ClassRankingTab from "./ClassRankingTab";
 
 interface MyClassesTabProps {
   studentId: string;
@@ -12,65 +13,40 @@ interface MyClassesTabProps {
   classId: string;
 }
 
-const MyClassesTab: React.FC<MyClassesTabProps> = ({ studentId, studentName, classId }) => {
+const MyClassesTab: React.FC<MyClassesTabProps> = ({
+  studentId,
+  studentName,
+  classId
+}) => {
+  const { t } = useTranslation();
   const [classData, setClassData] = useState<any>(null);
-  const [activeHomework, setActiveHomework] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     loadClassData();
-    loadHomeworkCount();
   }, [classId]);
 
-  const loadClassData = async () => {
-    if (!classId) return;
-    
+  const loadClassData = () => {
     try {
-      const { data, error } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('id', classId)
-        .single();
-
-      if (error) throw error;
-      setClassData(data);
+      // Load class data from localStorage
+      const savedClasses = localStorage.getItem("classes");
+      if (savedClasses) {
+        const classes = JSON.parse(savedClasses);
+        const currentClass = classes.find((cls: any) => cls.id === classId);
+        if (currentClass) {
+          setClassData(currentClass);
+        }
+      }
     } catch (error) {
-      console.error('Error loading class data:', error);
-    } finally {
-      setIsLoading(false);
+      console.error("Error loading class data:", error);
     }
   };
-
-  const loadHomeworkCount = async () => {
-    if (!classId) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('homework')
-        .select('id')
-        .eq('class_id', classId)
-        .gt('expires_at', new Date().toISOString());
-
-      if (error) throw error;
-      setActiveHomework(data?.length || 0);
-    } catch (error) {
-      console.error('Error loading homework count:', error);
-    }
-  };
-
-  if (isLoading) {
-    return (
-      <div className="flex justify-center items-center p-8">
-        <p className="text-gray-500">Loading class information...</p>
-      </div>
-    );
-  }
 
   if (!classData) {
     return (
       <Card>
         <CardContent className="py-8 text-center">
-          <p className="text-gray-500">No class assigned</p>
+          <Users className="h-12 w-12 mx-auto mb-4 text-gray-400" />
+          <p className="text-gray-500">No class found</p>
         </CardContent>
       </Card>
     );
@@ -78,39 +54,35 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({ studentId, studentName, cla
 
   return (
     <div className="space-y-6">
-      {/* Class Info Card */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Users className="h-5 w-5" />
-            {classData.name}
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4 text-blue-500" />
-              <span className="text-sm text-gray-600">Active Homework:</span>
-              <Badge variant="outline">{activeHomework}</Badge>
-            </div>
-            <div className="flex items-center gap-2">
-              <Clock className="h-4 w-4 text-green-500" />
-              <span className="text-sm text-gray-600">Status:</span>
-              <Badge className="bg-green-100 text-green-800">Enrolled</Badge>
-            </div>
-          </div>
-          {classData.description && (
-            <p className="text-sm text-gray-600 mt-3">{classData.description}</p>
-          )}
+      {/* Class Header */}
+      <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+        <CardContent className="p-6">
+          <h2 className="text-2xl font-bold mb-2">{classData.name}</h2>
+          <p className="text-blue-100">
+            {classData.description || "Welcome to your class!"}
+          </p>
         </CardContent>
       </Card>
 
-      {/* Homework Section */}
-      <StudentHomeworkTab 
-        studentId={studentId}
-        studentName={studentName}
-        classId={classId}
-      />
+      {/* Class Tabs */}
+      <Tabs defaultValue="homework" className="w-full">
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="homework">📚 Homework</TabsTrigger>
+          <TabsTrigger value="ranking">🏆 Rankings</TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="homework" className="mt-6">
+          <StudentHomeworkTab
+            studentId={studentId}
+            studentName={studentName}
+            classId={classId}
+          />
+        </TabsContent>
+
+        <TabsContent value="ranking" className="mt-6">
+          <ClassRankingTab classId={classId} />
+        </TabsContent>
+      </Tabs>
     </div>
   );
 };

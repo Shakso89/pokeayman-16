@@ -47,41 +47,72 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
 
     try {
       // Validate required fields
-      if (!formData.title || !formData.description || !formData.expires_at) {
+      if (!formData.title.trim()) {
         toast({
           title: "Error",
-          description: "Please fill in all required fields",
+          description: "Title is required",
           variant: "destructive"
         });
+        setIsLoading(false);
+        return;
+      }
+
+      if (!formData.description.trim()) {
+        toast({
+          title: "Error",
+          description: "Description is required",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (!formData.expires_at) {
+        toast({
+          title: "Error",
+          description: "Due date is required",
+          variant: "destructive"
+        });
+        setIsLoading(false);
         return;
       }
 
       // For multiple choice, validate question and options
       if (formData.type === "multiple_choice") {
-        if (!formData.question || !formData.option_a || !formData.option_b) {
+        if (!formData.question.trim()) {
           toast({
             title: "Error", 
-            description: "Question and at least two options are required for multiple choice",
+            description: "Question is required for multiple choice assignments",
             variant: "destructive"
           });
+          setIsLoading(false);
+          return;
+        }
+        if (!formData.option_a.trim() || !formData.option_b.trim()) {
+          toast({
+            title: "Error", 
+            description: "At least options A and B are required",
+            variant: "destructive"
+          });
+          setIsLoading(false);
           return;
         }
       }
 
       const homeworkData = {
-        title: formData.title,
-        description: formData.description,
+        title: formData.title.trim(),
+        description: formData.description.trim(),
         type: formData.type,
         coin_reward: formData.coin_reward,
         expires_at: formData.expires_at,
         teacher_id: teacherId,
         class_id: classId,
         ...(formData.type === "multiple_choice" && {
-          question: formData.question,
-          option_a: formData.option_a,
-          option_b: formData.option_b,
-          option_c: formData.option_c || null,
-          option_d: formData.option_d || null,
+          question: formData.question.trim(),
+          option_a: formData.option_a.trim(),
+          option_b: formData.option_b.trim(),
+          option_c: formData.option_c.trim() || null,
+          option_d: formData.option_d.trim() || null,
           correct_option: formData.correct_option
         })
       };
@@ -120,7 +151,7 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
       console.error("Error creating homework:", error);
       toast({
         title: "Error",
-        description: "Failed to create homework",
+        description: "Failed to create homework. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -162,6 +193,7 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
               onChange={(e) => setFormData({...formData, description: e.target.value})}
               placeholder="Describe the homework assignment"
               required
+              rows={3}
             />
           </div>
 
@@ -190,6 +222,7 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
                   value={formData.question}
                   onChange={(e) => setFormData({...formData, question: e.target.value})}
                   placeholder="Enter your question"
+                  rows={2}
                 />
               </div>
 

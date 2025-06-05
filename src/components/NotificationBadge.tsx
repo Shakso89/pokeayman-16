@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Bell } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,17 +28,20 @@ const NotificationBadge: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
 
   const teacherId = localStorage.getItem("teacherId");
+  const studentId = localStorage.getItem("studentId");
+  const currentUserId = teacherId || studentId;
+  const userType = localStorage.getItem("userType");
 
   // Load notifications from Supabase
   const loadNotifications = async () => {
-    if (!teacherId) return;
+    if (!currentUserId) return;
     
     try {
-      console.log("Loading notifications for teacher:", teacherId);
+      console.log("Loading notifications for user:", currentUserId, "type:", userType);
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
-        .eq('recipient_id', teacherId)
+        .eq('recipient_id', currentUserId)
         .order('created_at', { ascending: false });
         
       if (error) {
@@ -56,7 +60,7 @@ const NotificationBadge: React.FC = () => {
 
   // Setup realtime subscription for notifications
   useEffect(() => {
-    if (teacherId) {
+    if (currentUserId) {
       loadNotifications();
       
       console.log("Setting up realtime subscription for notifications");
@@ -69,18 +73,32 @@ const NotificationBadge: React.FC = () => {
             event: 'INSERT', 
             schema: 'public', 
             table: 'notifications',
-            filter: `recipient_id=eq.${teacherId}`
+            filter: `recipient_id=eq.${currentUserId}`
           },
           (payload) => {
             console.log("New notification received:", payload.new);
-            setNotifications(prev => 
-              [payload.new as Notification, ...prev]
-            );
+            const newNotification = payload.new as Notification;
+            setNotifications(prev => [newNotification, ...prev]);
             
             // Show toast for new notification
-            toast(payload.new.title as string, {
-              description: payload.new.message as string,
+            toast(newNotification.title, {
+              description: newNotification.message,
             });
+          }
+        )
+        .on(
+          'postgres_changes',
+          { 
+            event: 'UPDATE', 
+            schema: 'public', 
+            table: 'notifications',
+            filter: `recipient_id=eq.${currentUserId}`
+          },
+          (payload) => {
+            console.log("Notification updated:", payload.new);
+            setNotifications(prev => 
+              prev.map(n => n.id === payload.new.id ? payload.new as Notification : n)
+            );
           }
         )
         .subscribe();
@@ -90,7 +108,7 @@ const NotificationBadge: React.FC = () => {
         supabase.removeChannel(channel);
       };
     }
-  }, [teacherId]);
+  }, [currentUserId]);
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -133,14 +151,33 @@ const NotificationBadge: React.FC = () => {
     }
   };
 
+  const markAllAsRead = async () => {
+    if (!currentUserId) return;
+    
+    try {
+      const { error } = await supabase
+        .from('notifications')
+        .update({ read: true })
+        .eq('recipient_id', currentUserId)
+        .eq('read', false);
+        
+      if (!error) {
+        setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+        toast("All notifications marked as read");
+      }
+    } catch (error) {
+      console.error("Error marking notifications as read:", error);
+    }
+  };
+
   const clearAllNotifications = async () => {
-    if (!teacherId) return;
+    if (!currentUserId) return;
     
     try {
       const { error } = await supabase
         .from('notifications')
         .delete()
-        .eq('recipient_id', teacherId);
+        .eq('recipient_id', currentUserId);
         
       if (!error) {
         setNotifications([]);
@@ -179,9 +216,16 @@ const NotificationBadge: React.FC = () => {
           <div className="flex items-center justify-between p-4 border-b">
             <h3 className="font-medium">{t("notifications")}</h3>
             {notifications.length > 0 && (
-              <Button variant="ghost" size="sm" onClick={clearAllNotifications} className="text-xs">
-                Clear All
-              </Button>
+              <div className="flex gap-2">
+                {unreadCount > 0 && (
+                  <Button variant="ghost" size="sm" onClick={markAllAsRead} className="text-xs">
+                    Mark Read
+                  </Button>
+                )}
+                <Button variant="ghost" size="sm" onClick={clearAllNotifications} className="text-xs">
+                  Clear All
+                </Button>
+              </div>
             )}
           </div>
           <div className="max-h-80 overflow-y-auto">
@@ -200,7 +244,7 @@ const NotificationBadge: React.FC = () => {
                     onClick={() => handleNotificationClick(notification)}
                   >
                     <div className="flex justify-between">
-                      <h4 className="font-medium">{notification.title}</h4>
+                      <h4 className="font-medium text-sm">{notification.title}</h4>
                       {!notification.read && <span className="w-2 h-2 bg-blue-500 rounded-full" />}
                     </div>
                     <p className="text-sm text-gray-500 line-clamp-2 mt-1">

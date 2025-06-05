@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Homework, HomeworkSubmission } from "@/types/homework";
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from "@/hooks/use-toast";
+import { awardCoinsToStudent } from "@/utils/pokemon/studentPokemon";
 
 interface HomeworkReviewDialogProps {
   open: boolean;
@@ -58,6 +59,21 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
     }
   };
 
+  const createNotification = async (studentId: string, title: string, message: string) => {
+    try {
+      await supabase
+        .from('notifications')
+        .insert({
+          recipient_id: studentId,
+          title: title,
+          message: message,
+          type: 'homework_feedback'
+        });
+    } catch (error) {
+      console.error('Error creating notification:', error);
+    }
+  };
+
   const handleApprove = async (submission: HomeworkSubmission) => {
     setIsLoading(true);
     try {
@@ -71,9 +87,21 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
 
       if (error) throw error;
 
+      // Award coins to student
+      if (homework) {
+        awardCoinsToStudent(submission.student_id, homework.coin_reward);
+        
+        // Create notification for student
+        await createNotification(
+          submission.student_id,
+          'Homework Approved! 🎉',
+          `Your homework "${homework.title}" has been approved! You earned ${homework.coin_reward} coins.`
+        );
+      }
+
       toast({
         title: "Success",
-        description: `Submission approved for ${submission.student_name}`
+        description: `Submission approved for ${submission.student_name}! ${homework?.coin_reward || 0} coins awarded.`
       });
 
       if (externalSubmissions) {
@@ -117,6 +145,15 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
         .eq('id', submission.id);
 
       if (error) throw error;
+
+      // Create notification for student
+      if (homework) {
+        await createNotification(
+          submission.student_id,
+          'Homework Needs Revision',
+          `Your homework "${homework.title}" needs some improvements. Check the feedback and try again!`
+        );
+      }
 
       toast({
         title: "Success",
