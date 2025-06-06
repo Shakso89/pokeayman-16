@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -168,10 +169,9 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       {/* Add Student Dialog */}
       <AddStudentsDialog
         isOpen={isAddStudentDialogOpen}
-        onClose={() => setIsAddStudentDialogOpen(false)}
-        selectedClassId={selectedClassId}
-        availableStudents={availableStudents}
-        onAddStudents={handleAddStudents}
+        onOpenChange={setIsAddStudentDialogOpen}
+        classId={selectedClassId || ""}
+        onStudentsAdded={handleAddStudents}
       />
       
       {/* Delete Class Confirmation Dialog */}
@@ -179,7 +179,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         isOpen={isDeleteDialogOpen}
         onOpenChange={setIsDeleteDialogOpen}
         onConfirmDelete={handleDeleteClass}
-        classId={classToDelete || undefined} // Pass the classId to be deleted
+        classId={classToDelete || undefined}
       />
       
       {/* School Selection Dialog */}
@@ -187,7 +187,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         open={isSelectSchoolOpen}
         onOpenChange={setIsSelectSchoolOpen}
         teacherId={teacherId}
-        onClassCreated={handleClassCreated} // Updated callback to refresh classes
+        onClassCreated={handleClassCreated}
       />
     </div>
   );

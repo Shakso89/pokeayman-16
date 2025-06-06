@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -225,7 +226,12 @@ const StudentDashboard: React.FC = () => {
       </div>
       
       {/* School Pool Dialog */}
-      <SchoolPoolDialog open={showSchoolPool} onOpenChange={setShowSchoolPool} schoolPokemons={schoolPokemons} />
+      <SchoolPoolDialog 
+        open={showSchoolPool} 
+        onOpenChange={setShowSchoolPool} 
+        schoolId={currentSchoolId}
+        userType="student"
+      />
     </div>
   );
 };

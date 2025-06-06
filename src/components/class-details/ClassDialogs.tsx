@@ -135,7 +135,7 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
       {/* School Pool Dialog */}
       {schoolPoolDialogOpen && onSchoolPoolDialogChange && (
         <SchoolPoolDialog
-          isOpen={schoolPoolDialogOpen}
+          open={schoolPoolDialogOpen}
           onOpenChange={onSchoolPoolDialogChange}
           schoolId={schoolId}
           userType="teacher"

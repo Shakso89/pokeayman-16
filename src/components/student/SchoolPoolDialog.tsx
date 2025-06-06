@@ -35,7 +35,17 @@ const SchoolPoolDialog: React.FC<SchoolPoolDialogProps> = ({
     setLoading(true);
     try {
       const pool = getSchoolPokemonPool(schoolId);
-      setPokemonPool(pool || []);
+      console.log("School pool data:", pool);
+      
+      // Handle the pool data properly
+      if (pool && pool.availablePokemons && Array.isArray(pool.availablePokemons)) {
+        setPokemonPool(pool.availablePokemons);
+      } else if (Array.isArray(pool)) {
+        setPokemonPool(pool);
+      } else {
+        console.warn("Invalid pool data:", pool);
+        setPokemonPool([]);
+      }
     } catch (error) {
       console.error("Error fetching school pool:", error);
       setPokemonPool([]);
