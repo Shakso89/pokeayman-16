@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
@@ -36,6 +37,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
   const [activeTab, setActiveTab] = useState("students");
   const [isStudentListOpen, setIsStudentListOpen] = useState(false);
   const [pendingSubmissions, setPendingSubmissions] = useState(0);
+  const [schoolPoolDialogOpen, setSchoolPoolDialogOpen] = useState(false);
   
   // Management dialogs state
   const [managePokemonDialog, setManagePokemonDialog] = useState({
@@ -205,6 +207,20 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
     setActiveTab("homework");
   };
 
+  const handleManagePokemon = () => {
+    // Open the manage pokemon dialog for the entire class
+    setManagePokemonDialog({
+      open: true,
+      studentId: "all", // Special value to indicate class-wide management
+      studentName: "All Students",
+      schoolId: classData.schoolId || ""
+    });
+  };
+
+  const handleViewSchoolPool = () => {
+    setSchoolPoolDialogOpen(true);
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -239,6 +255,9 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         onAddStudent={() => setIsStudentListOpen(true)}
         onSwitchToHomework={handleSwitchToHomework}
         pendingSubmissions={pendingSubmissions}
+        onDeleteClass={() => setDeleteDialogOpen(true)}
+        onManagePokemon={handleManagePokemon}
+        onViewSchoolPool={handleViewSchoolPool}
       />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
@@ -304,6 +323,9 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         removeCoinsDialog={removeCoinsDialog}
         onRemoveCoinsDialogChange={setRemoveCoinsDialog}
         onRemoveCoins={handleRemoveCoins}
+        schoolPoolDialogOpen={schoolPoolDialogOpen}
+        onSchoolPoolDialogChange={setSchoolPoolDialogOpen}
+        schoolId={classData.schoolId || ""}
       />
     </div>
   );
