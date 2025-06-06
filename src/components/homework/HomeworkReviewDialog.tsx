@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -318,22 +319,35 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
       return (
         <div>
           <span className="font-medium">Audio:</span>
-          <audio 
-            controls 
-            className="mt-2 w-full" 
-            preload="metadata"
-            key={submission.content} // Force re-render when content changes
-          >
-            <source src={submission.content} type="audio/mpeg" />
-            <source src={submission.content} type="audio/wav" />
-            <source src={submission.content} type="audio/ogg" />
-            <source src={submission.content} type="audio/mp4" />
-            <source src={submission.content} type="audio/webm" />
-            Your browser does not support the audio element.
-          </audio>
-          <p className="text-xs text-gray-500 mt-1">
-            If audio doesn't play, try <a href={submission.content} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline">opening in new tab</a>
-          </p>
+          <div className="mt-2">
+            <audio 
+              controls 
+              className="w-full" 
+              preload="metadata"
+              controlsList="nodownload"
+            >
+              <source src={submission.content} type="audio/mpeg" />
+              <source src={submission.content} type="audio/wav" />
+              <source src={submission.content} type="audio/ogg" />
+              <source src={submission.content} type="audio/mp4" />
+              <source src={submission.content} type="audio/webm" />
+              <source src={submission.content} type="audio/aac" />
+              Your browser does not support the audio element.
+            </audio>
+            <div className="mt-2 space-y-1">
+              <p className="text-xs text-gray-500">
+                If audio doesn't play, try <a href={submission.content} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline hover:text-blue-700">opening in new tab</a>
+              </p>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => window.open(submission.content, '_blank')}
+                className="text-xs"
+              >
+                Open Audio in New Tab
+              </Button>
+            </div>
+          </div>
         </div>
       );
     } else {

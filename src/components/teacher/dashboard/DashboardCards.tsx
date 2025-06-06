@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { School, MessageSquare, BarChart, BookOpen } from "lucide-react";
@@ -64,11 +63,8 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({
   };
 
   const handleClassClick = (classId: string) => {
-    if (onNavigateToClass) {
-      onNavigateToClass(classId);
-    } else {
-      navigate(`/class/${classId}`);
-    }
+    console.log("Navigating to class:", classId);
+    navigate(`/class/${classId}`);
   };
 
   return (
