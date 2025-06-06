@@ -1,59 +1,53 @@
 
 import React, { useState } from "react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogDescription, 
-  DialogFooter, 
-  DialogHeader, 
-  DialogTitle 
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { useTranslation } from "@/hooks/useTranslation";
 
 interface RemoveCoinsDialogProps {
-  open: boolean;
+  isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  onRemoveCoins: (amount: number) => void;
-  studentId: string;
   studentName: string;
+  onRemoveCoins: (amount: number) => void;
 }
 
-const RemoveCoinsDialog: React.FC<RemoveCoinsDialogProps> = ({ 
-  open, 
-  onOpenChange, 
-  onRemoveCoins,
-  studentId,
-  studentName
+const RemoveCoinsDialog: React.FC<RemoveCoinsDialogProps> = ({
+  isOpen,
+  onOpenChange,
+  studentName,
+  onRemoveCoins
 }) => {
   const { t } = useTranslation();
-  const [coinAmount, setCoinAmount] = useState<number>(5);
+  const [amount, setAmount] = useState("");
 
-  const handleRemoveCoins = () => {
-    onRemoveCoins(coinAmount);
+  const handleSubmit = () => {
+    const coinAmount = parseInt(amount);
+    if (coinAmount > 0) {
+      onRemoveCoins(coinAmount);
+      setAmount("");
+      onOpenChange(false);
+    }
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t("remove-coins-from-student")}</DialogTitle>
-          <DialogDescription>
-            Remove coins from {studentName}
-          </DialogDescription>
+          <DialogTitle>{t("remove-coins")} - {studentName}</DialogTitle>
         </DialogHeader>
         
-        <div className="grid gap-4 py-4">
-          <div className="grid gap-2">
-            <Label htmlFor="coins">{t("coin-amount")}</Label>
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="amount">{t("amount")}</Label>
             <Input
-              id="coins"
+              id="amount"
               type="number"
-              value={coinAmount}
-              onChange={(e) => setCoinAmount(parseInt(e.target.value) || 0)}
-              min={1}
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Enter amount"
+              min="1"
             />
           </div>
         </div>
@@ -62,7 +56,7 @@ const RemoveCoinsDialog: React.FC<RemoveCoinsDialogProps> = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("cancel")}
           </Button>
-          <Button variant="destructive" onClick={handleRemoveCoins}>
+          <Button onClick={handleSubmit} disabled={!amount || parseInt(amount) <= 0}>
             {t("remove-coins")}
           </Button>
         </DialogFooter>

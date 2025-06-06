@@ -1,128 +1,110 @@
 
-import React, { useState } from "react";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle,
-  DialogClose
-} from "@/components/ui/dialog";
-import { useTranslation } from "@/hooks/useTranslation";
-import { Pokemon } from "@/types/pokemon";
-import { X } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { useTranslation } from "@/hooks/useTranslation";
+import { getSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
+import { Pokemon } from "@/types/pokemon";
 
 interface SchoolPoolDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  schoolPokemons: Pokemon[];
+  schoolId: string;
+  userType: "student" | "teacher";
 }
 
-const SchoolPoolDialog: React.FC<SchoolPoolDialogProps> = ({ 
-  open, 
-  onOpenChange, 
-  schoolPokemons 
+const SchoolPoolDialog: React.FC<SchoolPoolDialogProps> = ({
+  open,
+  onOpenChange,
+  schoolId,
+  userType
 }) => {
   const { t } = useTranslation();
-  const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
-  
-  const handlePokemonClick = (pokemon: Pokemon) => {
-    setSelectedPokemon(pokemon);
+  const [pokemonPool, setPokemonPool] = useState<Pokemon[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (open && schoolId) {
+      fetchSchoolPool();
+    }
+  }, [open, schoolId]);
+
+  const fetchSchoolPool = () => {
+    setLoading(true);
+    try {
+      const pool = getSchoolPokemonPool(schoolId);
+      setPokemonPool(pool || []);
+    } catch (error) {
+      console.error("Error fetching school pool:", error);
+      setPokemonPool([]);
+    } finally {
+      setLoading(false);
+    }
   };
-  
-  const handleCloseDetail = () => {
-    setSelectedPokemon(null);
+
+  const getRarityColor = (rarity: string) => {
+    switch (rarity) {
+      case "legendary": return "bg-yellow-500";
+      case "rare": return "bg-purple-500";
+      case "uncommon": return "bg-blue-500";
+      default: return "bg-gray-500";
+    }
   };
-  
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-3xl">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>
-            {t("school-pokemon-pool") || "School Pokémon Pool"}
-          </DialogTitle>
+          <DialogTitle>{t("school-pokemon-pool")}</DialogTitle>
         </DialogHeader>
         
-        <div className="py-4">
-          <div className="flex justify-between mb-4 items-center">
-            <p className="text-sm font-medium">
-              {t("available-pokemon") || "Available Pokémon"}: {schoolPokemons.length}
-            </p>
-          </div>
-          
-          {selectedPokemon ? (
-            <div className="flex flex-col items-center p-6 bg-white rounded-lg shadow-lg">
-              <div className="flex justify-end w-full">
-                <Button variant="ghost" size="sm" onClick={handleCloseDetail} className="mb-2">
-                  <X className="h-4 w-4" />
-                </Button>
-              </div>
-              <img 
-                src={selectedPokemon.image} 
-                alt={selectedPokemon.name} 
-                className="w-48 h-48 object-contain mx-auto" 
-              />
-              <div className="mt-4 text-center">
-                <h3 className="text-xl font-bold">{selectedPokemon.name}</h3>
-                <p className="text-gray-600">Type: {selectedPokemon.type}</p>
-                <span className={`inline-block px-2 py-1 mt-2 rounded-full text-sm text-white ${
-                  selectedPokemon.rarity === 'legendary' ? 'bg-yellow-500' :
-                  selectedPokemon.rarity === 'rare' ? 'bg-purple-500' :
-                  selectedPokemon.rarity === 'uncommon' ? 'bg-blue-500' : 'bg-green-500'
-                }`}>
-                  {selectedPokemon.rarity}
-                </span>
-              </div>
+        <div className="space-y-4">
+          {loading ? (
+            <div className="text-center py-8">
+              <p>{t("loading")}</p>
+            </div>
+          ) : pokemonPool.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-gray-500">{t("no-pokemon-in-pool")}</p>
             </div>
           ) : (
-            <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 gap-3 max-h-[70vh] overflow-y-auto p-2 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg">
-              {schoolPokemons.map((pokemon) => (
-                <div 
-                  key={pokemon.id} 
-                  className="text-center group hover-scale cursor-pointer" 
-                  onClick={() => handlePokemonClick(pokemon)}
-                >
-                  <div className={`bg-white p-2 rounded-lg shadow-sm border-2 ${
-                    pokemon.rarity === 'legendary' ? 'border-yellow-500 hover:border-yellow-400' :
-                    pokemon.rarity === 'rare' ? 'border-purple-500 hover:border-purple-400' :
-                    pokemon.rarity === 'uncommon' ? 'border-blue-500 hover:border-blue-400' : 
-                    'border-green-500 hover:border-green-400'
-                  } transition-all duration-200 transform hover:scale-105`}>
-                    <img 
-                      src={pokemon.image} 
-                      alt={pokemon.name} 
-                      className="w-16 h-16 object-contain mx-auto" 
-                    />
-                    <div className="mt-1 p-1 bg-gray-100 rounded-md">
-                      <p className="text-xs font-medium truncate">{pokemon.name}</p>
-                      <p className="text-xs text-gray-500">{pokemon.type}</p>
-                      <span className={`inline-block px-1 py-0.5 rounded-full text-[10px] text-white ${
-                        pokemon.rarity === 'legendary' ? 'bg-yellow-500' :
-                        pokemon.rarity === 'rare' ? 'bg-purple-500' :
-                        pokemon.rarity === 'uncommon' ? 'bg-blue-500' : 'bg-green-500'
-                      }`}>
-                        {pokemon.rarity}
-                      </span>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pokemonPool.map((pokemon) => (
+                <Card key={pokemon.id}>
+                  <CardContent className="p-4">
+                    <div className="flex flex-col items-center space-y-2">
+                      <img 
+                        src={pokemon.image} 
+                        alt={pokemon.name}
+                        className="w-20 h-20 object-contain"
+                        onError={(e) => {
+                          e.currentTarget.src = "/placeholder.svg";
+                        }}
+                      />
+                      <h3 className="font-semibold text-center">{pokemon.name}</h3>
+                      <div className="flex gap-2">
+                        <Badge variant="outline">{pokemon.type}</Badge>
+                        <Badge className={`text-white ${getRarityColor(pokemon.rarity)}`}>
+                          {pokemon.rarity}
+                        </Badge>
+                      </div>
+                      {pokemon.level && (
+                        <Badge variant="secondary">Level {pokemon.level}</Badge>
+                      )}
                     </div>
-                  </div>
-                </div>
+                  </CardContent>
+                </Card>
               ))}
-              
-              {schoolPokemons.length > 96 && (
-                <div className="col-span-full text-center py-4 text-gray-500 text-sm bg-white/50 rounded-lg">
-                  {t("and-more-pokemon") || 
-                    `And ${schoolPokemons.length - 96} more Pokémon...`
-                  }
-                </div>
-              )}
-              
-              {schoolPokemons.length === 0 && (
-                <div className="col-span-full text-center py-8 text-gray-500">
-                  {t("no-pokemon-in-pool") || "No Pokémon available in the school pool."}
-                </div>
-              )}
             </div>
           )}
+          
+          <div className="flex justify-end pt-4">
+            <Button onClick={() => onOpenChange(false)}>
+              {t("close")}
+            </Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>

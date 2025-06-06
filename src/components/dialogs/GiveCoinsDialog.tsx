@@ -1,125 +1,65 @@
 
 import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Textarea } from "@/components/ui/textarea";
-import { Coins } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { awardCoinsToStudent } from "@/utils/pokemon/studentPokemon";
-import { createCoinAwardNotification } from "@/utils/notificationService";
+import { useTranslation } from "@/hooks/useTranslation";
 
 interface GiveCoinsDialogProps {
   isOpen: boolean;
-  onClose: () => void;
-  studentId: string;
+  onOpenChange: (open: boolean) => void;
   studentName: string;
-  onCoinsAwarded?: () => void;
+  onGiveCoins: (amount: number) => void;
 }
 
 const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
   isOpen,
-  onClose,
-  studentId,
+  onOpenChange,
   studentName,
-  onCoinsAwarded
+  onGiveCoins
 }) => {
-  const [amount, setAmount] = useState(10);
-  const [reason, setReason] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
-  const { toast } = useToast();
+  const { t } = useTranslation();
+  const [amount, setAmount] = useState("");
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setIsLoading(true);
-
-    try {
-      if (amount <= 0) {
-        toast({
-          title: "Error",
-          description: "Amount must be greater than 0",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      // Award coins to student
-      awardCoinsToStudent(studentId, amount);
-
-      // Create notification for student
-      await createCoinAwardNotification(
-        studentId,
-        amount,
-        reason || 'Great work!'
-      );
-
-      toast({
-        title: "Success",
-        description: `${amount} coins awarded to ${studentName}!`
-      });
-
-      // Reset form
-      setAmount(10);
-      setReason("");
-      onCoinsAwarded?.();
-      onClose();
-    } catch (error) {
-      console.error("Error awarding coins:", error);
-      toast({
-        title: "Error",
-        description: "Failed to award coins",
-        variant: "destructive"
-      });
-    } finally {
-      setIsLoading(false);
+  const handleSubmit = () => {
+    const coinAmount = parseInt(amount);
+    if (coinAmount > 0) {
+      onGiveCoins(coinAmount);
+      setAmount("");
+      onOpenChange(false);
     }
   };
 
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Coins className="h-5 w-5 text-yellow-500" />
-            Award Coins to {studentName}
-          </DialogTitle>
+          <DialogTitle>{t("give-coins")} - {studentName}</DialogTitle>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
+        
+        <div className="space-y-4">
           <div>
-            <Label htmlFor="amount">Amount *</Label>
+            <Label htmlFor="amount">{t("amount")}</Label>
             <Input
               id="amount"
               type="number"
-              min="1"
-              max="1000"
               value={amount}
-              onChange={(e) => setAmount(parseInt(e.target.value) || 1)}
-              required
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Enter amount"
+              min="1"
             />
           </div>
-
-          <div>
-            <Label htmlFor="reason">Reason (optional)</Label>
-            <Textarea
-              id="reason"
-              value={reason}
-              onChange={(e) => setReason(e.target.value)}
-              placeholder="Why are you awarding these coins?"
-              rows={3}
-            />
-          </div>
-
-          <div className="flex justify-end gap-2">
-            <Button type="button" variant="outline" onClick={onClose}>
-              Cancel
-            </Button>
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? "Awarding..." : `Award ${amount} Coins`}
-            </Button>
-          </div>
-        </form>
+        </div>
+        
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            {t("cancel")}
+          </Button>
+          <Button onClick={handleSubmit} disabled={!amount || parseInt(amount) <= 0}>
+            {t("give-coins")}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

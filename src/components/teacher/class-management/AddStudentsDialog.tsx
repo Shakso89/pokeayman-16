@@ -8,21 +8,63 @@ import { supabase } from "@/integrations/supabase/client";
 
 interface AddStudentsDialogProps {
   isOpen: boolean;
-  onClose: () => void;
-  selectedClassId: string | null;
-  availableStudents: any[];
-  onAddStudents: (studentIds: string[]) => void;
+  onOpenChange: (open: boolean) => void;
+  classId: string;
+  onStudentsAdded: (studentIds: string[]) => void;
 }
 
 const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
   isOpen,
-  onClose,
-  selectedClassId,
-  availableStudents,
-  onAddStudents
+  onOpenChange,
+  classId,
+  onStudentsAdded
 }) => {
   const { t } = useTranslation();
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
+  const [availableStudents, setAvailableStudents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+
+  React.useEffect(() => {
+    if (isOpen) {
+      fetchAvailableStudents();
+    }
+  }, [isOpen, classId]);
+
+  const fetchAvailableStudents = async () => {
+    setLoading(true);
+    try {
+      // Get current class students
+      const { data: classData, error: classError } = await supabase
+        .from('classes')
+        .select('students')
+        .eq('id', classId)
+        .single();
+
+      if (classError) throw classError;
+
+      const currentStudents = classData?.students || [];
+
+      // Get all students
+      const { data: allStudents, error: studentsError } = await supabase
+        .from('students')
+        .select('*')
+        .order('display_name', { ascending: true });
+
+      if (studentsError) throw studentsError;
+
+      // Filter out students already in class
+      const available = (allStudents || []).filter(student => 
+        !currentStudents.includes(student.id)
+      );
+
+      setAvailableStudents(available);
+    } catch (error) {
+      console.error("Error fetching students:", error);
+      setAvailableStudents([]);
+    } finally {
+      setLoading(false);
+    }
+  };
   
   const toggleStudentSelection = (studentId: string) => {
     if (selectedStudents.includes(studentId)) {
@@ -35,19 +77,22 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
   const handleAddStudents = () => {
     if (selectedStudents.length === 0) return;
     
-    onAddStudents(selectedStudents);
+    onStudentsAdded(selectedStudents);
     setSelectedStudents([]);
+    onOpenChange(false);
   };
   
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
           <DialogTitle>{t("add-students-to-class")}</DialogTitle>
         </DialogHeader>
         
         <div className="max-h-[60vh] overflow-y-auto py-4">
-          {availableStudents.length === 0 ? (
+          {loading ? (
+            <p className="text-center py-4">{t("loading")}</p>
+          ) : availableStudents.length === 0 ? (
             <p className="text-center py-4">{t("no-available-students")}</p>
           ) : (
             <div className="space-y-2">
@@ -86,7 +131,7 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
         </div>
         
         <DialogFooter className="flex justify-between">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("cancel")}
           </Button>
           <Button 
