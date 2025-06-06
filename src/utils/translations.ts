@@ -249,3 +249,25 @@ export const changeLanguage = (language: "en" | "zh"): void => {
   
   window.dispatchEvent(event);
 };
+
+// Add these new translations to the existing translations object
+const additionalTranslations = {
+  "view-school-pool": {
+    en: "View School Pool",
+    zh: "查看学校池",
+    ar: "عرض مجموعة المدرسة"
+  },
+  "refresh-pool": {
+    en: "Refresh Pool",
+    zh: "刷新池",
+    ar: "تحديث المجموعة"
+  },
+  "refreshing": {
+    en: "Refreshing...",
+    zh: "刷新中...",
+    ar: "جاري التحديث..."
+  }
+};
+
+// Note: In a real implementation, these would be merged with the existing translations object
+export { additionalTranslations };

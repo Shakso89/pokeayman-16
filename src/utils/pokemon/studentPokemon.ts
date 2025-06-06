@@ -1,7 +1,7 @@
-
 import { Pokemon, StudentPokemon } from "@/types/pokemon";
 import { getStudentPokemons, saveStudentPokemons } from "./storage";
 import { getPokemonPools, savePokemonPools } from "./storage";
+import { handlePokemonDuplicate } from "./duplicateHandler";
 
 // Get student Pokemon collection
 export const getStudentPokemonCollection = (studentId: string): StudentPokemon | null => {
@@ -129,7 +129,7 @@ export const awardCoinsToStudent = (studentId: string, amount: number): void => 
   saveStudentPokemons(studentPokemons);
 };
 
-// Assign Pokemon to a student
+// Assign Pokemon to a student with duplicate handling
 export const assignPokemonToStudent = (schoolId: string, studentId: string, pokemonId: string): boolean => {
   if (!schoolId || !studentId || !pokemonId) {
     console.error("Missing required parameters:", { schoolId, studentId, pokemonId });
@@ -152,8 +152,18 @@ export const assignPokemonToStudent = (schoolId: string, studentId: string, poke
     return false;
   }
   
-  // Remove Pokemon from pool
-  const pokemon = pools[poolIndex].availablePokemons.splice(pokemonIndex, 1)[0];
+  // Get the Pokemon before removing it from pool
+  const pokemon = pools[poolIndex].availablePokemons[pokemonIndex];
+  
+  // Check for duplicates and handle with coins if found
+  const isDuplicate = handlePokemonDuplicate(studentId, pokemon);
+  if (isDuplicate) {
+    // Don't remove from pool, just return success since coins were awarded
+    return true;
+  }
+  
+  // Remove Pokemon from pool only if not a duplicate
+  pools[poolIndex].availablePokemons.splice(pokemonIndex, 1);
   savePokemonPools(pools);
   
   // Add Pokemon to student
@@ -175,7 +185,7 @@ export const assignPokemonToStudent = (schoolId: string, studentId: string, poke
   return true;
 };
 
-// Assign a random Pokemon from the school pool to a student
+// Assign a random Pokemon from the school pool to a student with duplicate handling
 export const assignRandomPokemonToStudent = (schoolId: string, studentId: string, specificPokemonId?: string): boolean => {
   if (!schoolId || !studentId) {
     console.error("Missing required parameters:", { schoolId, studentId });
@@ -205,8 +215,18 @@ export const assignRandomPokemonToStudent = (schoolId: string, studentId: string
     pokemonIndex = Math.floor(Math.random() * pools[poolIndex].availablePokemons.length);
   }
   
-  // Remove Pokemon from pool
-  const pokemon = pools[poolIndex].availablePokemons.splice(pokemonIndex, 1)[0];
+  // Get the Pokemon before removing it from pool
+  const pokemon = pools[poolIndex].availablePokemons[pokemonIndex];
+  
+  // Check for duplicates and handle with coins if found
+  const isDuplicate = handlePokemonDuplicate(studentId, pokemon);
+  if (isDuplicate) {
+    // Don't remove from pool, just return success since coins were awarded
+    return true;
+  }
+  
+  // Remove Pokemon from pool only if not a duplicate
+  pools[poolIndex].availablePokemons.splice(pokemonIndex, 1);
   savePokemonPools(pools);
   
   // Add Pokemon to student

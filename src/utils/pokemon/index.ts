@@ -37,6 +37,10 @@ import {
   samplePokemons
 } from './sampleData';
 
+import {
+  handlePokemonDuplicate
+} from './duplicateHandler';
+
 export {
   // Student Pokemon operations
   removePokemonFromStudent,
@@ -69,5 +73,8 @@ export {
   getRarityForId,
   
   // Sample data
-  samplePokemons
+  samplePokemons,
+  
+  // Duplicate handling
+  handlePokemonDuplicate
 };
