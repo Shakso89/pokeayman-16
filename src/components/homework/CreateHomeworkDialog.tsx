@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Coins, Calendar } from "lucide-react";
+import { Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Homework } from "@/types/homework";
@@ -31,7 +31,6 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
     description: "",
     type: "image" as "image" | "audio" | "multiple_choice",
     coin_reward: 10,
-    expires_at: "",
     question: "",
     option_a: "",
     option_b: "",
@@ -67,16 +66,6 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
         return;
       }
 
-      if (!formData.expires_at) {
-        toast({
-          title: "Error",
-          description: "Due date is required",
-          variant: "destructive"
-        });
-        setIsLoading(false);
-        return;
-      }
-
       // For multiple choice, validate question and options
       if (formData.type === "multiple_choice") {
         if (!formData.question.trim()) {
@@ -99,12 +88,16 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
         }
       }
 
+      // Auto-generate expiry date (7 days from now)
+      const expiryDate = new Date();
+      expiryDate.setDate(expiryDate.getDate() + 7);
+
       const homeworkData = {
         title: formData.title.trim(),
         description: formData.description.trim(),
         type: formData.type,
         coin_reward: formData.coin_reward,
-        expires_at: formData.expires_at,
+        expires_at: expiryDate.toISOString(),
         teacher_id: teacherId,
         class_id: classId,
         ...(formData.type === "multiple_choice" && {
@@ -127,7 +120,7 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
 
       toast({
         title: "Success",
-        description: "Homework created successfully!"
+        description: "Homework created successfully! Due date set to 7 days from now."
       });
 
       // Reset form
@@ -136,7 +129,6 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
         description: "",
         type: "image",
         coin_reward: 10,
-        expires_at: "",
         question: "",
         option_a: "",
         option_b: "",
@@ -157,13 +149,6 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
     } finally {
       setIsLoading(false);
     }
-  };
-
-  // Set default expiry to 7 days from now
-  const getDefaultExpiry = () => {
-    const date = new Date();
-    date.setDate(date.getDate() + 7);
-    return date.toISOString().slice(0, 16);
   };
 
   return (
@@ -282,37 +267,21 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
             </div>
           )}
 
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <Label htmlFor="coin_reward">Coin Reward</Label>
-              <div className="relative">
-                <Coins className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-yellow-500" />
-                <Input
-                  id="coin_reward"
-                  type="number"
-                  min="1"
-                  max="100"
-                  value={formData.coin_reward}
-                  onChange={(e) => setFormData({...formData, coin_reward: parseInt(e.target.value) || 10})}
-                  className="pl-10"
-                />
-              </div>
+          <div>
+            <Label htmlFor="coin_reward">Coin Reward</Label>
+            <div className="relative">
+              <Coins className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-yellow-500" />
+              <Input
+                id="coin_reward"
+                type="number"
+                min="1"
+                max="100"
+                value={formData.coin_reward}
+                onChange={(e) => setFormData({...formData, coin_reward: parseInt(e.target.value) || 10})}
+                className="pl-10"
+              />
             </div>
-
-            <div>
-              <Label htmlFor="expires_at">Due Date *</Label>
-              <div className="relative">
-                <Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <Input
-                  id="expires_at"
-                  type="datetime-local"
-                  value={formData.expires_at || getDefaultExpiry()}
-                  onChange={(e) => setFormData({...formData, expires_at: e.target.value})}
-                  className="pl-10"
-                  required
-                />
-              </div>
-            </div>
+            <p className="text-xs text-gray-500 mt-1">Due date will be automatically set to 7 days from creation</p>
           </div>
 
           <div className="flex justify-end gap-2 pt-4">

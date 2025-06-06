@@ -322,30 +322,51 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
           <div className="mt-2">
             <audio 
               controls 
-              className="w-full" 
-              preload="metadata"
+              className="w-full mb-2" 
+              preload="none"
               controlsList="nodownload"
+              crossOrigin="anonymous"
+              onLoadStart={() => console.log('Audio loading started')}
+              onCanPlay={() => console.log('Audio can play')}
+              onError={(e) => console.error('Audio error:', e)}
             >
+              <source src={submission.content} type="audio/webm" />
+              <source src={submission.content} type="audio/mp4" />
               <source src={submission.content} type="audio/mpeg" />
               <source src={submission.content} type="audio/wav" />
               <source src={submission.content} type="audio/ogg" />
-              <source src={submission.content} type="audio/mp4" />
-              <source src={submission.content} type="audio/webm" />
               <source src={submission.content} type="audio/aac" />
               Your browser does not support the audio element.
             </audio>
-            <div className="mt-2 space-y-1">
+            <div className="space-y-2">
               <p className="text-xs text-gray-500">
-                If audio doesn't play, try <a href={submission.content} target="_blank" rel="noopener noreferrer" className="text-blue-500 underline hover:text-blue-700">opening in new tab</a>
+                If audio doesn't play, try opening it in a new tab or downloading it.
               </p>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => window.open(submission.content, '_blank')}
-                className="text-xs"
-              >
-                Open Audio in New Tab
-              </Button>
+              <div className="flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => window.open(submission.content, '_blank')}
+                  className="text-xs"
+                >
+                  Open in New Tab
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    const link = document.createElement('a');
+                    link.href = submission.content;
+                    link.download = `audio-submission-${submission.id}.webm`;
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                  }}
+                  className="text-xs"
+                >
+                  Download Audio
+                </Button>
+              </div>
             </div>
           </div>
         </div>
