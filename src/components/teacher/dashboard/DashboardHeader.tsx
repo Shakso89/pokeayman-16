@@ -56,10 +56,10 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
   }, []);
   
   const handleViewProfile = () => {
-    // Fix: Update the profile path to match the route in App.tsx
+    // Fix: Use the correct profile route that matches App.tsx
     const teacherId = localStorage.getItem("teacherId");
     if (teacherId) {
-      navigate(`/teacher-profile`);
+      navigate(`/teacher/profile/${teacherId}`);
     }
   };
   

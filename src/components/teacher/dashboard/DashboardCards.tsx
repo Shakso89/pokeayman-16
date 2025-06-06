@@ -64,7 +64,8 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({
 
   const handleClassClick = (classId: string) => {
     console.log("Navigating to class:", classId);
-    navigate(`/class/${classId}`);
+    // Fix: Use the correct route that matches App.tsx
+    navigate(`/class-details/${classId}`);
   };
 
   return (
