@@ -49,7 +49,7 @@ const Index: React.FC = () => {
         
         {/* Why Choose PokéAyman Section */}
         <div className="text-center mb-16">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-10 sparkle-animation">
+          <h2 className="text-3xl md:text-4xl font-bold mb-10 animate-bounce text-slate-700">
             Why Choose PokéAyman? ✨
           </h2>
           
