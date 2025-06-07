@@ -35,7 +35,7 @@ const ClassManagementHeader: React.FC<ClassManagementHeaderProps> = ({
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Back Navigation */}
         <div className="flex items-center mb-6">
-          <Button variant="ghost" onClick={() => navigate("/teacher-dashboard")} className="text-white hover:bg-white/20 mr-4">
+          <Button variant="ghost" onClick={() => navigate("/teacher-dashboard")} className="hover:bg-white/20 mr-4 text-slate-700">
             <ChevronLeft className="h-5 w-5 mr-1" />
             Back to Dashboard
           </Button>
