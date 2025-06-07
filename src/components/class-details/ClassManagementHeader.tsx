@@ -84,12 +84,12 @@ const ClassManagementHeader: React.FC<ClassManagementHeaderProps> = ({
               Manage Pokémon
             </Button>
             
-            <Button onClick={onViewSchoolPool} variant="outline" className="bg-white/10 border-white/20 text-white hover:bg-white/20">
+            <Button onClick={onViewSchoolPool} variant="outline" className="border-white/20 text-slate-50 bg-teal-950 hover:bg-teal-800">
               <Eye className="h-4 w-4 mr-2" />
               School Pool
             </Button>
             
-            <Button onClick={onDeleteClass} variant="outline" className="bg-red-500/20 border-red-300/20 text-white hover:bg-red-500/30">
+            <Button onClick={onDeleteClass} variant="outline" className="border-red-300/20 text-white bg-red-900 hover:bg-red-800">
               <Trash2 className="h-4 w-4 mr-2" />
               Delete Class
             </Button>
