@@ -25,7 +25,7 @@ const Contact: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 flex flex-col items-center">
+    <div className="min-h-screen flex flex-col items-center">
       <Header />
 
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-4xl p-6">
