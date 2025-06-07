@@ -187,7 +187,7 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
       <div className="relative">
         <img alt="Mystery Pokémon Ball" onClick={handleOpenMysteryBall} style={{
         filter: isAnimating ? 'brightness(1.2)' : 'none'
-      }} src="/lovable-uploads/37428b9b-1c97-48af-9ecb-20160dc93ccf.png" className="object-none" />
+      }} src="/lovable-uploads/f360d7b4-6027-436b-be14-97e6f70332b3.png" className="object-scale-down" />
       </div>
 
       {/* Button below the ball (only show if not on mobile or if user wants a clearer button) */}
