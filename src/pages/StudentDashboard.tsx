@@ -160,8 +160,7 @@ const StudentDashboard: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-100">
-      <NavBar userType="student" userName={studentName} userAvatar={avatar || undefined} />
+<div className="min-h-screen bg-transparent">      <NavBar userType="student" userName={studentName} userAvatar={avatar || undefined} />
       
       <div className="container mx-auto py-8 px-4">
         <StudentHeader studentName={studentName} coins={coins} activeBattles={activeBattles} onOpenSchoolPool={() => setShowSchoolPool(true)} />
