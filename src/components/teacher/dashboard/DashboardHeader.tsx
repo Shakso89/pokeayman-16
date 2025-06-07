@@ -51,14 +51,14 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({ isAdmin }) => {
   };
 
   return (
-    <Card className="mb-6 bg-transparent shadow-none border-none text-white">
+    <Card className="mb-6 bg-transparent shadow-none border-none">
       <CardContent className="p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
           <div>
-            <h2 className="text-3xl font-bold mb-2">
+            <h2 className="text-3xl font-bold mb-2 text-slate-800">
               {t("welcome")} {displayName}
             </h2>
-            <p className="italic mb-2 text-zinc-200">"{quote}"</p>
+            <p className="italic mb-2 text-slate-800">"{quote}"</p>
           </div>
 
           <div className="flex flex-col md:flex-row gap-2 mt-4 md:mt-0">
