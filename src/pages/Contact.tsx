@@ -9,6 +9,7 @@ const PricingContactPage: React.FC = () => {
   const { t } = useTranslation();
   const contactRef = useRef<HTMLDivElement>(null);
 
+  // Scroll smoothly to Contact section
   const scrollToContact = () => {
     if (contactRef.current) {
       contactRef.current.scrollIntoView({ behavior: "smooth" });
@@ -38,24 +39,41 @@ const PricingContactPage: React.FC = () => {
           <h1 className="text-4xl font-bold text-white mb-8 text-center">{t("pricing")}</h1>
 
           <div className="grid gap-6 md:grid-cols-3">
-            {["basic-plan", "pro-plan", "enterprise-plan"].map((plan) => (
-              <div key={plan} className="bg-white/20 rounded-xl p-6 text-white text-center">
-                <h2 className="text-2xl font-bold mb-4">{t(plan)}</h2>
-                <p className="mb-6">
-                  {plan === "basic-plan"
-                    ? "Free"
-                    : plan === "pro-plan"
-                    ? "$29.99 / month"
-                    : "Custom pricing"}
-                </p>
-                <button
-                  onClick={scrollToContact}
-                  className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold transition"
-                >
-                  {t("purchase-plan")}
-                </button>
-              </div>
-            ))}
+            {/* Basic Plan */}
+            <div className="bg-white/20 rounded-xl p-6 text-white text-center">
+              <h2 className="text-2xl font-bold mb-4">{t("basic-plan")}</h2>
+              <p className="mb-6">Free</p>
+              <button
+                onClick={scrollToContact}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold transition"
+              >
+                {t("purchase-plan")}
+              </button>
+            </div>
+
+            {/* Pro Plan (yellow button) */}
+            <div className="bg-white/20 rounded-xl p-6 text-white text-center">
+              <h2 className="text-2xl font-bold mb-4">{t("pro-plan")}</h2>
+              <p className="mb-6">$29.99 / month</p>
+              <button
+                onClick={scrollToContact}
+                className="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 rounded-lg font-bold transition"
+              >
+                {t("purchase-plan")}
+              </button>
+            </div>
+
+            {/* Enterprise Plan */}
+            <div className="bg-white/20 rounded-xl p-6 text-white text-center">
+              <h2 className="text-2xl font-bold mb-4">{t("enterprise-plan")}</h2>
+              <p className="mb-6">Custom pricing</p>
+              <button
+                onClick={scrollToContact}
+                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold transition"
+              >
+                {t("purchase-plan")}
+              </button>
+            </div>
           </div>
         </div>
       </div>
