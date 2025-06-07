@@ -1,20 +1,15 @@
-import React, { useRef } from "react";
+
+import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Phone, Mail, Instagram, MessageCircle } from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
 
-const PricingContactPage: React.FC = () => {
+const Contact: React.FC = () => {
+  const navigate = useNavigate();
   const { t } = useTranslation();
-  const contactRef = useRef<HTMLDivElement>(null);
-
-  // Scroll smoothly to Contact section
-  const scrollToContact = () => {
-    if (contactRef.current) {
-      contactRef.current.scrollIntoView({ behavior: "smooth" });
-    }
-  };
 
   const copyToClipboard = (text: string, type: string) => {
     navigator.clipboard.writeText(text);
@@ -26,67 +21,21 @@ const PricingContactPage: React.FC = () => {
   };
 
   const logContact = (method: string, value?: string) => {
-    console.log(`Contact attempt via ${method}${value ? `: ${value}` : ""}`);
+    console.log(`Contact attempt via ${method}${value ? `: ${value}` : ''}`);
   };
 
   return (
-    <div className="min-h-screen bg-transparent flex flex-col items-center">
+    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 flex flex-col items-center">
       <Header />
 
-      {/* Pricing Section */}
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-4xl p-6">
-        <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-xl w-full max-w-3xl mb-20">
-          <h1 className="text-4xl font-bold text-white mb-8 text-center">{t("pricing")}</h1>
-
-          <div className="grid gap-6 md:grid-cols-3">
-            {/* Basic Plan */}
-            <div className="bg-white/20 rounded-xl p-6 text-white text-center">
-              <h2 className="text-2xl font-bold mb-4">{t("basic-plan")}</h2>
-              <p className="mb-6">Free</p>
-              <button
-                onClick={scrollToContact}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold transition"
-              >
-                {t("purchase-plan")}
-              </button>
-            </div>
-
-            {/* Pro Plan (yellow button) */}
-            <div className="bg-white/20 rounded-xl p-6 text-white text-center">
-              <h2 className="text-2xl font-bold mb-4">{t("pro-plan")}</h2>
-              <p className="mb-6">$29.99 / month</p>
-              <button
-                onClick={scrollToContact}
-                className="px-6 py-3 bg-yellow-500 hover:bg-yellow-600 rounded-lg font-bold transition"
-              >
-                {t("purchase-plan")}
-              </button>
-            </div>
-
-            {/* Enterprise Plan */}
-            <div className="bg-white/20 rounded-xl p-6 text-white text-center">
-              <h2 className="text-2xl font-bold mb-4">{t("enterprise-plan")}</h2>
-              <p className="mb-6">Custom pricing</p>
-              <button
-                onClick={scrollToContact}
-                className="px-6 py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-bold transition"
-              >
-                {t("purchase-plan")}
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Contact Section */}
-      <div ref={contactRef} className="flex-1 flex flex-col items-center justify-center w-full max-w-4xl p-6">
-        <div className="bg-white/10 backdrop-blur-md rounded-xl p-8 shadow-xl w-full max-w-3xl mb-20">
+        <div className="bg-white/20 backdrop-blur-md rounded-xl p-8 shadow-xl w-full max-w-3xl">
           <h1 className="text-4xl font-bold text-white mb-8 text-center">{t("contact-us")}</h1>
 
           <div className="grid gap-6 md:grid-cols-2">
             {/* Phone */}
-            <a
-              href="tel:+886900170038"
+            <a 
+              href="tel:+886900170038" 
               className="flex items-center gap-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm p-6 rounded-2xl transition-all transform hover:scale-105"
               onClick={() => {
                 copyToClipboard("+886900170038", "Phone number");
@@ -103,9 +52,9 @@ const PricingContactPage: React.FC = () => {
             </a>
 
             {/* LINE */}
-            <a
-              href="https://line.me/ti/p/R2zf7rn9Mt"
-              target="_blank"
+            <a 
+              href="https://line.me/ti/p/R2zf7rn9Mt" 
+              target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm p-6 rounded-2xl transition-all transform hover:scale-105"
               onClick={() => logContact("LINE")}
@@ -120,9 +69,9 @@ const PricingContactPage: React.FC = () => {
             </a>
 
             {/* WhatsApp */}
-            <a
-              href="https://wa.me/+886900170038?text="
-              target="_blank"
+            <a 
+              href="https://wa.me/+886900170038?text=" 
+              target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm p-6 rounded-2xl transition-all transform hover:scale-105"
               onClick={() => logContact("WhatsApp", "+886900170038")}
@@ -137,8 +86,8 @@ const PricingContactPage: React.FC = () => {
             </a>
 
             {/* Email */}
-            <a
-              href="mailto:ayman@pokeayman.com"
+            <a 
+              href="mailto:ayman@pokeayman.com" 
               className="flex items-center gap-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm p-6 rounded-2xl transition-all transform hover:scale-105"
               onClick={() => {
                 copyToClipboard("ayman@pokeayman.com", "Email");
@@ -155,9 +104,9 @@ const PricingContactPage: React.FC = () => {
             </a>
 
             {/* Instagram */}
-            <a
-              href="https://www.instagram.com/shakso/"
-              target="_blank"
+            <a 
+              href="https://www.instagram.com/shakso/" 
+              target="_blank" 
               rel="noopener noreferrer"
               className="flex items-center gap-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm p-6 rounded-2xl transition-all transform hover:scale-105 md:col-span-2"
               onClick={() => logContact("Instagram", "@shakso")}
@@ -171,6 +120,13 @@ const PricingContactPage: React.FC = () => {
               </div>
             </a>
           </div>
+
+          <button 
+            onClick={() => navigate("/")}
+            className="mt-10 px-8 py-3 bg-white/30 hover:bg-white/40 backdrop-blur-sm rounded-lg text-white font-bold mx-auto block transition-colors text-lg"
+          >
+            {t("back-to-home")}
+          </button>
         </div>
       </div>
 
@@ -179,4 +135,4 @@ const PricingContactPage: React.FC = () => {
   );
 };
 
-export default PricingContactPage;
+export default Contact;
