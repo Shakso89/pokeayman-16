@@ -90,7 +90,7 @@ const ContactDialog: React.FC<ContactDialogProps> = ({
     console.log(`Contact attempt via ${type}: ${text}`);
   };
   return <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="bg-gradient-to-br from-blue-900/90 via-purple-900/90 to-pink-900/90 text-white border-gray-700 max-w-4xl mx-auto max-h-[90vh] overflow-y-auto">
+      <DialogContent className="transparent ">
         <DialogHeader>
           <DialogTitle className="text-2xl">Contact & Pricing</DialogTitle>
           <DialogDescription className="text-gray-300">
