@@ -1,4 +1,3 @@
-
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Phone, Mail, Instagram, MessageCircle } from "lucide-react";
@@ -11,31 +10,42 @@ const Contact: React.FC = () => {
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const copyToClipboard = (text: string, type: string) => {
-    navigator.clipboard.writeText(text);
-    toast({
-      title: "Copied to clipboard",
-      description: `${type} has been copied to your clipboard.`,
-    });
-    console.log(`Contact attempt via ${type}: ${text}`);
+  const copyToClipboard = async (text: string, type: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied to clipboard",
+        description: `${type} has been copied to your clipboard.`,
+      });
+      console.log(`Contact attempt via ${type}: ${text}`);
+    } catch (error) {
+      toast({
+        title: "Failed to copy",
+        description: `Could not copy ${type} to clipboard.`,
+        variant: "destructive",
+      });
+      console.error("Clipboard copy failed", error);
+    }
   };
 
   const logContact = (method: string, value?: string) => {
-    console.log(`Contact attempt via ${method}${value ? `: ${value}` : ''}`);
+    console.log(`Contact attempt via ${method}${value ? `: ${value}` : ""}`);
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400 flex flex-col items-center">
+    <div className="min-h-screen flex flex-col items-center">
       <Header />
 
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-4xl p-6">
         <div className="bg-white/20 backdrop-blur-md rounded-xl p-8 shadow-xl w-full max-w-3xl">
-          <h1 className="text-4xl font-bold text-white mb-8 text-center">{t("contact-us")}</h1>
+          <h1 className="text-4xl font-bold text-white mb-8 text-center">
+            {t("contact-us")}
+          </h1>
 
           <div className="grid gap-6 md:grid-cols-2">
             {/* Phone */}
-            <a 
-              href="tel:+886900170038" 
+            <a
+              href="tel:+886900170038"
               className="flex items-center gap-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm p-6 rounded-2xl transition-all transform hover:scale-105"
               onClick={() => {
                 copyToClipboard("+886900170038", "Phone number");
@@ -52,9 +62,9 @@ const Contact: React.FC = () => {
             </a>
 
             {/* LINE */}
-            <a 
-              href="https://line.me/ti/p/R2zf7rn9Mt" 
-              target="_blank" 
+            <a
+              href="https://line.me/ti/p/R2zf7rn9Mt"
+              target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm p-6 rounded-2xl transition-all transform hover:scale-105"
               onClick={() => logContact("LINE")}
@@ -69,9 +79,9 @@ const Contact: React.FC = () => {
             </a>
 
             {/* WhatsApp */}
-            <a 
-              href="https://wa.me/+886900170038?text=" 
-              target="_blank" 
+            <a
+              href="https://wa.me/+886900170038?text="
+              target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm p-6 rounded-2xl transition-all transform hover:scale-105"
               onClick={() => logContact("WhatsApp", "+886900170038")}
@@ -86,8 +96,8 @@ const Contact: React.FC = () => {
             </a>
 
             {/* Email */}
-            <a 
-              href="mailto:ayman@pokeayman.com" 
+            <a
+              href="mailto:ayman@pokeayman.com"
               className="flex items-center gap-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm p-6 rounded-2xl transition-all transform hover:scale-105"
               onClick={() => {
                 copyToClipboard("ayman@pokeayman.com", "Email");
@@ -104,9 +114,9 @@ const Contact: React.FC = () => {
             </a>
 
             {/* Instagram */}
-            <a 
-              href="https://www.instagram.com/shakso/" 
-              target="_blank" 
+            <a
+              href="https://www.instagram.com/shakso/"
+              target="_blank"
               rel="noopener noreferrer"
               className="flex items-center gap-4 bg-white/30 hover:bg-white/40 backdrop-blur-sm p-6 rounded-2xl transition-all transform hover:scale-105 md:col-span-2"
               onClick={() => logContact("Instagram", "@shakso")}
@@ -121,7 +131,7 @@ const Contact: React.FC = () => {
             </a>
           </div>
 
-          <button 
+          <button
             onClick={() => navigate("/")}
             className="mt-10 px-8 py-3 bg-white/30 hover:bg-white/40 backdrop-blur-sm rounded-lg text-white font-bold mx-auto block transition-colors text-lg"
           >
