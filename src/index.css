@@ -1,4 +1,6 @@
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&display=swap');
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -6,94 +8,57 @@
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-
+    --foreground: 240 10% 3.9%;
     --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
-
+    --card-foreground: 240 10% 3.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-
-    --primary: 352 77% 55%;
-    --primary-foreground: 210 40% 98%;
-
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
-
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 240 9% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 240 4.8% 95.9%;
+    --accent-foreground: 240 5.9% 10%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
-
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 240 10% 3.9%;
+    --chart-1: 12 76% 61%;
+    --chart-2: 173 58% 39%;
+    --chart-3: 197 37% 24%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
     --radius: 0.5rem;
-
-    --sidebar-background: 0 0% 98%;
-
-    --sidebar-foreground: 240 5.3% 26.1%;
-
-    --sidebar-primary: 240 5.9% 10%;
-
-    --sidebar-primary-foreground: 0 0% 98%;
-
-    --sidebar-accent: 240 4.8% 95.9%;
-
-    --sidebar-accent-foreground: 240 5.9% 10%;
-
-    --sidebar-border: 220 13% 91%;
-
-    --sidebar-ring: 217.2 91.2% 59.8%;
-
-    /* Pokemon specific theme colors */
-    --pokemon-red: 352 77% 55%;
-    --pokemon-blue: 200 100% 50%;
-    --pokemon-yellow: 50 100% 50%;
   }
 
   .dark {
-    --background: 210 40% 95%;
-    --foreground: 0 0% 12%;
-
-    --card: 0 0% 100%;
-    --card-foreground: 240 10% 15%;
-
-    --popover: 0 0% 100%;
-    --popover-foreground: 240 10% 10%;
-
-    --primary: 200 90% 50%;
-    --primary-foreground: 0 0% 100%;
-
-    --secondary: 210 30% 90%;
-    --secondary-foreground: 210 50% 30%;
-
-    --muted: 210 20% 90%;
-    --muted-foreground: 240 10% 45%;
-
-    --accent: 210 30% 90%;
-    --accent-foreground: 210 50% 30%;
-
-    --destructive: 0 80% 60%;
-    --destructive-foreground: 0 0% 100%;
-
-    --border: 240 10% 80%;
-    --input: 240 10% 90%;
-    --ring: 240 10% 60%;
-    
-    --sidebar-background: 210 40% 96%;
-    --sidebar-foreground: 240 10% 20%;
-    --sidebar-primary: 200 90% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 210 30% 92%;
-    --sidebar-accent-foreground: 210 50% 30%;
-    --sidebar-border: 240 10% 80%;
-    --sidebar-ring: 217.2 91.2% 59.8%;
+    --background: 240 10% 3.9%;
+    --foreground: 0 0% 98%;
+    --card: 240 10% 3.9%;
+    --card-foreground: 0 0% 98%;
+    --popover: 240 10% 3.9%;
+    --popover-foreground: 0 0% 98%;
+    --primary: 0 0% 98%;
+    --primary-foreground: 240 5.9% 10%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 0 0% 98%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 240 3.7% 15.9%;
+    --accent-foreground: 0 0% 98%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 3.7% 15.9%;
+    --input: 240 3.7% 15.9%;
+    --ring: 240 4.9% 83.9%;
+    --chart-1: 220 70% 50%;
+    --chart-2: 160 60% 45%;
+    --chart-3: 30 80% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 340 75% 55%;
   }
 }
 
@@ -101,128 +66,31 @@
   * {
     @apply border-border;
   }
-
   body {
     @apply bg-background text-foreground;
-    background-image: url('/lovable-uploads/df7b9259-e876-46a6-9b71-00aa60971cbf.png');
-    background-size: cover;
-    background-position: center;
-    background-attachment: fixed;
-    background-repeat: no-repeat;
+    font-family: 'Inter', sans-serif;
   }
 }
 
-@layer components {
-  /* Pokemon-specific classes */
+@layer utilities {
   .pokemon-card {
-    @apply relative overflow-hidden rounded-lg border border-border bg-card p-4 shadow-md transition-all hover:shadow-xl;
-    background: linear-gradient(135deg, rgba(255,255,255,0.8) 0%, rgba(220,220,220,0.6) 100%);
-  }
-
-  .pokemon-button {
-    @apply rounded-full text-white hover:bg-red-600 transition-colors shadow-md;
-    background-color: hsl(var(--pokemon-red));
-  }
-
-  .pokeball {
-    @apply relative inline-block w-6 h-6 bg-white rounded-full border-2 border-gray-800 before:content-[''] before:absolute before:w-6 before:h-[1px] before:bg-gray-800 before:top-1/2 before:-translate-y-1/2 before:left-0 after:content-[''] after:absolute after:w-2 after:h-2 after:bg-white after:rounded-full after:border after:border-gray-800 after:top-1/2 after:left-1/2 after:-translate-x-1/2 after:-translate-y-1/2;
-  }
-
-  .spin-wheel {
-    transition: transform 3s cubic-bezier(0.17, 0.67, 0.83, 0.67);
-  }
-
-  .pokeball-spin {
-    animation: spin 2s linear infinite;
-  }
-
-  @keyframes spin {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-
-  .pokemon-gradient-bg {
-    background: linear-gradient(135deg, rgba(255,56,56,0.8) 0%, rgba(255,153,153,0.8) 100%);
+    @apply bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200 hover:border-blue-300 transition-all duration-200 hover:shadow-lg;
   }
   
-  /* Animation keyframes for Pokemon win effect */
-  @keyframes sparkle {
-    0% { transform: scale(0.8); opacity: 0.3; }
-    50% { transform: scale(1.2); opacity: 1; }
-    100% { transform: scale(0.8); opacity: 0.3; }
+  .text-gradient {
+    @apply bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent;
+  }
+  
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
   }
   
   @keyframes float {
-    0% { transform: translateY(0px); }
-    50% { transform: translateY(-10px); }
-    100% { transform: translateY(0px); }
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
   }
-  
-  @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(255, 215, 0, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
-  }
-  
-  .sparkle-animation {
-    animation: sparkle 2s infinite;
-  }
-  
-  .float-animation {
-    animation: float 3s ease-in-out infinite;
-  }
-  
-  .pulse-animation {
-    animation: pulse 2s infinite;
-  }
-  
-  /* Teacher Dashboard bright theme classes */
-  .bright-card {
-    @apply border-t-4 border-t-sky-400 hover:shadow-lg transition-shadow;
-    background: linear-gradient(145deg, #ffffff 0%, #f0f9ff 100%);
-  }
-  
-  .bright-button-primary {
-    @apply bg-sky-500 hover:bg-sky-600 text-white shadow-md;
-  }
-  
-  .bright-button-secondary {
-    @apply bg-emerald-500 hover:bg-emerald-600 text-white shadow-md;
-  }
-  
-  .bright-gradient-header {
-    background: linear-gradient(90deg, #f0f9ff 0%, #e0f2fe 100%);
-  }
-}
-
-/* Animation classes */
-@keyframes fade-in {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-@keyframes scale-in {
-  from { transform: scale(0.9); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-15px); }
-}
-
-.animate-fade-in {
-  animation: fade-in 0.3s ease-out forwards;
-}
-
-.animate-scale-in {
-  animation: scale-in 0.3s ease-out forwards;
-}
-
-.animate-bounce {
-  animation: bounce 2s ease infinite;
-}
-
-.animate-pulse {
-  animation: sparkle 1.5s ease infinite;
 }
