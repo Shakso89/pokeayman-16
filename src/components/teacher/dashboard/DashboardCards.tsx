@@ -5,54 +5,49 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
-
 interface DashboardCardsProps {
   onManageClasses: () => void;
   isAdmin?: boolean;
   teacherId?: string;
   onNavigateToClass?: (classId: string) => void;
 }
-
 interface ClassData {
   id: string;
   name: string;
   description?: string;
   students: string[];
 }
-
-const DashboardCards: React.FC<DashboardCardsProps> = ({ 
-  onManageClasses, 
-  isAdmin = false, 
+const DashboardCards: React.FC<DashboardCardsProps> = ({
+  onManageClasses,
+  isAdmin = false,
   teacherId,
-  onNavigateToClass 
+  onNavigateToClass
 }) => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const {
+    t
+  } = useTranslation();
   const [myClasses, setMyClasses] = useState<ClassData[]>([]);
   const [isLoadingClasses, setIsLoadingClasses] = useState(false);
-
   useEffect(() => {
     if (teacherId) {
       loadTeacherClasses();
     }
   }, [teacherId]);
-
   const loadTeacherClasses = async () => {
     if (!teacherId) return;
-    
     setIsLoadingClasses(true);
     try {
-      const { data, error } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('teacher_id', teacherId)
-        .order('created_at', { ascending: false });
-
+      const {
+        data,
+        error
+      } = await supabase.from('classes').select('*').eq('teacher_id', teacherId).order('created_at', {
+        ascending: false
+      });
       if (error) {
         console.error("Error loading teacher classes:", error);
         return;
       }
-
       console.log("Loaded teacher classes:", data);
       setMyClasses(data || []);
     } catch (error) {
@@ -61,15 +56,12 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({
       setIsLoadingClasses(false);
     }
   };
-
   const handleClassClick = (classId: string) => {
     console.log("Navigating to class:", classId);
     // Fix: Use the correct route that matches App.tsx
     navigate(`/class-details/${classId}`);
   };
-
-  return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+  return <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {/* My Classes Card */}
       <Card className="hover:shadow-lg transition-all pokemon-card">
         <CardHeader>
@@ -82,37 +74,20 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoadingClasses ? (
-            <p className="text-gray-500">Loading classes...</p>
-          ) : myClasses.length > 0 ? (
-            <div className="space-y-2 max-h-32 overflow-y-auto">
-              {myClasses.slice(0, 3).map((classItem) => (
-                <div 
-                  key={classItem.id}
-                  className="p-2 bg-gray-50 rounded cursor-pointer hover:bg-gray-100 transition-colors"
-                  onClick={() => handleClassClick(classItem.id)}
-                >
+          {isLoadingClasses ? <p className="text-gray-500">Loading classes...</p> : myClasses.length > 0 ? <div className="space-y-2 max-h-32 overflow-y-auto">
+              {myClasses.slice(0, 3).map(classItem => <div key={classItem.id} className="p-2 bg-gray-50 rounded cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleClassClick(classItem.id)}>
                   <p className="font-medium text-sm">{classItem.name}</p>
                   <p className="text-xs text-gray-500">
                     {classItem.students?.length || 0} students
                   </p>
-                </div>
-              ))}
-              {myClasses.length > 3 && (
-                <p className="text-xs text-gray-500">
+                </div>)}
+              {myClasses.length > 3 && <p className="text-xs text-gray-500">
                   +{myClasses.length - 3} more classes
-                </p>
-              )}
-            </div>
-          ) : (
-            <p className="text-gray-500">No classes yet</p>
-          )}
+                </p>}
+            </div> : <p className="text-gray-500">No classes yet</p>}
         </CardContent>
         <CardFooter>
-          <Button 
-            className="w-full pokemon-button" 
-            onClick={onManageClasses}
-          >
+          <Button className="w-full pokemon-button" onClick={onManageClasses}>
             View All Classes
           </Button>
         </CardFooter>
@@ -130,45 +105,17 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({
         </CardHeader>
         <CardContent>
           <p className="text-gray-500">
-            {isAdmin 
-              ? t("admin-manage-classes-details") 
-              : t("manage-classes-details")}
+            {isAdmin ? t("admin-manage-classes-details") : t("manage-classes-details")}
           </p>
         </CardContent>
         <CardFooter>
-          <Button 
-            className="w-full pokemon-button" 
-            onClick={onManageClasses}
-          >
+          <Button className="w-full pokemon-button" onClick={onManageClasses}>
             {t("manage-classes")}
           </Button>
         </CardFooter>
       </Card>
 
-      <Card className="hover:shadow-lg transition-all pokemon-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <MessageSquare className="h-6 w-6 text-green-500" />
-            {t("messages")}
-          </CardTitle>
-          <CardDescription>
-            {t("school-collab-desc")}
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <p className="text-gray-500">
-            {t("school-collab-details")}
-          </p>
-        </CardContent>
-        <CardFooter>
-          <Button 
-            className="w-full pokemon-button"
-            onClick={() => navigate("/teacher/messages")}
-          >
-            {t("messages")}
-          </Button>
-        </CardFooter>
-      </Card>
+      
       
       <Card className="hover:shadow-lg transition-all pokemon-card">
         <CardHeader>
@@ -186,16 +133,11 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({
           </p>
         </CardContent>
         <CardFooter>
-          <Button 
-            className="w-full pokemon-button"
-            onClick={() => navigate("/teacher/reports")}
-          >
+          <Button className="w-full pokemon-button" onClick={() => navigate("/teacher/reports")}>
             {t("reports-analytics")}
           </Button>
         </CardFooter>
       </Card>
-    </div>
-  );
+    </div>;
 };
-
 export default DashboardCards;
