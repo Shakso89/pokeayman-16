@@ -56,20 +56,20 @@ const Index: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="glass-card rounded-xl p-6 text-white hover:scale-105 transition-transform">
               <div className="text-4xl mb-4">🎮</div>
-              <h3 className="text-xl font-bold mb-3">Engaging Learning</h3>
-              <p className="text-white/80 text-2xl">Turn education into a fun adventure with Pokémon-themed rewards and challenges.</p>
+              <h3 className="text-xl font-bold mb-3 text-slate-700">Engaging Learning</h3>
+              <p className="text-2xl text-gray-600">Turn education into a fun adventure with Pokémon-themed rewards and challenges.</p>
             </div>
             
             <div className="glass-card rounded-xl p-6 text-white hover:scale-105 transition-transform">
               <div className="text-4xl mb-4">📊</div>
-              <h3 className="text-xl font-bold mb-3">Track Progress</h3>
-              <p className="text-white/80 text-2xl">Teachers can easily monitor student activities and achievements through an intuitive dashboard.</p>
+              <h3 className="text-xl font-bold mb-3 text-slate-700">Track Progress</h3>
+              <p className="text-2xl text-gray-600">Teachers can easily monitor student activities and achievements through an intuitive dashboard.</p>
             </div>
             
             <div className="glass-card rounded-xl p-6 text-white hover:scale-105 transition-transform">
               <div className="text-4xl mb-4">🤝</div>
-              <h3 className="text-xl font-bold mb-3">Community Building</h3>
-              <p className="text-white/80 text-2xl">Connect with other teachers and schools to share best practices and resources.</p>
+              <h3 className="text-xl font-bold mb-3 text-slate-700">Community Building</h3>
+              <p className="text-2xl text-gray-600">Connect with other teachers and schools to share best practices and resources.</p>
             </div>
           </div>
         </div>
@@ -92,34 +92,34 @@ const Index: React.FC = () => {
 
         {/* Features showcase */}
         <div className="glass-card rounded-3xl p-8 mb-16 max-w-6xl mx-auto">
-          <h2 className="text-3xl font-bold text-white text-center mb-8">Experience the Adventure! 🌟</h2>
+          <h2 className="text-3xl font-bold text-center mb-8 text-slate-700">Experience the Adventure! 🌟</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div className="space-y-6">
               <div className="flex items-start gap-4">
                 <div className="text-2xl">🎒</div>
                 <div>
-                  <h3 className="text-xl font-bold text-white mb-2">Collect & Battle</h3>
-                  <p className="text-white/80">Students collect Pokémon as rewards and participate in educational battles.</p>
+                  <h3 className="text-xl font-bold mb-2 text-slate-700">Collect & Battle</h3>
+                  <p className="text-gray-600">Students collect Pokémon as rewards and participate in educational battles.</p>
                 </div>
               </div>
               <div className="flex items-start gap-4">
                 <div className="text-2xl">🏆</div>
                 <div>
-                  <h3 className="text-xl font-bold text-white mb-2">Achievement System</h3>
-                  <p className="text-white/80">Comprehensive ranking and achievement tracking for motivation.</p>
+                  <h3 className="text-xl font-bold mb-2 text-slate-700">Achievement System</h3>
+                  <p className="text-gray-600">Comprehensive ranking and achievement tracking for motivation.</p>
                 </div>
               </div>
               <div className="flex items-start gap-4">
                 <div className="text-2xl">🎲</div>
                 <div>
-                  <h3 className="text-xl font-bold text-white mb-2">Mystery Rewards</h3>
-                  <p className="text-white/80">Surprise Pokémon rewards through our mystery ball system.</p>
+                  <h3 className="text-xl font-bold mb-2 text-slate-700">Mystery Rewards</h3>
+                  <p className="text-gray-600">Surprise Pokémon rewards through our mystery ball system.</p>
                 </div>
               </div>
             </div>
             <div className="text-center">
               <div className="text-6xl mb-4 animate-pulse">⚡</div>
-              <p className="text-white/80 italic">"Learning has never been this exciting!"</p>
+              <p className="italic text-gray-600">"Learning has never been this exciting!"</p>
             </div>
           </div>
         </div>
