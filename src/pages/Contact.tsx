@@ -134,31 +134,5 @@ const Contact: React.FC = () => {
     </div>
   );
 };
-import React from "react";
-import { useNavigate } from "react-router-dom";
-
-const Pricing: React.FC = () => {
-  const navigate = useNavigate();
-
-  const handlePurchaseClick = () => {
-    navigate("/contact");  // Assuming your Contact route path is "/contact"
-  };
-
-  return (
-    <div>
-      {/* Your pricing plans here */}
-
-      <button
-        onClick={handlePurchaseClick}
-        className="px-6 py-3 bg-blue-600 text-white rounded-md hover:bg-blue-700 transition"
-      >
-        Purchase Plan
-      </button>
-    </div>
-  );
-};
-
-export default Pricing;
-
 
 export default Contact;
