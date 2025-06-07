@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Badge } from "@/components/ui/badge";
@@ -11,6 +12,7 @@ import { Student, Pokemon } from "@/types/pokemon";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PokemonList from "@/components/student/PokemonList";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+import SchoolRankingTab from "@/components/student/SchoolRankingTab";
 
 interface School {
   id: string;
@@ -44,6 +46,7 @@ const RankingPage: React.FC = () => {
     localStorage.getItem("teacherId") : 
     localStorage.getItem("studentId");
   const userClassId = localStorage.getItem("studentClassId") || "";
+  const userSchoolId = localStorage.getItem("studentSchoolId") || "";
   
   // Get all available schools
   useEffect(() => {
@@ -65,15 +68,10 @@ const RankingPage: React.FC = () => {
       setSchools(allSchools);
       
       // If user is a student, auto-select their school for convenience
-      if (userType === "student" && userId) {
-        const students = JSON.parse(localStorage.getItem("students") || "[]");
-        const student = students.find((s: Student) => s.id === userId);
-        
-        if (student && student.schoolId) {
-          const school = allSchools.find((s: School) => s.id === student.schoolId);
-          if (school) {
-            setSelectedSchool(school);
-          }
+      if (userType === "student" && userId && userSchoolId) {
+        const school = allSchools.find((s: School) => s.id === userSchoolId);
+        if (school) {
+          setSelectedSchool(school);
         }
       }
     } catch (error) {
@@ -262,6 +260,36 @@ const RankingPage: React.FC = () => {
       </div>
     );
   };
+  
+  // If user is a student and we have their school, show school ranking directly
+  if (userType === "student" && selectedSchool) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <NavBar 
+          userType={userType}
+          userName={localStorage.getItem("studentName") || "Student"}
+        />
+        
+        <div className="container mx-auto py-8 px-4">
+          <div className="flex items-center mb-6">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate(-1)}
+              className="mr-4"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              {t("back")}
+            </Button>
+            <h1 className="text-2xl font-bold">
+              {selectedSchool.name} - {t("rankings")}
+            </h1>
+          </div>
+          
+          <SchoolRankingTab schoolId={selectedSchool.id} />
+        </div>
+      </div>
+    );
+  }
   
   return (
     <div className="min-h-screen bg-gray-100">

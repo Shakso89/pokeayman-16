@@ -48,6 +48,7 @@ function Router() {
       <Route path="/teacher/messages" element={<Messages userType="teacher" />} />
       <Route path="/student/messages" element={<Messages userType="student" />} />
       <Route path="/rankings" element={<RankingPage />} />
+      <Route path="/student/rankings" element={<RankingPage />} />
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/logout" element={<LogoutPage />} />
