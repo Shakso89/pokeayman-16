@@ -23,19 +23,17 @@ const Index: React.FC = () => {
         {/* Hero Section */}
         <div className="text-center mb-12">
           <div className="glass-card rounded-3xl p-8 mb-8 max-w-4xl mx-auto">
-            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 sparkle-animation">
-              Pokémon Educational Adventure
-            </h1>
-            <p className="text-lg md:text-xl text-white/90 max-w-3xl mx-auto mb-8">
+            
+            <p className="text-lg text-white/90 max-w-3xl mx-auto mb-8 md:text-4xl">
               Transform everyday lessons into exciting adventures! Use Pokémon, challenges, and rewards to boost student motivation and make learning unforgettable. Join a new wave of gamified education.
             </p>
             
             <div className="flex flex-col items-center gap-4 md:flex-row md:justify-center">
-              <Button size="lg" onClick={() => navigate("/teacher-login")} className="bg-yellow-500 hover:bg-yellow-600 text-black px-8 py-6 text-lg font-bold shadow-lg pulse-animation">
+              <Button size="lg" onClick={() => navigate("/teacher-login")} className="bg-yellow-500 hover:bg-yellow-600 text-black px-8 py-6 font-bold shadow-lg pulse-animation text-2xl">
                 {t("teacher-login")} 🎓
               </Button>
               
-              <Button size="lg" variant="outline" onClick={() => navigate("/student-login")} className="glass-card border-white/30 px-8 py-6 text-lg font-bold text-gray-900 bg-teal-600 hover:bg-teal-500">
+              <Button size="lg" variant="outline" onClick={() => navigate("/student-login")} className="glass-card border-white/30 px-8 py-6 font-bold text-gray-900 bg-teal-600 hover:bg-teal-500 text-2xl">
                 {t("student-login")} ⚡
               </Button>
             </div>
@@ -59,19 +57,19 @@ const Index: React.FC = () => {
             <div className="glass-card rounded-xl p-6 text-white hover:scale-105 transition-transform">
               <div className="text-4xl mb-4">🎮</div>
               <h3 className="text-xl font-bold mb-3">Engaging Learning</h3>
-              <p className="text-white/80">Turn education into a fun adventure with Pokémon-themed rewards and challenges.</p>
+              <p className="text-white/80 text-2xl">Turn education into a fun adventure with Pokémon-themed rewards and challenges.</p>
             </div>
             
             <div className="glass-card rounded-xl p-6 text-white hover:scale-105 transition-transform">
               <div className="text-4xl mb-4">📊</div>
               <h3 className="text-xl font-bold mb-3">Track Progress</h3>
-              <p className="text-white/80">Teachers can easily monitor student activities and achievements through an intuitive dashboard.</p>
+              <p className="text-white/80 text-2xl">Teachers can easily monitor student activities and achievements through an intuitive dashboard.</p>
             </div>
             
             <div className="glass-card rounded-xl p-6 text-white hover:scale-105 transition-transform">
               <div className="text-4xl mb-4">🤝</div>
               <h3 className="text-xl font-bold mb-3">Community Building</h3>
-              <p className="text-white/80">Connect with other teachers and schools to share best practices and resources.</p>
+              <p className="text-white/80 text-2xl">Connect with other teachers and schools to share best practices and resources.</p>
             </div>
           </div>
         </div>
