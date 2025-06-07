@@ -238,9 +238,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({
         {activeTab === "students" ? <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-900">Class Students</h2>
-              {isClassCreator() && <Button onClick={() => setIsStudentListOpen(true)} className="bg-blue-600 hover:bg-blue-700">
-                  Add More Students
-                </Button>}
+              {isClassCreator()}
             </div>
             
             <StudentsGrid students={students} isClassCreator={isClassCreator()} onAwardCoins={(studentId, studentName) => setGiveCoinsDialog({
