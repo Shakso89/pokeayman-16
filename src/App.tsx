@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
@@ -23,20 +22,17 @@ import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider } from "@/components/theme-provider";
 import CreateClassPage from "./pages/CreateClassPage";
-
 function ScrollToTop() {
-  const { pathname } = useLocation();
-
+  const {
+    pathname
+  } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
-
   return null;
 }
-
 function Router() {
-  return (
-    <Routes>
+  return <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/student-login" element={<StudentLogin />} />
       <Route path="/teacher-login" element={<TeacherLogin />} />
@@ -65,37 +61,26 @@ function Router() {
       <Route path="/teacher/profile/:teacherId" element={<TeacherProfilePage />} />
       
       <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
+    </Routes>;
 }
-
 function App() {
-  const { t } = useTranslation();
+  const {
+    t
+  } = useTranslation();
   const [isMounted, setIsMounted] = useState(false);
-
   useEffect(() => {
     setIsMounted(true);
   }, []);
-
   if (!isMounted) {
     return null;
   }
-
-  return (
-    <ThemeProvider
-      attribute="class"
-      defaultTheme="system"
-      enableSystem
-      disableTransitionOnChange
-    >
-      <div dir="ltr">
+  return <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <div dir="ltr" className="min-h-screen bg-transparent flex flex-col items-center\n">
         <ScrollToTop />
         <Router />
         <Toaster />
         <Analytics />
       </div>
-    </ThemeProvider>
-  );
+    </ThemeProvider>;
 }
-
 export default App;
