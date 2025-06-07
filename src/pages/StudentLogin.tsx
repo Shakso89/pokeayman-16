@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -20,13 +19,11 @@ const StudentLogin: React.FC = () => {
   const [checkingSession, setCheckingSession] = useState(true);
   const [sessionCheckTimeout, setSessionCheckTimeout] = useState<NodeJS.Timeout | null>(null);
 
-  // Check if user is already logged in
   useEffect(() => {
     let isMounted = true;
 
     const checkSession = async () => {
       try {
-        // Check localStorage first (fast path)
         const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
         const userType = localStorage.getItem("userType");
         
@@ -35,7 +32,6 @@ const StudentLogin: React.FC = () => {
           return;
         }
 
-        // Then check Supabase session
         const { data: { session }, error } = await supabase.auth.getSession();
         
         if (!isMounted) return;
@@ -62,7 +58,6 @@ const StudentLogin: React.FC = () => {
       }
     };
     
-    // Use a timeout for the initial check
     const timer = setTimeout(() => {
       checkSession();
     }, 1000);
@@ -119,10 +114,9 @@ const StudentLogin: React.FC = () => {
     }
   };
 
-  // Show loading state
   if (checkingSession) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-pink-400 to-purple-600 p-4">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-transparent p-4">
         <img
           src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png"
           alt="PokéAyman Logo"
@@ -139,7 +133,7 @@ const StudentLogin: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-400 to-purple-600 p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-transparent p-4 relative overflow-hidden">
       {/* Animated Background */}
       <div className="absolute inset-0 pointer-events-none z-0">
         <PokemonOrbit count={8} />
