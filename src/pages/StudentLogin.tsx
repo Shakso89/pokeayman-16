@@ -1,15 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import PokemonOrbit from "@/components/PokemonOrbit";
 import { toast } from "@/hooks/use-toast";
 import { useStudentAuth } from "@/hooks/useStudentAuth";
@@ -24,9 +18,7 @@ const StudentLogin: React.FC = () => {
   const [password, setPassword] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [sessionCheckTimeout, setSessionCheckTimeout] = useState<
-    NodeJS.Timeout | null
-  >(null);
+  const [sessionCheckTimeout, setSessionCheckTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Check if user is already logged in
   useEffect(() => {
@@ -34,34 +26,33 @@ const StudentLogin: React.FC = () => {
 
     const checkSession = async () => {
       try {
+        // Check localStorage first (fast path)
         const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
         const userType = localStorage.getItem("userType");
-
+        
         if (isLoggedIn && userType === "student") {
           navigate("/student-dashboard", { replace: true });
           return;
         }
 
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession();
-
+        // Then check Supabase session
+        const { data: { session }, error } = await supabase.auth.getSession();
+        
         if (!isMounted) return;
-
+        
         if (error) {
           console.error("Session check error:", error);
           setCheckingSession(false);
           return;
         }
-
+        
         if (session && session.user) {
           localStorage.setItem("isLoggedIn", "true");
           localStorage.setItem("userType", "student");
           navigate("/student-dashboard", { replace: true });
           return;
         }
-
+        
         setCheckingSession(false);
       } catch (err) {
         console.error("Error checking session:", err);
@@ -70,13 +61,14 @@ const StudentLogin: React.FC = () => {
         }
       }
     };
-
+    
+    // Use a timeout for the initial check
     const timer = setTimeout(() => {
       checkSession();
     }, 1000);
-
+    
     setSessionCheckTimeout(timer);
-
+    
     return () => {
       isMounted = false;
       if (sessionCheckTimeout) {
@@ -102,9 +94,11 @@ const StudentLogin: React.FC = () => {
     setIsProcessing(true);
 
     try {
+      console.log("Attempting student login with username:", usernameOrEmail);
       const result = await loginStudent(usernameOrEmail, password);
 
       if (result.success) {
+        console.log("Login successful, redirecting to dashboard");
         navigate("/student-dashboard", { replace: true });
       } else {
         toast({
@@ -114,6 +108,7 @@ const StudentLogin: React.FC = () => {
         });
       }
     } catch (error: any) {
+      console.error("Login error:", error);
       toast({
         title: "Login Error",
         description: error.message || "An error occurred during login.",
@@ -124,6 +119,7 @@ const StudentLogin: React.FC = () => {
     }
   };
 
+  // Show loading state
   if (checkingSession) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-pink-400 to-purple-600 p-4">
@@ -135,9 +131,7 @@ const StudentLogin: React.FC = () => {
         />
         <div className="bg-white/80 backdrop-blur-sm p-8 rounded-lg shadow-xl flex flex-col items-center">
           <Loader2 className="h-10 w-10 animate-spin text-purple-600 mb-4" />
-          <h2 className="text-xl font-semibold text-center">
-            Checking login status...
-          </h2>
+          <h2 className="text-xl font-semibold text-center">Checking login status...</h2>
           <p className="text-gray-500 mt-2 text-center">Please wait a moment</p>
         </div>
       </div>
@@ -162,7 +156,7 @@ const StudentLogin: React.FC = () => {
       </div>
 
       {/* Login Form */}
-      <Card className="w-full max-w-md z-10 mt-20 bg-transparent backdrop-blur-md border-white/20 shadow-xl">
+      <Card className="w-full max-w-md z-10 mt-20 backdrop-blur-sm bg-white/80 border-white/20 shadow-xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Student Login</CardTitle>
           <CardDescription>Enter your login details to continue</CardDescription>
