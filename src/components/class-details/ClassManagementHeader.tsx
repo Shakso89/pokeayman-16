@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -6,7 +5,6 @@ import { Badge } from "@/components/ui/badge";
 import { ChevronLeft, Calendar, User, Users, Settings, BookText, PlusCircle, Trash2, Gamepad2, Eye } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "@/hooks/useTranslation";
-
 interface ClassManagementHeaderProps {
   classData: any;
   studentsCount: number;
@@ -18,7 +16,6 @@ interface ClassManagementHeaderProps {
   onManagePokemon?: () => void;
   onViewSchoolPool?: () => void;
 }
-
 const ClassManagementHeader: React.FC<ClassManagementHeaderProps> = ({
   classData,
   studentsCount,
@@ -31,10 +28,10 @@ const ClassManagementHeader: React.FC<ClassManagementHeaderProps> = ({
   onViewSchoolPool
 }) => {
   const navigate = useNavigate();
-  const { t } = useTranslation();
-
-  return (
-    <div className="bg-gradient-to-r from-blue-600 to-purple-600 text-white">
+  const {
+    t
+  } = useTranslation();
+  return <div className="">
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Back Navigation */}
         <div className="flex items-center mb-6">
@@ -68,16 +65,13 @@ const ClassManagementHeader: React.FC<ClassManagementHeaderProps> = ({
         </div>
 
         {/* Action Buttons */}
-        {isClassCreator && (
-          <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
+        {isClassCreator && <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
             <Button onClick={onSwitchToHomework} className="bg-green-500 hover:bg-green-600 text-white relative">
               <BookText className="h-4 w-4 mr-2" />
               Homework
-              {pendingSubmissions > 0 && (
-                <Badge variant="destructive" className="ml-2">
+              {pendingSubmissions > 0 && <Badge variant="destructive" className="ml-2">
                   {pendingSubmissions}
-                </Badge>
-              )}
+                </Badge>}
             </Button>
             
             <Button onClick={onAddStudent} className="bg-blue-500 hover:bg-blue-600 text-white">
@@ -99,11 +93,8 @@ const ClassManagementHeader: React.FC<ClassManagementHeaderProps> = ({
               <Trash2 className="h-4 w-4 mr-2" />
               Delete Class
             </Button>
-          </div>
-        )}
+          </div>}
       </div>
-    </div>
-  );
+    </div>;
 };
-
 export default ClassManagementHeader;
