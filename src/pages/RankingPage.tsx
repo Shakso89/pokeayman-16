@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Badge } from "@/components/ui/badge";
@@ -50,8 +49,13 @@ const RankingPage: React.FC = () => {
   
   // Get all available schools
   useEffect(() => {
-    loadAllSchools();
-  }, [userType, userId]);
+    if (userType === "student" && userSchoolId) {
+      // For students, auto-load their school
+      autoSelectStudentSchool();
+    } else {
+      loadAllSchools();
+    }
+  }, [userType, userId, userSchoolId]);
   
   // Load classes when school is selected
   useEffect(() => {
@@ -60,20 +64,34 @@ const RankingPage: React.FC = () => {
     }
   }, [selectedSchool]);
   
+  const autoSelectStudentSchool = () => {
+    try {
+      const allSchools = JSON.parse(localStorage.getItem("schools") || "[]");
+      const studentSchool = allSchools.find((s: School) => s.id === userSchoolId);
+      
+      if (studentSchool) {
+        setSelectedSchool(studentSchool);
+      } else {
+        // Fallback: try to find school through class
+        const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+        const studentClass = allClasses.find((c: any) => c.id === userClassId);
+        
+        if (studentClass && studentClass.schoolId) {
+          const classSchool = allSchools.find((s: School) => s.id === studentClass.schoolId);
+          if (classSchool) {
+            setSelectedSchool(classSchool);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error auto-selecting student school:", error);
+    }
+  };
+  
   const loadAllSchools = () => {
     try {
       const allSchools = JSON.parse(localStorage.getItem("schools") || "[]");
-      
-      // No filtering, show all available schools
       setSchools(allSchools);
-      
-      // If user is a student, auto-select their school for convenience
-      if (userType === "student" && userId && userSchoolId) {
-        const school = allSchools.find((s: School) => s.id === userSchoolId);
-        if (school) {
-          setSelectedSchool(school);
-        }
-      }
     } catch (error) {
       console.error("Error loading schools:", error);
       setSchools([]);
