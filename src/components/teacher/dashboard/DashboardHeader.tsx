@@ -44,11 +44,11 @@ const DashboardHeader: React.FC<DashboardHeaderProps> = ({
     }
   };
   return <Card className="mb-6 border-none shadow-lg pokemon-gradient-bg text-white">
-      <CardContent className="p-6 bg-transparent">
+      <CardContent className="p-6">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center">
           <div>
-            <h2 className="text-3xl font-bold mb-2 text-sky-800">{t("welcome")} {displayName}</h2>
-            <p className="italic mb-2 text-red-600">"{quote}"</p>
+            <h2 className="text-3xl font-bold mb-2">{t("welcome")} {displayName}</h2>
+            <p className="italic mb-2 text-zinc-900">"{quote}"</p>
           </div>
           
           <div className="flex flex-col md:flex-row gap-2 mt-4 md:mt-0">
