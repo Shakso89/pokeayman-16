@@ -1,86 +1,171 @@
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import Footer from "@/components/Footer";
+import Header from "@/components/Header";
+
 const Index: React.FC = () => {
   const navigate = useNavigate();
-  const {
-    t
-  } = useTranslation();
-  return <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-pink-400">
+  const { t } = useTranslation();
+
+  return (
+    <div className="min-h-screen relative">
+      <Header />
+      
       <div className="container mx-auto px-4 py-8">
+        {/* Logo Section */}
         <div className="flex justify-center mb-12">
-          <img src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" alt="PokéAyman Logo" className="h-32 md:h-40 w-auto" style={{
-          filter: "drop-shadow(0 0 10px rgba(255,255,255,0.6))"
-        }} />
+          <img 
+            src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" 
+            alt="PokéAyman Logo" 
+            className="h-32 md:h-40 w-auto float-animation" 
+            style={{
+              filter: "drop-shadow(0 0 10px rgba(255,255,255,0.6))"
+            }} 
+          />
         </div>
         
+        {/* Hero Section */}
         <div className="text-center mb-12">
-          <div className="relative">
+          <div className="glass-card rounded-3xl p-8 mb-8 max-w-4xl mx-auto">
+            <h1 className="text-4xl md:text-6xl font-bold text-white mb-6 sparkle-animation">
+              Pokémon Educational Adventure
+            </h1>
+            <p className="text-lg md:text-xl text-white/90 max-w-3xl mx-auto mb-8">
+              Transform everyday lessons into exciting adventures! Use Pokémon, challenges, and rewards to boost student motivation and make learning unforgettable. Join a new wave of gamified education.
+            </p>
             
-          </div>
-          <p className="text-lg md:text-xl text-white max-w-3xl mx-auto mb-8">
-            Turn everyday lessons into exciting adventures! Use Pokémon, challenges, and rewards to boost student motivation and make learning unforgettable. Join a new wave of gamified education.
-          </p>
-        </div>
-        
-        <div className="flex flex-col items-center gap-4 md:flex-row md:justify-center mb-16">
-          <Button size="lg" onClick={() => navigate("/teacher-login")} className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-6 text-lg">
-            {t("teacher-login")}
-          </Button>
-          
-          <Button size="lg" variant="outline" onClick={() => navigate("/student-login")} className="backdrop-blur-sm text-white border-white px-8 py-6 text-lg bg-purple-800 hover:bg-purple-700">
-            {t("student-login")}
-          </Button>
-        </div>
-        
-        {/* Why Choose PokéAyman Section */}
-        <div className="text-center mb-12">
-          <h2 className="text-3xl md:text-4xl font-bold text-white mb-10">
-            Why Choose PokéAyman?
-          </h2>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-16">
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-white">
-              <h3 className="text-xl font-bold mb-3">Engaging Learning</h3>
-              <p>Turn education into a fun adventure with Pokémon-themed rewards and challenges.</p>
-            </div>
-            
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-white">
-              <h3 className="text-xl font-bold mb-3">Track Progress</h3>
-              <p>Teachers can easily monitor student activities and achievements through an intuitive dashboard.</p>
-            </div>
-            
-            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-6 text-white">
-              <h3 className="text-xl font-bold mb-3">Community Building</h3>
-              <p>Connect with other teachers and schools to share best practices and resources.</p>
+            <div className="flex flex-col items-center gap-4 md:flex-row md:justify-center">
+              <Button 
+                size="lg" 
+                onClick={() => navigate("/teacher-login")} 
+                className="bg-yellow-500 hover:bg-yellow-600 text-black px-8 py-6 text-lg font-bold shadow-lg pulse-animation"
+              >
+                {t("teacher-login")} 🎓
+              </Button>
+              
+              <Button 
+                size="lg" 
+                variant="outline" 
+                onClick={() => navigate("/student-login")} 
+                className="glass-card text-white border-white/30 px-8 py-6 text-lg font-bold hover:bg-white/20"
+              >
+                {t("student-login")} ⚡
+              </Button>
             </div>
           </div>
         </div>
 
         {/* Ash and Pikachu hero image */}
-        <div className="flex justify-center mb-8">
-          <img alt="Ash and Pikachu" style={{
-          filter: "drop-shadow(0 0 20px rgba(255, 255, 0, 0.3))"
-        }} src="/lovable-uploads/be64cb1f-6989-4838-8064-d1a749d90ef8.png" className="h-auto max-w-full md:max-w-md lg:max-w-lg xl:max-w-xl object-none" />
+        <div className="flex justify-center mb-12">
+          <img 
+            alt="Ash and Pikachu" 
+            style={{
+              filter: "drop-shadow(0 0 20px rgba(255, 255, 0, 0.3))"
+            }} 
+            src="/lovable-uploads/be64cb1f-6989-4838-8064-d1a749d90ef8.png" 
+            className="h-auto max-w-full md:max-w-md lg:max-w-lg xl:max-w-xl object-none float-animation" 
+          />
+        </div>
+        
+        {/* Why Choose PokéAyman Section */}
+        <div className="text-center mb-16">
+          <h2 className="text-3xl md:text-4xl font-bold text-white mb-10 sparkle-animation">
+            Why Choose PokéAyman? ✨
+          </h2>
+          
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="glass-card rounded-xl p-6 text-white hover:scale-105 transition-transform">
+              <div className="text-4xl mb-4">🎮</div>
+              <h3 className="text-xl font-bold mb-3">Engaging Learning</h3>
+              <p className="text-white/80">Turn education into a fun adventure with Pokémon-themed rewards and challenges.</p>
+            </div>
+            
+            <div className="glass-card rounded-xl p-6 text-white hover:scale-105 transition-transform">
+              <div className="text-4xl mb-4">📊</div>
+              <h3 className="text-xl font-bold mb-3">Track Progress</h3>
+              <p className="text-white/80">Teachers can easily monitor student activities and achievements through an intuitive dashboard.</p>
+            </div>
+            
+            <div className="glass-card rounded-xl p-6 text-white hover:scale-105 transition-transform">
+              <div className="text-4xl mb-4">🤝</div>
+              <h3 className="text-xl font-bold mb-3">Community Building</h3>
+              <p className="text-white/80">Connect with other teachers and schools to share best practices and resources.</p>
+            </div>
+          </div>
         </div>
 
         {/* Pokémon image showcase */}
         <div className="flex justify-center flex-wrap gap-8 mb-16">
-          <img alt="Pikachu" className="h-48 w-auto drop-shadow-lg animate-bounce" style={{
-          animationDuration: "3s"
-        }} src="/lovable-uploads/6643827c-343f-41b5-becf-e156015a18e7.png" />
-          <img alt="Charizard" style={{
-          animationDuration: "4s"
-        }} src="/lovable-uploads/b42f1e48-b772-4523-8290-871c5575c64d.png" className="h-64 w-auto drop-shadow-lg animate-bounce" />
-          <img src="/lovable-uploads/d1c806ec-9607-4d94-af2a-bdbb8d2cb0c6.png" alt="Bulbasaur" className="h-48 w-auto drop-shadow-lg animate-bounce" style={{
-          animationDuration: "3.5s"
-        }} />
+          <img 
+            alt="Pikachu" 
+            className="h-48 w-auto drop-shadow-lg animate-bounce" 
+            style={{
+              animationDuration: "3s",
+              filter: "drop-shadow(0 0 15px rgba(255, 255, 0, 0.5))"
+            }} 
+            src="/lovable-uploads/6643827c-343f-41b5-becf-e156015a18e7.png" 
+          />
+          <img 
+            alt="Charizard" 
+            style={{
+              animationDuration: "4s",
+              filter: "drop-shadow(0 0 15px rgba(255, 100, 0, 0.5))"
+            }} 
+            src="/lovable-uploads/b42f1e48-b772-4523-8290-871c5575c64d.png" 
+            className="h-64 w-auto drop-shadow-lg animate-bounce" 
+          />
+          <img 
+            src="/lovable-uploads/d1c806ec-9607-4d94-af2a-bdbb8d2cb0c6.png" 
+            alt="Bulbasaur" 
+            className="h-48 w-auto drop-shadow-lg animate-bounce" 
+            style={{
+              animationDuration: "3.5s",
+              filter: "drop-shadow(0 0 15px rgba(0, 255, 100, 0.5))"
+            }} 
+          />
+        </div>
+
+        {/* Features showcase */}
+        <div className="glass-card rounded-3xl p-8 mb-16 max-w-6xl mx-auto">
+          <h2 className="text-3xl font-bold text-white text-center mb-8">Experience the Adventure! 🌟</h2>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+            <div className="space-y-6">
+              <div className="flex items-start gap-4">
+                <div className="text-2xl">🎒</div>
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-2">Collect & Battle</h3>
+                  <p className="text-white/80">Students collect Pokémon as rewards and participate in educational battles.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="text-2xl">🏆</div>
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-2">Achievement System</h3>
+                  <p className="text-white/80">Comprehensive ranking and achievement tracking for motivation.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-4">
+                <div className="text-2xl">🎲</div>
+                <div>
+                  <h3 className="text-xl font-bold text-white mb-2">Mystery Rewards</h3>
+                  <p className="text-white/80">Surprise Pokémon rewards through our mystery ball system.</p>
+                </div>
+              </div>
+            </div>
+            <div className="text-center">
+              <div className="text-6xl mb-4 animate-pulse">⚡</div>
+              <p className="text-white/80 italic">"Learning has never been this exciting!"</p>
+            </div>
+          </div>
         </div>
       </div>
       
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default Index;
