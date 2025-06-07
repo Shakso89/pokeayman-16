@@ -1,15 +1,8 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate, Link } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  getStudentPokemonCollection, 
-  getSchoolPokemonPool, 
-  initializeSchoolPokemonPool, 
-  updateAllSchoolPoolsTo500,
-  awardCoinsToStudent 
-} from "@/utils/pokemon";
+import { getStudentPokemonCollection, getSchoolPokemonPool, initializeSchoolPokemonPool, updateAllSchoolPoolsTo500, awardCoinsToStudent } from "@/utils/pokemon";
 import { Pokemon } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/hooks/use-toast";
@@ -22,7 +15,6 @@ import StudentCollection from "@/components/student/StudentCollection";
 import MysteryBallTab from "@/components/student/MysteryBallTab";
 import SchoolPoolDialog from "@/components/student/SchoolPoolDialog";
 import MyClassesTab from "@/components/student/MyClassesTab";
-
 const StudentDashboard: React.FC = () => {
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const userType = localStorage.getItem("userType");
@@ -30,8 +22,12 @@ const StudentDashboard: React.FC = () => {
   const studentId = localStorage.getItem("studentId") || "";
   const classId = localStorage.getItem("studentClassId") || "";
   const schoolId = localStorage.getItem("studentSchoolId") || "";
-  const { t } = useTranslation();
-  const { toast } = useToast();
+  const {
+    t
+  } = useTranslation();
+  const {
+    toast
+  } = useToast();
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
   const [coins, setCoins] = useState(0);
   const [schoolPokemons, setSchoolPokemons] = useState<Pokemon[]>([]);
@@ -40,17 +36,15 @@ const StudentDashboard: React.FC = () => {
   const [avatar, setAvatar] = useState<string | null>(null);
   const [showSchoolPool, setShowSchoolPool] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-
   useEffect(() => {
     console.log("StudentDashboard loaded with:", {
       studentId,
       classId,
       schoolId
     });
-    
+
     // Update all school pools to have 500 Pokémon
     updateAllSchoolPoolsTo500();
-    
     if (studentId) {
       loadStudentData();
       loadActiveBattles();
@@ -63,7 +57,6 @@ const StudentDashboard: React.FC = () => {
       localStorage.setItem("studentSchoolId", "default-school-1");
     }
   }, [studentId, schoolId]);
-
   const loadStudentData = () => {
     console.log("Loading student data for:", studentId);
     // Load Pokemon collection and coins
@@ -84,7 +77,6 @@ const StudentDashboard: React.FC = () => {
       setAvatar(student.avatar);
     }
   };
-
   const loadSchoolPokemonPool = () => {
     const currentSchoolId = schoolId || localStorage.getItem("studentSchoolId") || "default-school-1";
     console.log("Loading school pokemon pool for:", currentSchoolId);
@@ -100,7 +92,6 @@ const StudentDashboard: React.FC = () => {
       setSchoolPokemons([]);
     }
   };
-
   const loadActiveBattles = () => {
     if (!studentId || !classId || !schoolId) return;
     const savedBattles = localStorage.getItem("battles");
@@ -154,13 +145,11 @@ const StudentDashboard: React.FC = () => {
 
   // Get the current school ID (either from state or localStorage)
   const currentSchoolId = schoolId || localStorage.getItem("studentSchoolId") || "default-school-1";
-  
   if (!isLoggedIn || userType !== "student") {
     return <Navigate to="/student-login" />;
   }
-
-  return (
-<div className="min-h-screen bg-transparent">      <NavBar userType="student" userName={studentName} userAvatar={avatar || undefined} />
+  return <div className="min-h-screen bg-gradient-to-b from-blue-50 to-purple-100">
+      <NavBar userType="student" userName={studentName} userAvatar={avatar || undefined} />
       
       <div className="container mx-auto py-8 px-4">
         <StudentHeader studentName={studentName} coins={coins} activeBattles={activeBattles} onOpenSchoolPool={() => setShowSchoolPool(true)} />
@@ -176,25 +165,16 @@ const StudentDashboard: React.FC = () => {
         </div>
         
         <div className="mt-6 relative">
-          <Tabs defaultValue="my-pokemons" className="w-full mt-8" value={activeTab} onValueChange={setActiveTab}>
+          <Tabs defaultValue="my-pokemons" value={activeTab} onValueChange={setActiveTab} className="w-full mt-8 bg-transparent">
             <TabsList className="grid w-full grid-cols-3 mb-8 bg-blue-200 p-2 rounded-full">
-              <TabsTrigger 
-                value="my-pokemons"
-                className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all"
-              >
+              <TabsTrigger value="my-pokemons" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all">
                 My Pokémon
               </TabsTrigger>
-              <TabsTrigger 
-                value="mystery-ball"
-                className="data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all flex items-center justify-center gap-2"
-              >
+              <TabsTrigger value="mystery-ball" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all flex items-center justify-center gap-2">
                 <Package className="h-5 w-5" />
                 Mystery Ball
               </TabsTrigger>
-              <TabsTrigger 
-                value="my-classes" 
-                className="data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all flex items-center justify-center gap-2"
-              >
+              <TabsTrigger value="my-classes" className="data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all flex items-center justify-center gap-2">
                 <Users className="h-5 w-5" />
                 My Class
               </TabsTrigger>
@@ -205,16 +185,7 @@ const StudentDashboard: React.FC = () => {
             </TabsContent>
             
             <TabsContent value="mystery-ball" className="mt-4">
-              <MysteryBallTab 
-                schoolPokemons={schoolPokemons} 
-                studentId={studentId} 
-                schoolId={currentSchoolId} 
-                coins={coins} 
-                isLoading={isLoading} 
-                onPokemonWon={handlePokemonWon} 
-                onCoinsWon={handleCoinsWon} 
-                onRefreshPool={handleRefreshPool} 
-              />
+              <MysteryBallTab schoolPokemons={schoolPokemons} studentId={studentId} schoolId={currentSchoolId} coins={coins} isLoading={isLoading} onPokemonWon={handlePokemonWon} onCoinsWon={handleCoinsWon} onRefreshPool={handleRefreshPool} />
             </TabsContent>
             
             <TabsContent value="my-classes" className="mt-4">
@@ -225,14 +196,7 @@ const StudentDashboard: React.FC = () => {
       </div>
       
       {/* School Pool Dialog */}
-      <SchoolPoolDialog 
-        open={showSchoolPool} 
-        onOpenChange={setShowSchoolPool} 
-        schoolId={currentSchoolId}
-        userType="student"
-      />
-    </div>
-  );
+      <SchoolPoolDialog open={showSchoolPool} onOpenChange={setShowSchoolPool} schoolId={currentSchoolId} userType="student" />
+    </div>;
 };
-
 export default StudentDashboard;
