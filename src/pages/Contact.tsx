@@ -22,11 +22,11 @@ const Contact: React.FC = () => {
     console.log(`Contact attempt via ${method}${value ? `: ${value}` : ''}`);
   };
   return <div className="min-h-screen bg-transparent flex flex-col items-center">
-      <Header className="text-slate-700" />
+      <Header />
 
       <div className="flex-1 flex flex-col items-center justify-center w-full max-w-4xl p-6">
         <div className="bg-white/20 backdrop-blur-md rounded-xl p-8 shadow-xl w-full max-w-3xl">
-          <h1 className="text-4xl font-bold text-slate-700 mb-8 text-center">{t("contact-us")}</h1>
+          <h1 className="text-4xl font-bold text-white mb-8 text-center">{t("contact-us")}</h1>
 
           <div className="grid gap-6 md:grid-cols-2">
             {/* Phone */}
