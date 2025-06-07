@@ -14,9 +14,11 @@ const ClassPageLayout: React.FC<ClassPageLayoutProps> = ({
   userName
 }) => {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen">
       <NavBar userType={userType} userName={userName} />
-      {children}
+      <div className="relative z-10">
+        {children}
+      </div>
     </div>
   );
 };

@@ -16,7 +16,7 @@ export const AuthLayout = ({ title, description, children, className }: AuthLayo
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 flex flex-col items-center justify-center p-4 relative overflow-hidden">
+    <div className="min-h-screen flex flex-col items-center justify-center p-4 relative overflow-hidden">
       {/* Animated Pokemon background */}
       <PokemonOrbit count={8} />
       
@@ -25,14 +25,14 @@ export const AuthLayout = ({ title, description, children, className }: AuthLayo
           variant="outline" 
           size="sm"
           onClick={() => navigate("/")}
-          className="mb-6 bg-white/20 backdrop-blur-sm text-white border-white/30 hover:bg-white/30"
+          className="mb-6 glass-card border-white/30 text-white hover:bg-white/30"
         >
           Back to Home
         </Button>
       
-        <Card className={`backdrop-blur-sm bg-white/90 border-white/20 shadow-xl ${className || ""}`}>
+        <Card className={`glass-card border-white/20 shadow-xl ${className || ""}`}>
           <CardContent className="pt-6">
-            <h1 className="text-2xl font-bold text-center mb-6">{title}</h1>
+            <h1 className="text-2xl font-bold text-center mb-6 text-gray-800">{title}</h1>
             {description && <p className="text-center text-gray-600 mb-6">{description}</p>}
             {children}
           </CardContent>
