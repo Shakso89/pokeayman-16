@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Home, Settings, BookOpen } from "lucide-react";
@@ -34,7 +33,6 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
   const [teacherClasses, setTeacherClasses] = useState<any[]>([]);
   
   useEffect(() => {
-    // Load teacher's classes for homework tab
     const loadTeacherClasses = async () => {
       if (!teacherId) return;
       
@@ -61,7 +59,6 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
   return (
     <div className="grid grid-cols-1 gap-6">
       <div>
-        {/* Add unique key to isolate this Tabs component */}
         <Tabs 
           key="teacher-main-dashboard-tabs"
           value={activeTab} 
@@ -120,7 +117,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
               {/* Actions Section */}
               <div>
                 <h3 className="text-lg font-semibold mb-4">{t("actions")}</h3>
-                <DashboardActions onAddStudent={onAddStudent} onManageClasses={onManageClasses} onCreateClass={onCreateClass} isAdmin={isAdmin} />
+                <DashboardActions onAddStudent={onAddStudent} isAdmin={isAdmin} />
               </div>
               
               {/* Access Requests Section */}
