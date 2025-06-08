@@ -133,10 +133,11 @@ const ContactDialog: React.FC<ContactDialogProps> = ({
               <h4 className="text-lg font-bold text-white mb-3">How Credits Work</h4>
               <div className="grid gap-3 text-white/80 text-sm">
                 <div>• 1 Credit = 1 coin reward for students</div>
-                <div className="bg-transparent">• Posting H.W = 5 coins , approving H.W = credits equal to the coin reward given to the student ( e.g. 3 coins = 3 credits ) </div>
-                <div>• Deleting Pokémon from student = 3 credits </div>
+                <div className="bg-transparent">• Posting H.W = 5 credit, approving H.W = credits equal to the coin reward given to the student ( e.g. 3 coins = 3 credits ) 
+              </div>
+                <div>• Deleting Pokémon from student = 3 credits " chosen or random "</div>
+                <div>•  Awarding random Pokémon 5 credits </div>
                 <div>• Credits never expire once purchased</div>
-                <div>• Bulk discounts available for schools</div>
               </div>
             </div>
           </TabsContent>
