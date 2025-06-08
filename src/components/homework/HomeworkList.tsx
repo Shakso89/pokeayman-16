@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -27,8 +28,8 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [reviewDialogState, setReviewDialogState] = useState<{
     isOpen: boolean;
-    homeworkId: string | null;
-  }>({ isOpen: false, homeworkId: null });
+    homework: Homework | null;
+  }>({ isOpen: false, homework: null });
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -227,7 +228,7 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
                         <Button
                           size="sm"
                           variant="outline"
-                          onClick={() => setReviewDialogState({ isOpen: true, homeworkId: hw.id })}
+                          onClick={() => setReviewDialogState({ isOpen: true, homework: hw })}
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           Review
@@ -261,9 +262,9 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
 
       <HomeworkReviewDialog
         open={reviewDialogState.isOpen}
-        onOpenChange={(open) => setReviewDialogState({ isOpen: open, homeworkId: null })}
-        homeworkId={reviewDialogState.homeworkId}
-        onSubmissionUpdate={loadSubmissions}
+        onOpenChange={(open) => setReviewDialogState({ isOpen: open, homework: null })}
+        homework={reviewDialogState.homework}
+        onSubmissionUpdated={loadSubmissions}
       />
     </div>
   );
