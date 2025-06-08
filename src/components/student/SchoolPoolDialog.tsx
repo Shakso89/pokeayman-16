@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -9,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/hooks/useTranslation";
-import { getSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
+import { getSchoolPokemonPool, initializeSchoolPokemonPool, updateAllSchoolPoolsTo500 } from "@/utils/pokemon/schoolPokemon";
 import { Pokemon } from "@/types/pokemon";
 
 interface SchoolPoolDialogProps {
@@ -38,20 +39,54 @@ const SchoolPoolDialog: React.FC<SchoolPoolDialogProps> = ({
   const fetchSchoolPool = () => {
     setLoading(true);
     try {
-      const pool = getSchoolPokemonPool(schoolId);
-      console.log("School pool data:", pool);
+      console.log("Fetching school pool for schoolId:", schoolId);
+      
+      // First, ensure all school pools are updated to have 500 Pokemon
+      updateAllSchoolPoolsTo500();
+      
+      // Try to get the existing pool
+      let pool = getSchoolPokemonPool(schoolId);
+      console.log("Retrieved pool:", pool);
+      
+      // If no pool exists, initialize it
+      if (!pool) {
+        console.log("No pool found, initializing new pool for school:", schoolId);
+        pool = initializeSchoolPokemonPool(schoolId, 500);
+        console.log("Initialized new pool:", pool);
+      }
 
       if (pool && pool.availablePokemons && Array.isArray(pool.availablePokemons)) {
+        console.log("Setting pokemon pool with", pool.availablePokemons.length, "pokemon");
         setPokemonPool(pool.availablePokemons);
       } else if (Array.isArray(pool)) {
+        console.log("Pool is array format, setting directly");
         setPokemonPool(pool);
       } else {
-        console.warn("Invalid pool data:", pool);
-        setPokemonPool([]);
+        console.warn("Invalid or empty pool data:", pool);
+        
+        // Force create a new pool if we still don't have valid data
+        const newPool = initializeSchoolPokemonPool(schoolId, 500);
+        if (newPool && newPool.availablePokemons) {
+          setPokemonPool(newPool.availablePokemons);
+        } else {
+          setPokemonPool([]);
+        }
       }
     } catch (error) {
       console.error("Error fetching school pool:", error);
-      setPokemonPool([]);
+      
+      // Try to recover by creating a new pool
+      try {
+        const recoveryPool = initializeSchoolPokemonPool(schoolId, 500);
+        if (recoveryPool && recoveryPool.availablePokemons) {
+          setPokemonPool(recoveryPool.availablePokemons);
+        } else {
+          setPokemonPool([]);
+        }
+      } catch (recoveryError) {
+        console.error("Recovery attempt failed:", recoveryError);
+        setPokemonPool([]);
+      }
     } finally {
       setLoading(false);
     }
@@ -74,7 +109,7 @@ const SchoolPoolDialog: React.FC<SchoolPoolDialogProps> = ({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{t("school-pokemon-pool")}</DialogTitle>
+          <DialogTitle>{t("school-pokemon-pool")} ({pokemonPool.length} Pokémon available)</DialogTitle>
         </DialogHeader>
 
         <div className="space-y-6">
@@ -84,7 +119,10 @@ const SchoolPoolDialog: React.FC<SchoolPoolDialogProps> = ({
             </div>
           ) : pokemonPool.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">{t("no-pokemon-in-pool")}</p>
+              <p className="text-gray-500 mb-4">{t("no-pokemon-in-pool")}</p>
+              <Button onClick={fetchSchoolPool} variant="outline">
+                Refresh Pool
+              </Button>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -118,8 +156,16 @@ const SchoolPoolDialog: React.FC<SchoolPoolDialogProps> = ({
             </div>
           )}
 
-          <div className="flex justify-end pt-4">
-            <Button onClick={() => onOpenChange(false)}>{t("close")}</Button>
+          <div className="flex justify-between items-center pt-4">
+            <div className="text-sm text-gray-600">
+              School ID: {schoolId}
+            </div>
+            <div className="flex gap-2">
+              <Button onClick={fetchSchoolPool} variant="outline">
+                Refresh
+              </Button>
+              <Button onClick={() => onOpenChange(false)}>{t("close")}</Button>
+            </div>
           </div>
         </div>
       </DialogContent>

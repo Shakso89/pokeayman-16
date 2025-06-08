@@ -4,12 +4,16 @@ import { getRandomType, getRarityForId } from "./types";
 import { getPokemonPools, savePokemonPools } from "./storage";
 
 // Initialize school Pokemon pool
-export const initializeSchoolPokemonPool = (schoolId: string, initialPokemonCount: number = 100): PokemonPool | null => {
+export const initializeSchoolPokemonPool = (schoolId: string, initialPokemonCount: number = 500): PokemonPool | null => {
+  console.log(`Initializing school Pokemon pool for school ${schoolId} with ${initialPokemonCount} Pokemon`);
+  
   // Check if pool already exists
   const existingPools = getPokemonPools();
-  if (existingPools.some(pool => pool.schoolId === schoolId)) {
-    console.log(`Pool for school ${schoolId} already exists`);
-    return null;
+  const existingPool = existingPools.find(pool => pool.schoolId === schoolId);
+  
+  if (existingPool) {
+    console.log(`Pool for school ${schoolId} already exists with ${existingPool.availablePokemons.length} Pokemon`);
+    return existingPool;
   }
 
   // Create a new pool with random Pokemons
@@ -36,13 +40,17 @@ export const initializeSchoolPokemonPool = (schoolId: string, initialPokemonCoun
 
 // Get school Pokemon pool
 export const getSchoolPokemonPool = (schoolId: string): PokemonPool | null => {
+  console.log(`Getting school Pokemon pool for school ${schoolId}`);
   const pools = getPokemonPools();
-  return pools.find(pool => pool.schoolId === schoolId) || null;
+  const pool = pools.find(pool => pool.schoolId === schoolId) || null;
+  console.log(`Found pool:`, pool ? `${pool.availablePokemons.length} Pokemon` : 'null');
+  return pool;
 };
 
 // Update all school pools to have 500 Pokemon each
 export const updateAllSchoolPoolsTo500 = (): void => {
   const pools = getPokemonPools();
+  let updated = false;
   
   for (const pool of pools) {
     const currentCount = pool.availablePokemons.length;
@@ -55,11 +63,15 @@ export const updateAllSchoolPoolsTo500 = (): void => {
       }
       
       pool.lastUpdated = new Date().toISOString();
+      updated = true;
+      console.log(`Updated pool for school ${pool.schoolId} from ${currentCount} to ${pool.availablePokemons.length} Pokemon`);
     }
   }
   
-  savePokemonPools(pools);
-  console.log("Updated all school pools to have at least 500 Pokemon each");
+  if (updated) {
+    savePokemonPools(pools);
+    console.log("Updated school pools to have at least 500 Pokemon each");
+  }
 };
 
 // Force update all school pools
