@@ -10,10 +10,10 @@ export const getStudentPokemonCollection = (studentId: string): StudentPokemon |
 };
 
 // Remove a random pokemon from a student and return it to the school pool
-export const removePokemonFromStudent = (studentId: string): boolean => {
+export const removePokemonFromStudent = (studentId: string): { success: boolean; pokemon?: Pokemon } => {
   const collection = getStudentPokemonCollection(studentId);
   if (!collection || collection.pokemons.length === 0) {
-    return false;
+    return { success: false };
   }
 
   // Select a random pokemon to remove
@@ -53,10 +53,10 @@ export const removePokemonFromStudent = (studentId: string): boolean => {
       console.error("Error returning Pokemon to school pool:", error);
     }
     
-    return true;
+    return { success: true, pokemon: removedPokemon };
   }
   
-  return false;
+  return { success: false };
 };
 
 // Remove a specific Pokemon from a student and return it to the school pool
@@ -210,10 +210,10 @@ export const assignPokemonToStudent = (schoolId: string, studentId: string, poke
 };
 
 // Assign a random Pokemon from the school pool to a student with duplicate handling
-export const assignRandomPokemonToStudent = (schoolId: string, studentId: string, specificPokemonId?: string): boolean => {
+export const assignRandomPokemonToStudent = (schoolId: string, studentId: string, specificPokemonId?: string): { success: boolean; pokemon?: Pokemon } => {
   if (!schoolId || !studentId) {
     console.error("Missing required parameters:", { schoolId, studentId });
-    return false;
+    return { success: false };
   }
 
   // Get all the pools
@@ -222,7 +222,7 @@ export const assignRandomPokemonToStudent = (schoolId: string, studentId: string
   
   if (poolIndex < 0 || pools[poolIndex].availablePokemons.length === 0) {
     console.error("School pool not found or empty for:", schoolId);
-    return false;
+    return { success: false };
   }
   
   let pokemonIndex = -1;
@@ -232,7 +232,7 @@ export const assignRandomPokemonToStudent = (schoolId: string, studentId: string
     pokemonIndex = pools[poolIndex].availablePokemons.findIndex(p => p.id === specificPokemonId);
     if (pokemonIndex < 0) {
       console.error("Specific Pokemon not found in school pool:", specificPokemonId);
-      return false;
+      return { success: false };
     }
   } else {
     // Otherwise select a random pokemon
@@ -246,7 +246,7 @@ export const assignRandomPokemonToStudent = (schoolId: string, studentId: string
   const isDuplicate = handlePokemonDuplicate(studentId, pokemon);
   if (isDuplicate) {
     // Don't remove from pool, just return success since coins were awarded
-    return true;
+    return { success: true, pokemon };
   }
   
   // Remove Pokemon from pool only if not a duplicate
@@ -269,7 +269,7 @@ export const assignRandomPokemonToStudent = (schoolId: string, studentId: string
   
   saveStudentPokemons(studentPokemons);
   console.log("Pokemon assigned successfully:", pokemon.name, "to student:", studentId);
-  return true;
+  return { success: true, pokemon };
 };
 
 // Use a coin to spin the wheel

@@ -1,5 +1,4 @@
-
-import React from "react";
+import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -10,6 +9,8 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { getStudentPokemonCollection } from "@/utils/pokemon/studentPokemon";
 import { assignRandomPokemonToStudent, removePokemonFromStudent } from "@/utils/pokemon/studentPokemon";
 import { toast } from "@/hooks/use-toast";
+import PokemonActionModal from "@/components/pokemon/PokemonActionModal";
+import { Pokemon } from "@/types/pokemon";
 
 interface Student {
   id: string;
@@ -43,6 +44,14 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
+  
+  // Add state for Pokemon action modal
+  const [pokemonActionModal, setPokemonActionModal] = useState({
+    isOpen: false,
+    pokemon: null as Pokemon | null,
+    actionType: "awarded" as "awarded" | "removed",
+    studentName: ""
+  });
 
   const handleViewProfile = (studentId: string) => {
     navigate(`/student-profile/${studentId}`);
@@ -67,7 +76,7 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
     }
   };
 
-  const handleAwardRandomPokemon = (studentId: string, studentName: string) => {
+  const handleAwardRandomPokemon = async (studentId: string, studentName: string) => {
     if (!classData?.schoolId) {
       toast({
         title: t("error"),
@@ -78,14 +87,25 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
     }
 
     try {
-      const success = assignRandomPokemonToStudent(classData.schoolId, studentId);
-      if (success) {
+      const result = assignRandomPokemonToStudent(classData.schoolId, studentId);
+      if (result.success && result.pokemon) {
+        // Show the modal with the awarded Pokemon
+        setPokemonActionModal({
+          isOpen: true,
+          pokemon: result.pokemon,
+          actionType: "awarded",
+          studentName
+        });
+        
         toast({
           title: t("success"),
           description: `Random Pokémon awarded to ${studentName}`
         });
+        
         // Force a page refresh to update the counts
-        window.location.reload();
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       } else {
         toast({
           title: t("error"),
@@ -103,16 +123,27 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
     }
   };
 
-  const handleRemoveRandomPokemon = (studentId: string, studentName: string) => {
+  const handleRemoveRandomPokemon = async (studentId: string, studentName: string) => {
     try {
-      const success = removePokemonFromStudent(studentId);
-      if (success) {
+      const result = removePokemonFromStudent(studentId);
+      if (result.success && result.pokemon) {
+        // Show the modal with the removed Pokemon
+        setPokemonActionModal({
+          isOpen: true,
+          pokemon: result.pokemon,
+          actionType: "removed",
+          studentName
+        });
+        
         toast({
           title: t("success"),
           description: `Random Pokémon removed from ${studentName} and returned to school pool`
         });
+        
         // Force a page refresh to update the counts
-        window.location.reload();
+        setTimeout(() => {
+          window.location.reload();
+        }, 2000);
       } else {
         toast({
           title: t("error"),
@@ -130,6 +161,15 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
     }
   };
 
+  const handleCloseModal = () => {
+    setPokemonActionModal({
+      isOpen: false,
+      pokemon: null,
+      actionType: "awarded",
+      studentName: ""
+    });
+  };
+
   if (!students || students.length === 0) {
     return (
       <div className="text-center py-8">
@@ -139,135 +179,146 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
   }
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {students.map((student) => {
-        const displayName = student.displayName || student.display_name || student.username;
-        const coins = getStudentCoins(student.id);
-        const pokemonCount = getStudentPokemonCount(student.id);
-        
-        return (
-          <Card key={student.id} className="bg-white/20 backdrop-blur-sm">
-            <CardContent className="p-6">
-              <div className="flex flex-col items-center space-y-4">
-                {/* Avatar */}
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={student.avatar} alt={displayName} />
-                  <AvatarFallback>
-                    <User className="h-8 w-8" />
-                  </AvatarFallback>
-                </Avatar>
+    <>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {students.map((student) => {
+          const displayName = student.displayName || student.display_name || student.username;
+          const coins = getStudentCoins(student.id);
+          const pokemonCount = getStudentPokemonCount(student.id);
+          
+          return (
+            <Card key={student.id} className="bg-white/20 backdrop-blur-sm">
+              <CardContent className="p-6">
+                <div className="flex flex-col items-center space-y-4">
+                  {/* Avatar */}
+                  <Avatar className="h-16 w-16">
+                    <AvatarImage src={student.avatar} alt={displayName} />
+                    <AvatarFallback>
+                      <User className="h-8 w-8" />
+                    </AvatarFallback>
+                  </Avatar>
 
-                {/* Student Info */}
-                <div className="text-center">
-                  <h3 className="font-semibold text-lg">{displayName}</h3>
-                  <p className="text-sm text-gray-600">@{student.username}</p>
-                </div>
-
-                {/* Stats */}
-                <div className="flex space-x-4 w-full">
-                  <div className="flex-1 bg-yellow-100 rounded-lg p-3 text-center">
-                    <div className="flex items-center justify-center space-x-1 text-yellow-700">
-                      <Coins className="h-4 w-4" />
-                      <span className="text-sm font-medium">Coins</span>
-                    </div>
-                    <p className="text-xl font-bold text-yellow-800">{coins}</p>
+                  {/* Student Info */}
+                  <div className="text-center">
+                    <h3 className="font-semibold text-lg">{displayName}</h3>
+                    <p className="text-sm text-gray-600">@{student.username}</p>
                   </div>
-                  
-                  <div className="flex-1 bg-purple-100 rounded-lg p-3 text-center">
-                    <div className="flex items-center justify-center space-x-1 text-purple-700">
-                      <Award className="h-4 w-4" />
-                      <span className="text-sm font-medium">Pokémon</span>
-                    </div>
-                    <p className="text-xl font-bold text-purple-800">{pokemonCount}</p>
-                  </div>
-                </div>
 
-                {/* Quick Action Buttons */}
-                {isClassCreator && (
-                  <div className="flex space-x-2 w-full">
-                    <Button
-                      size="sm"
-                      className="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
-                      onClick={() => handleAwardRandomPokemon(student.id, displayName)}
-                    >
-                      <Plus className="h-4 w-4 mr-1" />
-                      Give
-                    </Button>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      className="flex-1"
-                      onClick={() => handleRemoveRandomPokemon(student.id, displayName)}
-                    >
-                      <Minus className="h-4 w-4 mr-1" />
-                      Pokémon
-                    </Button>
-                  </div>
-                )}
-
-                {/* Action Buttons */}
-                <div className="flex flex-col space-y-2 w-full">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleViewProfile(student.id)}
-                    className="w-full"
-                  >
-                    <User className="h-4 w-4 mr-2" />
-                    {t("view-profile")}
-                  </Button>
-
-                  {isClassCreator && (
-                    <>
-                      <div className="flex space-x-2">
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onAwardCoins(student.id, displayName)}
-                          className="flex-1"
-                        >
-                          <Coins className="h-4 w-4 mr-1" />
-                          {t("give-coins")}
-                        </Button>
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => onRemoveCoins(student.id, displayName)}
-                          className="flex-1"
-                        >
-                          <Minus className="h-4 w-4 mr-1" />
-                          {t("remove-coins")}
-                        </Button>
+                  {/* Stats */}
+                  <div className="flex space-x-4 w-full">
+                    <div className="flex-1 bg-yellow-100 rounded-lg p-3 text-center">
+                      <div className="flex items-center justify-center space-x-1 text-yellow-700">
+                        <Coins className="h-4 w-4" />
+                        <span className="text-sm font-medium">Coins</span>
                       </div>
-                      
+                      <p className="text-xl font-bold text-yellow-800">{coins}</p>
+                    </div>
+                    
+                    <div className="flex-1 bg-purple-100 rounded-lg p-3 text-center">
+                      <div className="flex items-center justify-center space-x-1 text-purple-700">
+                        <Award className="h-4 w-4" />
+                        <span className="text-sm font-medium">Pokémon</span>
+                      </div>
+                      <p className="text-xl font-bold text-purple-800">{pokemonCount}</p>
+                    </div>
+                  </div>
+
+                  {/* Quick Action Buttons */}
+                  {isClassCreator && (
+                    <div className="flex space-x-2 w-full">
+                      <Button
+                        size="sm"
+                        className="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
+                        onClick={() => handleAwardRandomPokemon(student.id, displayName)}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Give
+                      </Button>
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => onManagePokemon(student.id, displayName, student.schoolId || classData.schoolId || "")}
-                        className="w-full"
+                        className="flex-1"
+                        onClick={() => handleRemoveRandomPokemon(student.id, displayName)}
                       >
-                        <Award className="h-4 w-4 mr-2" />
-                        {t("manage-pokemon")}
+                        <Minus className="h-4 w-4 mr-1" />
+                        Pokémon
                       </Button>
-                      
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        onClick={() => onRemoveStudent(student.id, displayName)}
-                        className="w-full"
-                      >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        {t("remove-student")}
-                      </Button>
-                    </>
+                    </div>
                   )}
+
+                  {/* Action Buttons */}
+                  <div className="flex flex-col space-y-2 w-full">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleViewProfile(student.id)}
+                      className="w-full"
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      {t("view-profile")}
+                    </Button>
+
+                    {isClassCreator && (
+                      <>
+                        <div className="flex space-x-2">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onAwardCoins(student.id, displayName)}
+                            className="flex-1"
+                          >
+                            <Coins className="h-4 w-4 mr-1" />
+                            {t("give-coins")}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => onRemoveCoins(student.id, displayName)}
+                            className="flex-1"
+                          >
+                            <Minus className="h-4 w-4 mr-1" />
+                            {t("remove-coins")}
+                          </Button>
+                        </div>
+                        
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onManagePokemon(student.id, displayName, student.schoolId || classData.schoolId || "")}
+                          className="w-full"
+                        >
+                          <Award className="h-4 w-4 mr-2" />
+                          {t("manage-pokemon")}
+                        </Button>
+                        
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => onRemoveStudent(student.id, displayName)}
+                          className="w-full"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {t("remove-student")}
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
-        );
-      })}
-    </div>
+              </CardContent>
+            </Card>
+          );
+        })}
+      </div>
+
+      {/* Pokemon Action Modal */}
+      <PokemonActionModal
+        pokemon={pokemonActionModal.pokemon}
+        isOpen={pokemonActionModal.isOpen}
+        onClose={handleCloseModal}
+        actionType={pokemonActionModal.actionType}
+        studentName={pokemonActionModal.studentName}
+      />
+    </>
   );
 };
 
