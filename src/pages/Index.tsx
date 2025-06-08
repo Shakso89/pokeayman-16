@@ -29,11 +29,11 @@ const Index: React.FC = () => {
             </p>
             
             <div className="flex flex-col items-center gap-4 md:flex-row md:justify-center">
-              <Button size="lg" onClick={() => navigate("/teacher-login")} className="bg-yellow-500 hover:bg-yellow-600 px-8 py-6 font-bold shadow-lg  text-2xl text-slate-900">
+              <Button size="lg" onClick={() => navigate("/teacher-login")} className="px-8 py-6 font-bold shadow-lg pulse-animation text-2xl text-slate-900 bg-cyan-700 hover:bg-cyan-600">
                 {t("teacher-login")} 🎓
               </Button>
               
-              <Button size="lg" variant="outline" onClick={() => navigate("/student-login")} className="glass-card border-white/30 px-8 py-6 font-bold bg-teal-600 hover:bg-teal-500 text-2xl text-slate-900  ">
+              <Button size="lg" variant="outline" onClick={() => navigate("/student-login")} className="glass-card border-white/30 px-8 py-6 font-bold bg-teal-600 hover:bg-teal-500 text-2xl text-slate-900 pulse-animation ">
                 {t("student-login")} ⚡
               </Button>
             </div>
