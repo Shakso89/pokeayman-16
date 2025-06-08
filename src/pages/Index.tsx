@@ -33,7 +33,7 @@ const Index: React.FC = () => {
                 {t("teacher-login")} 🎓
               </Button>
               
-              <Button size="lg" variant="outline" onClick={() => navigate("/student-login")} className="glass-card border-white/30 px-8 py-6 font-bold bg-teal-600 hover:bg-teal-500 text-2xl text-slate-900 pulse-animation ">
+              <Button size="lg" variant="outline" onClick={() => navigate("/student-login")} className="glass-card border-white/30 px-8 py-6 font-bold bg-teal-600 hover:bg-teal-500 text-2xl text-slate-900 ">
                 {t("student-login")} ⚡
               </Button>
             </div>
