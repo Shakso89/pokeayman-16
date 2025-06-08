@@ -9,7 +9,7 @@ export const getStudentPokemonCollection = (studentId: string): StudentPokemon |
   return studentPokemons.find(sp => sp.studentId === studentId) || null;
 };
 
-// Remove a random pokemon from a student
+// Remove a random pokemon from a student and return it to the school pool
 export const removePokemonFromStudent = (studentId: string): boolean => {
   const collection = getStudentPokemonCollection(studentId);
   if (!collection || collection.pokemons.length === 0) {
@@ -18,17 +18,41 @@ export const removePokemonFromStudent = (studentId: string): boolean => {
 
   // Select a random pokemon to remove
   const randomIndex = Math.floor(Math.random() * collection.pokemons.length);
+  const removedPokemon = collection.pokemons[randomIndex];
   
   // Remove the pokemon from the student's collection
   collection.pokemons.splice(randomIndex, 1);
   
-  // Update localStorage
+  // Update localStorage for student collections
   const studentCollections = getStudentPokemons();
   const studentIndex = studentCollections.findIndex(item => item.studentId === studentId);
   
   if (studentIndex !== -1) {
     studentCollections[studentIndex].pokemons = collection.pokemons;
     saveStudentPokemons(studentCollections);
+    
+    // Now return the Pokemon to the school pool
+    // We need to find the student's school ID to return to the correct pool
+    try {
+      const students = JSON.parse(localStorage.getItem("students") || "[]");
+      const student = students.find((s: any) => s.id === studentId);
+      const schoolId = student?.schoolId;
+      
+      if (schoolId) {
+        const pokemonPools = getPokemonPools();
+        const schoolPoolIndex = pokemonPools.findIndex(pool => pool.schoolId === schoolId);
+        
+        if (schoolPoolIndex >= 0) {
+          pokemonPools[schoolPoolIndex].availablePokemons.push(removedPokemon);
+          pokemonPools[schoolPoolIndex].lastUpdated = new Date().toISOString();
+          savePokemonPools(pokemonPools);
+          console.log("Pokemon returned to school pool:", removedPokemon.name);
+        }
+      }
+    } catch (error) {
+      console.error("Error returning Pokemon to school pool:", error);
+    }
+    
     return true;
   }
   

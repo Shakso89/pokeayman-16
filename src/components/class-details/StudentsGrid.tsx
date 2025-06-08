@@ -1,21 +1,27 @@
 
 import React from "react";
-import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { 
-  User, 
-  Coins, 
-  Award, 
-  UserMinus, 
-  Minus,
-  Eye
-} from "lucide-react";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { User, Coins, Award, Trash2, Plus, Minus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "@/hooks/useTranslation";
+import { getStudentPokemonCollection } from "@/utils/pokemon/studentPokemon";
+import { assignRandomPokemonToStudent, removePokemonFromStudent } from "@/utils/pokemon/studentPokemon";
+import { toast } from "@/hooks/use-toast";
+
+interface Student {
+  id: string;
+  username: string;
+  displayName?: string;
+  display_name?: string;
+  avatar?: string;
+  schoolId?: string;
+}
 
 interface StudentsGridProps {
-  students: any[];
+  students: Student[];
   isClassCreator: boolean;
   onAwardCoins: (studentId: string, studentName: string) => void;
   onManagePokemon: (studentId: string, studentName: string, schoolId: string) => void;
@@ -38,162 +44,229 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
   const navigate = useNavigate();
   const { t } = useTranslation();
 
-  const handleStudentClick = (studentId: string) => {
-    navigate(`/student-detail/${studentId}`);
+  const handleViewProfile = (studentId: string) => {
+    navigate(`/student-profile/${studentId}`);
   };
 
-  if (students.length === 0) {
+  const getStudentCoins = (studentId: string): number => {
+    try {
+      const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
+      const studentData = studentPokemons.find((sp: any) => sp.studentId === studentId);
+      return studentData?.coins || 0;
+    } catch {
+      return 0;
+    }
+  };
+
+  const getStudentPokemonCount = (studentId: string): number => {
+    try {
+      const collection = getStudentPokemonCollection(studentId);
+      return collection?.pokemons?.length || 0;
+    } catch {
+      return 0;
+    }
+  };
+
+  const handleAwardRandomPokemon = (studentId: string, studentName: string) => {
+    if (!classData?.schoolId) {
+      toast({
+        title: t("error"),
+        description: "School ID not found",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      const success = assignRandomPokemonToStudent(classData.schoolId, studentId);
+      if (success) {
+        toast({
+          title: t("success"),
+          description: `Random Pokémon awarded to ${studentName}`
+        });
+        // Force a page refresh to update the counts
+        window.location.reload();
+      } else {
+        toast({
+          title: t("error"),
+          description: "Failed to award Pokémon - no Pokémon available in school pool",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error awarding random Pokémon:", error);
+      toast({
+        title: t("error"),
+        description: "Failed to award Pokémon",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleRemoveRandomPokemon = (studentId: string, studentName: string) => {
+    try {
+      const success = removePokemonFromStudent(studentId);
+      if (success) {
+        toast({
+          title: t("success"),
+          description: `Random Pokémon removed from ${studentName} and returned to school pool`
+        });
+        // Force a page refresh to update the counts
+        window.location.reload();
+      } else {
+        toast({
+          title: t("error"),
+          description: "Student has no Pokémon to remove",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error removing random Pokémon:", error);
+      toast({
+        title: t("error"),
+        description: "Failed to remove Pokémon",
+        variant: "destructive"
+      });
+    }
+  };
+
+  if (!students || students.length === 0) {
     return (
-      <Card className="bg-gray-50">
-        <CardContent className="py-12 text-center">
-          <User className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-          <h3 className="text-lg font-semibold text-gray-600 mb-2">No Students Yet</h3>
-          <p className="text-gray-500">Add students to get started with your class</p>
-        </CardContent>
-      </Card>
+      <div className="text-center py-8">
+        <p className="text-gray-500">{t("no-students-in-class")}</p>
+      </div>
     );
   }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-      {students.map((student) => (
-        <Card 
-          key={student.id} 
-          className="hover:shadow-lg transition-all duration-200 cursor-pointer border-2 hover:border-blue-300"
-          onClick={() => handleStudentClick(student.id)}
-        >
-          <CardContent className="p-6">
-            {/* Student Avatar and Info */}
-            <div className="flex items-center mb-4">
-              <div className="h-16 w-16 bg-gradient-to-br from-blue-500 to-purple-600 text-white rounded-full flex items-center justify-center font-bold text-xl mr-4">
-                {(student.display_name || student.displayName || student.username || '')
-                  .substring(0, 1)
-                  .toUpperCase()}
-              </div>
-              <div className="flex-1">
-                <h3 className="font-bold text-lg text-gray-900">
-                  {student.display_name || student.displayName || student.username}
-                </h3>
-                <p className="text-sm text-gray-500">@{student.username}</p>
-              </div>
-            </div>
+      {students.map((student) => {
+        const displayName = student.displayName || student.display_name || student.username;
+        const coins = getStudentCoins(student.id);
+        const pokemonCount = getStudentPokemonCount(student.id);
+        
+        return (
+          <Card key={student.id} className="bg-white/20 backdrop-blur-sm">
+            <CardContent className="p-6">
+              <div className="flex flex-col items-center space-y-4">
+                {/* Avatar */}
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={student.avatar} alt={displayName} />
+                  <AvatarFallback>
+                    <User className="h-8 w-8" />
+                  </AvatarFallback>
+                </Avatar>
 
-            {/* Student Stats */}
-            <div className="grid grid-cols-2 gap-4 mb-4">
-              <div className="bg-yellow-50 p-3 rounded-lg text-center">
-                <div className="flex items-center justify-center mb-1">
-                  <Coins className="h-4 w-4 text-yellow-600 mr-1" />
-                  <span className="text-xs font-medium text-yellow-700">Coins</span>
+                {/* Student Info */}
+                <div className="text-center">
+                  <h3 className="font-semibold text-lg">{displayName}</h3>
+                  <p className="text-sm text-gray-600">@{student.username}</p>
                 </div>
-                <span className="text-lg font-bold text-yellow-800">
-                  {student.coins || 0}
-                </span>
-              </div>
-              <div className="bg-purple-50 p-3 rounded-lg text-center">
-                <div className="flex items-center justify-center mb-1">
-                  <Award className="h-4 w-4 text-purple-600 mr-1" />
-                  <span className="text-xs font-medium text-purple-700">Pokémon</span>
-                </div>
-                <span className="text-lg font-bold text-purple-800">
-                  {student.pokemonCount || 0}
-                </span>
-              </div>
-            </div>
 
-            {/* Action Buttons - Only show for class creator */}
-            {isClassCreator && (
-              <div className="space-y-2">
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onAwardCoins(student.id, student.display_name || student.displayName || student.username);
-                    }}
-                    className="bg-green-500 hover:bg-green-600 text-white text-xs"
-                  >
-                    <Coins className="h-3 w-3 mr-1" />
-                    Award
-                  </Button>
+                {/* Stats */}
+                <div className="flex space-x-4 w-full">
+                  <div className="flex-1 bg-yellow-100 rounded-lg p-3 text-center">
+                    <div className="flex items-center justify-center space-x-1 text-yellow-700">
+                      <Coins className="h-4 w-4" />
+                      <span className="text-sm font-medium">Coins</span>
+                    </div>
+                    <p className="text-xl font-bold text-yellow-800">{coins}</p>
+                  </div>
                   
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemoveCoins(student.id, student.display_name || student.displayName || student.username);
-                    }}
-                    className="border-yellow-300 text-yellow-700 hover:bg-yellow-50 text-xs"
-                  >
-                    <Minus className="h-3 w-3 mr-1" />
-                    Coins
-                  </Button>
+                  <div className="flex-1 bg-purple-100 rounded-lg p-3 text-center">
+                    <div className="flex items-center justify-center space-x-1 text-purple-700">
+                      <Award className="h-4 w-4" />
+                      <span className="text-sm font-medium">Pokémon</span>
+                    </div>
+                    <p className="text-xl font-bold text-purple-800">{pokemonCount}</p>
+                  </div>
                 </div>
-                
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    size="sm"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onManagePokemon(
-                        student.id, 
-                        student.display_name || student.displayName || student.username,
-                        student.schoolId || classData?.school_id || ''
-                      );
-                    }}
-                    className="bg-purple-500 hover:bg-purple-600 text-white text-xs"
-                  >
-                    <Award className="h-3 w-3 mr-1" />
-                    Give
-                  </Button>
-                  
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onRemovePokemon(student.id, student.display_name || student.displayName || student.username);
-                    }}
-                    className="border-orange-300 text-orange-700 hover:bg-orange-50 text-xs"
-                  >
-                    <Minus className="h-3 w-3 mr-1" />
-                    Pokémon
-                  </Button>
-                </div>
-                
-                <Button
-                  size="sm"
-                  variant="destructive"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemoveStudent(student.id, student.display_name || student.displayName || student.username);
-                  }}
-                  className="w-full text-xs"
-                >
-                  <UserMinus className="h-3 w-3 mr-1" />
-                  Remove Student
-                </Button>
-              </div>
-            )}
 
-            {/* View Profile Button */}
-            <div className="mt-3 pt-3 border-t">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleStudentClick(student.id);
-                }}
-                className="w-full text-blue-600 hover:text-blue-800 hover:bg-blue-50"
-              >
-                <Eye className="h-4 w-4 mr-1" />
-                View Profile
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+                {/* Quick Action Buttons */}
+                {isClassCreator && (
+                  <div className="flex space-x-2 w-full">
+                    <Button
+                      size="sm"
+                      className="flex-1 bg-purple-500 hover:bg-purple-600 text-white"
+                      onClick={() => handleAwardRandomPokemon(student.id, displayName)}
+                    >
+                      <Plus className="h-4 w-4 mr-1" />
+                      Give
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="flex-1"
+                      onClick={() => handleRemoveRandomPokemon(student.id, displayName)}
+                    >
+                      <Minus className="h-4 w-4 mr-1" />
+                      Pokémon
+                    </Button>
+                  </div>
+                )}
+
+                {/* Action Buttons */}
+                <div className="flex flex-col space-y-2 w-full">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleViewProfile(student.id)}
+                    className="w-full"
+                  >
+                    <User className="h-4 w-4 mr-2" />
+                    {t("view-profile")}
+                  </Button>
+
+                  {isClassCreator && (
+                    <>
+                      <div className="flex space-x-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onAwardCoins(student.id, displayName)}
+                          className="flex-1"
+                        >
+                          <Coins className="h-4 w-4 mr-1" />
+                          {t("give-coins")}
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => onRemoveCoins(student.id, displayName)}
+                          className="flex-1"
+                        >
+                          <Minus className="h-4 w-4 mr-1" />
+                          {t("remove-coins")}
+                        </Button>
+                      </div>
+                      
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => onManagePokemon(student.id, displayName, student.schoolId || classData.schoolId || "")}
+                        className="w-full"
+                      >
+                        <Award className="h-4 w-4 mr-2" />
+                        {t("manage-pokemon")}
+                      </Button>
+                      
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => onRemoveStudent(student.id, displayName)}
+                        className="w-full"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        {t("remove-student")}
+                      </Button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 };
