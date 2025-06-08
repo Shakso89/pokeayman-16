@@ -79,10 +79,7 @@ const ClassManagementHeader: React.FC<ClassManagementHeaderProps> = ({
               Add Students
             </Button>
             
-            <Button onClick={onManagePokemon} className="bg-purple-500 hover:bg-purple-600 text-white">
-              <Gamepad2 className="h-4 w-4 mr-2" />
-              Manage Pokémon
-            </Button>
+            
             
             <Button onClick={onViewSchoolPool} variant="outline" className="border-white/20 text-slate-50 bg-teal-950 hover:bg-teal-800">
               <Eye className="h-4 w-4 mr-2" />
