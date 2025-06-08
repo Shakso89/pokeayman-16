@@ -1,10 +1,9 @@
+
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Home, Settings, BookOpen } from "lucide-react";
+import { Home, BookOpen } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import DashboardCards from "./DashboardCards";
-import DashboardActions from "./DashboardActions";
-import AccessRequestsTab from "./AccessRequestsTab";
 import HomeworkList from "@/components/homework/HomeworkList";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -73,10 +72,6 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
               <BookOpen className="h-4 w-4 mr-2" />
               Homework
             </TabsTrigger>
-            <TabsTrigger value="actions_and_requests">
-              <Settings className="h-4 w-4 mr-2" />
-              {t("actions-and-requests")}
-            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="dashboard">
@@ -85,6 +80,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
               onManageClasses={onManageClasses} 
               isAdmin={isAdmin} 
               onNavigateToClass={onNavigateToClass}
+              onAddStudent={onAddStudent}
             />
           </TabsContent>
 
@@ -100,6 +96,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
                         classId={classItem.id}
                         teacherId={teacherId}
                         isTeacher={true}
+                        showClassSelector={true}
                       />
                     </div>
                   ))}
@@ -109,22 +106,6 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
                   <p>No classes found. Create a class to start assigning homework.</p>
                 </div>
               )}
-            </div>
-          </TabsContent>
-          
-          <TabsContent value="actions_and_requests">
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Actions Section */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">{t("actions")}</h3>
-                <DashboardActions onAddStudent={onAddStudent} isAdmin={isAdmin} />
-              </div>
-              
-              {/* Access Requests Section */}
-              <div>
-                <h3 className="text-lg font-semibold mb-4">{t("access-requests")}</h3>
-                <AccessRequestsTab teacherId={teacherId} />
-              </div>
             </div>
           </TabsContent>
         </Tabs>

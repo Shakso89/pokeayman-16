@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,7 +16,8 @@ interface CreateHomeworkDialogProps {
   onOpenChange: (open: boolean) => void;
   onHomeworkCreated?: (homework: Homework) => void;
   teacherId: string;
-  classId: string;
+  classId?: string;
+  showClassSelector?: boolean;
 }
 
 const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
@@ -24,7 +25,8 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
   onOpenChange,
   onHomeworkCreated,
   teacherId,
-  classId
+  classId,
+  showClassSelector = false
 }) => {
   const [formData, setFormData] = useState({
     title: "",
@@ -36,9 +38,37 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
     option_b: "",
     option_c: "",
     option_d: "",
-    correct_option: "A" as "A" | "B" | "C" | "D"
+    correct_option: "A" as "A" | "B" | "C" | "D",
+    selected_class_id: classId || ""
   });
   const [isLoading, setIsLoading] = useState(false);
+  const [teacherClasses, setTeacherClasses] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (showClassSelector && teacherId) {
+      loadTeacherClasses();
+    }
+  }, [showClassSelector, teacherId]);
+
+  useEffect(() => {
+    if (classId) {
+      setFormData(prev => ({ ...prev, selected_class_id: classId }));
+    }
+  }, [classId]);
+
+  const loadTeacherClasses = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('classes')
+        .select('id, name')
+        .eq('teacher_id', teacherId);
+
+      if (error) throw error;
+      setTeacherClasses(data || []);
+    } catch (error) {
+      console.error("Error loading classes:", error);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +90,16 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
         toast({
           title: "Error",
           description: "Description is required",
+          variant: "destructive"
+        });
+        setIsLoading(false);
+        return;
+      }
+
+      if (showClassSelector && !formData.selected_class_id) {
+        toast({
+          title: "Error",
+          description: "Please select a class",
           variant: "destructive"
         });
         setIsLoading(false);
@@ -99,7 +139,7 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
         coin_reward: formData.coin_reward,
         expires_at: expiryDate.toISOString(),
         teacher_id: teacherId,
-        class_id: classId,
+        class_id: formData.selected_class_id,
         ...(formData.type === "multiple_choice" && {
           question: formData.question.trim(),
           option_a: formData.option_a.trim(),
@@ -134,7 +174,8 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
         option_b: "",
         option_c: "",
         option_d: "",
-        correct_option: "A"
+        correct_option: "A",
+        selected_class_id: classId || ""
       });
 
       onHomeworkCreated?.(data);
@@ -159,6 +200,24 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {showClassSelector && (
+            <div>
+              <Label htmlFor="class">Select Class *</Label>
+              <Select value={formData.selected_class_id} onValueChange={(value) => setFormData({...formData, selected_class_id: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Choose a class" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teacherClasses.map((cls) => (
+                    <SelectItem key={cls.id} value={cls.id}>
+                      {cls.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           <div>
             <Label htmlFor="title">Title *</Label>
             <Input
