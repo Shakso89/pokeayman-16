@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
-import { UserX, UserCheck, Trash2, Freeze, Snowflake } from 'lucide-react';
+import { UserX, UserCheck, Trash2, Snowflake } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { AppRole, getRoleDisplayName, getRoleBadgeColor } from '@/types/roles';
@@ -117,7 +117,7 @@ const AccountManagementTab: React.FC<AccountManagementTabProps> = ({ teachers, o
                           disabled={isProcessing}
                           className="text-orange-600 hover:text-orange-700"
                         >
-                          <Freeze className="h-4 w-4 mr-1" />
+                          <UserX className="h-4 w-4 mr-1" />
                           Freeze
                         </Button>
                       </AlertDialogTrigger>

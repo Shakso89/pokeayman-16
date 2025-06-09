@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Shield, Users, Coins, UserCog, BarChart3 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { AppRole } from '@/types/roles';
 import AdminOverviewTab from './AdminOverviewTab';
 import RoleManagementTab from './RoleManagementTab';
 import CreditManagementTab from './CreditManagementTab';
@@ -11,19 +12,19 @@ import AccountManagementTab from './AccountManagementTab';
 import TeachersTab from './TeachersTab';
 import StudentsTab from './StudentsTab';
 
-interface Teacher {
+interface AdminTeacher {
   id: string;
   username: string;
   display_name: string;
   email?: string;
   is_active: boolean;
-  role?: string;
+  role?: AppRole;
   last_login?: string;
   credits?: number;
   unlimited_credits?: boolean;
 }
 
-interface Student {
+interface AdminStudent {
   id: string;
   username: string;
   display_name: string;
@@ -40,8 +41,8 @@ interface EnhancedAdminDashboardProps {
 }
 
 const EnhancedAdminDashboard: React.FC<EnhancedAdminDashboardProps> = ({ activeTab, setActiveTab }) => {
-  const [teachers, setTeachers] = useState<Teacher[]>([]);
-  const [students, setStudents] = useState<Student[]>([]);
+  const [teachers, setTeachers] = useState<AdminTeacher[]>([]);
+  const [students, setStudents] = useState<AdminStudent[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const loadData = async () => {
@@ -62,6 +63,7 @@ const EnhancedAdminDashboard: React.FC<EnhancedAdminDashboardProps> = ({ activeT
 
       const processedTeachers = (teachersData || []).map(teacher => ({
         ...teacher,
+        role: teacher.role as AppRole,
         credits: teacher.teacher_credits?.[0]?.credits || 0,
         unlimited_credits: teacher.teacher_credits?.[0]?.unlimited_credits || false
       }));
@@ -147,7 +149,21 @@ const EnhancedAdminDashboard: React.FC<EnhancedAdminDashboardProps> = ({ activeT
         </TabsContent>
 
         <TabsContent value="teachers">
-          <TeachersTab teachers={teachers} setTeachers={setTeachers} t={(key: string) => key} />
+          <TeachersTab 
+            teachers={teachers.map(t => ({
+              id: t.id,
+              username: t.username,
+              displayName: t.display_name,
+              email: t.email,
+              isActive: t.is_active,
+              role: t.role || 'teacher',
+              subscriptionType: 'trial',
+              createdAt: new Date().toISOString(),
+              lastLogin: t.last_login
+            }))} 
+            setTeachers={() => {}} 
+            t={(key: string) => key} 
+          />
         </TabsContent>
 
         <TabsContent value="students">
