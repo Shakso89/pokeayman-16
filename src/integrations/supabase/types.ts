@@ -348,6 +348,7 @@ export type Database = {
           credits: number
           id: string
           teacher_id: string | null
+          unlimited_credits: boolean | null
           updated_at: string
           used_credits: number
         }
@@ -356,6 +357,7 @@ export type Database = {
           credits?: number
           id?: string
           teacher_id?: string | null
+          unlimited_credits?: boolean | null
           updated_at?: string
           used_credits?: number
         }
@@ -364,6 +366,7 @@ export type Database = {
           credits?: number
           id?: string
           teacher_id?: string | null
+          unlimited_credits?: boolean | null
           updated_at?: string
           used_credits?: number
         }
@@ -387,6 +390,7 @@ export type Database = {
           is_active: boolean | null
           last_login: string | null
           password: string
+          role: Database["public"]["Enums"]["app_role"] | null
           subscription_type: string | null
           username: string
         }
@@ -399,6 +403,7 @@ export type Database = {
           is_active?: boolean | null
           last_login?: string | null
           password: string
+          role?: Database["public"]["Enums"]["app_role"] | null
           subscription_type?: string | null
           username: string
         }
@@ -411,8 +416,33 @@ export type Database = {
           is_active?: boolean | null
           last_login?: string | null
           password?: string
+          role?: Database["public"]["Enums"]["app_role"] | null
           subscription_type?: string | null
           username?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          assigned_at: string | null
+          assigned_by: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_by?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
         }
         Relationships: []
       }
@@ -421,13 +451,35 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_user_role: {
+        Args: {
+          target_user_id: string
+          new_role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
       delete_expired_homework: {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
+      get_user_role: {
+        Args: { _user_id: string }
+        Returns: Database["public"]["Enums"]["app_role"]
+      }
+      has_role: {
+        Args: {
+          _user_id: string
+          _role: Database["public"]["Enums"]["app_role"]
+        }
+        Returns: boolean
+      }
+      manage_user_credits: {
+        Args: { target_user_id: string; credit_amount: number; reason?: string }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "teacher" | "senior_teacher" | "supervisor" | "admin"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -542,6 +594,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["teacher", "senior_teacher", "supervisor", "admin"],
+    },
   },
 } as const
