@@ -1,12 +1,13 @@
 
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, School, GraduationCap, BookOpen, Shield } from "lucide-react";
+import { Plus, Users, School, GraduationCap, BookOpen, Shield, Coins } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { getRoleDisplayName, getRoleBadgeColor } from "@/types/roles";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DashboardCardsProps {
   teacherId: string;
@@ -25,6 +26,31 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({
 }) => {
   const { userRole, permissions } = useUserRole();
   const navigate = useNavigate();
+  const [credits, setCredits] = useState<number>(0);
+  const [unlimitedCredits, setUnlimitedCredits] = useState<boolean>(false);
+
+  useEffect(() => {
+    const loadCredits = async () => {
+      if (!teacherId) return;
+      
+      try {
+        const { data, error } = await supabase
+          .from('teacher_credits')
+          .select('credits, unlimited_credits')
+          .eq('teacher_id', teacherId)
+          .single();
+
+        if (data) {
+          setCredits(data.credits || 0);
+          setUnlimitedCredits(data.unlimited_credits || false);
+        }
+      } catch (error) {
+        console.error('Error loading credits:', error);
+      }
+    };
+
+    loadCredits();
+  }, [teacherId]);
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -40,9 +66,14 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({
           <Badge className={getRoleBadgeColor(userRole)}>
             {getRoleDisplayName(userRole)}
           </Badge>
-          <p className="text-sm text-gray-600 mt-2">
-            {permissions.hasUnlimitedCredits ? 'Unlimited credits' : 'Limited credits'}
-          </p>
+          <div className="flex items-center gap-2 mt-2">
+            <Coins className="h-4 w-4 text-yellow-500" />
+            {unlimitedCredits ? (
+              <span className="text-sm font-medium text-green-600">Unlimited Credits</span>
+            ) : (
+              <span className="text-sm font-medium">{credits} Credits</span>
+            )}
+          </div>
         </CardContent>
       </Card>
 

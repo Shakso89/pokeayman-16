@@ -18,6 +18,25 @@ export const useUserRole = () => {
       }
 
       try {
+        // Check if this is the admin email
+        const userEmail = user?.email?.toLowerCase();
+        const storedEmail = localStorage.getItem("userEmail")?.toLowerCase();
+        const isAdminEmail = userEmail === 'ayman.soliman.tr@gmail.com' || 
+                            storedEmail === 'ayman.soliman.tr@gmail.com';
+
+        if (isAdminEmail) {
+          // Ensure admin role is assigned
+          await supabase.rpc('assign_user_role', {
+            target_user_id: user.id,
+            new_role: 'admin'
+          });
+          
+          setUserRole('admin');
+          setPermissions(getRolePermissions('admin'));
+          setIsLoading(false);
+          return;
+        }
+
         // First check if user has a role in user_roles table
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
