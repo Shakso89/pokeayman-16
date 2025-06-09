@@ -128,28 +128,50 @@ export function useTeacherProfile(teacherId?: string) {
     if (existingRequest) setFriendRequestSent(true);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!teacher) return;
 
     try {
-      const teachers = getLocalItem("teachers", []);
-      const index = teachers.findIndex((t: any) => t.id === teacherId);
-      if (index === -1) return;
+      // First try to save to Supabase
+      const { error } = await supabase
+        .from('teachers')
+        .update({
+          display_name: editData.displayName || teacher.displayName
+        })
+        .eq('id', teacherId);
 
-      const updatedTeacher = {
-        ...teachers[index],
-        displayName: editData.displayName || teacher.displayName,
-        avatar: editData.avatar || teacher.avatar,
-        photos: editData.photos || teacher.photos,
-        socialLinks: editData.socialLinks || teacher.socialLinks
-      };
+      if (error) {
+        console.error('Error saving to Supabase:', error);
+        // Fall back to localStorage
+        const teachers = getLocalItem("teachers", []);
+        const index = teachers.findIndex((t: any) => t.id === teacherId);
+        if (index === -1) return;
 
-      teachers[index] = updatedTeacher;
-      localStorage.setItem("teachers", JSON.stringify(teachers));
-      setTeacher(updatedTeacher);
+        const updatedTeacher = {
+          ...teachers[index],
+          displayName: editData.displayName || teacher.displayName,
+          avatar: editData.avatar || teacher.avatar,
+          photos: editData.photos || teacher.photos,
+          socialLinks: editData.socialLinks || teacher.socialLinks
+        };
+
+        teachers[index] = updatedTeacher;
+        localStorage.setItem("teachers", JSON.stringify(teachers));
+        setTeacher(updatedTeacher);
+      } else {
+        // Update local state with new data
+        const updatedTeacher = {
+          ...teacher,
+          displayName: editData.displayName || teacher.displayName,
+          avatar: editData.avatar || teacher.avatar,
+          photos: editData.photos || teacher.photos,
+          socialLinks: editData.socialLinks || teacher.socialLinks
+        };
+        setTeacher(updatedTeacher);
+      }
 
       if (isOwner) {
-        localStorage.setItem("teacherDisplayName", updatedTeacher.displayName);
+        localStorage.setItem("teacherDisplayName", editData.displayName || teacher.displayName);
       }
 
       setIsEditing(false);

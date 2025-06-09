@@ -45,7 +45,10 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
       
       {/* Students Tab */}
       <TabsContent value="students">
-        <ProfileStudentsTab studentCount={studentCount} />
+        <ProfileStudentsTab 
+          teacherId={teacher?.id || ''}
+          studentCount={studentCount} 
+        />
       </TabsContent>
       
       {/* Social Media Tab */}
