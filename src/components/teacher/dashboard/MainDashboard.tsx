@@ -16,6 +16,7 @@ interface MainDashboardProps {
   teacherId: string;
   isAdmin: boolean;
   onNavigateToClass?: (classId: string) => void;
+  onManageSharedClasses?: () => void;
 }
 
 const MainDashboard: React.FC<MainDashboardProps> = ({
@@ -26,7 +27,8 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
   onCreateClass,
   teacherId,
   isAdmin,
-  onNavigateToClass
+  onNavigateToClass,
+  onManageSharedClasses
 }) => {
   const { t } = useTranslation();
   const [teacherClasses, setTeacherClasses] = useState<any[]>([]);
@@ -81,6 +83,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
               isAdmin={isAdmin} 
               onNavigateToClass={onNavigateToClass}
               onAddStudent={onAddStudent}
+              onManageSharedClasses={onManageSharedClasses}
             />
           </TabsContent>
 

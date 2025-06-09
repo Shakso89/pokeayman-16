@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -5,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { NavBar } from "@/components/NavBar";
 import { useTranslation } from "@/hooks/useTranslation";
 import ClassManagement from "@/components/teacher/class-management/ClassManagement";
-import SchoolCollaboration from "@/components/teacher/SchoolCollaboration";
+import SharedClassesManagement from "@/components/teacher/SharedClassesManagement";
 import SchoolManagement from "@/components/teacher/SchoolManagement";
 import DashboardHeader from "@/components/teacher/dashboard/DashboardHeader";
 import AddStudentDialog from "@/components/teacher/dashboard/AddStudentDialog";
@@ -16,7 +17,7 @@ import { motion } from "framer-motion";
 
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState<"main" | "classes" | "collaboration">("main");
+  const [currentView, setCurrentView] = useState<"main" | "classes" | "shared-classes">("main");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [teacherData, setTeacherData] = useState<any>(null);
@@ -29,7 +30,7 @@ const TeacherDashboard: React.FC = () => {
   const userType = localStorage.getItem("userType");
   const teacherId = localStorage.getItem("teacherId");
   const username = localStorage.getItem("teacherUsername") || "";
-  const isAdmin = username === "Admin" || username === "Ayman";
+  const isAdmin = username === "Admin" || username === "Ayman" || username === "Ayman_1";
 
   useEffect(() => {
     // Load teacher data from Supabase
@@ -80,9 +81,18 @@ const TeacherDashboard: React.FC = () => {
       setCurrentView("main");
       setActiveTab("homework");
     };
+
+    const handleSwitchToSharedClassesTab = () => {
+      console.log("Switching to shared classes from notification");
+      setCurrentView("shared-classes");
+    };
+
     window.addEventListener('switchToHomeworkTab', handleSwitchToHomeworkTab);
+    window.addEventListener('switchToSharedClassesTab', handleSwitchToSharedClassesTab);
+    
     return () => {
       window.removeEventListener('switchToHomeworkTab', handleSwitchToHomeworkTab);
+      window.removeEventListener('switchToSharedClassesTab', handleSwitchToSharedClassesTab);
     };
   }, []);
 
@@ -90,6 +100,12 @@ const TeacherDashboard: React.FC = () => {
   const handleManageClasses = () => {
     console.log("Manage classes button clicked");
     setCurrentView("classes");
+  };
+
+  // Handle navigating to shared classes
+  const handleManageSharedClasses = () => {
+    console.log("Manage shared classes button clicked");
+    setCurrentView("shared-classes");
   };
 
   // Handle navigating directly to specific class
@@ -152,6 +168,7 @@ const TeacherDashboard: React.FC = () => {
                 onCreateClass={() => {}} // No longer needed but kept for interface compatibility
                 teacherId={teacherId || ""}
                 isAdmin={isAdmin}
+                onManageSharedClasses={handleManageSharedClasses}
               />
             </motion.div>
           </>
@@ -180,10 +197,10 @@ const TeacherDashboard: React.FC = () => {
                 <ChevronLeft className="h-4 w-4 mr-1" />
                 {t("back-to-dashboard")}
               </Button>
-              <h2 className="text-2xl font-bold">{t("school-collaboration")}</h2>
+              <h2 className="text-2xl font-bold">Shared Classes</h2>
             </div>
             
-            <SchoolCollaboration
+            <SharedClassesManagement
               teacherId={teacherId || ""}
               teacherName={teacherData?.display_name || username || "Teacher"}
             />

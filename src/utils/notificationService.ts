@@ -119,6 +119,43 @@ export const createHomeworkSubmissionNotification = async (
   );
 };
 
+export const createFriendRequestNotification = async (
+  recipientId: string,
+  senderName: string
+) => {
+  await createNotification(
+    recipientId,
+    'New Friend Request 👫',
+    `${senderName} sent you a friend request`,
+    'friend_request'
+  );
+};
+
+export const createFriendAcceptedNotification = async (
+  recipientId: string,
+  accepterName: string
+) => {
+  await createNotification(
+    recipientId,
+    'Friend Request Accepted! 🎉',
+    `${accepterName} accepted your friend request`,
+    'friend_accepted'
+  );
+};
+
+export const createStatusUpdateNotification = async (
+  recipientId: string,
+  posterName: string,
+  statusPreview: string
+) => {
+  await createNotification(
+    recipientId,
+    'New Status Update 📱',
+    `${posterName} posted: "${statusPreview.substring(0, 50)}${statusPreview.length > 50 ? '...' : ''}"`,
+    'status_update'
+  );
+};
+
 export const notifyStudentsOfNewHomework = async (
   classId: string,
   homeworkTitle: string
