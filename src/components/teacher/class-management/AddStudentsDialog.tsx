@@ -7,16 +7,18 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 
 interface AddStudentsDialogProps {
-  isOpen: boolean;
+  open: boolean;
   onOpenChange: (open: boolean) => void;
   classId: string;
-  onStudentsAdded: (studentIds: string[]) => void;
+  className: string;
+  onStudentsAdded: () => void;
 }
 
 const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
-  isOpen,
+  open,
   onOpenChange,
   classId,
+  className,
   onStudentsAdded
 }) => {
   const { t } = useTranslation();
@@ -25,10 +27,10 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
   const [loading, setLoading] = useState(false);
 
   React.useEffect(() => {
-    if (isOpen) {
+    if (open) {
       fetchAvailableStudents();
     }
-  }, [isOpen, classId]);
+  }, [open, classId]);
 
   const fetchAvailableStudents = async () => {
     setLoading(true);
@@ -74,19 +76,61 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
     }
   };
   
-  const handleAddStudents = () => {
+  const handleAddStudents = async () => {
     if (selectedStudents.length === 0) return;
     
-    onStudentsAdded(selectedStudents);
-    setSelectedStudents([]);
-    onOpenChange(false);
+    try {
+      // Get current class
+      const { data: classData, error: classError } = await supabase
+        .from('classes')
+        .select('students')
+        .eq('id', classId)
+        .single();
+
+      if (classError) throw classError;
+
+      // Update students array
+      const updatedStudents = [...(classData?.students || []), ...selectedStudents];
+      
+      // Update class in Supabase
+      const { error } = await supabase
+        .from('classes')
+        .update({ students: updatedStudents })
+        .eq('id', classId);
+        
+      if (error) throw error;
+
+      // Also update student class_id fields
+      for (const studentId of selectedStudents) {
+        await supabase
+          .from('students')
+          .update({ class_id: classId })
+          .eq('id', studentId);
+      }
+      
+      toast({
+        title: t("success"),
+        description: `${selectedStudents.length} ${t("students-added-to-class")}`
+      });
+      
+      setSelectedStudents([]);
+      onStudentsAdded();
+      onOpenChange(false);
+    } catch (error) {
+      console.error("Error adding students to class:", error);
+      toast({
+        title: t("error"),
+        description: t("failed-to-add-students"),
+        variant: "destructive"
+      });
+    }
   };
   
   return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-md">
         <DialogHeader>
-          <DialogTitle>{t("add-students-to-class")}</DialogTitle>
+          <DialogTitle>{t("add-students-to-class")}: {className}</DialogTitle>
         </DialogHeader>
         
         <div className="max-h-[60vh] overflow-y-auto py-4">

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -15,6 +14,7 @@ interface ClassManagementProps {
   onBack: () => void;
   schoolId: string;
   teacherId: string;
+  directCreateMode?: boolean;
 }
 
 interface Class {
@@ -32,6 +32,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   onBack,
   schoolId,
   teacherId,
+  directCreateMode = false,
 }) => {
   const [classes, setClasses] = useState<Class[]>([]);
   const [selectedClass, setSelectedClass] = useState<Class | null>(null);
