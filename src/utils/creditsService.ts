@@ -6,6 +6,7 @@ export interface TeacherCredits {
   teacher_id: string;
   credits: number;
   unlimited_credits: boolean;
+  used_credits?: number; // Add the missing property
 }
 
 export const getTeacherCredits = async (teacherId: string): Promise<TeacherCredits | null> => {
