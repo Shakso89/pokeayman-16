@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface AddStudentsDialogProps {
   isOpen: boolean;
@@ -20,6 +21,7 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
   onStudentsAdded
 }) => {
   const { t } = useTranslation();
+  const { user } = useAuth();
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [availableStudents, setAvailableStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -33,34 +35,86 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
   const fetchAvailableStudents = async () => {
     setLoading(true);
     try {
-      // Get current class students
+      console.log("Fetching students for class:", classId);
+      
+      // Get current class data to see which students are already in it
       const { data: classData, error: classError } = await supabase
         .from('classes')
         .select('students')
         .eq('id', classId)
         .single();
 
-      if (classError) throw classError;
+      if (classError) {
+        console.error("Error fetching class data:", classError);
+        throw classError;
+      }
 
-      const currentStudents = classData?.students || [];
+      console.log("Class data:", classData);
+      const currentStudentIds = classData?.students || [];
 
-      // Get all students
-      const { data: allStudents, error: studentsError } = await supabase
+      // Get all students from database - try different approaches
+      let allStudents: any[] = [];
+      
+      // First try: Get all students
+      const { data: allStudentsData, error: allStudentsError } = await supabase
         .from('students')
         .select('*')
+        .eq('is_active', true)
         .order('display_name', { ascending: true });
 
-      if (studentsError) throw studentsError;
+      if (allStudentsError) {
+        console.error("Error fetching all students:", allStudentsError);
+      } else {
+        allStudents = allStudentsData || [];
+        console.log("All students found:", allStudents.length);
+      }
 
-      // Filter out students already in class
-      const available = (allStudents || []).filter(student => 
-        !currentStudents.includes(student.id)
+      // Second try: Get students by teacher if no students found
+      if (allStudents.length === 0 && user?.id) {
+        const { data: teacherStudents, error: teacherError } = await supabase
+          .from('students')
+          .select('*')
+          .eq('teacher_id', user.id)
+          .eq('is_active', true)
+          .order('display_name', { ascending: true });
+
+        if (!teacherError && teacherStudents) {
+          allStudents = teacherStudents;
+          console.log("Teacher's students found:", allStudents.length);
+        }
+      }
+
+      // Third try: Get students without class assignment
+      if (allStudents.length === 0) {
+        const { data: unassignedStudents, error: unassignedError } = await supabase
+          .from('students')
+          .select('*')
+          .is('class_id', null)
+          .eq('is_active', true)
+          .order('display_name', { ascending: true });
+
+        if (!unassignedError && unassignedStudents) {
+          allStudents = unassignedStudents;
+          console.log("Unassigned students found:", allStudents.length);
+        }
+      }
+
+      // Filter out students already in the current class
+      const available = allStudents.filter(student => 
+        !currentStudentIds.includes(student.id)
       );
 
+      console.log("Available students after filtering:", available.length);
       setAvailableStudents(available);
+      
     } catch (error) {
       console.error("Error fetching students:", error);
       setAvailableStudents([]);
+      toast({
+        title: t("error"),
+        description: "Failed to load students",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
@@ -93,13 +147,18 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
           {loading ? (
             <p className="text-center py-4">{t("loading")}</p>
           ) : availableStudents.length === 0 ? (
-            <p className="text-center py-4">{t("no-available-students")}</p>
+            <div className="text-center py-4">
+              <p className="text-gray-500 mb-2">{t("no-available-students")}</p>
+              <p className="text-sm text-gray-400">
+                Make sure students are created and not already assigned to this class
+              </p>
+            </div>
           ) : (
             <div className="space-y-2">
               {availableStudents.map((student) => (
                 <div 
                   key={student.id}
-                  className={`p-3 border rounded-lg flex items-center cursor-pointer ${
+                  className={`p-3 border rounded-lg flex items-center cursor-pointer hover:bg-gray-50 ${
                     selectedStudents.includes(student.id) ? 'bg-blue-50 border-blue-300' : ''
                   }`}
                   onClick={() => toggleStudentSelection(student.id)}
@@ -110,6 +169,9 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
                   <div className="flex-1">
                     <p className="font-medium">{student.display_name || student.username}</p>
                     <p className="text-sm text-gray-500">@{student.username}</p>
+                    {student.class_id && (
+                      <p className="text-xs text-orange-500">Currently in another class</p>
+                    )}
                   </div>
                   <div 
                     className={`w-5 h-5 border rounded-sm ${

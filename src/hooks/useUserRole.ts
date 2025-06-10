@@ -19,19 +19,29 @@ export const useUserRole = () => {
       }
 
       try {
-        // Check if this is the owner email or username
+        // Check if this is the owner email or username with improved detection
         const userEmail = user?.email?.toLowerCase();
         const storedEmail = localStorage.getItem("userEmail")?.toLowerCase();
         const username = localStorage.getItem("teacherUsername");
         
+        console.log("Role check - Email:", userEmail, "Stored email:", storedEmail, "Username:", username);
+        
+        // Enhanced owner detection
         const isOwnerEmail = userEmail === 'ayman.soliman.tr@gmail.com' || 
                             storedEmail === 'ayman.soliman.tr@gmail.com' ||
                             userEmail === 'ayman.soliman.cc@gmail.com' || 
-                            storedEmail === 'ayman.soliman.cc@gmail.com';
-        const isOwnerUsername = username === 'Ayman' || username === 'Admin';
+                            storedEmail === 'ayman.soliman.cc@gmail.com' ||
+                            userEmail === 'ayman@pokeayman.com' ||
+                            storedEmail === 'ayman@pokeayman.com';
+        
+        const isOwnerUsername = username === 'Ayman' || 
+                               username === 'Admin' || 
+                               username === 'ayman' ||
+                               userEmail === 'ayman@pokeayman.com';
 
         if (isOwnerEmail || isOwnerUsername) {
-          // Ensure owner role is assigned
+          console.log("Owner detected, ensuring role assignment");
+          // Ensure owner role is assigned in database
           await supabase.rpc('assign_user_role', {
             target_user_id: user.id,
             new_role: 'owner'
@@ -62,6 +72,7 @@ export const useUserRole = () => {
         if (roleData) {
           role = roleData.role as AppRole;
           schoolId = roleData.manager_school_id;
+          console.log("Role from user_roles:", role);
         } else {
           // Fallback to teachers table
           const { data: teacherData } = await supabase
@@ -72,6 +83,7 @@ export const useUserRole = () => {
 
           if (teacherData?.role) {
             role = teacherData.role as AppRole;
+            console.log("Role from teachers table:", role);
           }
         }
 

@@ -10,7 +10,7 @@ const generateTeacherId = (): string => {
   return `teacher-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-// Unified teacher login handler
+// Unified teacher login handler with improved username/email sync
 export const handleTeacherLogin = async (
   username: string,
   password: string,
@@ -28,7 +28,38 @@ export const handleTeacherLogin = async (
     const isEmail = username.includes("@");
     const email = isEmail ? username.toLowerCase() : `${username.toLowerCase()}@pokeayman.com`;
 
-    // Try Supabase authentication first
+    // Try the new database function first for unified login
+    try {
+      const { data: loginData, error: loginError } = await supabase
+        .rpc('get_teacher_by_login', { login_input: username });
+
+      if (!loginError && loginData && loginData.length > 0) {
+        const teacher = loginData[0];
+        console.log("Found teacher via unified login:", teacher.username);
+        
+        if (teacher.password === password) {
+          setupTeacherAuth(teacher.id, {
+            username: teacher.username,
+            email: teacher.email,
+            display_name: teacher.display_name
+          }, updateAuthState, teacher.role === 'owner' || isAdminUser);
+
+          toast({ 
+            title: "Success!", 
+            description: `Welcome back, ${teacher.display_name || teacher.username}!` 
+          });
+          
+          return { 
+            success: true, 
+            redirect: (teacher.role === 'owner' || isAdminUser) ? "/admin-dashboard" : "/teacher-dashboard" 
+          };
+        }
+      }
+    } catch (dbError) {
+      console.log("Database function not available, trying Supabase auth");
+    }
+
+    // Try Supabase authentication
     const { data, error: authError } = await supabase.auth.signInWithPassword({
       email,
       password
@@ -105,14 +136,16 @@ export const handleTeacherLogin = async (
   }
 };
 
-// Handle special admin cases
+// Handle special admin cases with enhanced detection
 export const handleAdminLogin = async (
   username: string,
   password: string,
   updateAuthState: (newState: Partial<AuthState>) => void
 ): Promise<{ success: boolean; redirect: string }> => {
   try {
-    const email = username.includes("@") ? username.toLowerCase() : `${username.toLowerCase()}@pokeayman.com`;
+    const email = username.includes("@") ? username.toLowerCase() : 
+                  username.toLowerCase() === "ayman" ? "ayman@pokeayman.com" : 
+                  `${username.toLowerCase()}@pokeayman.com`;
     const displayUsername = username.includes("ayman") || username === "Ayman" ? "Ayman" : "Admin";
 
     console.log(`Admin login attempt for: ${email}`);

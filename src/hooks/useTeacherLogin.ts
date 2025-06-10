@@ -11,7 +11,7 @@ export const useTeacherLogin = () => {
   const [error, setError] = useState("");
   const [loginInProgress, setLoginInProgress] = useState(false);
 
-  // Main login handler
+  // Main login handler with improved username/email sync
   const handleLogin = async (username: string, password: string) => {
     setLoginInProgress(true);
     setError("");
@@ -19,7 +19,7 @@ export const useTeacherLogin = () => {
     try {
       console.log("Login attempt:", username);
 
-      // Check if this is an admin login
+      // Enhanced admin detection
       const isAdmin =
         (isAdminUsername(username) || isAdminEmail(username)) &&
         isValidAdminPassword(password);
@@ -27,8 +27,11 @@ export const useTeacherLogin = () => {
       // Special handling for admin users or dev admin login
       if (isAdmin || checkDevAdminLogin(username, password) || 
           username.toLowerCase() === "ayman.soliman.tr@gmail.com" || 
+          username.toLowerCase() === "ayman.soliman.cc@gmail.com" ||
+          username.toLowerCase() === "ayman@pokeayman.com" ||
           username.toLowerCase() === "ayman") {
         
+        console.log("Admin login detected for:", username);
         const result = await handleAdminLogin(username, password, () => {});
         await refreshAuthState();
         
@@ -37,6 +40,7 @@ export const useTeacherLogin = () => {
           navigate(result.redirect, { replace: true });
         }, 300);
       } else {
+        console.log("Regular teacher login for:", username);
         const result = await handleTeacherLogin(username, password, () => {});
         await refreshAuthState();
         

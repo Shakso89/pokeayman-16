@@ -374,7 +374,7 @@ export type Database = {
           {
             foreignKeyName: "teacher_credits_teacher_id_fkey"
             columns: ["teacher_id"]
-            isOneToOne: false
+            isOneToOne: true
             referencedRelation: "teachers"
             referencedColumns: ["id"]
           },
@@ -473,6 +473,18 @@ export type Database = {
       delete_expired_homework: {
         Args: Record<PropertyKey, never>
         Returns: undefined
+      }
+      get_teacher_by_login: {
+        Args: { login_input: string }
+        Returns: {
+          id: string
+          username: string
+          email: string
+          display_name: string
+          password: string
+          role: Database["public"]["Enums"]["app_role"]
+          is_active: boolean
+        }[]
       }
       get_user_role: {
         Args: { _user_id: string }
