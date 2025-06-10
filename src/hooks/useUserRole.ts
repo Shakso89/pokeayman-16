@@ -4,11 +4,26 @@ import { supabase } from '@/integrations/supabase/client';
 import { AppRole, getRolePermissions, RolePermissions } from '@/types/roles';
 import { useAuth } from '@/contexts/AuthContext';
 
+const OWNER_EMAILS = ['ayman.soliman.tr@gmail.com', 'ayman.soliman.cc@gmail.com'];
+const OWNER_USERNAMES = ['Ayman', 'Admin', 'Ayman_1'];
+
 export const useUserRole = () => {
   const [userRole, setUserRole] = useState<AppRole>('teacher');
   const [permissions, setPermissions] = useState<RolePermissions>(getRolePermissions('teacher'));
   const [isLoading, setIsLoading] = useState(true);
   const { user } = useAuth();
+
+  const isOwnerAccount = () => {
+    const userEmail = user?.email?.toLowerCase();
+    const storedEmail = localStorage.getItem("userEmail")?.toLowerCase();
+    const username = localStorage.getItem("teacherUsername");
+    
+    const isOwnerEmail = userEmail && OWNER_EMAILS.includes(userEmail) ||
+                        storedEmail && OWNER_EMAILS.includes(storedEmail);
+    const isOwnerUsername = username && OWNER_USERNAMES.includes(username);
+    
+    return isOwnerEmail || isOwnerUsername;
+  };
 
   useEffect(() => {
     const fetchUserRole = async () => {
@@ -18,19 +33,9 @@ export const useUserRole = () => {
       }
 
       try {
-        // Check if this is the admin email or username
-        const userEmail = user?.email?.toLowerCase();
-        const storedEmail = localStorage.getItem("userEmail")?.toLowerCase();
-        const username = localStorage.getItem("teacherUsername");
-        
-        const isOwnerEmail = userEmail === 'ayman.soliman.tr@gmail.com' || 
-                            userEmail === 'ayman.soliman.cc@gmail.com' ||
-                            storedEmail === 'ayman.soliman.tr@gmail.com' ||
-                            storedEmail === 'ayman.soliman.cc@gmail.com';
-        const isOwnerUsername = username === 'Ayman' || username === 'Admin' || username === 'Ayman_1';
-
-        if (isOwnerEmail || isOwnerUsername) {
-          console.log("Owner detected via email/username check");
+        // Check if this is the owner account
+        if (isOwnerAccount()) {
+          console.log("Owner account detected");
           // Ensure owner role is assigned
           await supabase.rpc('assign_user_role', {
             target_user_id: user.id,
@@ -91,6 +96,7 @@ export const useUserRole = () => {
     userRole,
     permissions,
     isLoading,
+    isOwner: isOwnerAccount(),
     refreshRole: () => {
       if (user?.id) {
         setIsLoading(true);

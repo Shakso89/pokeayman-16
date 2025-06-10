@@ -14,6 +14,7 @@ import MainDashboard from "@/components/teacher/dashboard/MainDashboard";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
+import { useUserRole } from "@/hooks/useUserRole";
 
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -25,12 +26,13 @@ const TeacherDashboard: React.FC = () => {
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { t } = useTranslation();
+  const { isOwner, userRole } = useUserRole();
   
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const userType = localStorage.getItem("userType");
   const teacherId = localStorage.getItem("teacherId");
   const username = localStorage.getItem("teacherUsername") || "";
-  const isAdmin = username === "Admin" || username === "Ayman" || username === "Ayman_1";
+  const isAdmin = isOwner || userRole === 'owner' || username === "Admin" || username === "Ayman" || username === "Ayman_1";
 
   useEffect(() => {
     // Load teacher data from Supabase
@@ -163,12 +165,12 @@ const TeacherDashboard: React.FC = () => {
                 activeTab={activeTab}
                 setActiveTab={setActiveTab}
                 onAddStudent={() => setIsAddStudentOpen(true)}
-                onManageClasses={handleManageClasses}
-                onNavigateToClass={handleNavigateToClass}
+                onManageClasses={() => setCurrentView("classes")}
+                onNavigateToClass={(classId) => navigate(`/class/${classId}`)}
                 onCreateClass={() => {}} // No longer needed but kept for interface compatibility
                 teacherId={teacherId || ""}
                 isAdmin={isAdmin}
-                onManageSharedClasses={handleManageSharedClasses}
+                onManageSharedClasses={() => setCurrentView("shared-classes")}
               />
             </motion.div>
           </>

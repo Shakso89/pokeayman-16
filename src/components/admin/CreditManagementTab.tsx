@@ -43,33 +43,8 @@ const CreditManagementTab: React.FC<CreditManagementTabProps> = ({ teachers, onR
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [showHistory, setShowHistory] = useState(false);
-  const { userRole, permissions } = useUserRole();
+  const { userRole, permissions, isOwner } = useUserRole();
   const { user } = useAuth();
-
-  // Check if user is owner based on email/username
-  const isOwner = () => {
-    const userEmail = user?.email?.toLowerCase();
-    const storedEmail = localStorage.getItem("userEmail")?.toLowerCase();
-    const username = localStorage.getItem("teacherUsername");
-    
-    const isOwnerEmail = userEmail === 'ayman.soliman.tr@gmail.com' || 
-                        userEmail === 'ayman.soliman.cc@gmail.com' ||
-                        storedEmail === 'ayman.soliman.tr@gmail.com' ||
-                        storedEmail === 'ayman.soliman.cc@gmail.com';
-    const isOwnerUsername = username === 'Ayman' || username === 'Admin' || username === 'Ayman_1';
-    
-    console.log("Credit management owner check:", {
-      userEmail,
-      storedEmail,
-      username,
-      isOwnerEmail,
-      isOwnerUsername,
-      userRole,
-      hasPermissions: permissions.canManageCredits
-    });
-    
-    return userRole === 'owner' || permissions.canManageCredits || isOwnerEmail || isOwnerUsername;
-  };
 
   const loadTransactions = async () => {
     try {
@@ -147,8 +122,14 @@ const CreditManagementTab: React.FC<CreditManagementTabProps> = ({ teachers, onR
     }
   };
 
-  // Check if user can manage credits
-  if (!isOwner()) {
+  console.log("Credit management access check:", {
+    userRole,
+    isOwner,
+    hasPermissions: permissions.canManageCredits
+  });
+
+  // Check if user can manage credits - using the improved isOwner from useUserRole
+  if (!isOwner && userRole !== 'owner' && !permissions.canManageCredits) {
     return (
       <div className="space-y-6">
         <div className="text-center py-8">
@@ -156,7 +137,7 @@ const CreditManagementTab: React.FC<CreditManagementTabProps> = ({ teachers, onR
           <h3 className="text-lg font-semibold text-gray-600 mb-2">Owner Access Required</h3>
           <p className="text-gray-500">Only owners can manage credits. Contact an owner for credit management.</p>
           <p className="text-xs text-gray-400 mt-2">
-            Current role: {userRole} | Can manage credits: {permissions.canManageCredits ? 'Yes' : 'No'}
+            Current role: {userRole} | Is Owner: {isOwner ? 'Yes' : 'No'} | Can manage credits: {permissions.canManageCredits ? 'Yes' : 'No'}
           </p>
         </div>
         
