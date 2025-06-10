@@ -48,7 +48,7 @@ const EnhancedAdminDashboard: React.FC<EnhancedAdminDashboardProps> = ({ activeT
   const loadData = async () => {
     setIsLoading(true);
     try {
-      // Load teachers with credit information
+      // Load teachers with credit information and role from user_roles table
       const { data: teachersData, error: teachersError } = await supabase
         .from('teachers')
         .select(`
@@ -56,17 +56,25 @@ const EnhancedAdminDashboard: React.FC<EnhancedAdminDashboardProps> = ({ activeT
           teacher_credits (
             credits,
             unlimited_credits
+          ),
+          user_roles (
+            role
           )
         `);
 
       if (teachersError) throw teachersError;
 
-      const processedTeachers = (teachersData || []).map(teacher => ({
-        ...teacher,
-        role: teacher.role as AppRole,
-        credits: teacher.teacher_credits?.[0]?.credits || 0,
-        unlimited_credits: teacher.teacher_credits?.[0]?.unlimited_credits || false
-      }));
+      const processedTeachers = (teachersData || []).map(teacher => {
+        // Get the highest role from user_roles, or fall back to teachers table role
+        const userRole = teacher.user_roles?.[0]?.role || teacher.role;
+        
+        return {
+          ...teacher,
+          role: userRole as AppRole,
+          credits: teacher.teacher_credits?.[0]?.credits || 0,
+          unlimited_credits: teacher.teacher_credits?.[0]?.unlimited_credits || false
+        };
+      });
 
       setTeachers(processedTeachers);
 
