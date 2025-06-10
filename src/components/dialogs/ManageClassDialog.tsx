@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,6 +10,7 @@ import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
 import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
 import { awardCoinsToStudent } from "@/utils/pokemon/studentPokemon";
 import { useToast } from "@/hooks/use-toast";
+import { checkAndConsumeCredits } from "@/utils/creditsService";
 
 interface ManageClassDialogProps {
   open: boolean;
@@ -56,16 +58,27 @@ const ManageClassDialog: React.FC<ManageClassDialogProps> = ({
     });
   };
 
-  // Handle giving coins to a student
-  const handleGiveCoins = (amount: number) => {
+  // Handle giving coins to a student with credit check
+  const handleGiveCoins = async (amount: number) => {
     if (!giveCoinsDialog.studentId) return;
     
     try {
+      // Check and consume credits for awarding coins
+      const canProceed = await checkAndConsumeCredits(
+        teacherId, 
+        amount, 
+        `Awarding ${amount} coins to ${giveCoinsDialog.studentName}`
+      );
+      
+      if (!canProceed) {
+        return; // Credits check failed, don't award coins
+      }
+
       awardCoinsToStudent(giveCoinsDialog.studentId, amount);
       
       toast({
         title: t("success"),
-        description: `${amount} ${t("coins-awarded-to")} ${giveCoinsDialog.studentName}`
+        description: `${amount} ${t("coins-awarded-to")} ${giveCoinsDialog.studentName}. ${amount} credits consumed.`
       });
       
       setGiveCoinsDialog({ open: false, studentId: "", studentName: "" });
@@ -79,7 +92,7 @@ const ManageClassDialog: React.FC<ManageClassDialogProps> = ({
     }
   };
 
-  // Handle Pokemon removal
+  // Handle Pokemon removal with credit check
   const handlePokemonRemoved = () => {
     toast({
       title: t("success"),

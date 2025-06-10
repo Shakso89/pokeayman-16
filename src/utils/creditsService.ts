@@ -6,11 +6,28 @@ export interface TeacherCredits {
   teacher_id: string;
   credits: number;
   unlimited_credits: boolean;
-  used_credits?: number; // Add the missing property
+  used_credits?: number;
 }
+
+const isOwnerAccount = (): boolean => {
+  const userEmail = localStorage.getItem("userEmail")?.toLowerCase();
+  const username = localStorage.getItem("teacherUsername");
+  
+  const isAymanEmail = userEmail === "ayman.soliman.tr@gmail.com" || 
+                      userEmail === "ayman.soliman.cc@gmail.com";
+  const isAymanUsername = username === "Ayman" || username === "Admin" || username === "Ayman_1";
+  
+  return isAymanEmail || isAymanUsername;
+};
 
 export const getTeacherCredits = async (teacherId: string): Promise<TeacherCredits | null> => {
   try {
+    // Check if this is an owner account first
+    if (isOwnerAccount()) {
+      console.log("Owner account detected, returning unlimited credits");
+      return { teacher_id: teacherId, credits: 999999, unlimited_credits: true, used_credits: 0 };
+    }
+
     const { data, error } = await supabase
       .from('teacher_credits')
       .select('*')
@@ -31,6 +48,12 @@ export const getTeacherCredits = async (teacherId: string): Promise<TeacherCredi
 
 export const checkAndConsumeCredits = async (teacherId: string, amount: number, reason: string): Promise<boolean> => {
   try {
+    // Check if this is an owner account - owners have unlimited credits
+    if (isOwnerAccount()) {
+      console.log("Owner account has unlimited credits, allowing action:", reason);
+      return true;
+    }
+
     const credits = await getTeacherCredits(teacherId);
     
     if (!credits) {
@@ -101,6 +124,11 @@ export const checkAndConsumeCredits = async (teacherId: string, amount: number, 
 
 export const hasUnlimitedCredits = async (teacherId: string): Promise<boolean> => {
   try {
+    // Owner accounts always have unlimited credits
+    if (isOwnerAccount()) {
+      return true;
+    }
+
     const credits = await getTeacherCredits(teacherId);
     return credits?.unlimited_credits || false;
   } catch (error) {

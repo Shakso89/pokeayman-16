@@ -6,8 +6,8 @@ import { supabase } from "@/integrations/supabase/client";
 interface Student {
   id: string;
   username: string;
-  displayName?: string;  // Keep for backwards compatibility
-  display_name: string;  // Use this as the primary property name
+  displayName?: string;
+  display_name: string;
   avatar?: string;
   photos?: string[]; 
   classId?: string;
@@ -43,6 +43,13 @@ export const useStudentProfile = (studentId: string | undefined) => {
     try {
       console.log("Loading student data for ID:", studentId);
       
+      if (!studentId) {
+        console.error("No student ID provided");
+        toast.error("Student ID is required");
+        setIsLoading(false);
+        return;
+      }
+      
       // First try to get student from Supabase
       const { data: studentData, error } = await supabase
         .from('students')
@@ -50,16 +57,19 @@ export const useStudentProfile = (studentId: string | undefined) => {
         .eq('id', studentId)
         .maybeSingle();
       
+      if (error) {
+        console.error("Error fetching student from Supabase:", error);
+      }
+      
       if (studentData) {
         console.log("Found student in Supabase:", studentData);
-        // Found student in Supabase
         setStudent({
           id: studentData.id,
           username: studentData.username,
           display_name: studentData.display_name || studentData.username,
-          displayName: studentData.display_name || studentData.username, // For backward compatibility
+          displayName: studentData.display_name || studentData.username,
           class_id: studentData.class_id,
-          classId: studentData.class_id, // For backward compatibility
+          classId: studentData.class_id,
           photos: [],
           pokemonCollection: []
         });
@@ -76,7 +86,6 @@ export const useStudentProfile = (studentId: string | undefined) => {
           const existingIndex = studentsInStorage.findIndex((s: any) => s.id === studentId);
           
           if (existingIndex >= 0) {
-            // Update local storage entry
             studentsInStorage[existingIndex] = {
               ...studentsInStorage[existingIndex],
               display_name: studentData.display_name,
@@ -86,7 +95,6 @@ export const useStudentProfile = (studentId: string | undefined) => {
               classId: studentData.class_id
             };
           } else {
-            // Add to local storage
             studentsInStorage.push({
               id: studentData.id,
               username: studentData.username,
@@ -160,8 +168,11 @@ export const useStudentProfile = (studentId: string | undefined) => {
           }
         } else {
           console.log("Student not found in localStorage either");
-          toast.error("Student not found");
+          toast.error("Student profile not found");
         }
+      } else {
+        console.log("No students data in localStorage");
+        toast.error("Student profile not found");
       }
     } catch (error) {
       console.error("Error loading student profile:", error);

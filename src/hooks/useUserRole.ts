@@ -18,11 +18,22 @@ export const useUserRole = () => {
     const storedEmail = localStorage.getItem("userEmail")?.toLowerCase();
     const username = localStorage.getItem("teacherUsername");
     
-    const isOwnerEmail = userEmail && OWNER_EMAILS.includes(userEmail) ||
-                        storedEmail && OWNER_EMAILS.includes(storedEmail);
+    console.log("Owner check details:", {
+      userEmail,
+      storedEmail,
+      username,
+      OWNER_EMAILS,
+      OWNER_USERNAMES
+    });
+    
+    const isOwnerEmail = (userEmail && OWNER_EMAILS.includes(userEmail)) ||
+                        (storedEmail && OWNER_EMAILS.includes(storedEmail));
     const isOwnerUsername = username && OWNER_USERNAMES.includes(username);
     
-    return isOwnerEmail || isOwnerUsername;
+    const result = isOwnerEmail || isOwnerUsername;
+    console.log("Owner account check result:", result);
+    
+    return result;
   };
 
   useEffect(() => {
@@ -33,14 +44,19 @@ export const useUserRole = () => {
       }
 
       try {
-        // Check if this is the owner account
+        // Check if this is the owner account first
         if (isOwnerAccount()) {
-          console.log("Owner account detected");
-          // Ensure owner role is assigned
-          await supabase.rpc('assign_user_role', {
-            target_user_id: user.id,
-            new_role: 'owner'
-          });
+          console.log("Owner account detected, assigning owner role");
+          
+          // Ensure owner role is assigned in database
+          try {
+            await supabase.rpc('assign_user_role', {
+              target_user_id: user.id,
+              new_role: 'owner'
+            });
+          } catch (error) {
+            console.error("Error assigning owner role:", error);
+          }
           
           setUserRole('owner');
           setPermissions(getRolePermissions('owner'));

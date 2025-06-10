@@ -86,7 +86,10 @@ const CreditManagementTab: React.FC<CreditManagementTabProps> = ({ teachers, onR
       console.log("Attempting credit management:", {
         targetUserId: selectedTeacher.id,
         amount,
-        reason: reason || `${action === 'add' ? 'Added' : 'Deducted'} ${creditAmount} credits`
+        reason: reason || `${action === 'add' ? 'Added' : 'Deducted'} ${creditAmount} credits`,
+        currentUser: user?.email,
+        isOwner,
+        userRole
       });
       
       const { error } = await supabase.rpc('manage_user_credits', {
@@ -122,14 +125,32 @@ const CreditManagementTab: React.FC<CreditManagementTabProps> = ({ teachers, onR
     }
   };
 
+  // Check if user can manage credits - improved owner detection
+  const userEmail = user?.email?.toLowerCase();
+  const storedEmail = localStorage.getItem("userEmail")?.toLowerCase();
+  const username = localStorage.getItem("teacherUsername");
+  
+  const isAymanEmail = userEmail === "ayman.soliman.tr@gmail.com" || 
+                      userEmail === "ayman.soliman.cc@gmail.com" ||
+                      storedEmail === "ayman.soliman.tr@gmail.com" ||
+                      storedEmail === "ayman.soliman.cc@gmail.com";
+  const isAymanUsername = username === "Ayman" || username === "Admin" || username === "Ayman_1";
+  
+  const canManageCredits = isOwner || userRole === 'owner' || isAymanEmail || isAymanUsername || permissions.canManageCredits;
+  
   console.log("Credit management access check:", {
     userRole,
     isOwner,
+    isAymanEmail,
+    isAymanUsername,
+    userEmail,
+    storedEmail,
+    username,
+    canManageCredits,
     hasPermissions: permissions.canManageCredits
   });
 
-  // Check if user can manage credits - using the improved isOwner from useUserRole
-  if (!isOwner && userRole !== 'owner' && !permissions.canManageCredits) {
+  if (!canManageCredits) {
     return (
       <div className="space-y-6">
         <div className="text-center py-8">
@@ -138,6 +159,9 @@ const CreditManagementTab: React.FC<CreditManagementTabProps> = ({ teachers, onR
           <p className="text-gray-500">Only owners can manage credits. Contact an owner for credit management.</p>
           <p className="text-xs text-gray-400 mt-2">
             Current role: {userRole} | Is Owner: {isOwner ? 'Yes' : 'No'} | Can manage credits: {permissions.canManageCredits ? 'Yes' : 'No'}
+          </p>
+          <p className="text-xs text-gray-400">
+            Email: {userEmail} | Stored: {storedEmail} | Username: {username}
           </p>
         </div>
         
