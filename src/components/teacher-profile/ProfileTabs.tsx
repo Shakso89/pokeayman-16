@@ -39,7 +39,7 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
     if (!teacher?.id) return;
     
     const success = await saveProfile(teacher.id, {
-      display_name: editData.display_name,
+      display_name: editData.displayName,
       email: editData.email,
       social_links: editData.socialLinks,
       photos: editData.photos
