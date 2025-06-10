@@ -2,7 +2,7 @@
 import React from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Plus, Users, School, Settings, Shield, Coins } from 'lucide-react';
+import { Plus, Users, School, Settings, Shield, Coins, Star } from 'lucide-react';
 import { useUserRole } from '@/hooks/useUserRole';
 
 interface DashboardActionsProps {
@@ -65,17 +65,26 @@ const DashboardActions: React.FC<DashboardActionsProps> = ({
         </Card>
       )}
 
-      {/* Admin Panel - Admin only */}
+      {/* Admin Panel - Admin and Owner */}
       {permissions.canAssignRoles && onOpenAdminPanel && (
         <Card className="cursor-pointer hover:shadow-md transition-shadow border-red-200" onClick={onOpenAdminPanel}>
           <CardHeader className="pb-3">
             <CardTitle className="flex items-center gap-2 text-lg">
-              <Shield className="h-5 w-5 text-red-500" />
-              Admin Panel
+              {userRole === 'owner' ? (
+                <Star className="h-5 w-5 text-yellow-500" />
+              ) : (
+                <Shield className="h-5 w-5 text-red-500" />
+              )}
+              {userRole === 'owner' ? 'Owner Panel' : 'Admin Panel'}
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600">Manage roles, credits, and system administration</p>
+            <p className="text-sm text-gray-600">
+              {userRole === 'owner' 
+                ? 'Manage everything including credits, roles, and system administration'
+                : 'Manage roles and system administration'
+              }
+            </p>
           </CardContent>
         </Card>
       )}
@@ -90,7 +99,9 @@ const DashboardActions: React.FC<DashboardActionsProps> = ({
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-sm text-gray-600">You have unlimited credits as a {userRole}</p>
+            <p className="text-sm text-gray-600">
+              You have unlimited credits as a {userRole === 'owner' ? 'Owner' : userRole}
+            </p>
           </CardContent>
         </Card>
       ) : (

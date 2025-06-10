@@ -1,5 +1,5 @@
 
-export type AppRole = 'teacher' | 'senior_teacher' | 'supervisor' | 'admin';
+export type AppRole = 'teacher' | 'senior_teacher' | 'supervisor' | 'admin' | 'owner';
 
 export interface UserRole {
   id: string;
@@ -62,6 +62,18 @@ export const getRolePermissions = (role: AppRole): RolePermissions => {
       };
     case 'admin':
       return {
+        ...basePermissions,
+        canPostHomework: true,
+        canApproveHomework: true,
+        canManageStudents: true,
+        canCreateClasses: true,
+        canManageSchools: true,
+        canAssignRoles: true,
+        canFreezeAccounts: true,
+        hasUnlimitedCredits: true,
+      };
+    case 'owner':
+      return {
         canPostHomework: true,
         canApproveHomework: true,
         canManageStudents: true,
@@ -87,6 +99,8 @@ export const getRoleDisplayName = (role: AppRole): string => {
       return 'Supervisor';
     case 'admin':
       return 'Admin';
+    case 'owner':
+      return 'Owner';
     default:
       return 'Unknown';
   }
@@ -102,6 +116,8 @@ export const getRoleBadgeColor = (role: AppRole): string => {
       return 'bg-purple-100 text-purple-800';
     case 'admin':
       return 'bg-red-100 text-red-800';
+    case 'owner':
+      return 'bg-yellow-100 text-yellow-800 border-2 border-yellow-300 font-bold';
     default:
       return 'bg-gray-100 text-gray-800';
   }

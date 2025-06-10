@@ -7,9 +7,10 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
-import { Coins, Plus, Minus, History } from 'lucide-react';
+import { Coins, Plus, Minus, History, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useUserRole } from '@/hooks/useUserRole';
 
 interface Teacher {
   id: string;
@@ -41,6 +42,7 @@ const CreditManagementTab: React.FC<CreditManagementTabProps> = ({ teachers, onR
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const { userRole, permissions } = useUserRole();
 
   const loadTransactions = async () => {
     try {
@@ -108,6 +110,44 @@ const CreditManagementTab: React.FC<CreditManagementTabProps> = ({ teachers, onR
       setIsProcessing(false);
     }
   };
+
+  // Only owners can manage credits
+  if (!permissions.canManageCredits) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center py-8">
+          <Lock className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+          <h3 className="text-lg font-semibold text-gray-600 mb-2">Owner Access Required</h3>
+          <p className="text-gray-500">Only owners can manage credits. Contact an owner for credit management.</p>
+        </div>
+        
+        {/* Show read-only credit overview */}
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          {teachers.map((teacher) => (
+            <Card key={teacher.id} className="opacity-60">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <h4 className="font-medium">{teacher.display_name}</h4>
+                    <p className="text-sm text-gray-500">{teacher.username}</p>
+                  </div>
+                  <div className="text-right">
+                    <div className="flex items-center text-yellow-600">
+                      <Coins className="h-4 w-4 mr-1" />
+                      {teacher.unlimited_credits ? '∞' : (teacher.credits || 0)}
+                    </div>
+                    {teacher.unlimited_credits && (
+                      <p className="text-xs text-gray-500">Unlimited</p>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

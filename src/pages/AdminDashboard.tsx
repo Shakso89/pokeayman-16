@@ -16,12 +16,12 @@ const AdminDashboard: React.FC = () => {
   const { isLoggedIn, user } = useAuth();
   const { userRole, permissions, isLoading: roleLoading } = useUserRole();
 
-  // Check admin access
+  // Check admin access - now includes owner access
   useEffect(() => {
-    if (!roleLoading && !permissions.canAssignRoles) {
+    if (!roleLoading && !permissions.canAssignRoles && userRole !== 'owner') {
       navigate("/teacher-dashboard");
     }
-  }, [roleLoading, permissions.canAssignRoles, navigate]);
+  }, [roleLoading, permissions.canAssignRoles, userRole, navigate]);
 
   if (roleLoading) {
     return (
@@ -34,7 +34,7 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
-  if (!isLoggedIn || !permissions.canAssignRoles) {
+  if (!isLoggedIn || (!permissions.canAssignRoles && userRole !== 'owner')) {
     return null; // Will redirect in useEffect
   }
 
@@ -52,7 +52,7 @@ const AdminDashboard: React.FC = () => {
     <div className="min-h-screen bg-transparent">
       <NavBar 
         userType="teacher" 
-        userName={isAymanEmail || isAymanUsername ? "Ayman" : "Admin"} 
+        userName={isAymanEmail || isAymanUsername ? "Ayman" : userRole === 'owner' ? "Owner" : "Admin"} 
       />
 
       <div className="container mx-auto py-8 px-4">
