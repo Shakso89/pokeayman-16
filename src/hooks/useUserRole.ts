@@ -30,6 +30,7 @@ export const useUserRole = () => {
         const isOwnerUsername = username === 'Ayman' || username === 'Admin' || username === 'Ayman_1';
 
         if (isOwnerEmail || isOwnerUsername) {
+          console.log("Owner detected via email/username check");
           // Ensure owner role is assigned
           await supabase.rpc('assign_user_role', {
             target_user_id: user.id,
@@ -59,6 +60,7 @@ export const useUserRole = () => {
 
         if (roleData) {
           role = roleData.role as AppRole;
+          console.log("Role from user_roles table:", role);
         } else {
           // Fallback to teachers table
           const { data: teacherData } = await supabase
@@ -69,6 +71,7 @@ export const useUserRole = () => {
 
           if (teacherData?.role) {
             role = teacherData.role as AppRole;
+            console.log("Role from teachers table:", role);
           }
         }
 

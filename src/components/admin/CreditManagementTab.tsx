@@ -11,6 +11,7 @@ import { Coins, Plus, Minus, History, Lock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { useUserRole } from '@/hooks/useUserRole';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Teacher {
   id: string;
@@ -43,6 +44,32 @@ const CreditManagementTab: React.FC<CreditManagementTabProps> = ({ teachers, onR
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [showHistory, setShowHistory] = useState(false);
   const { userRole, permissions } = useUserRole();
+  const { user } = useAuth();
+
+  // Check if user is owner based on email/username
+  const isOwner = () => {
+    const userEmail = user?.email?.toLowerCase();
+    const storedEmail = localStorage.getItem("userEmail")?.toLowerCase();
+    const username = localStorage.getItem("teacherUsername");
+    
+    const isOwnerEmail = userEmail === 'ayman.soliman.tr@gmail.com' || 
+                        userEmail === 'ayman.soliman.cc@gmail.com' ||
+                        storedEmail === 'ayman.soliman.tr@gmail.com' ||
+                        storedEmail === 'ayman.soliman.cc@gmail.com';
+    const isOwnerUsername = username === 'Ayman' || username === 'Admin' || username === 'Ayman_1';
+    
+    console.log("Credit management owner check:", {
+      userEmail,
+      storedEmail,
+      username,
+      isOwnerEmail,
+      isOwnerUsername,
+      userRole,
+      hasPermissions: permissions.canManageCredits
+    });
+    
+    return userRole === 'owner' || permissions.canManageCredits || isOwnerEmail || isOwnerUsername;
+  };
 
   const loadTransactions = async () => {
     try {
@@ -81,13 +108,22 @@ const CreditManagementTab: React.FC<CreditManagementTabProps> = ({ teachers, onR
     try {
       const amount = action === 'add' ? creditAmount : -creditAmount;
       
+      console.log("Attempting credit management:", {
+        targetUserId: selectedTeacher.id,
+        amount,
+        reason: reason || `${action === 'add' ? 'Added' : 'Deducted'} ${creditAmount} credits`
+      });
+      
       const { error } = await supabase.rpc('manage_user_credits', {
         target_user_id: selectedTeacher.id,
         credit_amount: amount,
         reason: reason || `${action === 'add' ? 'Added' : 'Deducted'} ${creditAmount} credits`
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Credit management error:", error);
+        throw error;
+      }
 
       toast({
         title: "Success",
@@ -111,14 +147,17 @@ const CreditManagementTab: React.FC<CreditManagementTabProps> = ({ teachers, onR
     }
   };
 
-  // Only owners can manage credits
-  if (!permissions.canManageCredits) {
+  // Check if user can manage credits
+  if (!isOwner()) {
     return (
       <div className="space-y-6">
         <div className="text-center py-8">
           <Lock className="h-16 w-16 mx-auto text-gray-400 mb-4" />
           <h3 className="text-lg font-semibold text-gray-600 mb-2">Owner Access Required</h3>
           <p className="text-gray-500">Only owners can manage credits. Contact an owner for credit management.</p>
+          <p className="text-xs text-gray-400 mt-2">
+            Current role: {userRole} | Can manage credits: {permissions.canManageCredits ? 'Yes' : 'No'}
+          </p>
         </div>
         
         {/* Show read-only credit overview */}
