@@ -46,7 +46,7 @@ const AdminDashboard: React.FC = () => {
     userEmail === "ayman.soliman.cc@gmail.com" ||
     storedEmail === "ayman.soliman.tr@gmail.com" ||
     storedEmail === "ayman.soliman.cc@gmail.com";
-  const isAymanUsername = username === "Ayman" || username === "Admin";
+  const isAymanUsername = username === "Ayman" || username === "Admin" || username === "Ayman_1";
 
   return (
     <div className="min-h-screen bg-transparent">

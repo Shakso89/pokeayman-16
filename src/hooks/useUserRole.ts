@@ -23,19 +23,21 @@ export const useUserRole = () => {
         const storedEmail = localStorage.getItem("userEmail")?.toLowerCase();
         const username = localStorage.getItem("teacherUsername");
         
-        const isAdminEmail = userEmail === 'ayman.soliman.tr@gmail.com' || 
-                            storedEmail === 'ayman.soliman.tr@gmail.com';
-        const isAdminUsername = username === 'Ayman_1' || username === 'Admin';
+        const isOwnerEmail = userEmail === 'ayman.soliman.tr@gmail.com' || 
+                            userEmail === 'ayman.soliman.cc@gmail.com' ||
+                            storedEmail === 'ayman.soliman.tr@gmail.com' ||
+                            storedEmail === 'ayman.soliman.cc@gmail.com';
+        const isOwnerUsername = username === 'Ayman' || username === 'Admin' || username === 'Ayman_1';
 
-        if (isAdminEmail || isAdminUsername) {
-          // Ensure admin role is assigned
+        if (isOwnerEmail || isOwnerUsername) {
+          // Ensure owner role is assigned
           await supabase.rpc('assign_user_role', {
             target_user_id: user.id,
-            new_role: 'admin'
+            new_role: 'owner'
           });
           
-          setUserRole('admin');
-          setPermissions(getRolePermissions('admin'));
+          setUserRole('owner');
+          setPermissions(getRolePermissions('owner'));
           setIsLoading(false);
           return;
         }
