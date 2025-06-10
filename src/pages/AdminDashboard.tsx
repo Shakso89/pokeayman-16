@@ -16,12 +16,12 @@ const AdminDashboard: React.FC = () => {
   const { isLoggedIn, user } = useAuth();
   const { userRole, permissions, isLoading: roleLoading } = useUserRole();
 
-  // Check admin access - now includes owner access
+  // Check admin access
   useEffect(() => {
-    if (!roleLoading && !permissions.canAssignRoles && userRole !== 'owner') {
+    if (!roleLoading && !permissions.canAssignRoles) {
       navigate("/teacher-dashboard");
     }
-  }, [roleLoading, permissions.canAssignRoles, userRole, navigate]);
+  }, [roleLoading, permissions.canAssignRoles, navigate]);
 
   if (roleLoading) {
     return (
@@ -34,7 +34,7 @@ const AdminDashboard: React.FC = () => {
     );
   }
 
-  if (!isLoggedIn || (!permissions.canAssignRoles && userRole !== 'owner')) {
+  if (!isLoggedIn || !permissions.canAssignRoles) {
     return null; // Will redirect in useEffect
   }
 
@@ -46,13 +46,13 @@ const AdminDashboard: React.FC = () => {
     userEmail === "ayman.soliman.cc@gmail.com" ||
     storedEmail === "ayman.soliman.tr@gmail.com" ||
     storedEmail === "ayman.soliman.cc@gmail.com";
-  const isAymanUsername = username === "Ayman" || username === "Admin" || username === "Ayman_1";
+  const isAymanUsername = username === "Ayman" || username === "Admin";
 
   return (
     <div className="min-h-screen bg-transparent">
       <NavBar 
         userType="teacher" 
-        userName={isAymanEmail || isAymanUsername ? "Ayman" : userRole === 'owner' ? "Owner" : "Admin"} 
+        userName={isAymanEmail || isAymanUsername ? "Ayman" : "Admin"} 
       />
 
       <div className="container mx-auto py-8 px-4">

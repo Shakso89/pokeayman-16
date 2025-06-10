@@ -30,23 +30,10 @@ const SchoolPoolDialog: React.FC<SchoolPoolDialogProps> = ({
   const [pokemonPool, setPokemonPool] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Add a polling mechanism to check for pool changes
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    
     if (open && schoolId) {
       fetchSchoolPool();
-      // Poll every 2 seconds to check for updates
-      interval = setInterval(() => {
-        fetchSchoolPool();
-      }, 2000);
     }
-    
-    return () => {
-      if (interval) {
-        clearInterval(interval);
-      }
-    };
   }, [open, schoolId]);
 
   const fetchSchoolPool = () => {

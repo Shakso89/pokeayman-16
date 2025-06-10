@@ -1,3 +1,4 @@
+
 import React from "react";
 import AddStudentsDialog from "@/components/teacher/class-management/AddStudentsDialog";
 import DeleteClassDialog from "@/components/teacher/class-management/DeleteClassDialog";
@@ -106,12 +107,13 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
 
       {/* Manage Pokemon Dialog */}
       <ManagePokemonDialog
-        open={managePokemonDialog.open}
+        isOpen={managePokemonDialog.open}
         onOpenChange={(open) => onManagePokemonDialogChange({ ...managePokemonDialog, open })}
         studentId={managePokemonDialog.studentId}
         studentName={managePokemonDialog.studentName}
         schoolId={managePokemonDialog.schoolId}
-        onUpdate={onPokemonRemoved}
+        onPokemonRemoved={onPokemonRemoved}
+        isClassCreator={isClassCreator}
       />
 
       {/* Give Coins Dialog */}

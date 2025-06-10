@@ -116,26 +116,28 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       const random = Math.random();
       
       if (random < 0.6 && schoolPokemons.length > 0) {
-        // Get a random Pokémon from school pool and REMOVE it
-        const result = assignRandomPokemonToStudent(schoolId, studentId);
+        // Get a random Pokémon
+        const randomIndex = Math.floor(Math.random() * schoolPokemons.length);
+        const pokemon = schoolPokemons[randomIndex];
         
-        if (result.success && result.pokemon) {
+        // Assign Pokémon to student
+        const success = assignRandomPokemonToStudent(schoolId, studentId, pokemon.id);
+        
+        if (success) {
           pokemonWon++;
-          results.push({ type: "pokemon", pokemon: result.pokemon });
+          results.push({ type: "pokemon", pokemon });
           
           // Save the last Pokemon for display
-          setWonPokemon(result.pokemon);
-          setCurrentResult({ type: "pokemon", data: result.pokemon });
+          setWonPokemon(pokemon);
+          setCurrentResult({ type: "pokemon", data: pokemon });
           
           // Call the callback
-          onPokemonWon(result.pokemon);
+          onPokemonWon(pokemon);
           
           // Save to history
-          saveToHistory("pokemon", result.pokemon);
-          
-          console.log("Pokemon won from mystery ball and removed from school pool:", result.pokemon.name);
+          saveToHistory("pokemon", pokemon);
         } else {
-          // Fallback to coins if no Pokemon available
+          // Fallback to coins
           const coinAmount = Math.floor(Math.random() * 5) + 1;
           coinsWon += coinAmount;
           results.push({ type: "coins", amount: coinAmount });
@@ -176,9 +178,6 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       // Wait briefly between opens
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
-    // Refresh the pool to reflect the changes
-    onRefreshPool();
     
     // Show summary toast
     toast({

@@ -5,11 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Shield, Users, UserCheck, Crown, Star } from 'lucide-react';
+import { Shield, Users, UserCheck, Crown } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import { AppRole, getRoleDisplayName, getRoleBadgeColor } from '@/types/roles';
-import { useUserRole } from '@/hooks/useUserRole';
 
 interface Teacher {
   id: string;
@@ -29,7 +28,6 @@ const RoleManagementTab: React.FC<RoleManagementTabProps> = ({ teachers, onRefre
   const [selectedRole, setSelectedRole] = useState<AppRole>('teacher');
   const [isAssigning, setIsAssigning] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const { userRole } = useUserRole();
 
   const handleAssignRole = async () => {
     if (!selectedTeacher) return;
@@ -64,8 +62,6 @@ const RoleManagementTab: React.FC<RoleManagementTabProps> = ({ teachers, onRefre
 
   const getRoleIcon = (role: AppRole) => {
     switch (role) {
-      case 'owner':
-        return <Star className="h-4 w-4" />;
       case 'admin':
         return <Crown className="h-4 w-4" />;
       case 'supervisor':
@@ -76,17 +72,6 @@ const RoleManagementTab: React.FC<RoleManagementTabProps> = ({ teachers, onRefre
       default:
         return <Users className="h-4 w-4" />;
     }
-  };
-
-  const getAvailableRoles = () => {
-    const allRoles: AppRole[] = ['teacher', 'senior_teacher', 'supervisor', 'admin'];
-    
-    // Only owners can assign owner role
-    if (userRole === 'owner') {
-      allRoles.push('owner');
-    }
-    
-    return allRoles;
   };
 
   return (
@@ -131,11 +116,10 @@ const RoleManagementTab: React.FC<RoleManagementTabProps> = ({ teachers, onRefre
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
-                    {getAvailableRoles().map((role) => (
-                      <SelectItem key={role} value={role}>
-                        {getRoleDisplayName(role)}
-                      </SelectItem>
-                    ))}
+                    <SelectItem value="teacher">Teacher</SelectItem>
+                    <SelectItem value="senior_teacher">Senior Teacher</SelectItem>
+                    <SelectItem value="supervisor">Supervisor</SelectItem>
+                    <SelectItem value="admin">Admin</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
