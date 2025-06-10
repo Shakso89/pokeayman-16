@@ -9,14 +9,14 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useUserRole } from "@/hooks/useUserRole";
 import { Loader2 } from "lucide-react";
 
-const AdminDashboard: React.FC = () => {
+const OwnerDashboard: React.FC = () => {
   const [activeTab, setActiveTab] = useState("overview");
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { isLoggedIn, user } = useAuth();
   const { userRole, permissions, isLoading: roleLoading } = useUserRole();
 
-  // Check admin access
+  // Check owner access
   useEffect(() => {
     if (!roleLoading && !permissions.canAssignRoles) {
       navigate("/teacher-dashboard");
@@ -28,7 +28,7 @@ const AdminDashboard: React.FC = () => {
       <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="flex flex-col items-center">
           <Loader2 className="h-8 w-8 animate-spin text-blue-500 mb-2" />
-          <p className="text-gray-500">Loading admin dashboard...</p>
+          <p className="text-gray-500">Loading owner dashboard...</p>
         </div>
       </div>
     );
@@ -52,11 +52,15 @@ const AdminDashboard: React.FC = () => {
     <div className="min-h-screen bg-transparent">
       <NavBar 
         userType="teacher" 
-        userName={isAymanEmail || isAymanUsername ? "Ayman" : "Admin"} 
+        userName={isAymanEmail || isAymanUsername ? "Ayman" : "Owner"} 
       />
 
       <div className="container mx-auto py-8 px-4">
-        <AdminHeader />
+        <div className="mb-6">
+          <h1 className="text-3xl font-bold text-gray-900">Owner Dashboard</h1>
+          <p className="text-gray-600 mt-2">Manage roles, credits, and system administration</p>
+        </div>
+        
         <EnhancedAdminDashboard 
           activeTab={activeTab} 
           setActiveTab={setActiveTab} 
@@ -66,4 +70,4 @@ const AdminDashboard: React.FC = () => {
   );
 };
 
-export default AdminDashboard;
+export default OwnerDashboard;

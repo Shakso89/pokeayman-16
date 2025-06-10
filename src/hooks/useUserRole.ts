@@ -8,6 +8,7 @@ export const useUserRole = () => {
   const [userRole, setUserRole] = useState<AppRole>('teacher');
   const [permissions, setPermissions] = useState<RolePermissions>(getRolePermissions('teacher'));
   const [isLoading, setIsLoading] = useState(true);
+  const [managerSchoolId, setManagerSchoolId] = useState<string | null>(null);
   const { user } = useAuth();
 
   useEffect(() => {
@@ -18,32 +19,34 @@ export const useUserRole = () => {
       }
 
       try {
-        // Check if this is the admin email or username
+        // Check if this is the owner email or username
         const userEmail = user?.email?.toLowerCase();
         const storedEmail = localStorage.getItem("userEmail")?.toLowerCase();
         const username = localStorage.getItem("teacherUsername");
         
-        const isAdminEmail = userEmail === 'ayman.soliman.tr@gmail.com' || 
-                            storedEmail === 'ayman.soliman.tr@gmail.com';
-        const isAdminUsername = username === 'Ayman_1' || username === 'Admin';
+        const isOwnerEmail = userEmail === 'ayman.soliman.tr@gmail.com' || 
+                            storedEmail === 'ayman.soliman.tr@gmail.com' ||
+                            userEmail === 'ayman.soliman.cc@gmail.com' || 
+                            storedEmail === 'ayman.soliman.cc@gmail.com';
+        const isOwnerUsername = username === 'Ayman' || username === 'Admin';
 
-        if (isAdminEmail || isAdminUsername) {
-          // Ensure admin role is assigned
+        if (isOwnerEmail || isOwnerUsername) {
+          // Ensure owner role is assigned
           await supabase.rpc('assign_user_role', {
             target_user_id: user.id,
-            new_role: 'admin'
+            new_role: 'owner'
           });
           
-          setUserRole('admin');
-          setPermissions(getRolePermissions('admin'));
+          setUserRole('owner');
+          setPermissions(getRolePermissions('owner'));
           setIsLoading(false);
           return;
         }
 
-        // First check if user has a role in user_roles table
+        // Fetch user role from user_roles table
         const { data: roleData, error: roleError } = await supabase
           .from('user_roles')
-          .select('role')
+          .select('role, manager_school_id')
           .eq('user_id', user.id)
           .order('assigned_at', { ascending: false })
           .limit(1)
@@ -54,9 +57,11 @@ export const useUserRole = () => {
         }
 
         let role: AppRole = 'teacher';
+        let schoolId: string | null = null;
 
         if (roleData) {
           role = roleData.role as AppRole;
+          schoolId = roleData.manager_school_id;
         } else {
           // Fallback to teachers table
           const { data: teacherData } = await supabase
@@ -72,6 +77,7 @@ export const useUserRole = () => {
 
         setUserRole(role);
         setPermissions(getRolePermissions(role));
+        setManagerSchoolId(schoolId);
       } catch (error) {
         console.error('Error fetching user role:', error);
       } finally {
@@ -86,6 +92,7 @@ export const useUserRole = () => {
     userRole,
     permissions,
     isLoading,
+    managerSchoolId,
     refreshRole: () => {
       if (user?.id) {
         setIsLoading(true);
@@ -93,15 +100,18 @@ export const useUserRole = () => {
         const fetchRole = async () => {
           const { data: roleData } = await supabase
             .from('user_roles')
-            .select('role')
+            .select('role, manager_school_id')
             .eq('user_id', user.id)
             .order('assigned_at', { ascending: false })
             .limit(1)
             .single();
 
           const role = roleData?.role as AppRole || 'teacher';
+          const schoolId = roleData?.manager_school_id || null;
+          
           setUserRole(role);
           setPermissions(getRolePermissions(role));
+          setManagerSchoolId(schoolId);
           setIsLoading(false);
         };
         fetchRole();

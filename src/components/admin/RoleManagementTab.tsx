@@ -5,10 +5,10 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Shield, Users, UserCheck, Crown } from 'lucide-react';
+import { Shield, Users, UserCheck, Crown, Building } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
-import { AppRole, getRoleDisplayName, getRoleBadgeColor } from '@/types/roles';
+import { AppRole, getRoleDisplayName, getRoleBadgeColor, getRoleDescription } from '@/types/roles';
 
 interface Teacher {
   id: string;
@@ -16,6 +16,11 @@ interface Teacher {
   display_name: string;
   email?: string;
   role?: AppRole;
+}
+
+interface School {
+  id: string;
+  name: string;
 }
 
 interface RoleManagementTabProps {
@@ -26,27 +31,58 @@ interface RoleManagementTabProps {
 const RoleManagementTab: React.FC<RoleManagementTabProps> = ({ teachers, onRefresh }) => {
   const [selectedTeacher, setSelectedTeacher] = useState<Teacher | null>(null);
   const [selectedRole, setSelectedRole] = useState<AppRole>('teacher');
+  const [selectedSchool, setSelectedSchool] = useState<string>('');
+  const [schools, setSchools] = useState<School[]>([]);
   const [isAssigning, setIsAssigning] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  // Load schools for manager assignment
+  useEffect(() => {
+    const loadSchools = async () => {
+      const { data } = await supabase
+        .from('schools')
+        .select('id, name')
+        .order('name');
+      
+      setSchools(data || []);
+    };
+    loadSchools();
+  }, []);
+
   const handleAssignRole = async () => {
     if (!selectedTeacher) return;
+
+    // Validate manager assignment requires school
+    if (selectedRole === 'manager' && !selectedSchool) {
+      toast({
+        title: "Error",
+        description: "Managers must be assigned to a school",
+        variant: "destructive"
+      });
+      return;
+    }
 
     setIsAssigning(true);
     try {
       const { error } = await supabase.rpc('assign_user_role', {
         target_user_id: selectedTeacher.id,
-        new_role: selectedRole
+        new_role: selectedRole,
+        assigned_school_id: selectedRole === 'manager' ? selectedSchool : null
       });
 
       if (error) throw error;
 
       toast({
         title: "Success",
-        description: `Role ${getRoleDisplayName(selectedRole)} assigned to ${selectedTeacher.display_name}`
+        description: `Role ${getRoleDisplayName(selectedRole)} assigned to ${selectedTeacher.display_name}${
+          selectedRole === 'manager' ? ` for ${schools.find(s => s.id === selectedSchool)?.name}` : ''
+        }`
       });
 
       setIsDialogOpen(false);
+      setSelectedTeacher(null);
+      setSelectedRole('teacher');
+      setSelectedSchool('');
       onRefresh();
     } catch (error: any) {
       console.error('Error assigning role:', error);
@@ -62,10 +98,10 @@ const RoleManagementTab: React.FC<RoleManagementTabProps> = ({ teachers, onRefre
 
   const getRoleIcon = (role: AppRole) => {
     switch (role) {
-      case 'admin':
+      case 'owner':
         return <Crown className="h-4 w-4" />;
-      case 'supervisor':
-        return <Shield className="h-4 w-4" />;
+      case 'manager':
+        return <Building className="h-4 w-4" />;
       case 'senior_teacher':
         return <UserCheck className="h-4 w-4" />;
       case 'teacher':
@@ -85,7 +121,7 @@ const RoleManagementTab: React.FC<RoleManagementTabProps> = ({ teachers, onRefre
               Assign Role
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Assign Role</DialogTitle>
             </DialogHeader>
@@ -118,15 +154,41 @@ const RoleManagementTab: React.FC<RoleManagementTabProps> = ({ teachers, onRefre
                   <SelectContent>
                     <SelectItem value="teacher">Teacher</SelectItem>
                     <SelectItem value="senior_teacher">Senior Teacher</SelectItem>
-                    <SelectItem value="supervisor">Supervisor</SelectItem>
-                    <SelectItem value="admin">Admin</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="owner">Owner</SelectItem>
                   </SelectContent>
                 </Select>
+                {selectedRole && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    {getRoleDescription(selectedRole)}
+                  </p>
+                )}
               </div>
+
+              {selectedRole === 'manager' && (
+                <div>
+                  <label className="block text-sm font-medium mb-2">Assign to School</label>
+                  <Select value={selectedSchool} onValueChange={setSelectedSchool}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a school" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {schools.map((school) => (
+                        <SelectItem key={school.id} value={school.id}>
+                          {school.name}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Managers can only manage classes within their assigned school.
+                  </p>
+                </div>
+              )}
               
               <Button 
                 onClick={handleAssignRole} 
-                disabled={!selectedTeacher || isAssigning}
+                disabled={!selectedTeacher || isAssigning || (selectedRole === 'manager' && !selectedSchool)}
                 className="w-full"
               >
                 {isAssigning ? "Assigning..." : "Assign Role"}

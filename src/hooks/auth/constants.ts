@@ -3,7 +3,7 @@
 export const ADMIN_EMAILS = [
   "ayman.soliman.tr@gmail.com",
   "ayman.soliman.cc@gmail.com",
-  "admin@pokeayman.com",
+  "owner@pokeayman.com",
   "admin@example.com",
 ];
 
