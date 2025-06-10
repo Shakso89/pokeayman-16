@@ -31,15 +31,11 @@ export const useUserRole = () => {
         const isOwnerUsername = username === 'Ayman' || username === 'Admin';
 
         if (isOwnerEmail || isOwnerUsername) {
-          // Ensure owner role is assigned in database
-          try {
-            await supabase.rpc('assign_user_role', {
-              target_user_id: user.id,
-              new_role: 'owner'
-            });
-          } catch (error) {
-            console.log('Note: Could not auto-assign owner role in database, but proceeding with owner permissions');
-          }
+          // Ensure owner role is assigned
+          await supabase.rpc('assign_user_role', {
+            target_user_id: user.id,
+            new_role: 'owner'
+          });
           
           setUserRole('owner');
           setPermissions(getRolePermissions('owner'));
@@ -102,24 +98,6 @@ export const useUserRole = () => {
         setIsLoading(true);
         // Re-fetch role
         const fetchRole = async () => {
-          // Check owner status first
-          const userEmail = user?.email?.toLowerCase();
-          const storedEmail = localStorage.getItem("userEmail")?.toLowerCase();
-          const username = localStorage.getItem("teacherUsername");
-          
-          const isOwnerEmail = userEmail === 'ayman.soliman.tr@gmail.com' || 
-                              storedEmail === 'ayman.soliman.tr@gmail.com' ||
-                              userEmail === 'ayman.soliman.cc@gmail.com' || 
-                              storedEmail === 'ayman.soliman.cc@gmail.com';
-          const isOwnerUsername = username === 'Ayman' || username === 'Admin';
-
-          if (isOwnerEmail || isOwnerUsername) {
-            setUserRole('owner');
-            setPermissions(getRolePermissions('owner'));
-            setIsLoading(false);
-            return;
-          }
-
           const { data: roleData } = await supabase
             .from('user_roles')
             .select('role, manager_school_id')

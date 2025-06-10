@@ -67,19 +67,18 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
     <>
       {/* Add Students Dialog */}
       <AddStudentsDialog
-        open={isStudentListOpen}
+        isOpen={isStudentListOpen}
         onOpenChange={onStudentListOpenChange}
-        onStudentsAdded={() => onStudentsAdded([])}
+        onStudentsAdded={onStudentsAdded}
         classId={classId}
-        className=""
       />
 
       {/* Delete Class Dialog */}
       <DeleteClassDialog
-        open={deleteDialogOpen}
+        isOpen={deleteDialogOpen}
         onOpenChange={onDeleteDialogOpenChange}
-        onConfirm={onDeleteClass}
-        className=""
+        onConfirmDelete={onDeleteClass}
+        classId={classId}
       />
 
       {/* Remove Student Dialog */}
