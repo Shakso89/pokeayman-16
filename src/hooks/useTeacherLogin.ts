@@ -11,7 +11,6 @@ export const useTeacherLogin = () => {
   const [error, setError] = useState("");
   const [loginInProgress, setLoginInProgress] = useState(false);
 
-  // Simplified login handler with better error handling
   const handleLogin = async (username: string, password: string) => {
     setLoginInProgress(true);
     setError("");
@@ -19,14 +18,12 @@ export const useTeacherLogin = () => {
     try {
       console.log("Login attempt:", username);
 
-      // Enhanced admin detection
       const isAdmin =
         (isAdminUsername(username) || isAdminEmail(username)) &&
         isValidAdminPassword(password);
 
       let result;
 
-      // Special handling for admin users or dev admin login
       if (isAdmin || checkDevAdminLogin(username, password) || 
           username.toLowerCase() === "ayman.soliman.tr@gmail.com" || 
           username.toLowerCase() === "ayman.soliman.cc@gmail.com" ||
@@ -41,8 +38,11 @@ export const useTeacherLogin = () => {
       }
       
       if (result.success) {
-        await refreshAuthState();
-        navigate(result.redirect, { replace: true });
+        // Small delay to ensure state is set
+        setTimeout(async () => {
+          await refreshAuthState();
+          navigate(result.redirect, { replace: true });
+        }, 100);
       } else {
         throw new Error(result.message || "Login failed");
       }

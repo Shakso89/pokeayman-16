@@ -19,7 +19,6 @@ const StudentLogin: React.FC = () => {
   const [isProcessing, setIsProcessing] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
 
-  // Simplified session check
   useEffect(() => {
     const checkSession = async () => {
       try {
@@ -31,22 +30,27 @@ const StudentLogin: React.FC = () => {
           return;
         }
 
-        // Quick session check with timeout
-        const sessionPromise = supabase.auth.getSession();
+        // Quick session check with short timeout
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("timeout")), 3000)
+          setTimeout(() => reject(new Error("timeout")), 2000)
         );
         
-        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+        const sessionPromise = supabase.auth.getSession();
         
-        if (session && session.user) {
-          localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("userType", "student");
-          navigate("/student-dashboard", { replace: true });
-          return;
+        try {
+          const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+          
+          if (session && session.user) {
+            localStorage.setItem("isLoggedIn", "true");
+            localStorage.setItem("userType", "student");
+            navigate("/student-dashboard", { replace: true });
+            return;
+          }
+        } catch (timeoutError) {
+          console.log("Session check timed out, proceeding to login");
         }
       } catch (err) {
-        console.log("Session check completed");
+        console.log("Session check completed with error:", err);
       }
       
       setCheckingSession(false);
@@ -115,12 +119,10 @@ const StudentLogin: React.FC = () => {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-transparent p-4 relative overflow-hidden">
-      {/* Animated Background */}
       <div className="absolute inset-0 pointer-events-none z-0">
         <PokemonOrbit count={8} />
       </div>
 
-      {/* Logo */}
       <div className="absolute top-10 flex flex-col items-center z-10 mb-8">
         <img
           src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png"
@@ -130,7 +132,6 @@ const StudentLogin: React.FC = () => {
         />
       </div>
 
-      {/* Login Form */}
       <Card className="w-full max-w-md z-10 mt-20 backdrop-blur-sm bg-white/80 border-white/20 shadow-xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Student Login</CardTitle>

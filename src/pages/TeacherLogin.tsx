@@ -9,8 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 
 const TeacherLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -19,7 +18,6 @@ const TeacherLogin: React.FC = () => {
   const [password, setPassword] = useState("");
   const [checkingSession, setCheckingSession] = useState(true);
 
-  // Handle form submission
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (username.trim() === "" || password.trim() === "") {
@@ -33,11 +31,10 @@ const TeacherLogin: React.FC = () => {
     await handleLogin(username, password);
   };
 
-  // Simplified session check
   useEffect(() => {
     const checkSession = async () => {
       try {
-        // Fast check from localStorage first
+        // Quick localStorage check first
         const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
         const userType = localStorage.getItem("userType");
         
@@ -47,32 +44,37 @@ const TeacherLogin: React.FC = () => {
           return;
         }
         
-        // Quick session check with timeout
-        const sessionPromise = supabase.auth.getSession();
+        // Quick session check with short timeout
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("timeout")), 3000)
+          setTimeout(() => reject(new Error("timeout")), 2000)
         );
         
-        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+        const sessionPromise = supabase.auth.getSession();
         
-        if (session && session.user) {
-          const email = session.user?.email?.toLowerCase();
-          const isAdmin = isAdminEmail(email);
+        try {
+          const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
           
-          localStorage.setItem("isLoggedIn", "true");
-          localStorage.setItem("userType", "teacher");
-          localStorage.setItem("teacherUsername", session.user?.user_metadata?.username || "");
+          if (session && session.user) {
+            const email = session.user?.email?.toLowerCase();
+            const isAdmin = isAdminEmail(email);
+            
+            localStorage.setItem("isLoggedIn", "true");
+            localStorage.setItem("userType", "teacher");
+            localStorage.setItem("teacherUsername", session.user?.user_metadata?.username || "");
 
-          if (isAdmin) {
-            localStorage.setItem("isAdmin", "true");
-            navigate("/admin-dashboard", { replace: true });
-          } else {
-            navigate("/teacher-dashboard", { replace: true });
+            if (isAdmin) {
+              localStorage.setItem("isAdmin", "true");
+              navigate("/admin-dashboard", { replace: true });
+            } else {
+              navigate("/teacher-dashboard", { replace: true });
+            }
+            return;
           }
-          return;
+        } catch (timeoutError) {
+          console.log("Session check timed out, proceeding to login");
         }
       } catch (err) {
-        console.log("Session check completed");
+        console.log("Session check completed with error:", err);
       }
       
       setCheckingSession(false);
@@ -81,7 +83,6 @@ const TeacherLogin: React.FC = () => {
     checkSession();
   }, [navigate]);
 
-  // Show loading state
   if (checkingSession) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600 flex flex-col items-center justify-center p-4">
