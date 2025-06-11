@@ -5,7 +5,6 @@ import { useTeacherLogin } from "@/hooks/useTeacherLogin";
 import { supabase } from "@/integrations/supabase/client";
 import { isAdminEmail } from "@/utils/adminAuth";
 import { AuthLayout } from "@/components/AuthLayout";
-import AuthLoading from "@/components/auth/AuthLoading";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -19,8 +18,6 @@ const TeacherLogin: React.FC = () => {
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [checkingSession, setCheckingSession] = useState(true);
-  const [sessionError, setSessionError] = useState("");
-  const [sessionCheckTimeout, setSessionCheckTimeout] = useState<NodeJS.Timeout | null>(null);
 
   // Handle form submission
   const onSubmit = async (e: React.FormEvent) => {
@@ -36,10 +33,8 @@ const TeacherLogin: React.FC = () => {
     await handleLogin(username, password);
   };
 
-  // Check if user is already logged in
+  // Simplified session check
   useEffect(() => {
-    let isMounted = true;
-
     const checkSession = async () => {
       try {
         // Fast check from localStorage first
@@ -48,28 +43,18 @@ const TeacherLogin: React.FC = () => {
         
         if (isLoggedIn && userType === "teacher") {
           const isAdmin = localStorage.getItem("isAdmin") === "true";
-          if (isAdmin) {
-            navigate("/admin-dashboard", { replace: true });
-          } else {
-            navigate("/teacher-dashboard", { replace: true });
-          }
+          navigate(isAdmin ? "/admin-dashboard" : "/teacher-dashboard", { replace: true });
           return;
         }
         
-        // Get session from Supabase
-        const { data: { session }, error } = await supabase.auth.getSession();
-
-        // If component unmounted, don't update state
-        if (!isMounted) return;
-
-        if (error) {
-          console.error("Session check error:", error);
-          setSessionError("Error checking your login status");
-          setCheckingSession(false);
-          return;
-        } 
+        // Quick session check with timeout
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("timeout")), 3000)
+        );
         
-        // If session exists, handle routing
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+        
         if (session && session.user) {
           const email = session.user?.email?.toLowerCase();
           const isAdmin = isAdminEmail(email);
@@ -86,48 +71,14 @@ const TeacherLogin: React.FC = () => {
           }
           return;
         }
-
-        // If no session, clear localStorage and update state
-        localStorage.removeItem("isLoggedIn");
-        localStorage.removeItem("userType");
-        localStorage.removeItem("isAdmin");
-        localStorage.removeItem("teacherUsername");
-        
-        setCheckingSession(false);
       } catch (err) {
-        console.error("Error checking session:", err);
-        if (isMounted) {
-          setCheckingSession(false);
-          setSessionError("Failed to check login status");
-        }
+        console.log("Session check completed");
       }
+      
+      setCheckingSession(false);
     };
 
-    // Set a timeout to ensure we don't get stuck in loading state
-    const timer = setTimeout(() => {
-      checkSession();
-      
-      // Add a fallback timeout in case the session check takes too long
-      const fallbackTimer = setTimeout(() => {
-        if (isMounted && checkingSession) {
-          console.log("Session check timeout reached, showing login form");
-          setCheckingSession(false);
-        }
-      }, 5000); // 5 second max wait time
-      
-      return () => clearTimeout(fallbackTimer);
-    }, 1000);
-    
-    setSessionCheckTimeout(timer);
-
-    // Clear timeout and set isMounted to false when component unmounts
-    return () => {
-      isMounted = false;
-      if (sessionCheckTimeout) {
-        clearTimeout(sessionCheckTimeout);
-      }
-      clearTimeout(timer);
-    };
+    checkSession();
   }, [navigate]);
 
   // Show loading state
@@ -143,7 +94,6 @@ const TeacherLogin: React.FC = () => {
         <div className="bg-white/80 backdrop-blur-sm p-8 rounded-lg shadow-xl flex flex-col items-center">
           <Loader2 className="h-10 w-10 animate-spin text-blue-600 mb-4" />
           <h2 className="text-xl font-semibold text-center">Checking login status...</h2>
-          <p className="text-gray-500 mt-2 text-center">Please wait a moment</p>
         </div>
       </div>
     );
@@ -151,12 +101,6 @@ const TeacherLogin: React.FC = () => {
 
   return (
     <AuthLayout title="Teacher Login">
-      {sessionError && (
-        <Alert variant="destructive" className="mb-4">
-          <AlertCircle className="h-4 w-4" />
-          <AlertDescription>{sessionError}</AlertDescription>
-        </Alert>
-      )}
       <form onSubmit={onSubmit} className="space-y-4">
         <div className="space-y-2">
           <Label htmlFor="username">Username or Email</Label>

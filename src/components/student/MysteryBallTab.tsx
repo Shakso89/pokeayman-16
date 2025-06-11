@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -56,11 +55,11 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
   
   const getMaxPossibleOpens = () => {
     if (!dailyAttemptUsed) {
-      // If they haven't used their free daily attempt, they can open 1 + (coins ÷ 2)
-      return Math.min(10, 1 + Math.floor(coins / 2));
+      // If they haven't used their free daily attempt, they can open 1 + (coins ÷ 5)
+      return Math.min(10, 1 + Math.floor(coins / 5));
     } else {
-      // If they have used their free daily attempt, they can open (coins ÷ 2)
-      return Math.min(10, Math.floor(coins / 2));
+      // If they have used their free daily attempt, they can open (coins ÷ 5)
+      return Math.min(10, Math.floor(coins / 5));
     }
   };
   
@@ -94,9 +93,9 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       // Check if this is the free attempt
       const isFreeAttempt = !dailyAttemptUsed && !usedFreeAttempt;
       
-      // If not free attempt, use coins
+      // If not free attempt, use coins (changed to 5 coins)
       if (!isFreeAttempt) {
-        const success = useStudentCoin(studentId, 2);
+        const success = useStudentCoin(studentId, 5);
         if (!success) {
           toast({
             title: "Error",
@@ -234,7 +233,7 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
     <Card className="mx-auto max-w-xl shadow-lg">
       <CardHeader className="text-center bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-t-md">
         <CardTitle className="text-2xl">Mystery Pokémon Ball</CardTitle>
-        <CardDescription className="text-white opacity-90">2 coins per try, first attempt is free daily</CardDescription>
+        <CardDescription className="text-white opacity-90">5 coins per try, first attempt is free daily</CardDescription>
       </CardHeader>
       <CardContent className="p-6">
         {schoolPokemons.length === 0 ? (
@@ -285,12 +284,12 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
                       </div>
                       
                       <p className="text-sm text-gray-500">
-                        Cost: {multipleCount > 0 && !dailyAttemptUsed ? (multipleCount - 1) * 2 : multipleCount * 2} coins
+                        Cost: {multipleCount > 0 && !dailyAttemptUsed ? (multipleCount - 1) * 5 : multipleCount * 5} coins
                       </p>
                       
                       <Button 
                         onClick={handleOpenMultiple} 
-                        disabled={isProcessing || (coins < 2 && dailyAttemptUsed)} 
+                        disabled={isProcessing || (coins < 5 && dailyAttemptUsed)} 
                         className="w-full"
                       >
                         {isProcessing ? "Opening..." : `Open ${multipleCount} Balls`}

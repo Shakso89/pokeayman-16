@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -17,11 +18,9 @@ const StudentLogin: React.FC = () => {
   const [password, setPassword] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
-  const [sessionCheckTimeout, setSessionCheckTimeout] = useState<NodeJS.Timeout | null>(null);
 
+  // Simplified session check
   useEffect(() => {
-    let isMounted = true;
-
     const checkSession = async () => {
       try {
         const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
@@ -32,15 +31,13 @@ const StudentLogin: React.FC = () => {
           return;
         }
 
-        const { data: { session }, error } = await supabase.auth.getSession();
+        // Quick session check with timeout
+        const sessionPromise = supabase.auth.getSession();
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("timeout")), 3000)
+        );
         
-        if (!isMounted) return;
-        
-        if (error) {
-          console.error("Session check error:", error);
-          setCheckingSession(false);
-          return;
-        }
+        const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
         
         if (session && session.user) {
           localStorage.setItem("isLoggedIn", "true");
@@ -48,29 +45,14 @@ const StudentLogin: React.FC = () => {
           navigate("/student-dashboard", { replace: true });
           return;
         }
-        
-        setCheckingSession(false);
       } catch (err) {
-        console.error("Error checking session:", err);
-        if (isMounted) {
-          setCheckingSession(false);
-        }
+        console.log("Session check completed");
       }
+      
+      setCheckingSession(false);
     };
     
-    const timer = setTimeout(() => {
-      checkSession();
-    }, 1000);
-    
-    setSessionCheckTimeout(timer);
-    
-    return () => {
-      isMounted = false;
-      if (sessionCheckTimeout) {
-        clearTimeout(sessionCheckTimeout);
-      }
-      clearTimeout(timer);
-    };
+    checkSession();
   }, [navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -126,7 +108,6 @@ const StudentLogin: React.FC = () => {
         <div className="bg-white/80 backdrop-blur-sm p-8 rounded-lg shadow-xl flex flex-col items-center">
           <Loader2 className="h-10 w-10 animate-spin text-purple-600 mb-4" />
           <h2 className="text-xl font-semibold text-center">Checking login status...</h2>
-          <p className="text-gray-500 mt-2 text-center">Please wait a moment</p>
         </div>
       </div>
     );

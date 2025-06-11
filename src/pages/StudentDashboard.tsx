@@ -15,6 +15,8 @@ import StudentCollection from "@/components/student/StudentCollection";
 import MysteryBallTab from "@/components/student/MysteryBallTab";
 import SchoolPoolDialog from "@/components/student/SchoolPoolDialog";
 import MyClassesTab from "@/components/student/MyClassesTab";
+import StudentDashboardButtons from "@/components/student/StudentDashboardButtons";
+
 const StudentDashboard: React.FC = () => {
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const userType = localStorage.getItem("userType");
@@ -22,20 +24,18 @@ const StudentDashboard: React.FC = () => {
   const studentId = localStorage.getItem("studentId") || "";
   const classId = localStorage.getItem("studentClassId") || "";
   const schoolId = localStorage.getItem("studentSchoolId") || "";
-  const {
-    t
-  } = useTranslation();
-  const {
-    toast
-  } = useToast();
+  const { t } = useTranslation();
+  const { toast } = useToast();
+  
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
   const [coins, setCoins] = useState(0);
   const [schoolPokemons, setSchoolPokemons] = useState<Pokemon[]>([]);
-  const [activeTab, setActiveTab] = useState("my-pokemons");
+  const [activeTab, setActiveTab] = useState("home");
   const [activeBattles, setActiveBattles] = useState<any[]>([]);
   const [avatar, setAvatar] = useState<string | null>(null);
   const [showSchoolPool, setShowSchoolPool] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+
   useEffect(() => {
     console.log("StudentDashboard loaded with:", {
       studentId,
@@ -143,15 +143,32 @@ const StudentDashboard: React.FC = () => {
     }, 1000);
   };
 
+  const handleMysteryBallClick = () => {
+    setActiveTab("mystery-ball");
+  };
+
+  const handleCollectionClick = () => {
+    setActiveTab("my-pokemons");
+  };
+
   // Get the current school ID (either from state or localStorage)
   const currentSchoolId = schoolId || localStorage.getItem("studentSchoolId") || "default-school-1";
+  
   if (!isLoggedIn || userType !== "student") {
     return <Navigate to="/student-login" />;
   }
-  return <div className="min-h-screen bg-transparent">      <NavBar userType="student" userName={studentName} userAvatar={avatar || undefined} />
+
+  return (
+    <div className="min-h-screen bg-transparent">
+      <NavBar userType="student" userName={studentName} userAvatar={avatar || undefined} />
       
       <div className="container mx-auto py-8 px-4">
-        <StudentHeader studentName={studentName} coins={coins} activeBattles={activeBattles} onOpenSchoolPool={() => setShowSchoolPool(true)} />
+        <StudentHeader 
+          studentName={studentName} 
+          coins={coins} 
+          activeBattles={activeBattles} 
+          onOpenSchoolPool={() => setShowSchoolPool(true)} 
+        />
         
         {/* Rankings button */}
         <div className="flex justify-end mt-4">
@@ -164,8 +181,11 @@ const StudentDashboard: React.FC = () => {
         </div>
         
         <div className="mt-6 relative">
-          <Tabs defaultValue="my-pokemons" className="w-full mt-8" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-8 p-2 rounded-full bg-transparent">
+          <Tabs defaultValue="home" className="w-full mt-8" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-4 mb-8 p-2 rounded-full bg-transparent">
+              <TabsTrigger value="home" className="data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all">
+                Home
+              </TabsTrigger>
               <TabsTrigger value="my-pokemons" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all">
                 My Pokémon
               </TabsTrigger>
@@ -173,18 +193,36 @@ const StudentDashboard: React.FC = () => {
                 <Package className="h-5 w-5" />
                 Mystery Ball
               </TabsTrigger>
-              <TabsTrigger value="my-classes" className="data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all flex items-center justify-center gap-2">
+              <TabsTrigger value="my-classes" className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all flex items-center justify-center gap-2">
                 <Users className="h-5 w-5" />
                 My Class
               </TabsTrigger>
             </TabsList>
+            
+            <TabsContent value="home" className="mt-4">
+              <StudentDashboardButtons
+                coins={coins}
+                studentId={studentId}
+                onMysteryBallClick={handleMysteryBallClick}
+                onCollectionClick={handleCollectionClick}
+              />
+            </TabsContent>
             
             <TabsContent value="my-pokemons" className="mt-4">
               <StudentCollection pokemons={studentPokemons} />
             </TabsContent>
             
             <TabsContent value="mystery-ball" className="mt-4">
-              <MysteryBallTab schoolPokemons={schoolPokemons} studentId={studentId} schoolId={currentSchoolId} coins={coins} isLoading={isLoading} onPokemonWon={handlePokemonWon} onCoinsWon={handleCoinsWon} onRefreshPool={handleRefreshPool} />
+              <MysteryBallTab 
+                schoolPokemons={schoolPokemons} 
+                studentId={studentId} 
+                schoolId={currentSchoolId} 
+                coins={coins} 
+                isLoading={isLoading} 
+                onPokemonWon={handlePokemonWon} 
+                onCoinsWon={handleCoinsWon} 
+                onRefreshPool={handleRefreshPool} 
+              />
             </TabsContent>
             
             <TabsContent value="my-classes" className="mt-4">
@@ -195,7 +233,14 @@ const StudentDashboard: React.FC = () => {
       </div>
       
       {/* School Pool Dialog */}
-      <SchoolPoolDialog open={showSchoolPool} onOpenChange={setShowSchoolPool} schoolId={currentSchoolId} userType="student" />
-    </div>;
+      <SchoolPoolDialog 
+        open={showSchoolPool} 
+        onOpenChange={setShowSchoolPool} 
+        schoolId={currentSchoolId} 
+        userType="student" 
+      />
+    </div>
+  );
 };
+
 export default StudentDashboard;

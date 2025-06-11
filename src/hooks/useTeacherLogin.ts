@@ -11,19 +11,13 @@ export const useTeacherLogin = () => {
   const [error, setError] = useState("");
   const [loginInProgress, setLoginInProgress] = useState(false);
 
-  // Main login handler with improved timeout handling
+  // Simplified login handler with better error handling
   const handleLogin = async (username: string, password: string) => {
     setLoginInProgress(true);
     setError("");
 
     try {
       console.log("Login attempt:", username);
-
-      // Set a timeout to prevent infinite loading
-      const loginTimeout = setTimeout(() => {
-        setError("Login timeout - please try again");
-        setLoginInProgress(false);
-      }, 10000); // 10 second timeout
 
       // Enhanced admin detection
       const isAdmin =
@@ -45,16 +39,10 @@ export const useTeacherLogin = () => {
         console.log("Regular teacher login for:", username);
         result = await handleTeacherLogin(username, password, () => {});
       }
-
-      clearTimeout(loginTimeout);
       
       if (result.success) {
         await refreshAuthState();
-        
-        // Small delay to ensure state is updated
-        setTimeout(() => {
-          navigate(result.redirect, { replace: true });
-        }, 300);
+        navigate(result.redirect, { replace: true });
       } else {
         throw new Error(result.message || "Login failed");
       }

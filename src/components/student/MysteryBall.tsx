@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Pokemon } from "@/types/pokemon";
@@ -81,9 +80,9 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
       return;
     }
 
-    // Check if the student has a free chance or enough coins
+    // Check if the student has a free chance or enough coins (changed to 5 coins)
     const isFreeChance = !usedFreeChance;
-    const requiredCoins = 2;
+    const requiredCoins = 5;
     const hasCoins = coins >= requiredCoins;
     
     if (!isFreeChance && !hasCoins) {
@@ -196,10 +195,10 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
       {/* Button below the ball */}
       <Button 
         onClick={handleOpenMysteryBall} 
-        disabled={isAnimating || (usedFreeChance && coins < 2)} 
+        disabled={isAnimating || (usedFreeChance && coins < 5)} 
         className="mt-4 bg-blue-500 hover:bg-blue-600"
       >
-        {isAnimating ? "Opening..." : usedFreeChance ? `Open (2 coins)` : "Open (Free)"}
+        {isAnimating ? "Opening..." : usedFreeChance ? `Open (5 coins)` : "Open (Free)"}
       </Button>
       
       {/* Result Modal */}
