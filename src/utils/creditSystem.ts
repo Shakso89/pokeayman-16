@@ -71,18 +71,27 @@ export const consumeCredits = async (
       };
     }
     
-    // Deduct credits
-    const { error: updateError } = await supabase
-      .from('teacher_credits')
-      .update({ 
-        credits: credits - creditsToConsume,
-        used_credits: supabase.sql`used_credits + ${creditsToConsume}`
-      })
-      .eq('teacher_id', teacherId);
+    // Deduct credits - using RPC call instead of direct SQL
+    const { error: updateError } = await supabase.rpc('consume_teacher_credits', {
+      teacher_id: teacherId,
+      credits_to_consume: creditsToConsume
+    });
     
     if (updateError) {
       console.error('Error updating credits:', updateError);
-      return { success: false, message: 'Failed to process credits' };
+      // Fallback to direct update if RPC doesn't exist
+      const { error: fallbackError } = await supabase
+        .from('teacher_credits')
+        .update({ 
+          credits: credits - creditsToConsume,
+          used_credits: (await getUsedCredits(teacherId)) + creditsToConsume
+        })
+        .eq('teacher_id', teacherId);
+      
+      if (fallbackError) {
+        console.error('Error with fallback update:', fallbackError);
+        return { success: false, message: 'Failed to process credits' };
+      }
     }
     
     // Log the transaction
@@ -95,6 +104,22 @@ export const consumeCredits = async (
   } catch (error) {
     console.error('Error in consumeCredits:', error);
     return { success: false, message: 'Failed to process credits' };
+  }
+};
+
+// Helper function to get used credits
+const getUsedCredits = async (teacherId: string): Promise<number> => {
+  try {
+    const { data, error } = await supabase
+      .from('teacher_credits')
+      .select('used_credits')
+      .eq('teacher_id', teacherId)
+      .single();
+
+    if (error) return 0;
+    return data?.used_credits || 0;
+  } catch (error) {
+    return 0;
   }
 };
 
