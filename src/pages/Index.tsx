@@ -1,23 +1,28 @@
+
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
+
 const Index: React.FC = () => {
   const navigate = useNavigate();
-  const {
-    t
-  } = useTranslation();
-  return <div className="min-h-screen relative">
+  const { t } = useTranslation();
+
+  return (
+    <div className="min-h-screen relative">
       <Header />
       
       <div className="container mx-auto px-4 py-8">
         {/* Logo Section */}
         <div className="flex justify-center mb-12">
-          <img src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" alt="PokéAyman Logo" className="h-32 md:h-40 w-auto float-animation" style={{
-          filter: "drop-shadow(0 0 10px rgba(255,255,255,0.6))"
-        }} />
+          <img 
+            src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png" 
+            alt="PokéAyman Logo" 
+            className="h-32 md:h-40 w-auto float-animation" 
+            style={{ filter: "drop-shadow(0 0 10px rgba(255,255,255,0.6))" }}
+          />
         </div>
         
         {/* Hero Section */}
@@ -29,11 +34,20 @@ const Index: React.FC = () => {
             </p>
             
             <div className="flex flex-col items-center gap-4 md:flex-row md:justify-center">
-              <Button size="lg" onClick={() => navigate("/teacher-login")} className="px-8 py-6 font-bold shadow-lg text-2xl text-slate-900 bg-cyan-700 hover:bg-cyan-600">
+              <Button 
+                size="lg" 
+                onClick={() => navigate("/teacher-login")} 
+                className="px-8 py-6 font-bold shadow-lg text-2xl text-slate-900 bg-cyan-700 hover:bg-cyan-600"
+              >
                 {t("teacher-login")} 🎓
               </Button>
               
-              <Button size="lg" variant="outline" onClick={() => navigate("/student-login")} className="glass-card border-white/30 px-8 py-6 font-bold bg-teal-600 hover:bg-teal-500 text-2xl text-slate-900 ">
+              <Button 
+                size="lg" 
+                variant="outline" 
+                onClick={() => navigate("/student-login")} 
+                className="glass-card border-white/30 px-8 py-6 font-bold bg-teal-600 hover:bg-teal-500 text-2xl text-slate-900"
+              >
                 {t("student-login")} ⚡
               </Button>
             </div>
@@ -42,9 +56,12 @@ const Index: React.FC = () => {
 
         {/* Ash and Pikachu hero image */}
         <div className="flex justify-center mb-12">
-          <img alt="Ash and Pikachu" style={{
-          filter: "drop-shadow(0 0 20px rgba(255, 255, 0, 0.3))"
-        }} src="/lovable-uploads/be64cb1f-6989-4838-8064-d1a749d90ef8.png" className="h-auto max-w-full md:max-w-md lg:max-w-lg xl:max-w-xl object-none float-animation" />
+          <img 
+            alt="Ash and Pikachu" 
+            style={{ filter: "drop-shadow(0 0 20px rgba(255, 255, 0, 0.3))" }}
+            src="/lovable-uploads/be64cb1f-6989-4838-8064-d1a749d90ef8.png" 
+            className="h-auto max-w-full md:max-w-md lg:max-w-lg xl:max-w-xl object-none float-animation" 
+          />
         </div>
         
         {/* Why Choose PokéAyman Section */}
@@ -76,18 +93,33 @@ const Index: React.FC = () => {
 
         {/* Pokémon image showcase */}
         <div className="flex justify-center flex-wrap gap-8 mb-16">
-          <img alt="Pikachu" className="h-48 w-auto drop-shadow-lg animate-bounce" style={{
-          animationDuration: "3s",
-          filter: "drop-shadow(0 0 15px rgba(255, 255, 0, 0.5))"
-        }} src="/lovable-uploads/6643827c-343f-41b5-becf-e156015a18e7.png" />
-          <img alt="Charizard" style={{
-          animationDuration: "4s",
-          filter: "drop-shadow(0 0 15px rgba(255, 100, 0, 0.5))"
-        }} src="/lovable-uploads/b42f1e48-b772-4523-8290-871c5575c64d.png" className="h-64 w-auto drop-shadow-lg animate-bounce" />
-          <img src="/lovable-uploads/d1c806ec-9607-4d94-af2a-bdbb8d2cb0c6.png" alt="Bulbasaur" className="h-48 w-auto drop-shadow-lg animate-bounce" style={{
-          animationDuration: "3.5s",
-          filter: "drop-shadow(0 0 15px rgba(0, 255, 100, 0.5))"
-        }} />
+          <img 
+            alt="Pikachu" 
+            className="h-48 w-auto drop-shadow-lg animate-bounce" 
+            style={{
+              animationDuration: "3s",
+              filter: "drop-shadow(0 0 15px rgba(255, 255, 0, 0.5))"
+            }}
+            src="/lovable-uploads/6643827c-343f-41b5-becf-e156015a18e7.png" 
+          />
+          <img 
+            alt="Charizard" 
+            style={{
+              animationDuration: "4s",
+              filter: "drop-shadow(0 0 15px rgba(255, 100, 0, 0.5))"
+            }}
+            src="/lovable-uploads/b42f1e48-b772-4523-8290-871c5575c64d.png" 
+            className="h-64 w-auto drop-shadow-lg animate-bounce" 
+          />
+          <img 
+            src="/lovable-uploads/d1c806ec-9607-4d94-af2a-bdbb8d2cb0c6.png" 
+            alt="Bulbasaur" 
+            className="h-48 w-auto drop-shadow-lg animate-bounce" 
+            style={{
+              animationDuration: "3.5s",
+              filter: "drop-shadow(0 0 15px rgba(0, 255, 100, 0.5))"
+            }}
+          />
         </div>
 
         {/* Features showcase */}
@@ -126,6 +158,8 @@ const Index: React.FC = () => {
       </div>
       
       <Footer />
-    </div>;
+    </div>
+  );
 };
+
 export default Index;

@@ -71,11 +71,20 @@ export const useCredits = async (userId: string, actionType: keyof typeof CREDIT
 
     const creditsToDeduct = creditCheck.requiredCredits * multiplier;
 
+    // Get current used_credits value first
+    const { data: currentData } = await supabase
+      .from('teacher_credits')
+      .select('used_credits')
+      .eq('teacher_id', userId)
+      .single();
+
+    const currentUsedCredits = currentData?.used_credits || 0;
+
     const { error } = await supabase
       .from('teacher_credits')
       .update({ 
         credits: creditCheck.currentCredits - creditsToDeduct,
-        used_credits: supabase.sql`used_credits + ${creditsToDeduct}`
+        used_credits: currentUsedCredits + creditsToDeduct
       })
       .eq('teacher_id', userId);
 
