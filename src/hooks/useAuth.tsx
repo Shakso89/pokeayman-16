@@ -62,7 +62,7 @@ export const useAuth = () => {
     }
   };
 
-  // Fixed logout function to prevent getting stuck
+  // Simplified and reliable logout function
   const logout = async (): Promise<boolean> => {
     try {
       console.log("Starting logout process...");
@@ -71,30 +71,13 @@ export const useAuth = () => {
       // Clear auth state immediately for instant UI feedback
       clearAuthStateWrapper();
 
-      // Sign out from Supabase with timeout to prevent hanging
-      const timeoutPromise = new Promise((_, reject) => 
-        setTimeout(() => reject(new Error('Logout timeout')), 5000)
-      );
+      // Sign out from Supabase
+      const { error } = await supabase.auth.signOut();
       
-      const signoutPromise = supabase.auth.signOut();
-      
-      try {
-        await Promise.race([signoutPromise, timeoutPromise]);
-      } catch (error) {
-        console.error("Supabase signout error or timeout:", error);
-        // Continue with logout even if Supabase signout fails
+      if (error) {
+        console.error("Supabase signout error:", error);
+        // Don't throw error, just log it - logout should always succeed
       }
-
-      // Force clear all auth-related localStorage
-      localStorage.removeItem('isLoggedIn');
-      localStorage.removeItem('userType');
-      localStorage.removeItem('userId');
-      localStorage.removeItem('teacherUsername');
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('studentId');
-      localStorage.removeItem('studentName');
-      localStorage.removeItem('studentClassId');
-      localStorage.removeItem('studentSchoolId');
 
       console.log("Logout completed successfully");
       
