@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Navigate, Link } from "react-router-dom";
+import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { getStudentPokemonCollection, getSchoolPokemonPool, initializeSchoolPokemonPool, updateAllSchoolPoolsTo500, awardCoinsToStudent } from "@/utils/pokemon";
@@ -26,6 +26,7 @@ const StudentDashboard: React.FC = () => {
   const schoolId = localStorage.getItem("studentSchoolId") || "";
   const { t } = useTranslation();
   const { toast } = useToast();
+  const [searchParams] = useSearchParams();
   
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
   const [coins, setCoins] = useState(0);
@@ -43,6 +44,12 @@ const StudentDashboard: React.FC = () => {
       schoolId
     });
 
+    // Check for tab parameter in URL
+    const tabParam = searchParams.get('tab');
+    if (tabParam) {
+      setActiveTab(tabParam);
+    }
+
     // Update all school pools to have 500 Pokémon
     updateAllSchoolPoolsTo500();
     if (studentId) {
@@ -56,7 +63,7 @@ const StudentDashboard: React.FC = () => {
       // If no school ID is set, use a default one to ensure functionality
       localStorage.setItem("studentSchoolId", "default-school-1");
     }
-  }, [studentId, schoolId]);
+  }, [studentId, schoolId, searchParams]);
   const loadStudentData = () => {
     console.log("Loading student data for:", studentId);
     // Load Pokemon collection and coins

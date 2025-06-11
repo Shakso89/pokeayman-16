@@ -3,23 +3,47 @@ import { supabase } from "@/integrations/supabase/client";
 import { handleDatabaseError } from "./errorHandling";
 
 /**
- * Adds a student to a class
+ * Adds a student to a class (students can be in multiple classes within the same school)
  */
 export const addStudentToClass = async (classId: string, studentId: string): Promise<boolean> => {
   try {
     console.log(`Adding student ${studentId} to class ${classId}`);
     
-    // First get the current class data
+    // First get the current class data to check school
     const { data: classData, error: fetchError } = await supabase
       .from('classes')
-      .select('students')
+      .select('students, school_id')
       .eq('id', classId)
       .single();
     
     if (fetchError) {
       console.error("Error fetching class data:", fetchError);
-      // Try local storage if Supabase fails
       return updateLocalStorage(classId, studentId, true);
+    }
+    
+    // Check if student exists and get their current school
+    const { data: studentData, error: studentFetchError } = await supabase
+      .from('students')
+      .select('class_id, teacher_id')
+      .eq('id', studentId)
+      .single();
+    
+    if (studentFetchError) {
+      console.error("Error fetching student data:", studentFetchError);
+    }
+    
+    // If student has existing classes, verify they're in the same school
+    if (studentData && studentData.class_id) {
+      const { data: existingClassData } = await supabase
+        .from('classes')
+        .select('school_id')
+        .eq('id', studentData.class_id)
+        .single();
+      
+      if (existingClassData && existingClassData.school_id !== classData.school_id) {
+        console.error("Student cannot be assigned to classes in different schools");
+        return false;
+      }
     }
     
     // Prepare updated students array
@@ -41,19 +65,25 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
     
     if (updateError) {
       console.error("Error updating class students array:", updateError);
-      // Try local storage if Supabase fails
       return updateLocalStorage(classId, studentId, true);
     }
     
-    // Also update the student's class_id field
-    const { error: studentError } = await supabase
-      .from('students')
-      .update({ class_id: classId })
-      .eq('id', studentId);
-    
-    if (studentError) {
-      console.error("Error updating student's class_id:", studentError);
-      // Continue anyway as the student is added to the class
+    // Update the student's class_id field (can store multiple class IDs separated by commas)
+    if (studentData) {
+      const existingClassIds = studentData.class_id ? studentData.class_id.split(',').filter(id => id.trim()) : [];
+      if (!existingClassIds.includes(classId)) {
+        existingClassIds.push(classId);
+        const newClassIds = existingClassIds.join(',');
+        
+        const { error: studentError } = await supabase
+          .from('students')
+          .update({ class_id: newClassIds })
+          .eq('id', studentId);
+        
+        if (studentError) {
+          console.error("Error updating student's class_id:", studentError);
+        }
+      }
     }
     
     // Update localStorage as a fallback
@@ -62,8 +92,6 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
     return true;
   } catch (error) {
     console.error("Error in addStudentToClass:", error);
-    
-    // Fallback to localStorage
     return updateLocalStorage(classId, studentId, true);
   }
 };
@@ -81,7 +109,6 @@ export const removeStudentFromClass = async (classId: string, studentId: string)
       .single();
     
     if (fetchError) {
-      // Try local storage if Supabase fails
       return updateLocalStorage(classId, studentId, false);
     }
     
@@ -96,19 +123,28 @@ export const removeStudentFromClass = async (classId: string, studentId: string)
       .eq('id', classId);
     
     if (updateError) {
-      // Try local storage if Supabase fails
       return updateLocalStorage(classId, studentId, false);
     }
     
-    // Also update the student's class_id field to null
-    const { error: studentError } = await supabase
+    // Update the student's class_id field to remove this class
+    const { data: studentData } = await supabase
       .from('students')
-      .update({ class_id: null })
-      .eq('id', studentId);
+      .select('class_id')
+      .eq('id', studentId)
+      .single();
     
-    if (studentError) {
-      console.error("Error updating student's class_id:", studentError);
-      // Continue anyway as the student is removed from the class
+    if (studentData && studentData.class_id) {
+      const existingClassIds = studentData.class_id.split(',').filter(id => id.trim() && id !== classId);
+      const newClassIds = existingClassIds.length > 0 ? existingClassIds.join(',') : null;
+      
+      const { error: studentError } = await supabase
+        .from('students')
+        .update({ class_id: newClassIds })
+        .eq('id', studentId);
+      
+      if (studentError) {
+        console.error("Error updating student's class_id:", studentError);
+      }
     }
     
     // Update localStorage as a fallback
@@ -117,8 +153,6 @@ export const removeStudentFromClass = async (classId: string, studentId: string)
     return true;
   } catch (error) {
     console.error("Error in removeStudentFromClass:", error);
-    
-    // Fallback to localStorage
     return updateLocalStorage(classId, studentId, false);
   }
 };
