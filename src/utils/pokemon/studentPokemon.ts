@@ -1,3 +1,4 @@
+
 import { Pokemon, StudentPokemon } from "@/types/pokemon";
 import { getStudentPokemons, saveStudentPokemons } from "./storage";
 import { getPokemonPools, savePokemonPools } from "./storage";
@@ -99,6 +100,7 @@ export const removePokemonFromStudentAndReturnToPool = (
   
   // Add the Pokemon back to the school pool
   pokemonPools[schoolPoolIndex].availablePokemons.push(removedPokemon);
+  pokemonPools[schoolPoolIndex].lastUpdated = new Date().toISOString();
   
   // Update pools in localStorage
   savePokemonPools(pokemonPools);
@@ -153,7 +155,7 @@ export const awardCoinsToStudent = (studentId: string, amount: number): void => 
   saveStudentPokemons(studentPokemons);
 };
 
-// Assign Pokemon to a student with duplicate handling
+// Assign Pokemon to a student with duplicate handling - REMOVES from pool
 export const assignPokemonToStudent = (schoolId: string, studentId: string, pokemonId: string): boolean => {
   if (!schoolId || !studentId || !pokemonId) {
     console.error("Missing required parameters:", { schoolId, studentId, pokemonId });
@@ -182,12 +184,17 @@ export const assignPokemonToStudent = (schoolId: string, studentId: string, poke
   // Check for duplicates and handle with coins if found
   const isDuplicate = handlePokemonDuplicate(studentId, pokemon);
   if (isDuplicate) {
-    // Don't remove from pool, just return success since coins were awarded
+    // STILL remove from pool even if duplicate - this ensures fair distribution
+    pools[poolIndex].availablePokemons.splice(pokemonIndex, 1);
+    pools[poolIndex].lastUpdated = new Date().toISOString();
+    savePokemonPools(pools);
+    console.log("Duplicate Pokemon found, converted to coins and removed from pool:", pokemon.name);
     return true;
   }
   
-  // Remove Pokemon from pool only if not a duplicate
+  // Remove Pokemon from pool
   pools[poolIndex].availablePokemons.splice(pokemonIndex, 1);
+  pools[poolIndex].lastUpdated = new Date().toISOString();
   savePokemonPools(pools);
   
   // Add Pokemon to student
@@ -205,11 +212,11 @@ export const assignPokemonToStudent = (schoolId: string, studentId: string, poke
   }
   
   saveStudentPokemons(studentPokemons);
-  console.log("Pokemon assigned successfully:", pokemon.name, "to student:", studentId);
+  console.log("Pokemon assigned successfully and removed from pool:", pokemon.name, "to student:", studentId);
   return true;
 };
 
-// Assign a random Pokemon from the school pool to a student with duplicate handling
+// Assign a random Pokemon from the school pool to a student - REMOVES from pool
 export const assignRandomPokemonToStudent = (schoolId: string, studentId: string, specificPokemonId?: string): { success: boolean; pokemon?: Pokemon } => {
   if (!schoolId || !studentId) {
     console.error("Missing required parameters:", { schoolId, studentId });
@@ -245,12 +252,17 @@ export const assignRandomPokemonToStudent = (schoolId: string, studentId: string
   // Check for duplicates and handle with coins if found
   const isDuplicate = handlePokemonDuplicate(studentId, pokemon);
   if (isDuplicate) {
-    // Don't remove from pool, just return success since coins were awarded
+    // STILL remove from pool even if duplicate - this ensures fair distribution
+    pools[poolIndex].availablePokemons.splice(pokemonIndex, 1);
+    pools[poolIndex].lastUpdated = new Date().toISOString();
+    savePokemonPools(pools);
+    console.log("Duplicate Pokemon found, converted to coins and removed from pool:", pokemon.name);
     return { success: true, pokemon };
   }
   
-  // Remove Pokemon from pool only if not a duplicate
+  // Remove Pokemon from pool
   pools[poolIndex].availablePokemons.splice(pokemonIndex, 1);
+  pools[poolIndex].lastUpdated = new Date().toISOString();
   savePokemonPools(pools);
   
   // Add Pokemon to student
@@ -268,7 +280,7 @@ export const assignRandomPokemonToStudent = (schoolId: string, studentId: string
   }
   
   saveStudentPokemons(studentPokemons);
-  console.log("Pokemon assigned successfully:", pokemon.name, "to student:", studentId);
+  console.log("Pokemon assigned successfully and removed from pool:", pokemon.name, "to student:", studentId);
   return { success: true, pokemon };
 };
 

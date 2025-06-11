@@ -20,8 +20,17 @@ const LogoutPage: React.FC = () => {
       try {
         console.log("LogoutPage: Starting logout process...");
         
+        // Set a maximum timeout for the entire logout process
+        const logoutTimeout = setTimeout(() => {
+          console.log("LogoutPage: Logout timeout, forcing redirect...");
+          navigate('/', { replace: true });
+        }, 8000); // 8 seconds maximum
+        
         // Call the logout function and wait for it
         await logout();
+        
+        // Clear the timeout since logout completed
+        clearTimeout(logoutTimeout);
         
         console.log("LogoutPage: Logout completed, redirecting...");
         
