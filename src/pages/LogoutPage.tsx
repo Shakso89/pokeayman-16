@@ -28,7 +28,7 @@ const LogoutPage: React.FC = () => {
         // Small delay to ensure state is cleared
         setTimeout(() => {
           navigate('/', { replace: true });
-        }, 500);
+        }, 1000);
         
       } catch (error: unknown) {
         console.error("LogoutPage: Logout error:", error);
@@ -36,12 +36,24 @@ const LogoutPage: React.FC = () => {
         // Force redirect even on error
         setTimeout(() => {
           navigate('/', { replace: true });
-        }, 1000);
+        }, 1500);
       }
     };
 
+    // Add a safety timeout to prevent being stuck on logout page
+    const safetyTimeout = setTimeout(() => {
+      console.log("Safety timeout triggered, forcing redirect");
+      navigate('/', { replace: true });
+    }, 5000);
+
     // Start logout process immediately
-    performLogout();
+    performLogout().finally(() => {
+      clearTimeout(safetyTimeout);
+    });
+
+    return () => {
+      clearTimeout(safetyTimeout);
+    };
   }, [logout, navigate, hasStarted]);
 
   return (

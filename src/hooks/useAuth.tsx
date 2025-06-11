@@ -62,7 +62,7 @@ export const useAuth = () => {
     }
   };
 
-  // Simplified and reliable logout function
+  // Enhanced logout function with timeout safety
   const logout = async (): Promise<boolean> => {
     try {
       console.log("Starting logout process...");
@@ -71,24 +71,50 @@ export const useAuth = () => {
       // Clear auth state immediately for instant UI feedback
       clearAuthStateWrapper();
 
-      // Sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error("Supabase signout error:", error);
-        // Don't throw error, just log it - logout should always succeed
-      }
+      // Set a timeout to ensure logout completes even if Supabase fails
+      const logoutTimeout = setTimeout(() => {
+        console.log("Logout timeout reached, forcing completion");
+        setLoading(false);
+        toast({
+          title: "Logged out successfully",
+          description: "You have been logged out of your account.",
+        });
+      }, 3000);
 
-      console.log("Logout completed successfully");
-      
-      toast({
-        title: "Logged out successfully",
-        description: "You have been logged out of your account.",
-      });
-      
-      return true;
+      try {
+        // Sign out from Supabase
+        const { error } = await supabase.auth.signOut();
+        
+        if (error) {
+          console.error("Supabase signout error:", error);
+          // Don't throw error, just log it - logout should always succeed
+        }
+
+        clearTimeout(logoutTimeout);
+        console.log("Logout completed successfully");
+        
+        toast({
+          title: "Logged out successfully",
+          description: "You have been logged out of your account.",
+        });
+        
+        return true;
+      } catch (supabaseError) {
+        console.error("Supabase logout error:", supabaseError);
+        clearTimeout(logoutTimeout);
+        
+        // Force clear state even on error to ensure logout always works
+        clearAuthStateWrapper();
+        
+        toast({
+          title: "Logout completed",
+          description: "You have been logged out.",
+        });
+        
+        return true; // Return true even on error to allow redirect
+      }
     } catch (error: any) {
-      console.error("Logout error:", error);
+      console.error("General logout error:", error);
       
       // Force clear state even on error to ensure logout always works
       clearAuthStateWrapper();

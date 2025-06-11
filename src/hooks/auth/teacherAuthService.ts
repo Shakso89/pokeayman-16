@@ -10,12 +10,12 @@ const generateTeacherId = (): string => {
   return `teacher-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
 };
 
-// Unified teacher login handler with improved username/email sync
+// Unified teacher login handler with improved error handling
 export const handleTeacherLogin = async (
   username: string,
   password: string,
   updateAuthState: (newState: Partial<AuthState>) => void
-): Promise<{ success: boolean; redirect: string }> => {
+): Promise<{ success: boolean; redirect: string; message?: string }> => {
   try {
     console.log("Teacher login attempt:", username);
 
@@ -53,17 +53,25 @@ export const handleTeacherLogin = async (
             success: true, 
             redirect: (teacher.role === 'owner' || isAdminUser) ? "/admin-dashboard" : "/teacher-dashboard" 
           };
+        } else {
+          return { success: false, redirect: "", message: "Invalid password" };
         }
       }
     } catch (dbError) {
       console.log("Database function not available, trying Supabase auth");
     }
 
-    // Try Supabase authentication
-    const { data, error: authError } = await supabase.auth.signInWithPassword({
+    // Try Supabase authentication with timeout
+    const authPromise = supabase.auth.signInWithPassword({
       email,
       password
     });
+
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Authentication timeout")), 8000);
+    });
+
+    const { data, error: authError } = await Promise.race([authPromise, timeoutPromise]) as any;
 
     if (authError) {
       // If Supabase auth fails, try localStorage fallback for existing users
@@ -97,7 +105,11 @@ export const handleTeacherLogin = async (
         };
       }
 
-      throw authError;
+      return { 
+        success: false, 
+        redirect: "", 
+        message: authError.message || "Invalid credentials" 
+      };
     }
 
     // Supabase authentication successful
@@ -127,12 +139,15 @@ export const handleTeacherLogin = async (
 
   } catch (error: any) {
     console.error("Teacher login error:", error);
-    toast({
-      title: "Login failed",
-      description: error.message || "Invalid credentials",
-      variant: "destructive",
-    });
-    return { success: false, redirect: "" };
+    const errorMessage = error.message === "Authentication timeout" 
+      ? "Login timeout - please try again" 
+      : "Invalid credentials";
+    
+    return { 
+      success: false, 
+      redirect: "", 
+      message: errorMessage 
+    };
   }
 };
 
@@ -141,7 +156,7 @@ export const handleAdminLogin = async (
   username: string,
   password: string,
   updateAuthState: (newState: Partial<AuthState>) => void
-): Promise<{ success: boolean; redirect: string }> => {
+): Promise<{ success: boolean; redirect: string; message?: string }> => {
   try {
     const email = username.includes("@") ? username.toLowerCase() : 
                   username.toLowerCase() === "ayman" ? "ayman@pokeayman.com" : 
@@ -150,49 +165,70 @@ export const handleAdminLogin = async (
 
     console.log(`Admin login attempt for: ${email}`);
 
-    // Try to sign in with Supabase first
-    const { data, error: signInError } = await supabase.auth.signInWithPassword({ 
+    // Try to sign in with Supabase first with timeout
+    const authPromise = supabase.auth.signInWithPassword({ 
       email, 
       password 
     });
 
-    // If sign in fails, try to sign up (for development convenience)
-    if (signInError) {
-      console.log("Admin signin failed, attempting signup:", signInError.message);
-      
-      const { error: signUpError } = await supabase.auth.signUp({
-        email,
-        password,
-        options: {
-          data: {
-            username: displayUsername,
-            user_type: "teacher",
-            is_admin: true,
-          },
-        },
-      });
-
-      if (signUpError) {
-        throw new Error(signUpError.message);
-      }
-    }
-
-    // Generate teacher ID if needed
-    const teacherId = data?.user?.id || generateTeacherId();
-
-    setupTeacherAuth(teacherId, {
-      username: displayUsername,
-      email: email
-    }, updateAuthState, true);
-
-    toast({ 
-      title: "Success!", 
-      description: `Welcome back, ${displayUsername}!` 
+    const timeoutPromise = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Authentication timeout")), 8000);
     });
-    
-    return { success: true, redirect: "/admin-dashboard" };
+
+    try {
+      const { data, error: signInError } = await Promise.race([authPromise, timeoutPromise]) as any;
+
+      if (signInError) {
+        console.log("Admin signin failed, attempting signup:", signInError.message);
+        
+        const { error: signUpError } = await supabase.auth.signUp({
+          email,
+          password,
+          options: {
+            data: {
+              username: displayUsername,
+              user_type: "teacher",
+              is_admin: true,
+            },
+          },
+        });
+
+        if (signUpError) {
+          return { 
+            success: false, 
+            redirect: "", 
+            message: signUpError.message 
+          };
+        }
+      }
+
+      // Generate teacher ID if needed
+      const teacherId = data?.user?.id || generateTeacherId();
+
+      setupTeacherAuth(teacherId, {
+        username: displayUsername,
+        email: email
+      }, updateAuthState, true);
+
+      toast({ 
+        title: "Success!", 
+        description: `Welcome back, ${displayUsername}!` 
+      });
+      
+      return { success: true, redirect: "/admin-dashboard" };
+    } catch (timeoutError) {
+      return { 
+        success: false, 
+        redirect: "", 
+        message: "Login timeout - please try again" 
+      };
+    }
   } catch (err: any) {
     console.error("Admin login failed:", err);
-    throw err;
+    return { 
+      success: false, 
+      redirect: "", 
+      message: err.message || "Admin login failed" 
+    };
   }
 };

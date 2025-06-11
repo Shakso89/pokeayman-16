@@ -11,7 +11,7 @@ export const useTeacherLogin = () => {
   const [error, setError] = useState("");
   const [loginInProgress, setLoginInProgress] = useState(false);
 
-  // Main login handler with improved username/email sync
+  // Main login handler with improved timeout handling
   const handleLogin = async (username: string, password: string) => {
     setLoginInProgress(true);
     setError("");
@@ -19,10 +19,18 @@ export const useTeacherLogin = () => {
     try {
       console.log("Login attempt:", username);
 
+      // Set a timeout to prevent infinite loading
+      const loginTimeout = setTimeout(() => {
+        setError("Login timeout - please try again");
+        setLoginInProgress(false);
+      }, 10000); // 10 second timeout
+
       // Enhanced admin detection
       const isAdmin =
         (isAdminUsername(username) || isAdminEmail(username)) &&
         isValidAdminPassword(password);
+
+      let result;
 
       // Special handling for admin users or dev admin login
       if (isAdmin || checkDevAdminLogin(username, password) || 
@@ -32,22 +40,23 @@ export const useTeacherLogin = () => {
           username.toLowerCase() === "ayman") {
         
         console.log("Admin login detected for:", username);
-        const result = await handleAdminLogin(username, password, () => {});
+        result = await handleAdminLogin(username, password, () => {});
+      } else {
+        console.log("Regular teacher login for:", username);
+        result = await handleTeacherLogin(username, password, () => {});
+      }
+
+      clearTimeout(loginTimeout);
+      
+      if (result.success) {
         await refreshAuthState();
         
-        // Delayed navigation to ensure state is updated
+        // Small delay to ensure state is updated
         setTimeout(() => {
           navigate(result.redirect, { replace: true });
         }, 300);
       } else {
-        console.log("Regular teacher login for:", username);
-        const result = await handleTeacherLogin(username, password, () => {});
-        await refreshAuthState();
-        
-        // Delayed navigation to ensure state is updated
-        setTimeout(() => {
-          navigate(result.redirect, { replace: true });
-        }, 300);
+        throw new Error(result.message || "Login failed");
       }
     } catch (err: any) {
       console.error("Login error:", err);
