@@ -11,7 +11,6 @@ import { useStudentCoin, assignRandomPokemonToStudent } from "@/utils/pokemon";
 import MysteryBallResult from "./MysteryBallResult";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import MysteryBallHistory from "./MysteryBallHistory";
-
 interface MysteryBallTabProps {
   schoolPokemons: Pokemon[];
   studentId: string;
@@ -22,7 +21,6 @@ interface MysteryBallTabProps {
   onCoinsWon: (amount: number) => void;
   onRefreshPool: () => void;
 }
-
 const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
   schoolPokemons,
   studentId,
@@ -39,7 +37,6 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
     const today = new Date().toDateString();
     return lastAttemptDate === today;
   });
-  
   const [multipleCount, setMultipleCount] = useState(1);
   const [isProcessing, setIsProcessing] = useState(false);
   const [currentResult, setCurrentResult] = useState<{
@@ -49,10 +46,10 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
   const [showResult, setShowResult] = useState(false);
   const [wonPokemon, setWonPokemon] = useState<Pokemon | null>(null);
   const [wonCoins, setWonCoins] = useState(0);
-  
   const isMobile = useIsMobile();
-  const { toast } = useToast();
-  
+  const {
+    toast
+  } = useToast();
   const getMaxPossibleOpens = () => {
     if (!dailyAttemptUsed) {
       // If they haven't used their free daily attempt, they can open 1 + (coins ÷ 5)
@@ -62,13 +59,10 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       return Math.min(10, Math.floor(coins / 5));
     }
   };
-  
   const handleOpenMultiple = async () => {
     if (isProcessing) return;
-    
     const maxPossible = getMaxPossibleOpens();
     const actualCount = Math.min(multipleCount, maxPossible);
-    
     if (actualCount <= 0) {
       toast({
         title: "Not Enough Coins",
@@ -77,22 +71,19 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       });
       return;
     }
-    
     setIsProcessing(true);
-    
     let pokemonWon = 0;
     let coinsWon = 0;
     let nothingWon = 0;
     let remainingOpens = actualCount;
     let usedFreeAttempt = false;
-    
     const results = [];
-    
+
     // Process each open sequentially
     for (let i = 0; i < actualCount; i++) {
       // Check if this is the free attempt
       const isFreeAttempt = !dailyAttemptUsed && !usedFreeAttempt;
-      
+
       // If not free attempt, use coins (changed to 5 coins)
       if (!isFreeAttempt) {
         const success = useStudentCoin(studentId, 5);
@@ -110,40 +101,47 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
         setDailyAttemptUsed(true);
         localStorage.setItem(`mysteryBall_dailyAttempt_${studentId}`, new Date().toDateString());
       }
-      
+
       // Determine result (60% chance for Pokémon, 30% for coins, 10% for nothing)
       const random = Math.random();
-      
       if (random < 0.6 && schoolPokemons.length > 0) {
         // Get a random Pokémon
         const randomIndex = Math.floor(Math.random() * schoolPokemons.length);
         const pokemon = schoolPokemons[randomIndex];
-        
+
         // Assign Pokémon to student
         const success = assignRandomPokemonToStudent(schoolId, studentId, pokemon.id);
-        
         if (success) {
           pokemonWon++;
-          results.push({ type: "pokemon", pokemon });
-          
+          results.push({
+            type: "pokemon",
+            pokemon
+          });
+
           // Save the last Pokemon for display
           setWonPokemon(pokemon);
-          setCurrentResult({ type: "pokemon", data: pokemon });
-          
+          setCurrentResult({
+            type: "pokemon",
+            data: pokemon
+          });
+
           // Call the callback
           onPokemonWon(pokemon);
-          
+
           // Save to history
           saveToHistory("pokemon", pokemon);
         } else {
           // Fallback to coins
           const coinAmount = Math.floor(Math.random() * 5) + 1;
           coinsWon += coinAmount;
-          results.push({ type: "coins", amount: coinAmount });
-          
+          results.push({
+            type: "coins",
+            amount: coinAmount
+          });
+
           // Call the callback
           onCoinsWon(coinAmount);
-          
+
           // Save to history
           saveToHistory("coins", undefined, coinAmount);
         }
@@ -151,53 +149,60 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
         // Award coins
         const coinAmount = Math.floor(Math.random() * 5) + 1;
         coinsWon += coinAmount;
-        results.push({ type: "coins", amount: coinAmount });
-        
+        results.push({
+          type: "coins",
+          amount: coinAmount
+        });
+
         // Save for display
         setWonCoins(coinAmount);
-        setCurrentResult({ type: "coins", data: coinAmount });
-        
+        setCurrentResult({
+          type: "coins",
+          data: coinAmount
+        });
+
         // Call the callback
         onCoinsWon(coinAmount);
-        
+
         // Save to history
         saveToHistory("coins", undefined, coinAmount);
       } else {
         // Nothing
         nothingWon++;
-        results.push({ type: "nothing" });
-        setCurrentResult({ type: "nothing" });
-        
+        results.push({
+          type: "nothing"
+        });
+        setCurrentResult({
+          type: "nothing"
+        });
+
         // Save to history
         saveToHistory("nothing");
       }
-      
       remainingOpens--;
-      
+
       // Wait briefly between opens
       await new Promise(resolve => setTimeout(resolve, 100));
     }
-    
+
     // Show summary toast
     toast({
       title: "Opening Complete",
-      description: `Results: ${pokemonWon} Pokémon, ${coinsWon} coins, ${nothingWon} empty balls`,
+      description: `Results: ${pokemonWon} Pokémon, ${coinsWon} coins, ${nothingWon} empty balls`
     });
-    
+
     // Display the last result in the modal
     if (results.length > 0) {
       const lastResult = results[results.length - 1];
       setShowResult(true);
     }
-    
     setIsProcessing(false);
   };
-  
   const handleCloseResult = () => {
     setShowResult(false);
     setCurrentResult(null);
   };
-  
+
   // Save history to localStorage
   const saveToHistory = (resultType: "pokemon" | "coins" | "nothing", pokemon?: Pokemon, coinsAmount?: number) => {
     try {
@@ -218,34 +223,29 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
 
       // Get existing history or create new array
       const existingHistory = JSON.parse(localStorage.getItem(`mysteryBallHistory_${studentId}`) || "[]");
-      
+
       // Add new item to history
       existingHistory.push(historyItem);
-      
+
       // Save to localStorage
       localStorage.setItem(`mysteryBallHistory_${studentId}`, JSON.stringify(existingHistory));
     } catch (error) {
       console.error("Error saving to history:", error);
     }
   };
-  
-  return (
-    <Card className="mx-auto max-w-xl shadow-lg">
+  return <Card className="mx-auto max-w-xl shadow-lg">
       <CardHeader className="text-center bg-gradient-to-r from-purple-500 to-indigo-600 text-white rounded-t-md">
         <CardTitle className="text-2xl">Mystery Pokémon Ball</CardTitle>
         <CardDescription className="text-white opacity-90">5 coins per try, first attempt is free daily</CardDescription>
       </CardHeader>
       <CardContent className="p-6">
-        {schoolPokemons.length === 0 ? (
-          <div className="text-center p-8">
+        {schoolPokemons.length === 0 ? <div className="text-center p-8">
             <p className="mb-4 text-lg text-gray-700">No available Pokémon</p>
             <Button onClick={onRefreshPool} className="mx-auto flex items-center gap-2" disabled={isLoading}>
               <RefreshCw className="h-4 w-4" />
               {isLoading ? "Checking..." : "Check Availability"}
             </Button>
-          </div>
-        ) : (
-          <Tabs defaultValue="play">
+          </div> : <Tabs defaultValue="play">
             <TabsList className="grid w-full grid-cols-2 mb-4">
               <TabsTrigger value="play">Play</TabsTrigger>
               <TabsTrigger value="history">History</TabsTrigger>
@@ -253,33 +253,15 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
             
             <TabsContent value="play" className="mt-2">
               <div className="flex flex-col items-center">
-                <MysteryBall 
-                  studentId={studentId} 
-                  schoolId={schoolId} 
-                  coins={coins} 
-                  schoolPokemons={schoolPokemons} 
-                  onPokemonWon={onPokemonWon} 
-                  onCoinsWon={onCoinsWon} 
-                  dailyAttemptUsed={dailyAttemptUsed} 
-                  setDailyAttemptUsed={setDailyAttemptUsed}
-                />
+                <MysteryBall studentId={studentId} schoolId={schoolId} coins={coins} schoolPokemons={schoolPokemons} onPokemonWon={onPokemonWon} onCoinsWon={onCoinsWon} dailyAttemptUsed={dailyAttemptUsed} setDailyAttemptUsed={setDailyAttemptUsed} />
                 
-                {!isMobile && (
-                  <div className="w-full mt-8 p-4 bg-gray-50 rounded-lg">
+                {!isMobile && <div className="w-full mt-8 p-4 bg-gray-50 rounded-lg">
                     <h3 className="text-lg font-medium mb-3 text-center">Open Multiple Balls</h3>
                     
                     <div className="flex flex-col items-center space-y-4">
                       <div className="w-full flex items-center gap-4">
                         <span className="text-sm font-medium">Count:</span>
-                        <Slider
-                          value={[multipleCount]}
-                          min={1}
-                          max={getMaxPossibleOpens()}
-                          step={1}
-                          onValueChange={(value) => setMultipleCount(value[0])}
-                          className="flex-1"
-                          disabled={isProcessing}
-                        />
+                        <Slider value={[multipleCount]} min={1} max={getMaxPossibleOpens()} step={1} onValueChange={value => setMultipleCount(value[0])} className="flex-1" disabled={isProcessing} />
                         <span className="text-sm font-medium w-6 text-center">{multipleCount}</span>
                       </div>
                       
@@ -287,16 +269,11 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
                         Cost: {multipleCount > 0 && !dailyAttemptUsed ? (multipleCount - 1) * 5 : multipleCount * 5} coins
                       </p>
                       
-                      <Button 
-                        onClick={handleOpenMultiple} 
-                        disabled={isProcessing || (coins < 5 && dailyAttemptUsed)} 
-                        className="w-full"
-                      >
+                      <Button onClick={handleOpenMultiple} disabled={isProcessing || coins < 5 && dailyAttemptUsed} className="w-full">
                         {isProcessing ? "Opening..." : `Open ${multipleCount} Balls`}
                       </Button>
                     </div>
-                  </div>
-                )}
+                  </div>}
                 
                 <div className="mt-6 text-center">
                   <p className="mb-2 text-sm font-medium">Mystery ball contains:</p>
@@ -307,7 +284,7 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
                     </div>
                     <div className="flex items-center gap-1 bg-amber-100 rounded-full px-3 py-1">
                       <Package className="h-4 w-4 text-amber-500" />
-                      <span className="text-xs">Bonus Coins (1-5)</span>
+                      <span className="text-xs">Bonus Coins (1-3)</span>
                     </div>
                     <div className="flex items-center gap-1 bg-red-100 rounded-full px-3 py-1">
                       <X className="h-4 w-4 text-red-500" />
@@ -321,20 +298,13 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
             <TabsContent value="history" className="mt-2">
               <MysteryBallHistory studentId={studentId} />
             </TabsContent>
-          </Tabs>
-        )}
+          </Tabs>}
         
         {/* Result Modal for multiple opens */}
-        <MysteryBallResult
-          isOpen={showResult}
-          onClose={handleCloseResult}
-          result={currentResult || { type: "nothing" }}
-          pokemon={wonPokemon}
-          coins={wonCoins}
-        />
+        <MysteryBallResult isOpen={showResult} onClose={handleCloseResult} result={currentResult || {
+        type: "nothing"
+      }} pokemon={wonPokemon} coins={wonCoins} />
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default MysteryBallTab;
