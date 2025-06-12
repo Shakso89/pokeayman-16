@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -33,8 +32,8 @@ const StudentsTable: React.FC<StudentsTableProps> = ({
   const navigate = useNavigate();
 
   const handleStudentClick = (studentId: string) => {
-    // Navigate to student detail page
-    navigate(`/student-detail/${studentId}`);
+    // Navigate to correct teacher student profile route
+    navigate(`/teacher/student/${studentId}`);
   };
 
   const handleRemoveCoins = (studentId: string, studentName: string) => {
