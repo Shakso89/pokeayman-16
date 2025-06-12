@@ -38,19 +38,33 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
       if (!teacherId) return;
       
       try {
-        const { data, error } = await supabase
+        console.log("Loading teacher classes for teacherId:", teacherId);
+        
+        // First try to get classes from Supabase
+        const { data: supabaseClasses, error } = await supabase
           .from('classes')
           .select('*')
           .eq('teacher_id', teacherId);
 
         if (error) {
-          console.error("Error loading teacher classes:", error);
+          console.error("Error loading teacher classes from Supabase:", error);
+          // Fallback to localStorage
+          const localClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+          const filteredClasses = localClasses.filter((cls: any) => cls.teacherId === teacherId);
+          console.log("Using local classes:", filteredClasses);
+          setTeacherClasses(filteredClasses);
           return;
         }
 
-        setTeacherClasses(data || []);
+        console.log("Loaded classes from Supabase:", supabaseClasses);
+        setTeacherClasses(supabaseClasses || []);
       } catch (error) {
         console.error("Error loading teacher classes:", error);
+        // Fallback to localStorage
+        const localClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+        const filteredClasses = localClasses.filter((cls: any) => cls.teacherId === teacherId);
+        console.log("Using local classes fallback:", filteredClasses);
+        setTeacherClasses(filteredClasses);
       }
     };
 
@@ -99,7 +113,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
                         classId={classItem.id}
                         teacherId={teacherId}
                         isTeacher={true}
-                        showClassSelector={true}
+                        showClassSelector={false}
                       />
                     </div>
                   ))}

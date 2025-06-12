@@ -81,6 +81,16 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
     localStorage.setItem("selectedContactId", student.id);
     localStorage.setItem("selectedContactType", "student");
   };
+
+  const handleViewProfile = () => {
+    if (userType === "teacher") {
+      // Navigate to the correct teacher view route for student profile
+      navigate(`/teacher/student/${student.id}`);
+    } else {
+      // For student view, navigate to their own profile page
+      navigate(`/student/profile/${student.id}`);
+    }
+  };
   
   const handleOpenSettings = () => {
     // For demonstration purposes, we'll just show a toast
@@ -102,7 +112,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
             displayName={student.displayName}
             isOwnProfile={isOwnProfile}
             onAvatarChange={handleAvatarChange}
-            onViewProfile={() => {}} // Remove since it's handled in ProfileActions now
+            onViewProfile={handleViewProfile}
           />
           
           <ProfileInfo
