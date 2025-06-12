@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Student } from "@/types/pokemon";
 import { Button } from "@/components/ui/button";
@@ -120,7 +119,6 @@ export const StudentsList = ({
           teacherId: student.teacher_id || "",
           schoolId: "",
           avatar: "",
-          class_id: student.class_id || null,
           classId: student.class_id || null
         }));
       } else {
@@ -156,7 +154,6 @@ export const StudentsList = ({
           teacherId: student.teacher_id || student.teacherId || "",
           schoolId: student.school_id || student.schoolId || "", 
           avatar: student.avatar || "",
-          class_id: student.class_id || student.classId || null,
           classId: student.class_id || student.classId || null
         }));
 
@@ -269,9 +266,9 @@ export const StudentsList = ({
                         <p className="text-sm text-gray-500">
                           @{student.username}
                         </p>
-                        {student.class_id && !viewMode && (
+                        {student.classId && !viewMode && (
                           <p className="text-xs text-blue-500">
-                            {typeof student.class_id === 'string' && student.class_id.includes(',') 
+                            {typeof student.classId === 'string' && student.classId.includes(',') 
                               ? 'In multiple classes' 
                               : 'In another class'}
                           </p>
