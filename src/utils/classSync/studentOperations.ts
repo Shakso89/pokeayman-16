@@ -32,20 +32,6 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
       console.error("Error fetching student data:", studentFetchError);
     }
     
-    // If student has existing classes, verify they're in the same school
-    if (studentData && studentData.class_id) {
-      const { data: existingClassData } = await supabase
-        .from('classes')
-        .select('school_id')
-        .eq('id', studentData.class_id)
-        .single();
-      
-      if (existingClassData && existingClassData.school_id !== classData.school_id) {
-        console.error("Student cannot be assigned to classes in different schools");
-        return false;
-      }
-    }
-    
     // Prepare updated students array
     const currentStudents = classData && Array.isArray(classData.students) ? classData.students : [];
     
@@ -70,7 +56,7 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
     
     // Update the student's class_id field (can store multiple class IDs separated by commas)
     if (studentData) {
-      const existingClassIds = studentData.class_id ? studentData.class_id.split(',').filter(id => id.trim()) : [];
+      const existingClassIds = studentData.class_id ? studentData.class_id.split(',').filter((id: string) => id.trim()) : [];
       if (!existingClassIds.includes(classId)) {
         existingClassIds.push(classId);
         const newClassIds = existingClassIds.join(',');
@@ -114,7 +100,7 @@ export const removeStudentFromClass = async (classId: string, studentId: string)
     
     // Prepare updated students array
     const currentStudents = classData && Array.isArray(classData.students) ? classData.students : [];
-    const updatedStudents = currentStudents.filter(id => id !== studentId);
+    const updatedStudents = currentStudents.filter((id: string) => id !== studentId);
     
     // Update the class with the new students array
     const { error: updateError } = await supabase
@@ -134,7 +120,7 @@ export const removeStudentFromClass = async (classId: string, studentId: string)
       .single();
     
     if (studentData && studentData.class_id) {
-      const existingClassIds = studentData.class_id.split(',').filter(id => id.trim() && id !== classId);
+      const existingClassIds = studentData.class_id.split(',').filter((id: string) => id.trim() && id !== classId);
       const newClassIds = existingClassIds.length > 0 ? existingClassIds.join(',') : null;
       
       const { error: studentError } = await supabase
@@ -168,11 +154,7 @@ export const addMultipleStudentsToClass = async (classId: string, studentIds: st
       return true; // Nothing to do
     }
     
-    // Try to get class data from localStorage first (fallback mechanism)
-    const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    const classFromLocal = allClasses.find((cls: any) => cls.id === classId);
-    
-    // Try to get class from Supabase
+    // Try to get class from Supabase first
     let currentStudents: string[] = [];
     let supabaseSuccess = false;
     
@@ -188,7 +170,7 @@ export const addMultipleStudentsToClass = async (classId: string, studentIds: st
         currentStudents = classData && Array.isArray(classData.students) ? classData.students : [];
         
         // Filter out students already in the class
-        const newStudents = studentIds.filter(id => !currentStudents.includes(id));
+        const newStudents = studentIds.filter((id: string) => !currentStudents.includes(id));
         
         if (newStudents.length === 0) {
           console.log("All students already in class");
@@ -206,20 +188,34 @@ export const addMultipleStudentsToClass = async (classId: string, studentIds: st
         
         if (!updateError) {
           supabaseSuccess = true;
+          
+          // Also update the students' class_id fields
+          for (const studentId of newStudents) {
+            try {
+              const { data: studentData } = await supabase
+                .from('students')
+                .select('class_id')
+                .eq('id', studentId)
+                .single();
+              
+              if (studentData) {
+                const existingClassIds = studentData.class_id ? studentData.class_id.split(',').filter((id: string) => id.trim()) : [];
+                if (!existingClassIds.includes(classId)) {
+                  existingClassIds.push(classId);
+                  const newClassIds = existingClassIds.join(',');
+                  
+                  await supabase
+                    .from('students')
+                    .update({ class_id: newClassIds })
+                    .eq('id', studentId);
+                }
+              }
+            } catch (studentError) {
+              console.error(`Error updating student's class_id for ${studentId}:`, studentError);
+            }
+          }
         } else {
           console.error("Error updating class students array:", updateError);
-        }
-        
-        // Also update the students' class_id fields
-        for (const studentId of newStudents) {
-          const { error: studentError } = await supabase
-            .from('students')
-            .update({ class_id: classId })
-            .eq('id', studentId);
-          
-          if (studentError) {
-            console.error(`Error updating student's class_id for ${studentId}:`, studentError);
-          }
         }
       }
     } catch (error) {
@@ -264,15 +260,30 @@ const updateLocalStorage = (classId: string, studentId: string, isAdding: boolea
     
     localStorage.setItem("classes", JSON.stringify(updatedClasses));
     
-    // Also update student record in localStorage
+    // Also update student record in localStorage for multiple class support
     const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
     const updatedStudents = allStudents.map((student: any) => {
       if (student.id === studentId) {
-        return {
-          ...student,
-          classId: isAdding ? classId : null,
-          class_id: isAdding ? classId : null // Add both formats for compatibility
-        };
+        if (isAdding) {
+          // Add to multiple classes
+          const existingClassIds = student.class_id ? student.class_id.split(',').filter((id: string) => id.trim()) : [];
+          if (!existingClassIds.includes(classId)) {
+            existingClassIds.push(classId);
+          }
+          return {
+            ...student,
+            classId: existingClassIds.join(','),
+            class_id: existingClassIds.join(',')
+          };
+        } else {
+          // Remove from specific class
+          const existingClassIds = student.class_id ? student.class_id.split(',').filter((id: string) => id.trim() && id !== classId) : [];
+          return {
+            ...student,
+            classId: existingClassIds.length > 0 ? existingClassIds.join(',') : null,
+            class_id: existingClassIds.length > 0 ? existingClassIds.join(',') : null
+          };
+        }
       }
       return student;
     });
@@ -311,25 +322,26 @@ const updateMultipleLocalStorage = (classId: string, studentIds: string[]): bool
     
     localStorage.setItem("classes", JSON.stringify(updatedClasses));
     
-    // Also update student records in localStorage
+    // Update student records for multiple class support
     const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
     
-    // Check which students exist
-    const existingIds = new Set(allStudents.map((s: any) => s.id));
-    
-    // Update existing students
     const updatedStudents = allStudents.map((student: any) => {
       if (studentIds.includes(student.id)) {
+        const existingClassIds = student.class_id ? student.class_id.split(',').filter((id: string) => id.trim()) : [];
+        if (!existingClassIds.includes(classId)) {
+          existingClassIds.push(classId);
+        }
         return {
           ...student,
-          classId: classId,
-          class_id: classId // Add both formats for compatibility
+          classId: existingClassIds.join(','),
+          class_id: existingClassIds.join(',')
         };
       }
       return student;
     });
     
     // Add any students that don't exist yet
+    const existingIds = new Set(allStudents.map((s: any) => s.id));
     studentIds.forEach(id => {
       if (!existingIds.has(id)) {
         // Create a minimal student record

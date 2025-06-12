@@ -24,7 +24,7 @@ interface StudentsListProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onStudentsAdded: (studentIds: string[]) => void;
-  viewMode?: boolean; // Add viewMode prop to indicate if we're just viewing students
+  viewMode?: boolean;
 }
 
 export const StudentsList = ({
@@ -38,102 +38,118 @@ export const StudentsList = ({
   const navigate = useNavigate();
   const { toast } = useToast();
   
-  const [students, setStudents] = useState<Student[]>([]); // Use Student type
+  const [students, setStudents] = useState<Student[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [currentStudents, setCurrentStudents] = useState<string[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [allStudents, setAllStudents] = useState<Student[]>([]);
 
   useEffect(() => {
     if (open) {
       setIsLoading(true);
       getClassStudents();
-      searchStudents();
+      fetchAllStudents();
     } else {
       // Clear state when dialog closes
       setSelectedStudents([]);
       setSearchQuery("");
+      setStudents([]);
+      setAllStudents([]);
     }
-  }, [open, classId, searchQuery]);
+  }, [open, classId]);
+
+  useEffect(() => {
+    // Filter students based on search query
+    if (searchQuery.trim()) {
+      const filtered = allStudents.filter(student =>
+        student.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        student.displayName.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+      setStudents(filtered);
+    } else {
+      setStudents(allStudents);
+    }
+  }, [searchQuery, allStudents]);
 
   const getClassStudents = async () => {
     try {
-      // Try to get class from localStorage
-      const classes = JSON.parse(localStorage.getItem("classes") || "[]");
-      const classData = classes.find((c: any) => c.id === classId);
-      
-      if (classData && classData.students) {
-        setCurrentStudents(classData.students);
+      // Get current students in the class
+      const { data: classData, error } = await supabase
+        .from('classes')
+        .select('students')
+        .eq('id', classId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching class students:", error);
+        // Try localStorage fallback
+        const classes = JSON.parse(localStorage.getItem("classes") || "[]");
+        const classFound = classes.find((c: any) => c.id === classId);
+        setCurrentStudents(classFound?.students || []);
       } else {
-        setCurrentStudents([]);
+        setCurrentStudents(classData?.students || []);
       }
-      
-      setIsLoading(false);
     } catch (error) {
-      console.error("Error fetching class students:", error);
+      console.error("Error in getClassStudents:", error);
       setCurrentStudents([]);
-      setIsLoading(false);
     }
   };
 
-  const searchStudents = async () => {
+  const fetchAllStudents = async () => {
     try {
-      // Try to fetch from Supabase first
-      const query = supabase.from("students").select("*");
-      
-      if (searchQuery) {
-        query.ilike("username", `%${searchQuery}%`);
-      }
-      
-      const { data: studentsData, error } = await query;
+      // Fetch all active students from Supabase
+      const { data: studentsData, error } = await supabase
+        .from("students")
+        .select("*")
+        .eq('is_active', true)
+        .order('display_name', { ascending: true });
       
       if (error) throw error;
       
+      let studentsList: Student[] = [];
+      
       if (studentsData && studentsData.length > 0) {
-        console.log(`Found ${studentsData.length} students in Supabase:`, studentsData);
+        console.log(`Found ${studentsData.length} students in Supabase`);
         
-        // Filter out students already in the class
-        const filteredStudents = studentsData.filter(
-          student => 
-          !currentStudents.includes(student.id)
-        );
-        
-        // Fix the mapping to include all required Student properties
-        const mappedStudents = filteredStudents.map(student => ({
+        // Map to Student type and filter based on mode
+        studentsList = studentsData.map(student => ({
           id: student.id,
           username: student.username,
           displayName: student.display_name || student.username,
           teacherId: student.teacher_id || "",
-          schoolId: "",  // Add required properties for the Student type
+          schoolId: "",
           avatar: "",
           class_id: student.class_id || null,
           classId: student.class_id || null
         }));
-        
-        setStudents(mappedStudents);
       } else {
         throw new Error("No students found in Supabase");
       }
+
+      // Filter students based on view mode
+      if (viewMode) {
+        // In view mode, show only students in the current class
+        const classStudents = studentsList.filter(student => 
+          currentStudents.includes(student.id)
+        );
+        setAllStudents(classStudents);
+      } else {
+        // In add mode, show students not already in this specific class
+        const availableStudents = studentsList.filter(student => 
+          !currentStudents.includes(student.id)
+        );
+        setAllStudents(availableStudents);
+      }
+
     } catch (supabaseError) {
       console.error("Error searching in Supabase:", supabaseError);
       
       // Fallback to localStorage
       try {
         const storedStudents = JSON.parse(localStorage.getItem("students") || "[]");
-        const filteredStudents = storedStudents.filter((student: any) => {
-          // Filter by search query
-          const matchesSearch = !searchQuery || student.username.toLowerCase().includes(searchQuery.toLowerCase());
-          
-          // Filter out students already in the class
-          const notInClass = !currentStudents.includes(student.id);
-          
-          return matchesSearch && notInClass;
-        });
         
-        console.log(`Found ${filteredStudents.length} students in localStorage:`, filteredStudents);
-        
-        // Map to correctly include all required Student properties
-        const mappedStudents = filteredStudents.map((student: any) => ({
+        const mappedStudents = storedStudents.map((student: any) => ({
           id: student.id,
           username: student.username,
           displayName: student.display_name || student.displayName || student.username,
@@ -143,12 +159,32 @@ export const StudentsList = ({
           class_id: student.class_id || student.classId || null,
           classId: student.class_id || student.classId || null
         }));
+
+        // Filter based on mode
+        let filteredStudents: Student[];
+        if (viewMode) {
+          filteredStudents = mappedStudents.filter((student: Student) => 
+            currentStudents.includes(student.id)
+          );
+        } else {
+          filteredStudents = mappedStudents.filter((student: Student) => 
+            !currentStudents.includes(student.id)
+          );
+        }
         
-        setStudents(mappedStudents);
+        console.log(`Found ${filteredStudents.length} students in localStorage`);
+        setAllStudents(filteredStudents);
       } catch (localError) {
         console.error("Error searching in localStorage:", localError);
-        setStudents([]);
+        setAllStudents([]);
+        toast({
+          title: t("error"),
+          description: "Failed to load students",
+          variant: "destructive"
+        });
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -162,10 +198,8 @@ export const StudentsList = ({
 
   const handleStudentClick = (student: Student) => {
     if (viewMode) {
-      // In view mode, clicking navigates to student profile
       navigate(`/teacher/student/${student.id}`);
     } else {
-      // In selection mode, clicking selects/deselects the student
       toggleStudent(student.id);
     }
   };
@@ -191,7 +225,7 @@ export const StudentsList = ({
           <DialogDescription>
             {viewMode 
               ? t("view-students-in-class") 
-              : t("search-and-select-students")}
+              : "Search and select students to add to this class. Students can be in multiple classes within the same school."}
           </DialogDescription>
         </DialogHeader>
         
@@ -199,7 +233,7 @@ export const StudentsList = ({
           <div className="flex items-center gap-2">
             <Search className="h-4 w-4 text-gray-500" />
             <Input
-              placeholder={t("search-students")}
+              placeholder="Search students by name or username..."
               className="flex-1"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -235,6 +269,13 @@ export const StudentsList = ({
                         <p className="text-sm text-gray-500">
                           @{student.username}
                         </p>
+                        {student.class_id && !viewMode && (
+                          <p className="text-xs text-blue-500">
+                            {typeof student.class_id === 'string' && student.class_id.includes(',') 
+                              ? 'In multiple classes' 
+                              : 'In another class'}
+                          </p>
+                        )}
                       </div>
                     </div>
                     {viewMode && (
@@ -256,8 +297,8 @@ export const StudentsList = ({
               <div className="flex items-center justify-center h-full">
                 <p className="text-gray-500">
                   {searchQuery 
-                    ? t("no-matching-students") 
-                    : t("no-available-students")}
+                    ? "No students found matching your search" 
+                    : (viewMode ? "No students in this class" : t("no-available-students"))}
                 </p>
               </div>
             )}
@@ -273,7 +314,7 @@ export const StudentsList = ({
               onClick={handleAddStudents}
               disabled={selectedStudents.length === 0}
             >
-              {t("add-selected-students")}
+              {t("add")} {selectedStudents.length} {t("students")}
             </Button>
           )}
         </DialogFooter>
