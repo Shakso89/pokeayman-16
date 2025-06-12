@@ -45,10 +45,20 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
   React.useEffect(() => {
     // Filter students based on search query
     if (searchQuery.trim()) {
-      const filtered = allStudents.filter(student =>
-        student.username.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        (student.display_name && student.display_name.toLowerCase().includes(searchQuery.toLowerCase()))
-      );
+      console.log("Searching for:", searchQuery);
+      console.log("All students:", allStudents);
+      
+      const filtered = allStudents.filter(student => {
+        const searchLower = searchQuery.toLowerCase();
+        const usernameMatch = student.username && student.username.toLowerCase().includes(searchLower);
+        const displayNameMatch = student.display_name && student.display_name.toLowerCase().includes(searchLower);
+        
+        console.log(`Student ${student.username}: username match: ${usernameMatch}, display name match: ${displayNameMatch}`);
+        
+        return usernameMatch || displayNameMatch;
+      });
+      
+      console.log("Filtered students:", filtered);
       setAvailableStudents(filtered);
     } else {
       setAvailableStudents(allStudents);
@@ -60,7 +70,7 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
     try {
       console.log("Fetching students for class:", classId);
       
-      // Get current class data to check which school it belongs to
+      // First get current class data to check which students are already in this specific class
       const { data: classData, error: classError } = await supabase
         .from('classes')
         .select('students, school_id')
@@ -69,44 +79,39 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
 
       if (classError) {
         console.error("Error fetching class data:", classError);
-        throw classError;
+        // Continue with localStorage fallback
       }
 
       console.log("Class data:", classData);
       const currentStudentIds = classData?.students || [];
       const schoolId = classData?.school_id;
 
-      // Get all students from database
-      let allStudentsQuery = supabase
+      // Get all active students from database
+      const { data: allStudentsData, error: allStudentsError } = await supabase
         .from('students')
         .select('*')
         .eq('is_active', true)
         .order('display_name', { ascending: true });
-
-      // If we have a school context, try to get students from the same school
-      // For now, we'll get all students and let teachers assign any student
-      const { data: allStudentsData, error: allStudentsError } = await allStudentsQuery;
 
       if (allStudentsError) {
         console.error("Error fetching students:", allStudentsError);
         throw allStudentsError;
       }
 
-      console.log("All students found:", allStudentsData?.length || 0);
+      console.log("All students from Supabase:", allStudentsData?.length || 0);
 
-      // For student assignment to multiple classes within the same school,
-      // we don't filter out students who are already in other classes,
-      // but we do filter out students already in THIS specific class
-      const studentsNotInThisClass = (allStudentsData || []).filter(student => 
-        !currentStudentIds.includes(student.id)
-      );
+      if (allStudentsData && allStudentsData.length > 0) {
+        // Filter out students already in THIS specific class
+        // Allow students who are in other classes within the same school
+        const studentsNotInThisClass = allStudentsData.filter(student => 
+          !currentStudentIds.includes(student.id)
+        );
 
-      console.log("Students not in this class:", studentsNotInThisClass.length);
-      setAllStudents(studentsNotInThisClass);
-      setAvailableStudents(studentsNotInThisClass);
-      
-      // Fallback to localStorage if no students found
-      if (studentsNotInThisClass.length === 0) {
+        console.log("Students not in this class:", studentsNotInThisClass.length);
+        setAllStudents(studentsNotInThisClass);
+        setAvailableStudents(studentsNotInThisClass);
+      } else {
+        // Fallback to localStorage
         console.log("No students found in Supabase, trying localStorage...");
         const savedStudents = localStorage.getItem("students");
         if (savedStudents) {
@@ -117,6 +122,10 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
           console.log("Students from localStorage:", filteredLocal.length);
           setAllStudents(filteredLocal);
           setAvailableStudents(filteredLocal);
+        } else {
+          console.log("No students found in localStorage either");
+          setAllStudents([]);
+          setAvailableStudents([]);
         }
       }
       
@@ -128,12 +137,15 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
         const savedStudents = localStorage.getItem("students");
         const savedClasses = localStorage.getItem("classes");
         
-        if (savedStudents && savedClasses) {
+        if (savedStudents) {
           const localStudents = JSON.parse(savedStudents);
-          const localClasses = JSON.parse(savedClasses);
+          let currentStudentIds: string[] = [];
           
-          const currentClass = localClasses.find((cls: any) => cls.id === classId);
-          const currentStudentIds = currentClass?.students || [];
+          if (savedClasses) {
+            const localClasses = JSON.parse(savedClasses);
+            const currentClass = localClasses.find((cls: any) => cls.id === classId);
+            currentStudentIds = currentClass?.students || [];
+          }
           
           const availableLocal = localStudents.filter((student: any) => 
             !currentStudentIds.includes(student.id) && student.is_active !== false
@@ -212,6 +224,11 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
                   Make sure students are created and not already assigned to this specific class
                 </p>
               )}
+              {searchQuery && (
+                <p className="text-sm text-gray-400">
+                  Try searching with a different term or check if the student exists
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-2">
@@ -231,7 +248,9 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
                     <p className="text-sm text-gray-500">@{student.username}</p>
                     {student.class_id && (
                       <p className="text-xs text-blue-500">
-                        Currently in {Array.isArray(student.class_id) ? 'multiple classes' : 'another class'}
+                        {student.class_id.includes && student.class_id.includes(',') 
+                          ? 'In multiple classes' 
+                          : 'In another class'}
                       </p>
                     )}
                   </div>
