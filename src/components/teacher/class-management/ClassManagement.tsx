@@ -8,7 +8,6 @@ import { useClassManagement } from "./useClassManagement";
 import SchoolInfoCard from "./SchoolInfoCard";
 import ClassList from "./ClassList";
 import AddStudentsDialog from "./AddStudentsDialog";
-import DeleteClassDialog from "./DeleteClassDialog";
 import { SelectSchoolDialog } from "./SelectSchoolDialog";
 import { toast } from "@/hooks/use-toast";
 
@@ -37,15 +36,10 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     successMessage,
     isAddStudentDialogOpen,
     availableStudents,
-    isDeleteDialogOpen,
-    classToDelete,
     setSuccessMessage,
     openAddStudentDialog,
     handleAddStudents,
-    openDeleteDialog,
-    handleDeleteClass,
     setIsAddStudentDialogOpen,
-    setIsDeleteDialogOpen,
     refreshClasses,
   } = useClassManagement({ schoolId, teacherId, directCreateMode });
   
@@ -163,7 +157,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         isAdmin={isAdmin}
         loading={loading}
         onOpenAddStudentDialog={handleOpenAddStudentDialog}
-        onDeleteClass={openDeleteDialog}
+        onDeleteClass={() => {}} // Remove delete functionality
       />
       
       {/* Add Student Dialog */}
@@ -172,14 +166,6 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         onOpenChange={setIsAddStudentDialogOpen}
         classId={selectedClassId || ""}
         onStudentsAdded={handleAddStudents}
-      />
-      
-      {/* Delete Class Confirmation Dialog */}
-      <DeleteClassDialog
-        isOpen={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        onConfirmDelete={handleDeleteClass}
-        classId={classToDelete || undefined}
       />
       
       {/* School Selection Dialog */}

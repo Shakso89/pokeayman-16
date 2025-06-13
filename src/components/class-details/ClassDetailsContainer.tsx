@@ -76,11 +76,11 @@ const ClassDetailsContainer: React.FC = () => {
         <ClassManagementHeader
           classData={classData}
           studentsCount={students.length}
-          isClassCreator={isClassCreator}
+          isClassCreator={isClassCreator()}
           onAddStudent={handlers.handleAddStudent}
           onSwitchToHomework={() => setActiveTab("homework")}
           pendingSubmissions={pendingSubmissions}
-          onManagePokemon={handlers.handleManagePokemon}
+          onManagePokemon={() => handlers.handleManagePokemon("all", "All Students", classData.schoolId || "")}
           onViewSchoolPool={handlers.handleViewSchoolPool}
           onAddAssistant={() => setIsAddAssistantOpen(true)}
         />
@@ -88,14 +88,25 @@ const ClassDetailsContainer: React.FC = () => {
 
       <div className="max-w-7xl mx-auto px-6 pb-8">
         <motion.div variants={itemVariants}>
-          <ClassTabs activeTab={activeTab} onTabChange={setActiveTab} />
+          <ClassTabs 
+            activeTab={activeTab} 
+            onTabChange={setActiveTab}
+            students={students}
+            isClassCreator={isClassCreator()}
+            classData={classData}
+            teacherId={classData.teacherId || ""}
+            onAwardCoins={handlers.handleAwardCoins}
+            onManagePokemon={handlers.handleManagePokemon}
+            onRemoveStudent={handlers.handleRemoveStudent}
+            onAddStudent={handlers.handleAddStudent}
+          />
         </motion.div>
 
         <motion.div variants={itemVariants} className="mt-6">
           {activeTab === "students" && (
             <StudentsTable
               students={students}
-              isClassCreator={isClassCreator}
+              isClassCreator={isClassCreator()}
               onAwardCoins={handlers.handleAwardCoins}
               onManagePokemon={handlers.handleManagePokemon}
               onRemoveStudent={handlers.handleRemoveStudent}
@@ -109,10 +120,26 @@ const ClassDetailsContainer: React.FC = () => {
       </div>
 
       <ClassDialogs
-        dialogs={dialogs}
-        handlers={handlers}
-        classData={classData}
-        students={students}
+        classId={classId || ""}
+        isStudentListOpen={dialogs.addStudent}
+        onStudentListOpenChange={(open) => handlers.handleAddStudent()}
+        onStudentsAdded={(studentIds) => console.log("Students added:", studentIds)}
+        removeStudentDialog={dialogs.removeStudent}
+        onRemoveStudentDialogChange={(dialog) => console.log("Remove student dialog:", dialog)}
+        onRemoveStudent={(studentId) => console.log("Remove student:", studentId)}
+        isClassCreator={isClassCreator()}
+        managePokemonDialog={dialogs.managePokemon}
+        onManagePokemonDialogChange={(dialog) => console.log("Manage pokemon dialog:", dialog)}
+        onPokemonRemoved={() => console.log("Pokemon removed")}
+        giveCoinsDialog={dialogs.giveCoins}
+        onGiveCoinsDialogChange={(dialog) => console.log("Give coins dialog:", dialog)}
+        onGiveCoins={(amount) => console.log("Give coins:", amount)}
+        removeCoinsDialog={dialogs.removeCoins}
+        onRemoveCoinsDialogChange={(dialog) => console.log("Remove coins dialog:", dialog)}
+        onRemoveCoins={(amount) => console.log("Remove coins:", amount)}
+        schoolPoolDialogOpen={dialogs.schoolPool}
+        onSchoolPoolDialogChange={(open) => console.log("School pool dialog:", open)}
+        schoolId={classData.schoolId || ""}
       />
 
       <AddAssistantDialog
