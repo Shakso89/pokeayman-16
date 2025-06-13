@@ -95,6 +95,35 @@ export type Database = {
           },
         ]
       }
+      daily_attempts: {
+        Row: {
+          attempt_date: string
+          id: string
+          student_id: string
+          used: boolean | null
+        }
+        Insert: {
+          attempt_date?: string
+          id?: string
+          student_id: string
+          used?: boolean | null
+        }
+        Update: {
+          attempt_date?: string
+          id?: string
+          student_id?: string
+          used?: boolean | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "daily_attempts_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       homework: {
         Row: {
           class_id: string
@@ -226,6 +255,44 @@ export type Database = {
         }
         Relationships: []
       }
+      mystery_ball_history: {
+        Row: {
+          coins_amount: number | null
+          created_at: string
+          id: string
+          pokemon_id: string | null
+          pokemon_name: string | null
+          result_type: string
+          student_id: string
+        }
+        Insert: {
+          coins_amount?: number | null
+          created_at?: string
+          id?: string
+          pokemon_id?: string | null
+          pokemon_name?: string | null
+          result_type: string
+          student_id: string
+        }
+        Update: {
+          coins_amount?: number | null
+          created_at?: string
+          id?: string
+          pokemon_id?: string | null
+          pokemon_name?: string | null
+          result_type?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "mystery_ball_history_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       notifications: {
         Row: {
           created_at: string
@@ -262,6 +329,89 @@ export type Database = {
         }
         Relationships: []
       }
+      pokemon_collections: {
+        Row: {
+          id: string
+          obtained_at: string
+          pokemon_id: string
+          pokemon_image: string | null
+          pokemon_level: number | null
+          pokemon_name: string
+          pokemon_rarity: string | null
+          pokemon_type: string | null
+          student_id: string
+        }
+        Insert: {
+          id?: string
+          obtained_at?: string
+          pokemon_id: string
+          pokemon_image?: string | null
+          pokemon_level?: number | null
+          pokemon_name: string
+          pokemon_rarity?: string | null
+          pokemon_type?: string | null
+          student_id: string
+        }
+        Update: {
+          id?: string
+          obtained_at?: string
+          pokemon_id?: string
+          pokemon_image?: string | null
+          pokemon_level?: number | null
+          pokemon_name?: string
+          pokemon_rarity?: string | null
+          pokemon_type?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pokemon_collections_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pokemon_pools: {
+        Row: {
+          available: boolean | null
+          created_at: string
+          id: string
+          pokemon_id: string
+          pokemon_image: string | null
+          pokemon_level: number | null
+          pokemon_name: string
+          pokemon_rarity: string | null
+          pokemon_type: string | null
+          school_id: string
+        }
+        Insert: {
+          available?: boolean | null
+          created_at?: string
+          id?: string
+          pokemon_id: string
+          pokemon_image?: string | null
+          pokemon_level?: number | null
+          pokemon_name: string
+          pokemon_rarity?: string | null
+          pokemon_type?: string | null
+          school_id: string
+        }
+        Update: {
+          available?: boolean | null
+          created_at?: string
+          id?: string
+          pokemon_id?: string
+          pokemon_image?: string | null
+          pokemon_level?: number | null
+          pokemon_name?: string
+          pokemon_rarity?: string | null
+          pokemon_type?: string | null
+          school_id?: string
+        }
+        Relationships: []
+      }
       schools: {
         Row: {
           created_at: string
@@ -293,6 +443,51 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      student_profiles: {
+        Row: {
+          avatar_url: string | null
+          class_id: string | null
+          coins: number
+          created_at: string
+          display_name: string | null
+          id: string
+          school_id: string | null
+          spent_coins: number
+          teacher_id: string | null
+          updated_at: string
+          user_id: string
+          username: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          class_id?: string | null
+          coins?: number
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          school_id?: string | null
+          spent_coins?: number
+          teacher_id?: string | null
+          updated_at?: string
+          user_id: string
+          username: string
+        }
+        Update: {
+          avatar_url?: string | null
+          class_id?: string | null
+          coins?: number
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          school_id?: string | null
+          spent_coins?: number
+          teacher_id?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
       }
       students: {
         Row: {

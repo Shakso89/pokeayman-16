@@ -1,13 +1,15 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getStudentPokemonCollection, getSchoolPokemonPool, initializeSchoolPokemonPool, updateAllSchoolPoolsTo500, awardCoinsToStudent } from "@/utils/pokemon";
 import { Pokemon } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Trophy, Users, Package, Sword } from "lucide-react";
+import { useStudentData } from "@/hooks/useStudentData";
+import { getSchoolPokemonPool } from "@/services/studentDatabase";
 
 // Import our components
 import StudentHeader from "@/components/student/StudentHeader";
@@ -23,13 +25,18 @@ const StudentDashboard: React.FC = () => {
   const studentName = localStorage.getItem("studentName") || "Student";
   const studentId = localStorage.getItem("studentId") || "";
   const classId = localStorage.getItem("studentClassId") || "";
-  const schoolId = localStorage.getItem("studentSchoolId") || "";
+  const schoolId = localStorage.getItem("studentSchoolId") || "default-school-1";
   const { t } = useTranslation();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   
-  const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
-  const [coins, setCoins] = useState(0);
+  // Use the new database hook
+  const { profile, pokemons, coins, spentCoins, isLoading: dataLoading, refreshData } = useStudentData(
+    studentId, 
+    undefined, // userId - would need to get from auth
+    localStorage.getItem("studentName") || undefined
+  );
+  
   const [schoolPokemons, setSchoolPokemons] = useState<Pokemon[]>([]);
   const [activeTab, setActiveTab] = useState("home");
   const [activeBattles, setActiveBattles] = useState<any[]>([]);
@@ -50,55 +57,27 @@ const StudentDashboard: React.FC = () => {
       setActiveTab(tabParam);
     }
 
-    // Update all school pools to have 500 Pokémon
-    updateAllSchoolPoolsTo500();
     if (studentId) {
-      loadStudentData();
       loadActiveBattles();
     }
     if (schoolId) {
       loadSchoolPokemonPool();
-    } else {
-      console.warn("No schoolId found, creating default school ID");
-      // If no school ID is set, use a default one to ensure functionality
-      localStorage.setItem("studentSchoolId", "default-school-1");
     }
   }, [studentId, schoolId, searchParams]);
-  const loadStudentData = () => {
-    console.log("Loading student data for:", studentId);
-    // Load Pokemon collection and coins
-    const collection = getStudentPokemonCollection(studentId);
-    console.log("Student collection:", collection);
-    if (collection) {
-      setStudentPokemons(collection.pokemons);
-      setCoins(collection.coins);
-    } else {
-      setStudentPokemons([]);
-      setCoins(0);
-    }
 
-    // Load avatar
-    const students = JSON.parse(localStorage.getItem("students") || "[]");
-    const student = students.find((s: any) => s.id === studentId);
-    if (student && student.avatar) {
-      setAvatar(student.avatar);
-    }
-  };
-  const loadSchoolPokemonPool = () => {
-    const currentSchoolId = schoolId || localStorage.getItem("studentSchoolId") || "default-school-1";
+  const loadSchoolPokemonPool = async () => {
+    const currentSchoolId = schoolId || "default-school-1";
     console.log("Loading school pokemon pool for:", currentSchoolId);
-    // Initialize the school pool if it doesn't exist
-    let pool = getSchoolPokemonPool(currentSchoolId);
-    if (!pool) {
-      pool = initializeSchoolPokemonPool(currentSchoolId);
-    }
-    console.log("School pokemon pool:", pool);
-    if (pool && pool.availablePokemons) {
-      setSchoolPokemons(pool.availablePokemons);
-    } else {
+    
+    try {
+      const pool = await getSchoolPokemonPool(currentSchoolId);
+      setSchoolPokemons(pool);
+    } catch (error) {
+      console.error("Error loading school pokemon pool:", error);
       setSchoolPokemons([]);
     }
   };
+
   const loadActiveBattles = () => {
     if (!studentId || !classId || !schoolId) return;
     const savedBattles = localStorage.getItem("battles");
@@ -106,9 +85,7 @@ const StudentDashboard: React.FC = () => {
 
     // Filter battles relevant to this student
     const relevantBattles = allBattles.filter((battle: any) => {
-      // School-wide or specific class
       const isRelevant = battle.schoolId === schoolId && (!battle.classId || battle.classId === classId);
-      // Active and not expired
       const isActive = battle.status === "active";
       const isNotExpired = new Date(battle.timeLimit).getTime() > Date.now();
       return isRelevant && isActive && isNotExpired;
@@ -119,26 +96,22 @@ const StudentDashboard: React.FC = () => {
   // Handle Pokemon won event
   const handlePokemonWon = (pokemon: Pokemon) => {
     console.log("Pokemon won:", pokemon);
-    // Refresh data after pokemon is won
     toast({
       title: "Congratulations",
       description: `You got a new Pokemon: ${pokemon.name}!`
     });
-    loadStudentData();
+    refreshData();
     loadSchoolPokemonPool();
   };
 
   // Handle coins won event
   const handleCoinsWon = (amount: number) => {
     console.log("Coins won:", amount);
-    // Add coins to student
-    awardCoinsToStudent(studentId, amount);
-    // Refresh data
     toast({
       title: "Congratulations",
       description: `You got ${amount} coins!`
     });
-    loadStudentData();
+    refreshData();
   };
 
   // Handle refresh pool
@@ -157,9 +130,6 @@ const StudentDashboard: React.FC = () => {
   const handleCollectionClick = () => {
     setActiveTab("my-pokemons");
   };
-
-  // Get the current school ID (either from state or localStorage)
-  const currentSchoolId = schoolId || localStorage.getItem("studentSchoolId") || "default-school-1";
   
   if (!isLoggedIn || userType !== "student") {
     return <Navigate to="/student-login" />;
@@ -216,19 +186,26 @@ const StudentDashboard: React.FC = () => {
             </TabsContent>
             
             <TabsContent value="my-pokemons" className="mt-4">
-              <StudentCollection pokemons={studentPokemons} />
+              {dataLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="text-gray-500">Loading your collection...</div>
+                </div>
+              ) : (
+                <StudentCollection pokemons={pokemons} />
+              )}
             </TabsContent>
             
             <TabsContent value="mystery-ball" className="mt-4">
               <MysteryBallTab 
                 schoolPokemons={schoolPokemons} 
                 studentId={studentId} 
-                schoolId={currentSchoolId} 
+                schoolId={schoolId} 
                 coins={coins} 
                 isLoading={isLoading} 
                 onPokemonWon={handlePokemonWon} 
                 onCoinsWon={handleCoinsWon} 
-                onRefreshPool={handleRefreshPool} 
+                onRefreshPool={handleRefreshPool}
+                onDataRefresh={refreshData}
               />
             </TabsContent>
             
@@ -243,7 +220,7 @@ const StudentDashboard: React.FC = () => {
       <SchoolPoolDialog 
         open={showSchoolPool} 
         onOpenChange={setShowSchoolPool} 
-        schoolId={currentSchoolId} 
+        schoolId={schoolId} 
         userType="student" 
       />
     </div>
