@@ -3,14 +3,15 @@
 export interface ClassData {
   id: string;
   name: string;
-  description?: string; // Make description optional
-  teacherId: string | null; // Can be null for admin-created classes
+  description?: string;
+  teacherId: string | null;
   schoolId: string;
   createdAt: string;
-  updatedAt: string; // Required but will have a fallback value
+  updatedAt: string;
   students?: string[];
   isPublic?: boolean;
   likes?: string[];
+  assistants?: string[];
   additionalInfo?: Record<string, any>;
 }
 
@@ -43,6 +44,7 @@ export interface DatabaseClassData {
   students?: string[] | null;
   is_public?: boolean | null;
   likes?: string[] | null;
+  assistants?: string[] | null;
 }
 
 export interface DatabaseStudentData {

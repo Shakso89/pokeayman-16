@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       classes: {
         Row: {
+          assistants: string[] | null
           created_at: string
           description: string | null
           id: string
@@ -22,6 +23,7 @@ export type Database = {
           teacher_id: string | null
         }
         Insert: {
+          assistants?: string[] | null
           created_at?: string
           description?: string | null
           id?: string
@@ -33,6 +35,7 @@ export type Database = {
           teacher_id?: string | null
         }
         Update: {
+          assistants?: string[] | null
           created_at?: string
           description?: string | null
           id?: string

@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button";
 import { NavBar } from "@/components/NavBar";
 import { useTranslation } from "@/hooks/useTranslation";
 import ClassManagement from "@/components/teacher/class-management/ClassManagement";
-import SharedClassesManagement from "@/components/teacher/SharedClassesManagement";
 import SchoolManagement from "@/components/teacher/SchoolManagement";
 import DashboardHeader from "@/components/teacher/dashboard/DashboardHeader";
 import AddStudentDialog from "@/components/teacher/dashboard/AddStudentDialog";
@@ -17,12 +16,11 @@ import { motion } from "framer-motion";
 
 const TeacherDashboard: React.FC = () => {
   const navigate = useNavigate();
-  const [currentView, setCurrentView] = useState<"main" | "classes" | "shared-classes">("main");
+  const [currentView, setCurrentView] = useState<"main" | "classes">("main");
   const [activeTab, setActiveTab] = useState("dashboard");
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
   const [teacherData, setTeacherData] = useState<any>(null);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string | null>(null);
-  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const { t } = useTranslation();
   
@@ -33,12 +31,10 @@ const TeacherDashboard: React.FC = () => {
   const isAdmin = username === "Admin" || username === "Ayman" || username === "Ayman_1";
 
   useEffect(() => {
-    // Load teacher data from Supabase
     const loadTeacherData = async () => {
       if (!teacherId) return;
       setIsLoading(true);
       try {
-        // Get teacher profile
         let { data: teacher, error } = await supabase
           .from('teachers')
           .select('*')
@@ -46,7 +42,6 @@ const TeacherDashboard: React.FC = () => {
           .single();
 
         if (error) {
-          // If teacher doesn't exist in Supabase yet, use local data
           console.warn("Teacher not found in database:", error);
           const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
           teacher = teachers.find((t: any) => t.id === teacherId);
@@ -74,7 +69,6 @@ const TeacherDashboard: React.FC = () => {
     }
   }, [teacherId, username, isLoggedIn, userType]);
 
-  // Listen for custom events from notifications
   useEffect(() => {
     const handleSwitchToHomeworkTab = () => {
       console.log("Switching to homework tab from notification");
@@ -82,33 +76,18 @@ const TeacherDashboard: React.FC = () => {
       setActiveTab("homework");
     };
 
-    const handleSwitchToSharedClassesTab = () => {
-      console.log("Switching to shared classes from notification");
-      setCurrentView("shared-classes");
-    };
-
     window.addEventListener('switchToHomeworkTab', handleSwitchToHomeworkTab);
-    window.addEventListener('switchToSharedClassesTab', handleSwitchToSharedClassesTab);
     
     return () => {
       window.removeEventListener('switchToHomeworkTab', handleSwitchToHomeworkTab);
-      window.removeEventListener('switchToSharedClassesTab', handleSwitchToSharedClassesTab);
     };
   }, []);
 
-  // Handle navigating to manage classes (shows school list first)
   const handleManageClasses = () => {
     console.log("Manage classes button clicked");
     setCurrentView("classes");
   };
 
-  // Handle navigating to shared classes
-  const handleManageSharedClasses = () => {
-    console.log("Manage shared classes button clicked");
-    setCurrentView("shared-classes");
-  };
-
-  // Handle navigating directly to specific class
   const handleNavigateToClass = (classId: string) => {
     navigate(`/class/${classId}`);
   };
@@ -165,14 +144,14 @@ const TeacherDashboard: React.FC = () => {
                 onAddStudent={() => setIsAddStudentOpen(true)}
                 onManageClasses={handleManageClasses}
                 onNavigateToClass={handleNavigateToClass}
-                onCreateClass={() => {}} // No longer needed but kept for interface compatibility
+                onCreateClass={() => {}}
                 teacherId={teacherId || ""}
                 isAdmin={isAdmin}
-                onManageSharedClasses={handleManageSharedClasses}
+                onManageSharedClasses={() => {}} // Remove shared classes functionality
               />
             </motion.div>
           </>
-        ) : currentView === "classes" ? (
+        ) : (
           selectedSchoolId ? (
             <ClassManagement
               onBack={() => setSelectedSchoolId(null)}
@@ -186,25 +165,6 @@ const TeacherDashboard: React.FC = () => {
               teacherId={teacherId || ""}
             />
           )
-        ) : (
-          <div>
-            <div className="flex items-center mb-6">
-              <Button
-                variant="outline"
-                onClick={() => setCurrentView("main")}
-                className="mr-4"
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                {t("back-to-dashboard")}
-              </Button>
-              <h2 className="text-2xl font-bold">Shared Classes</h2>
-            </div>
-            
-            <SharedClassesManagement
-              teacherId={teacherId || ""}
-              teacherName={teacherData?.display_name || username || "Teacher"}
-            />
-          </div>
         )}
       </div>
       
