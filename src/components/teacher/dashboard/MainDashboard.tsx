@@ -38,17 +38,19 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
       try {
         console.log("Loading teacher classes for teacherId:", teacherId);
         
-        // First try to get classes from Supabase
+        // Get classes where teacher is the main teacher or an assistant
         const { data: supabaseClasses, error } = await supabase
           .from('classes')
           .select('*')
-          .eq('teacher_id', teacherId);
+          .or(`teacher_id.eq.${teacherId},assistants.cs.{${teacherId}}`);
 
         if (error) {
           console.error("Error loading teacher classes from Supabase:", error);
           // Fallback to localStorage
           const localClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-          const filteredClasses = localClasses.filter((cls: any) => cls.teacherId === teacherId);
+          const filteredClasses = localClasses.filter((cls: any) => 
+            cls.teacherId === teacherId || (cls.assistants && cls.assistants.includes(teacherId))
+          );
           console.log("Using local classes:", filteredClasses);
           setTeacherClasses(filteredClasses);
           return;
@@ -60,7 +62,9 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
         console.error("Error loading teacher classes:", error);
         // Fallback to localStorage
         const localClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-        const filteredClasses = localClasses.filter((cls: any) => cls.teacherId === teacherId);
+        const filteredClasses = localClasses.filter((cls: any) => 
+          cls.teacherId === teacherId || (cls.assistants && cls.assistants.includes(teacherId))
+        );
         console.log("Using local classes fallback:", filteredClasses);
         setTeacherClasses(filteredClasses);
       }
@@ -100,24 +104,23 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
 
           <TabsContent value="homework">
             <div className="space-y-6">
-              <h3 className="text-lg font-semibold">All Homework</h3>
+              <div className="flex justify-between items-center">
+                <h3 className="text-lg font-semibold">All Homework Management</h3>
+                <p className="text-sm text-gray-600">Manage homework across all your classes</p>
+              </div>
+              
               {teacherClasses.length > 0 ? (
-                <div className="space-y-8">
-                  {teacherClasses.map((classItem) => (
-                    <div key={classItem.id} className="border rounded-lg p-4">
-                      <h4 className="text-md font-medium mb-4">{classItem.name}</h4>
-                      <HomeworkList 
-                        classId={classItem.id}
-                        teacherId={teacherId}
-                        isTeacher={true}
-                        showClassSelector={false}
-                      />
-                    </div>
-                  ))}
-                </div>
+                <HomeworkList 
+                  classId=""
+                  teacherId={teacherId}
+                  isTeacher={true}
+                  showClassSelector={true}
+                />
               ) : (
                 <div className="text-center py-8 text-gray-500">
-                  <p>No classes found. Create a class to start assigning homework.</p>
+                  <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">No classes found</p>
+                  <p className="text-sm">Create a class to start managing homework.</p>
                 </div>
               )}
             </div>

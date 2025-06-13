@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { Plus, Calendar, Coins, Users, Eye, Trash2 } from 'lucide-react';
+import { Plus, Calendar, Coins, Users, Eye, Trash2, BookOpen } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
 import CreateHomeworkDialog from './CreateHomeworkDialog';
@@ -25,6 +25,7 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
 }) => {
   const [homework, setHomework] = useState<Homework[]>([]);
   const [submissions, setSubmissions] = useState<HomeworkSubmission[]>([]);
+  const [classes, setClasses] = useState<any[]>([]);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [reviewDialogState, setReviewDialogState] = useState<{
     isOpen: boolean;
@@ -35,7 +36,25 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
   useEffect(() => {
     loadHomework();
     loadSubmissions();
-  }, [classId, teacherId]);
+    if (showClassSelector) {
+      loadClasses();
+    }
+  }, [classId, teacherId, showClassSelector]);
+
+  const loadClasses = async () => {
+    try {
+      // Get classes where teacher is the main teacher or an assistant
+      const { data, error } = await supabase
+        .from('classes')
+        .select('*')
+        .or(`teacher_id.eq.${teacherId},assistants.cs.{${teacherId}}`);
+
+      if (error) throw error;
+      setClasses(data || []);
+    } catch (error) {
+      console.error("Error loading classes:", error);
+    }
+  };
 
   const loadHomework = async () => {
     try {
@@ -46,7 +65,7 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
         .order('created_at', { ascending: false });
 
       // If not showing class selector, filter by specific class
-      if (!showClassSelector) {
+      if (!showClassSelector && classId) {
         query.eq('class_id', classId);
       }
 
@@ -74,7 +93,7 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
         .select('id')
         .eq('teacher_id', teacherId);
 
-      if (!showClassSelector) {
+      if (!showClassSelector && classId) {
         homeworkQuery.eq('class_id', classId);
       }
 
@@ -105,6 +124,11 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
 
   const getPendingSubmissionCount = (homeworkId: string) => {
     return submissions.filter(sub => sub.homework_id === homeworkId && sub.status === 'pending').length;
+  };
+
+  const getClassName = (classId: string) => {
+    const classData = classes.find(cls => cls.id === classId);
+    return classData ? classData.name : 'Unknown Class';
   };
 
   const handleDeleteHomework = async (homeworkId: string) => {
@@ -154,7 +178,9 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
     <div className="space-y-6">
       {isTeacher && (
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold">Class Homework</h3>
+          <h3 className="text-lg font-semibold">
+            {showClassSelector ? 'All Classes Homework' : 'Class Homework'}
+          </h3>
           <Button 
             onClick={() => setIsCreateDialogOpen(true)}
             className="bg-blue-500 hover:bg-blue-600 text-white"
@@ -187,6 +213,14 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
                     <div className="flex-1">
                       <CardTitle className="text-lg">{hw.title}</CardTitle>
                       <p className="text-sm text-gray-600 mt-1">{hw.description}</p>
+                      {showClassSelector && (
+                        <div className="flex items-center gap-2 mt-2">
+                          <BookOpen className="h-4 w-4 text-blue-500" />
+                          <span className="text-sm font-medium text-blue-600">
+                            {getClassName(hw.class_id)}
+                          </span>
+                        </div>
+                      )}
                     </div>
                     <div className="flex items-center gap-2">
                       {isExpired ? (
