@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, Navigate, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -11,6 +12,8 @@ import { ChevronLeft, MessageSquare, UserPlus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { FriendRequest } from "@/types/pokemon";
 import { ProfileSidebar } from "@/components/student-profile/ProfileSidebar";
+import { useStudentData } from "@/hooks/useStudentData";
+import { getStudentProfileById } from "@/services/studentDatabase";
 
 interface StudentData {
   id: string;
@@ -50,25 +53,73 @@ const StudentDetailPage: React.FC = () => {
   // Check if current user is the owner of this profile
   const isOwnProfile = userType === "student" && localStorage.getItem("studentId") === actualStudentId;
 
+  // Use the student data hook
+  const { profile, pokemons, coins, spentCoins, isLoading } = useStudentData(actualStudentId || '');
+
   useEffect(() => {
     if (actualStudentId) {
       loadStudentData(actualStudentId);
       checkFriendshipStatus(actualStudentId);
     }
   }, [actualStudentId]);
+
+  useEffect(() => {
+    if (profile) {
+      setStudent({
+        id: profile.id,
+        username: profile.username,
+        displayName: profile.display_name || profile.username,
+        teacherId: profile.teacher_id || '',
+        createdAt: profile.created_at,
+        updatedAt: profile.updated_at,
+        avatar: profile.avatar_url,
+        classId: profile.class_id
+      });
+      setEditData({
+        displayName: profile.display_name || profile.username,
+        avatar: profile.avatar_url
+      });
+    }
+  }, [profile]);
   
-  const loadStudentData = (id: string) => {
-    const studentsData = localStorage.getItem("students");
-    if (studentsData) {
-      const students = JSON.parse(studentsData);
-      const foundStudent = students.find((s: StudentData) => s.id === id);
-      if (foundStudent) {
-        setStudent(foundStudent);
-        setEditData(foundStudent);
-      } else {
-        toast(t("student-not-found"));
-        navigate(-1);
+  const loadStudentData = async (id: string) => {
+    try {
+      // Try to load from database first
+      const studentProfile = await getStudentProfileById(id);
+      if (studentProfile) {
+        setStudent({
+          id: studentProfile.id,
+          username: studentProfile.username,
+          displayName: studentProfile.display_name || studentProfile.username,
+          teacherId: studentProfile.teacher_id || '',
+          createdAt: studentProfile.created_at,
+          updatedAt: studentProfile.updated_at,
+          avatar: studentProfile.avatar_url,
+          classId: studentProfile.class_id
+        });
+        setEditData({
+          displayName: studentProfile.display_name || studentProfile.username,
+          avatar: studentProfile.avatar_url
+        });
+        return;
       }
+
+      // Fallback to localStorage
+      const studentsData = localStorage.getItem("students");
+      if (studentsData) {
+        const students = JSON.parse(studentsData);
+        const foundStudent = students.find((s: StudentData) => s.id === id);
+        if (foundStudent) {
+          setStudent(foundStudent);
+          setEditData(foundStudent);
+        } else {
+          toast(t("student-not-found"));
+          navigate(-1);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading student data:", error);
+      toast(t("error-loading-student"));
     }
   };
 
@@ -235,7 +286,7 @@ const StudentDetailPage: React.FC = () => {
     return <Navigate to={userType === "teacher" ? "/teacher-login" : "/student-login"} />;
   }
   
-  if (!student) {
+  if (isLoading || !student) {
     return (
       <div className="min-h-screen bg-gray-100">
         <NavBar 
@@ -243,7 +294,7 @@ const StudentDetailPage: React.FC = () => {
           userName={userType === "teacher" ? localStorage.getItem("teacherDisplayName") || "Teacher" : localStorage.getItem("studentName") || ""}
         />
         <div className="container mx-auto py-8 px-4 text-center">
-          <p>{t("loading")}...</p>
+          <p>{isLoading ? t("loading") : t("student-not-found")}...</p>
         </div>
       </div>
     );
@@ -291,23 +342,58 @@ const StudentDetailPage: React.FC = () => {
           />
           
           <div className="col-span-1 lg:col-span-3">
-            <Tabs defaultValue="photos">
+            <Tabs defaultValue="overview">
               <TabsList className="mb-4">
-                <TabsTrigger value="photos">{t("photos")}</TabsTrigger>
+                <TabsTrigger value="overview">{t("overview")}</TabsTrigger>
+                <TabsTrigger value="pokemon">{t("pokemon")}</TabsTrigger>
                 {isOwnProfile && <TabsTrigger value="settings">{t("settings")}</TabsTrigger>}
               </TabsList>
               
-              <TabsContent value="photos">
+              <TabsContent value="overview">
                 <Card>
                   <CardHeader>
-                    <CardTitle>{t("student-photos")}</CardTitle>
+                    <CardTitle>{t("student-overview")}</CardTitle>
                   </CardHeader>
                   <CardContent>
-                    <UploadPhotos 
-                      avatarImage={student.avatar || null}
-                      onSave={handleAvatarUpdate} 
-                      readOnly={!canEdit || (isOwnProfile && !isEditing)}
-                    />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-yellow-50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-yellow-800">Coins</h3>
+                        <p className="text-2xl font-bold text-yellow-600">{coins}</p>
+                        <p className="text-sm text-yellow-600">Spent: {spentCoins}</p>
+                      </div>
+                      <div className="bg-purple-50 p-4 rounded-lg">
+                        <h3 className="font-semibold text-purple-800">Pokémon</h3>
+                        <p className="text-2xl font-bold text-purple-600">{pokemons.length}</p>
+                        <p className="text-sm text-purple-600">Collected</p>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="pokemon">
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("pokemon-collection")}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {pokemons.length === 0 ? (
+                      <p className="text-gray-500 text-center py-8">No Pokémon collected yet</p>
+                    ) : (
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {pokemons.map((pokemon, index) => (
+                          <div key={index} className="bg-white p-4 rounded-lg border shadow-sm">
+                            <img 
+                              src={pokemon.image} 
+                              alt={pokemon.name}
+                              className="w-full h-24 object-contain mb-2"
+                            />
+                            <h4 className="font-semibold text-center">{pokemon.name}</h4>
+                            <p className="text-sm text-gray-500 text-center capitalize">{pokemon.rarity}</p>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </CardContent>
                 </Card>
               </TabsContent>

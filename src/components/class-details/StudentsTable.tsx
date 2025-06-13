@@ -1,9 +1,12 @@
+
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, User, Coins, Award, UserMinus, Minus } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useNavigate } from "react-router-dom";
+import { updateStudentCoins } from "@/services/studentDatabase";
+import { toast } from "sonner";
 
 interface StudentsTableProps {
   students: any[];
@@ -32,16 +35,41 @@ const StudentsTable: React.FC<StudentsTableProps> = ({
   const navigate = useNavigate();
 
   const handleStudentClick = (studentId: string) => {
-    // Navigate to correct teacher student profile route
-    navigate(`/teacher/student/${studentId}`);
+    // Navigate to the student detail page using the correct route
+    navigate(`/student-detail/${studentId}`);
   };
 
-  const handleRemoveCoins = (studentId: string, studentName: string) => {
-    if (onRemoveCoins) {
-      onRemoveCoins(studentId, studentName);
-    } else {
-      // Fallback implementation
-      console.log("Remove coins for:", studentName);
+  const handleAwardCoins = async (studentId: string, studentName: string) => {
+    try {
+      // Award 10 coins as default (you can make this configurable)
+      const success = await updateStudentCoins(studentId, 10);
+      if (success) {
+        toast.success(`10 coins awarded to ${studentName}`);
+        // Trigger refresh of student data
+        window.location.reload();
+      } else {
+        toast.error("Failed to award coins");
+      }
+    } catch (error) {
+      console.error("Error awarding coins:", error);
+      toast.error("Failed to award coins");
+    }
+  };
+
+  const handleRemoveCoins = async (studentId: string, studentName: string) => {
+    try {
+      // Remove 5 coins as default (you can make this configurable)
+      const success = await updateStudentCoins(studentId, -5, 5);
+      if (success) {
+        toast.success(`5 coins removed from ${studentName}`);
+        // Trigger refresh of student data
+        window.location.reload();
+      } else {
+        toast.error("Failed to remove coins");
+      }
+    } catch (error) {
+      console.error("Error removing coins:", error);
+      toast.error("Failed to remove coins");
     }
   };
 
@@ -122,7 +150,7 @@ const StudentsTable: React.FC<StudentsTableProps> = ({
                       variant="outline"
                       onClick={(e) => {
                         e.stopPropagation();
-                        onAwardCoins(student.id, student.display_name || student.displayName || student.username);
+                        handleAwardCoins(student.id, student.display_name || student.displayName || student.username);
                       }}
                       className="bg-green-50 border-green-200 text-green-700 hover:bg-green-100 flex items-center gap-1"
                     >
