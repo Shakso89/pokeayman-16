@@ -15,17 +15,19 @@ interface HomeworkListProps {
   teacherId: string;
   isTeacher: boolean;
   showClassSelector?: boolean;
+  teacherClasses?: any[];
 }
 
 const HomeworkList: React.FC<HomeworkListProps> = ({
   classId,
   teacherId,
   isTeacher,
-  showClassSelector = false
+  showClassSelector = false,
+  teacherClasses = []
 }) => {
   const [homework, setHomework] = useState<Homework[]>([]);
   const [submissions, setSubmissions] = useState<HomeworkSubmission[]>([]);
-  const [classes, setClasses] = useState<any[]>([]);
+  const [classes, setClasses] = useState<any[]>(teacherClasses);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [reviewDialogState, setReviewDialogState] = useState<{
     isOpen: boolean;
@@ -34,12 +36,15 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    if (showClassSelector && teacherClasses.length > 0) {
+      setClasses(teacherClasses);
+    }
     loadHomework();
     loadSubmissions();
-    if (showClassSelector) {
+    if (showClassSelector && teacherClasses.length === 0) {
       loadClasses();
     }
-  }, [classId, teacherId, showClassSelector]);
+  }, [classId, teacherId, showClassSelector, teacherClasses]);
 
   const loadClasses = async () => {
     try {
@@ -58,21 +63,49 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
 
   const loadHomework = async () => {
     try {
-      const query = supabase
-        .from('homework')
-        .select('*')
-        .eq('teacher_id', teacherId)
-        .order('created_at', { ascending: false });
+      console.log("Loading homework for teacher:", teacherId, "showClassSelector:", showClassSelector);
+      
+      if (showClassSelector) {
+        // Load homework from all classes where teacher is involved
+        const classesToQuery = classes.length > 0 ? classes : teacherClasses;
+        
+        if (classesToQuery.length === 0) {
+          console.log("No classes found for teacher");
+          setHomework([]);
+          setIsLoading(false);
+          return;
+        }
 
-      // If not showing class selector, filter by specific class
-      if (!showClassSelector && classId) {
-        query.eq('class_id', classId);
+        const classIds = classesToQuery.map(cls => cls.id);
+        console.log("Querying homework for class IDs:", classIds);
+
+        const { data, error } = await supabase
+          .from('homework')
+          .select('*')
+          .in('class_id', classIds)
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        
+        console.log("Loaded homework:", data);
+        setHomework(data || []);
+      } else {
+        // Load homework for specific class
+        const query = supabase
+          .from('homework')
+          .select('*')
+          .eq('teacher_id', teacherId)
+          .order('created_at', { ascending: false });
+
+        if (classId) {
+          query.eq('class_id', classId);
+        }
+
+        const { data, error } = await query;
+
+        if (error) throw error;
+        setHomework(data || []);
       }
-
-      const { data, error } = await query;
-
-      if (error) throw error;
-      setHomework(data || []);
     } catch (error) {
       console.error("Error loading homework:", error);
       toast({
@@ -87,31 +120,64 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
 
   const loadSubmissions = async () => {
     try {
-      // First get homework IDs for this teacher/class
-      const homeworkQuery = supabase
-        .from('homework')
-        .select('id')
-        .eq('teacher_id', teacherId);
+      if (showClassSelector) {
+        // Load submissions for all homework in teacher's classes
+        const classesToQuery = classes.length > 0 ? classes : teacherClasses;
+        
+        if (classesToQuery.length === 0) {
+          setSubmissions([]);
+          return;
+        }
 
-      if (!showClassSelector && classId) {
-        homeworkQuery.eq('class_id', classId);
-      }
+        const classIds = classesToQuery.map(cls => cls.id);
 
-      const { data: homeworkData, error: homeworkError } = await homeworkQuery;
+        // First get all homework IDs for these classes
+        const { data: homeworkData, error: homeworkError } = await supabase
+          .from('homework')
+          .select('id')
+          .in('class_id', classIds);
 
-      if (homeworkError) throw homeworkError;
+        if (homeworkError) throw homeworkError;
 
-      if (homeworkData && homeworkData.length > 0) {
-        const homeworkIds = homeworkData.map(hw => hw.id);
+        if (homeworkData && homeworkData.length > 0) {
+          const homeworkIds = homeworkData.map(hw => hw.id);
 
-        const { data: submissionsData, error: submissionsError } = await supabase
-          .from('homework_submissions')
-          .select('*')
-          .in('homework_id', homeworkIds)
-          .order('submitted_at', { ascending: false });
+          const { data: submissionsData, error: submissionsError } = await supabase
+            .from('homework_submissions')
+            .select('*')
+            .in('homework_id', homeworkIds)
+            .order('submitted_at', { ascending: false });
 
-        if (submissionsError) throw submissionsError;
-        setSubmissions(submissionsData || []);
+          if (submissionsError) throw submissionsError;
+          setSubmissions(submissionsData || []);
+        }
+      } else {
+        // Load submissions for specific teacher/class
+        const homeworkQuery = supabase
+          .from('homework')
+          .select('id')
+          .eq('teacher_id', teacherId);
+
+        if (classId) {
+          homeworkQuery.eq('class_id', classId);
+        }
+
+        const { data: homeworkData, error: homeworkError } = await homeworkQuery;
+
+        if (homeworkError) throw homeworkError;
+
+        if (homeworkData && homeworkData.length > 0) {
+          const homeworkIds = homeworkData.map(hw => hw.id);
+
+          const { data: submissionsData, error: submissionsError } = await supabase
+            .from('homework_submissions')
+            .select('*')
+            .in('homework_id', homeworkIds)
+            .order('submitted_at', { ascending: false });
+
+          if (submissionsError) throw submissionsError;
+          setSubmissions(submissionsData || []);
+        }
       }
     } catch (error) {
       console.error("Error loading submissions:", error);
@@ -184,6 +250,7 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
           <Button 
             onClick={() => setIsCreateDialogOpen(true)}
             className="bg-blue-500 hover:bg-blue-600 text-white"
+            disabled={showClassSelector && classes.length === 0}
           >
             <Plus className="h-4 w-4 mr-2" />
             Create Homework
@@ -194,8 +261,15 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
       {homework.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           <div className="text-4xl mb-4">📚</div>
-          <p className="text-lg font-medium">No homework assignments yet</p>
-          {isTeacher && (
+          <p className="text-lg font-medium">
+            {showClassSelector && classes.length === 0 
+              ? "No classes found" 
+              : "No homework assignments yet"
+            }
+          </p>
+          {showClassSelector && classes.length === 0 ? (
+            <p className="text-sm">Create a class to start managing homework.</p>
+          ) : isTeacher && (
             <p className="text-sm">Create your first homework assignment to get started!</p>
           )}
         </div>

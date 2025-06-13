@@ -30,10 +30,14 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
 }) => {
   const { t } = useTranslation();
   const [teacherClasses, setTeacherClasses] = useState<any[]>([]);
+  const [isLoadingClasses, setIsLoadingClasses] = useState(true);
   
   useEffect(() => {
     const loadTeacherClasses = async () => {
-      if (!teacherId) return;
+      if (!teacherId) {
+        setIsLoadingClasses(false);
+        return;
+      }
       
       try {
         console.log("Loading teacher classes for teacherId:", teacherId);
@@ -53,11 +57,10 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
           );
           console.log("Using local classes:", filteredClasses);
           setTeacherClasses(filteredClasses);
-          return;
+        } else {
+          console.log("Loaded classes from Supabase:", supabaseClasses);
+          setTeacherClasses(supabaseClasses || []);
         }
-
-        console.log("Loaded classes from Supabase:", supabaseClasses);
-        setTeacherClasses(supabaseClasses || []);
       } catch (error) {
         console.error("Error loading teacher classes:", error);
         // Fallback to localStorage
@@ -67,6 +70,8 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
         );
         console.log("Using local classes fallback:", filteredClasses);
         setTeacherClasses(filteredClasses);
+      } finally {
+        setIsLoadingClasses(false);
       }
     };
 
@@ -109,19 +114,19 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
                 <p className="text-sm text-gray-600">Manage homework across all your classes</p>
               </div>
               
-              {teacherClasses.length > 0 ? (
+              {isLoadingClasses ? (
+                <div className="text-center py-8 text-gray-500">
+                  <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium">Loading your classes...</p>
+                </div>
+              ) : (
                 <HomeworkList 
                   classId=""
                   teacherId={teacherId}
                   isTeacher={true}
                   showClassSelector={true}
+                  teacherClasses={teacherClasses}
                 />
-              ) : (
-                <div className="text-center py-8 text-gray-500">
-                  <BookOpen className="h-12 w-12 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium">No classes found</p>
-                  <p className="text-sm">Create a class to start managing homework.</p>
-                </div>
               )}
             </div>
           </TabsContent>
