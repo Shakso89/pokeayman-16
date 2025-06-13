@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -12,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { ClassData } from "@/utils/classSync/types";
-import { createClass, updateClassDetails, removeClass } from "@/utils/classSync/classOperations";
+import { createClass, updateClassDetails, deleteClass } from "@/utils/classSync/classOperations";
 import { checkIsAdmin } from "@/hooks/auth/adminUtils";
 
 interface ClassManagementProps {
@@ -121,7 +122,8 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         description: dbClass.description || '',
         likes: dbClass.likes || [],
         createdAt: dbClass.created_at,
-        updatedAt: dbClass.updated_at || dbClass.created_at // Add updatedAt field with fallback
+        updatedAt: dbClass.updated_at || dbClass.created_at, // Add updatedAt field with fallback
+        assistants: dbClass.assistants || []
       }));
       
       setClasses(formattedClasses);
@@ -160,6 +162,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         students: [],
         isPublic: true,
         likes: [],
+        assistants: [],
         createdAt: currentTime,
         updatedAt: currentTime
       };
@@ -207,7 +210,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   
   const handleDeleteClass = async (classId: string) => {
     try {
-      const success = await removeClass(classId);
+      const success = await deleteClass(classId);
       
       if (success) {
         toast({

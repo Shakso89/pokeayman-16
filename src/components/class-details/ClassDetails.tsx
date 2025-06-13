@@ -43,6 +43,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
   const [isAddAssistantOpen, setIsAddAssistantOpen] = useState(false);
   const [pendingSubmissions, setPendingSubmissions] = useState(0);
   const [schoolPoolDialogOpen, setSchoolPoolDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   // Management dialogs state
   const [managePokemonDialog, setManagePokemonDialog] = useState({
@@ -82,6 +83,8 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         description: t("failed-to-delete-class"),
         variant: "destructive"
       });
+    } finally {
+      setDeleteDialogOpen(false);
     }
   };
 
@@ -244,7 +247,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         onAddStudent={() => setIsStudentListOpen(true)}
         onSwitchToHomework={handleSwitchToHomework}
         pendingSubmissions={pendingSubmissions}
-        onDeleteClass={handleDeleteClass}
+        onDeleteClass={() => setDeleteDialogOpen(true)}
         onViewSchoolPool={() => setSchoolPoolDialogOpen(true)}
         onAddAssistant={() => setIsAddAssistantOpen(true)}
       />
@@ -318,6 +321,9 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         isStudentListOpen={isStudentListOpen}
         onStudentListOpenChange={setIsStudentListOpen}
         onStudentsAdded={handleAddStudents}
+        deleteDialogOpen={deleteDialogOpen}
+        onDeleteDialogOpenChange={setDeleteDialogOpen}
+        onDeleteClass={handleDeleteClass}
         removeStudentDialog={removeStudentDialog}
         onRemoveStudentDialogChange={setRemoveStudentDialog}
         onRemoveStudent={handleRemoveStudent}

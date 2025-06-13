@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { getClassesBySchool, getClassesForUser } from "@/utils/classSync";
+import { getClassesBySchool, getClassesForUser, deleteClass } from "@/utils/classSync";
 import { ClassData } from "@/utils/classSync/types";
 
 interface UseClassManagementProps {
@@ -18,6 +18,8 @@ export const useClassManagement = ({ schoolId, teacherId, directCreateMode }: Us
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [isAddStudentDialogOpen, setIsAddStudentDialogOpen] = useState(false);
   const [availableStudents, setAvailableStudents] = useState([]);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [classToDelete, setClassToDelete] = useState<string | null>(null);
 
   useEffect(() => {
     const username = localStorage.getItem("teacherUsername") || "";
@@ -100,6 +102,37 @@ export const useClassManagement = ({ schoolId, teacherId, directCreateMode }: Us
     }
   };
 
+  const openDeleteDialog = (classId: string) => {
+    setClassToDelete(classId);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const handleDeleteClass = async () => {
+    if (!classToDelete) return;
+    
+    try {
+      const success = await deleteClass(classToDelete);
+      if (success) {
+        toast({
+          title: "Success",
+          description: "Class deleted successfully"
+        });
+        setIsDeleteDialogOpen(false);
+        setClassToDelete(null);
+        refreshClasses();
+      } else {
+        throw new Error("Failed to delete class");
+      }
+    } catch (error) {
+      console.error("Error deleting class:", error);
+      toast({
+        title: "Error",
+        description: "Failed to delete class",
+        variant: "destructive"
+      });
+    }
+  };
+
   return {
     classes,
     loading,
@@ -107,10 +140,15 @@ export const useClassManagement = ({ schoolId, teacherId, directCreateMode }: Us
     successMessage,
     isAddStudentDialogOpen,
     availableStudents,
+    isDeleteDialogOpen,
+    classToDelete,
     setSuccessMessage,
     openAddStudentDialog,
     handleAddStudents,
+    openDeleteDialog,
+    handleDeleteClass,
     setIsAddStudentDialogOpen,
+    setIsDeleteDialogOpen,
     refreshClasses,
   };
 };
