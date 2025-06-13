@@ -11,38 +11,9 @@ export const useClassDetailsWithId = (classId?: string) => {
   const [classData, setClassData] = useState<any>(null);
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [teacherId, setTeacherId] = useState<string>("");
   const [userPermissionLevel, setUserPermissionLevel] = useState<"owner" | "teacher" | "viewer">("viewer");
-  const [pendingSubmissions, setPendingSubmissions] = useState(0);
-
-  // Dialog states for class management
-  const [dialogs, setDialogs] = useState({
-    addStudent: false,
-    removeStudent: { open: false, studentId: "", studentName: "" },
-    managePokemon: { open: false, studentId: "", studentName: "", schoolId: "" },
-    giveCoins: { open: false, studentId: "", studentName: "" },
-    removeCoins: { open: false, studentId: "", studentName: "" },
-    schoolPool: false
-  });
-
-  // Dialog handlers
-  const handlers = {
-    handleAddStudent: () => setDialogs(prev => ({ ...prev, addStudent: true })),
-    handleRemoveStudent: (studentId: string, studentName: string) => 
-      setDialogs(prev => ({ ...prev, removeStudent: { open: true, studentId, studentName } })),
-    handleManagePokemon: (studentId: string, studentName: string, schoolId: string) =>
-      setDialogs(prev => ({ ...prev, managePokemon: { open: true, studentId, studentName, schoolId } })),
-    handleAwardCoins: (studentId: string, studentName: string) =>
-      setDialogs(prev => ({ ...prev, giveCoins: { open: true, studentId, studentName } })),
-    handleRemoveCoins: (studentId: string, studentName: string) =>
-      setDialogs(prev => ({ ...prev, removeCoins: { open: true, studentId, studentName } })),
-    handleViewSchoolPool: () => setDialogs(prev => ({ ...prev, schoolPool: true })),
-    handleRemovePokemon: (studentId: string, studentName: string) => {
-      console.log("Remove pokemon for:", studentName);
-    }
-  };
 
   // Add debugging
   console.log("useClassDetailsWithId - Class ID:", classId);
@@ -75,8 +46,6 @@ export const useClassDetailsWithId = (classId?: string) => {
     
     console.log("useClassDetailsWithId - fetchClassDetails called for ID:", classId);
     setLoading(true);
-    setError(null);
-    
     try {
       const cls = await getClassById(classId);
       console.log("useClassDetailsWithId - getClassById result:", cls);
@@ -127,7 +96,6 @@ export const useClassDetailsWithId = (classId?: string) => {
       }
     } catch (error) {
       console.error("Error fetching class details:", error);
-      setError("Failed to load class details");
       toast({
         title: t("error"),
         description: t("failed-to-load-class-details"),
@@ -166,12 +134,10 @@ export const useClassDetailsWithId = (classId?: string) => {
       } else {
         console.log("useClassDetailsWithId - No class found in localStorage");
         setClassData(null);
-        setError("Class not found");
       }
     } else {
       console.log("useClassDetailsWithId - No saved classes or ID");
       setClassData(null);
-      setError("Class not found");
     }
   };
 
@@ -236,15 +202,11 @@ export const useClassDetailsWithId = (classId?: string) => {
     classData,
     students,
     loading,
-    error,
     isAdmin,
     teacherId,
     userPermissionLevel,
     isClassCreator,
     fetchClassDetails,
-    t,
-    pendingSubmissions,
-    dialogs,
-    handlers
+    t
   };
 };

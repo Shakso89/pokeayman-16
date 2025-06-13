@@ -1,6 +1,6 @@
 
 // Import with correct names from classOperations
-import { createClass as addClass, updateClassDetails as updateClass, getClassById as getClass, getClassesBySchool } from './classOperations';
+import { createClass as addClass, updateClassDetails as updateClass, removeClass, getClassById as getClass, getClassesBySchool } from './classOperations';
 import { addStudentToClass, removeStudentFromClass } from './studentOperations';
 import { subscribeToClass, subscribeToStudent, subscribeToTables, enableRealtimeForTables } from './classSubscription';
 // Correct the import names from classFetching
@@ -10,7 +10,7 @@ import { formatClassData as mapClassData, formatClassesData as mapClassesData, f
 import { handleDatabaseError, showDatabaseError } from './errorHandling';
 
 export {
-  addClass, updateClass, getClass, getClassesBySchool,
+  addClass, updateClass, removeClass, getClass, getClassesBySchool,
   addStudentToClass, removeStudentFromClass,
   subscribeToClass, subscribeToStudent, subscribeToTables, enableRealtimeForTables,
   getAllStudentsForClass, getTeacherClasses,

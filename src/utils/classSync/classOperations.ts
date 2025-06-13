@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { handleDatabaseError } from "./errorHandling";
 import { ClassData, DatabaseClassData } from "./types";
@@ -18,7 +17,7 @@ const toDbFormat = (classData: Partial<ClassData>): Partial<DatabaseClassData> =
   };
 };
 
-// Create a new class with proper syncing
+// Create a new class
 export const createClass = async (classData: Omit<ClassData, "id">): Promise<ClassData | null> => {
   try {
     console.log("Creating class with data:", classData);
@@ -26,19 +25,25 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
     // Create a properly typed object that satisfies Supabase's requirements
     const insertData = {
       name: classData.name,
-      description: classData.description || null,
-      teacher_id: classData.teacherId || null,
+      description: classData.description || null, // Allow empty description
+      teacher_id: classData.teacherId || null, // Set to null for admin users
       school_id: classData.schoolId || null,
       is_public: classData.isPublic || false,
       students: classData.students || [],
       likes: classData.likes || [],
-      assistants: [], // Add assistants field
       created_at: classData.createdAt || new Date().toISOString(),
+      // Don't send updated_at as it doesn't exist in the table schema
     };
     
+    // Check if current user is admin based on localStorage flag
+    const isAdmin = localStorage.getItem("isAdmin") === "true";
+    console.log("Creating class with admin status:", isAdmin);
+    console.log("School ID being used:", classData.schoolId);
+    
+    // Log the data being sent to Supabase
     console.log("Class insert data:", insertData);
     
-    // Always try to create in Supabase first for proper syncing
+    // For regular teachers with valid profiles, use Supabase
     const { data, error } = await supabase
       .from("classes")
       .insert(insertData)
@@ -48,9 +53,10 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
     if (error) {
       console.error("Error creating class in Supabase:", error);
       
-      // Only fallback to localStorage if absolutely necessary
+      // Fallback to localStorage if there's an error
       console.log("Falling back to localStorage for class creation");
       
+      // Generate a UUID for the class
       const id = crypto.randomUUID();
       const currentTime = new Date().toISOString();
       const newClass: ClassData = {
@@ -73,25 +79,19 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
       return newClass;
     }
     
-    console.log("Class created successfully in Supabase:", data);
-    
-    // Also store in localStorage for offline access
-    const formattedClass = formatClassData(data as DatabaseClassData);
-    const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    localStorage.setItem("classes", JSON.stringify([...existingClasses, formattedClass]));
-    
-    return formattedClass;
+    return formatClassData(data as DatabaseClassData);
   } catch (error) {
     console.error("Error creating class:", error);
     return null;
   }
 };
 
-// Update class details with proper syncing
+// Update class details
 export const updateClassDetails = async (classId: string, updates: Partial<ClassData>): Promise<boolean> => {
   try {
     const dbUpdates = toDbFormat(updates);
     
+    // Make sure we have an object that Supabase can handle
     // Remove updated_at as it doesn't exist in the table schema
     const { updated_at, ...safeUpdates } = dbUpdates as any;
     const supabaseUpdates = Object.keys(safeUpdates).length > 0 ? safeUpdates : {};
@@ -121,20 +121,6 @@ export const updateClassDetails = async (classId: string, updates: Partial<Class
       }
     }
     
-    // Also update localStorage
-    try {
-      const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      const updatedClasses = existingClasses.map((cls: ClassData) => {
-        if (cls.id === classId) {
-          return { ...cls, ...updates };
-        }
-        return cls;
-      });
-      localStorage.setItem("classes", JSON.stringify(updatedClasses));
-    } catch (localError) {
-      console.warn("Failed to update localStorage:", localError);
-    }
-    
     return true;
   } catch (error) {
     console.error("Error updating class:", error);
@@ -142,88 +128,101 @@ export const updateClassDetails = async (classId: string, updates: Partial<Class
   }
 };
 
-// Get class by ID
-export const getClassById = async (classId: string): Promise<ClassData | null> => {
+// Remove a class - Updated to work for both teachers and admins
+export const removeClass = async (classId: string): Promise<boolean> => {
   try {
-    // First try Supabase for most up-to-date data
-    const { data, error } = await supabase
-      .from("classes")
-      .select("*")
-      .eq("id", classId)
-      .single();
+    // Check if admin - admins can delete any class
+    const isAdmin = localStorage.getItem("isAdmin") === "true";
+    console.log("Deleting class as admin?", isAdmin);
     
-    if (!error && data) {
-      const formattedClass = formatClassData(data as DatabaseClassData);
+    const { error } = await supabase
+      .from("classes")
+      .delete()
+      .eq("id", classId);
+    
+    if (error) {
+      console.error("Error deleting class in Supabase:", error);
       
-      // Update localStorage with latest data
+      // Fallback to localStorage if Supabase delete fails
       try {
         const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-        const updatedClasses = existingClasses.filter((cls: any) => cls.id !== classId);
-        updatedClasses.push(formattedClass);
-        localStorage.setItem("classes", JSON.stringify(updatedClasses));
-      } catch (localError) {
-        console.warn("Failed to update localStorage:", localError);
+        const filteredClasses = existingClasses.filter((cls: ClassData) => cls.id !== classId);
+        
+        localStorage.setItem("classes", JSON.stringify(filteredClasses));
+        return true;
+      } catch (localStorageError) {
+        return handleDatabaseError(error, false);
       }
-      
-      return formattedClass;
     }
     
-    // Fallback to localStorage
+    return true;
+  } catch (error) {
+    console.error("Error deleting class:", error);
+    return false;
+  }
+};
+
+// Get class by ID - Fix to correctly handle class data format and errors
+export const getClassById = async (classId: string): Promise<ClassData | null> => {
+  try {
+    // First check in localStorage for fallback scenario
     const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
     const foundClass = existingClasses.find((cls: any) => cls.id === classId);
     
+    // If found in localStorage, return it
     if (foundClass) {
       console.log("Found class in localStorage:", foundClass);
+      // Ensure the class has the updatedAt field
       if (!foundClass.updatedAt && foundClass.createdAt) {
         foundClass.updatedAt = foundClass.createdAt;
       }
       return foundClass;
     }
     
-    return null;
+    // Otherwise try to fetch from Supabase
+    const { data, error } = await supabase
+      .from("classes")
+      .select("*")
+      .eq("id", classId)
+      .single();
+    
+    if (error) {
+      console.error("Error fetching class from Supabase:", error);
+      return null;
+    }
+    
+    return formatClassData(data as DatabaseClassData);
   } catch (error) {
     console.error("Error fetching class:", error);
     return null;
   }
 };
 
-// Get all classes for a school with proper syncing
+// Get all classes for a school
 export const getClassesBySchool = async (schoolId: string): Promise<ClassData[]> => {
   try {
     console.log(`Fetching classes for school: ${schoolId}`);
     
-    // First try to get from Supabase for real-time data
+    // First try to get from localStorage to support offline mode
+    const localClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+    const schoolClassesFromLocal = localClasses.filter((cls: ClassData) => cls.schoolId === schoolId);
+    
+    // Also try to get from Supabase
     const { data, error } = await supabase
       .from("classes")
       .select("*")
       .eq("school_id", schoolId);
     
-    let supabaseClasses: ClassData[] = [];
-    
-    if (!error && data) {
-      supabaseClasses = data.map(formatClassData);
-      console.log("Classes from Supabase:", supabaseClasses.length);
-      
-      // Update localStorage with latest data
-      try {
-        const allLocalClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-        // Remove old classes for this school
-        const otherSchoolClasses = allLocalClasses.filter((cls: ClassData) => cls.schoolId !== schoolId);
-        // Add updated classes
-        const updatedClasses = [...otherSchoolClasses, ...supabaseClasses];
-        localStorage.setItem("classes", JSON.stringify(updatedClasses));
-      } catch (localError) {
-        console.warn("Failed to update localStorage:", localError);
-      }
-    } else {
+    if (error) {
       console.error("Error fetching classes from Supabase:", error);
+      return schoolClassesFromLocal; // Return local classes as fallback
     }
     
-    // Also get from localStorage for any classes that might not be in Supabase yet
-    const localClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-    const schoolClassesFromLocal = localClasses.filter((cls: ClassData) => cls.schoolId === schoolId);
+    // Format the Supabase data
+    const supabaseClasses = data.map(formatClassData);
     
     // Merge both sources (prioritizing Supabase data)
+    // This ensures we show all classes whether they're from Supabase or localStorage
     const supabaseIds = new Set(supabaseClasses.map(cls => cls.id));
     const uniqueLocalClasses = schoolClassesFromLocal.filter(cls => !supabaseIds.has(cls.id));
     
@@ -231,7 +230,7 @@ export const getClassesBySchool = async (schoolId: string): Promise<ClassData[]>
   } catch (error) {
     console.error("Error fetching classes:", error);
     
-    // Fallback to localStorage only
+    // Fallback to localStorage
     try {
       const existingClasses = JSON.parse(localStorage.getItem("classes") || "[]");
       return existingClasses.filter((cls: ClassData) => cls.schoolId === schoolId);

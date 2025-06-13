@@ -6,19 +6,20 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { toast } from "@/hooks/use-toast";
-import { ChevronLeft, Plus, User, Users, School } from "lucide-react";
+import { ChevronLeft, Plus, User, Users, School, Trash2 } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { ClassData } from "@/utils/classSync/types";
-import { createClass, updateClassDetails } from "@/utils/classSync/classOperations";
+import { createClass, updateClassDetails, removeClass } from "@/utils/classSync/classOperations";
 import { checkIsAdmin } from "@/hooks/auth/adminUtils";
 
 interface ClassManagementProps {
   onBack: () => void;
   schoolId: string;
   teacherId: string;
-  directCreateMode?: boolean;
+  directCreateMode?: boolean; // New prop to indicate direct creation mode
 }
 
 const ClassManagement: React.FC<ClassManagementProps> = ({ 
@@ -37,6 +38,8 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   });
   const [isAddStudentDialogOpen, setIsAddStudentDialogOpen] = useState(false);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
+  const [classToDelete, setClassToDelete] = useState<string | null>(null);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [availableStudents, setAvailableStudents] = useState<any[]>([]);
   const [selectedStudents, setSelectedStudents] = useState<string[]>([]);
   const [isAdmin, setIsAdmin] = useState(false);
@@ -45,7 +48,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   
   // Check if current user is Admin
   useEffect(() => {
-    const user = null;
+    const user = null; // We don't have access to the user object here
     const username = localStorage.getItem("teacherUsername") || "";
     const email = localStorage.getItem("userEmail") || "";
     const isAdminUser = checkIsAdmin(user, username) || localStorage.getItem("isAdmin") === "true";
@@ -59,11 +62,11 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
     });
   }, []);
   
-  // Load classes on component mount with real-time subscription
+  // Load classes on component mount
   useEffect(() => {
     fetchClasses();
     
-    // Subscribe to class changes for real-time updates
+    // Subscribe to class changes
     const channel = supabase
       .channel('schema-db-changes')
       .on(
@@ -73,9 +76,8 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
           schema: 'public',
           table: 'classes'
         },
-        (payload) => {
-          console.log('Classes table changed:', payload);
-          fetchClasses(); // Refresh classes when any change occurs
+        () => {
+          fetchClasses();
         }
       )
       .subscribe();
@@ -88,6 +90,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   // Auto-focus on class creation when in direct create mode
   useEffect(() => {
     if (directCreateMode) {
+      // If we're in direct create mode, focus on the class name input
       const classNameInput = document.getElementById("className");
       if (classNameInput) {
         classNameInput.focus();
@@ -98,19 +101,17 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   const fetchClasses = async () => {
     setLoading(true);
     try {
-      // Use improved fetching with real-time sync
       const { data, error } = await supabase
         .from('classes')
         .select('*')
-        .eq('school_id', schoolId)
-        .order('created_at', { ascending: false });
+        .eq('school_id', schoolId);
         
       if (error) {
         throw error;
       }
       
       // Map database class format to ClassData
-      const formattedClasses = (data || []).map(dbClass => ({
+      const formattedClasses = data.map(dbClass => ({
         id: dbClass.id || '',
         name: dbClass.name || '',
         schoolId: dbClass.school_id || '',
@@ -120,17 +121,10 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
         description: dbClass.description || '',
         likes: dbClass.likes || [],
         createdAt: dbClass.created_at,
-        updatedAt: dbClass.updated_at || dbClass.created_at
+        updatedAt: dbClass.updated_at || dbClass.created_at // Add updatedAt field with fallback
       }));
       
-      console.log("Fetched classes:", formattedClasses.length);
       setClasses(formattedClasses);
-      
-      // Update localStorage for offline access
-      const allLocalClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-      const otherSchoolClasses = allLocalClasses.filter((cls: any) => cls.schoolId !== schoolId);
-      localStorage.setItem("classes", JSON.stringify([...otherSchoolClasses, ...formattedClasses]));
-      
     } catch (error) {
       console.error("Error fetching classes:", error);
       // Fallback to localStorage
@@ -157,11 +151,12 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       
       const currentTime = new Date().toISOString();
       
+      // Create class data with required and optional fields matching the ClassData type
       const classData = {
         name: newClass.name,
         description: newClass.description || "",
         schoolId,
-        teacherId: isAdmin ? null : teacherId,
+        teacherId: isAdmin ? null : teacherId, // Set teacherId to null for admin users
         students: [],
         isPublic: true,
         likes: [],
@@ -208,6 +203,31 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   // Check if the current teacher is the creator of a class
   const isClassCreator = (classData: ClassData) => {
     return classData.teacherId === teacherId;
+  };
+  
+  const handleDeleteClass = async (classId: string) => {
+    try {
+      const success = await removeClass(classId);
+      
+      if (success) {
+        toast({
+          title: t("success"),
+          description: t("class-deleted-successfully")
+        });
+        
+        setIsDeleteDialogOpen(false);
+        fetchClasses();
+      } else {
+        throw new Error("Failed to delete class");
+      }
+    } catch (error) {
+      console.error("Error deleting class:", error);
+      toast({
+        title: t("error"),
+        description: t("failed-to-delete-class"),
+        variant: "destructive"
+      });
+    }
   };
   
   const openAddStudentDialog = async (classId: string) => {
@@ -466,6 +486,19 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
               <CardHeader>
                 <CardTitle className="flex items-center justify-between">
                   <span>{cls.name}</span>
+                  {(isAdmin || isClassCreator(cls)) && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => {
+                        setClassToDelete(cls.id);
+                        setIsDeleteDialogOpen(true);
+                      }}
+                      className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  )}
                 </CardTitle>
                 {cls.description && (
                   <CardDescription>{cls.description}</CardDescription>
@@ -477,6 +510,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
                   <span>
                     {cls.students?.length || 0} {t("students")}
                   </span>
+                  {/* Show teacher ID if available */}
                   {cls.teacherId && (
                     <div className="flex items-center mt-2 text-xs text-gray-500">
                       <User className="h-4 w-4 mr-1" />
@@ -579,6 +613,27 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Delete Class Confirmation Dialog */}
+      <AlertDialog open={isDeleteDialogOpen} onOpenChange={setIsDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t("delete-class")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t("delete-class-confirmation")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
+            <AlertDialogAction 
+              onClick={() => classToDelete && handleDeleteClass(classToDelete)}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {t("delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

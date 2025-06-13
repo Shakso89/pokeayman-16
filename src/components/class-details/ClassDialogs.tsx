@@ -1,6 +1,7 @@
 
 import React from "react";
 import AddStudentsDialog from "@/components/teacher/class-management/AddStudentsDialog";
+import DeleteClassDialog from "@/components/teacher/class-management/DeleteClassDialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
          AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
@@ -14,6 +15,9 @@ interface ClassDialogsProps {
   isStudentListOpen: boolean;
   onStudentListOpenChange: (open: boolean) => void;
   onStudentsAdded: (studentIds: string[]) => void;
+  deleteDialogOpen: boolean;
+  onDeleteDialogOpenChange: (open: boolean) => void;
+  onDeleteClass: () => void;
   removeStudentDialog: { open: boolean; studentId: string; studentName: string };
   onRemoveStudentDialogChange: (dialog: { open: boolean; studentId: string; studentName: string }) => void;
   onRemoveStudent: (studentId: string) => void;
@@ -37,6 +41,9 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
   isStudentListOpen,
   onStudentListOpenChange,
   onStudentsAdded,
+  deleteDialogOpen,
+  onDeleteDialogOpenChange,
+  onDeleteClass,
   removeStudentDialog,
   onRemoveStudentDialogChange,
   onRemoveStudent,
@@ -63,6 +70,14 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
         isOpen={isStudentListOpen}
         onOpenChange={onStudentListOpenChange}
         onStudentsAdded={onStudentsAdded}
+        classId={classId}
+      />
+
+      {/* Delete Class Dialog */}
+      <DeleteClassDialog
+        isOpen={deleteDialogOpen}
+        onOpenChange={onDeleteDialogOpenChange}
+        onConfirmDelete={onDeleteClass}
         classId={classId}
       />
 

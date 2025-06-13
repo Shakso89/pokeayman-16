@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
@@ -6,19 +5,17 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { removeClass } from "@/utils/classSync/classOperations";
 import { addMultipleStudentsToClass } from "@/utils/classSync/studentOperations";
 import { awardCoinsToStudent, removeCoinsFromStudent } from "@/utils/pokemon/studentPokemon";
 import ClassManagementHeader from "./ClassManagementHeader";
 import StudentsGrid from "./StudentsGrid";
 import ClassTabs from "./ClassTabs";
 import ClassDialogs from "./ClassDialogs";
-import AddAssistantDialog from "./AddAssistantDialog";
 import { useClassDetailsWithId } from "./hooks/useClassDetailsWithId";
-
 interface ClassDetailsProps {
   classId?: string;
 }
-
 const ClassDetails: React.FC<ClassDetailsProps> = ({
   classId
 }) => {
@@ -33,7 +30,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({
     fetchClassDetails,
     t
   } = useClassDetailsWithId(classId);
-  
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [removeStudentDialog, setRemoveStudentDialog] = useState({
     open: false,
     studentId: "",
@@ -43,7 +40,6 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({
   const [isStudentListOpen, setIsStudentListOpen] = useState(false);
   const [pendingSubmissions, setPendingSubmissions] = useState(0);
   const [schoolPoolDialogOpen, setSchoolPoolDialogOpen] = useState(false);
-  const [isAddAssistantOpen, setIsAddAssistantOpen] = useState(false);
 
   // Management dialogs state
   const [managePokemonDialog, setManagePokemonDialog] = useState({
@@ -62,7 +58,28 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({
     studentId: "",
     studentName: ""
   });
-
+  const handleDeleteClass = async () => {
+    if (!classId) return;
+    try {
+      const success = await removeClass(classId);
+      if (success) {
+        toast({
+          title: t("success"),
+          description: t("class-deleted-successfully")
+        });
+        navigate("/teacher-dashboard");
+      } else {
+        throw new Error("Failed to delete class");
+      }
+    } catch (error) {
+      console.error("Error deleting class:", error);
+      toast({
+        title: t("error"),
+        description: t("failed-to-delete-class"),
+        variant: "destructive"
+      });
+    }
+  };
   const handleRemoveStudent = async (studentId: string) => {
     if (!classId || !studentId) return;
     try {
@@ -95,7 +112,6 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({
       });
     }
   };
-  
   const handleAddStudents = async (studentIds: string[]) => {
     if (!classId || !studentIds.length) return;
     try {
@@ -118,7 +134,6 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({
       });
     }
   };
-  
   const handleGiveCoins = (amount: number) => {
     if (!giveCoinsDialog.studentId) return;
     try {
@@ -143,7 +158,6 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({
       });
     }
   };
-  
   const handleRemoveCoins = (amount: number) => {
     if (!removeCoinsDialog.studentId) return;
     try {
@@ -176,18 +190,15 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({
       });
     }
   };
-  
   const handlePokemonRemoved = () => {
     toast({
       title: t("success"),
       description: t("pokemon-removed-successfully")
     });
   };
-  
   const handleSwitchToHomework = () => {
     setActiveTab("homework");
   };
-  
   const handleManagePokemon = () => {
     // Open the manage pokemon dialog for the entire class
     setManagePokemonDialog({
@@ -198,24 +209,15 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({
       schoolId: classData.schoolId || ""
     });
   };
-  
   const handleViewSchoolPool = () => {
     setSchoolPoolDialogOpen(true);
   };
-
-  const handleAssistantAdded = () => {
-    // Refresh class data or show success message
-    console.log("Assistant added successfully");
-    fetchClassDetails();
-  };
-  
   if (loading) {
     return <div className="flex justify-center items-center h-64">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-2">{t("loading")}</span>
       </div>;
   }
-  
   if (!classData) {
     return <div className="container mx-auto py-8 px-4">
         <Card>
@@ -228,25 +230,15 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({
         </Card>
       </div>;
   }
-  
   return <div className="min-h-screen bg-transparent">
       {/* New Management Header */}
-      <ClassManagementHeader 
-        classData={classData} 
-        studentsCount={students.length} 
-        isClassCreator={isClassCreator()} 
-        onAddStudent={() => setIsStudentListOpen(true)} 
-        onSwitchToHomework={handleSwitchToHomework} 
-        pendingSubmissions={pendingSubmissions} 
-        onManagePokemon={handleManagePokemon} 
-        onViewSchoolPool={handleViewSchoolPool}
-        onAddAssistant={() => setIsAddAssistantOpen(true)}
-      />
+      <ClassManagementHeader classData={classData} studentsCount={students.length} isClassCreator={isClassCreator()} onAddStudent={() => setIsStudentListOpen(true)} onSwitchToHomework={handleSwitchToHomework} pendingSubmissions={pendingSubmissions} onDeleteClass={() => setDeleteDialogOpen(true)} onManagePokemon={handleManagePokemon} onViewSchoolPool={handleViewSchoolPool} />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
         {activeTab === "students" ? <div className="space-y-6">
             <div className="flex items-center justify-between">
               <h2 className="text-2xl font-bold text-gray-900">Class Students</h2>
+              {isClassCreator()}
             </div>
             
             <StudentsGrid students={students} isClassCreator={isClassCreator()} onAwardCoins={(studentId, studentName) => setGiveCoinsDialog({
@@ -283,37 +275,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({
       })} onAddStudent={() => setIsStudentListOpen(true)} />}
       </div>
 
-      <ClassDialogs 
-        classId={classId || ""} 
-        isStudentListOpen={isStudentListOpen} 
-        onStudentListOpenChange={setIsStudentListOpen} 
-        onStudentsAdded={handleAddStudents} 
-        removeStudentDialog={removeStudentDialog} 
-        onRemoveStudentDialogChange={setRemoveStudentDialog} 
-        onRemoveStudent={handleRemoveStudent} 
-        isClassCreator={isClassCreator()} 
-        managePokemonDialog={managePokemonDialog} 
-        onManagePokemonDialogChange={setManagePokemonDialog} 
-        onPokemonRemoved={handlePokemonRemoved} 
-        giveCoinsDialog={giveCoinsDialog} 
-        onGiveCoinsDialogChange={setGiveCoinsDialog} 
-        onGiveCoins={handleGiveCoins} 
-        removeCoinsDialog={removeCoinsDialog} 
-        onRemoveCoinsDialogChange={setRemoveCoinsDialog} 
-        onRemoveCoins={handleRemoveCoins} 
-        schoolPoolDialogOpen={schoolPoolDialogOpen} 
-        onSchoolPoolDialogChange={setSchoolPoolDialogOpen} 
-        schoolId={classData.schoolId || ""} 
-      />
-
-      <AddAssistantDialog
-        isOpen={isAddAssistantOpen}
-        onOpenChange={setIsAddAssistantOpen}
-        classId={classId || ""}
-        className={classData.name}
-        onAssistantAdded={handleAssistantAdded}
-      />
+      <ClassDialogs classId={classId || ""} isStudentListOpen={isStudentListOpen} onStudentListOpenChange={setIsStudentListOpen} onStudentsAdded={handleAddStudents} deleteDialogOpen={deleteDialogOpen} onDeleteDialogOpenChange={setDeleteDialogOpen} onDeleteClass={handleDeleteClass} removeStudentDialog={removeStudentDialog} onRemoveStudentDialogChange={setRemoveStudentDialog} onRemoveStudent={handleRemoveStudent} isClassCreator={isClassCreator()} managePokemonDialog={managePokemonDialog} onManagePokemonDialogChange={setManagePokemonDialog} onPokemonRemoved={handlePokemonRemoved} giveCoinsDialog={giveCoinsDialog} onGiveCoinsDialogChange={setGiveCoinsDialog} onGiveCoins={handleGiveCoins} removeCoinsDialog={removeCoinsDialog} onRemoveCoinsDialogChange={setRemoveCoinsDialog} onRemoveCoins={handleRemoveCoins} schoolPoolDialogOpen={schoolPoolDialogOpen} onSchoolPoolDialogChange={setSchoolPoolDialogOpen} schoolId={classData.schoolId || ""} />
     </div>;
 };
-
 export default ClassDetails;
