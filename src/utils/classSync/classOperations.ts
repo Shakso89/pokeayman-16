@@ -23,19 +23,25 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
   try {
     console.log("Creating class with data:", classData);
     
+    // Validate required fields
+    if (!classData.name || !classData.schoolId) {
+      console.error("Missing required fields:", { name: classData.name, schoolId: classData.schoolId });
+      throw new Error("Class name and school ID are required");
+    }
+    
     const insertData = {
-      name: classData.name,
-      description: classData.description || null,
+      name: classData.name.trim(),
+      description: classData.description?.trim() || "",
       teacher_id: classData.teacherId || null,
-      school_id: classData.schoolId || null,
-      is_public: classData.isPublic || false,
+      school_id: classData.schoolId,
+      is_public: classData.isPublic !== false,
       students: classData.students || [],
       likes: classData.likes || [],
       assistants: classData.assistants || [],
       created_at: classData.createdAt || new Date().toISOString(),
     };
     
-    console.log("Class insert data:", insertData);
+    console.log("Inserting class data:", insertData);
     
     const { data, error } = await supabase
       .from("classes")
@@ -44,14 +50,20 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
       .single();
     
     if (error) {
-      console.error("Error creating class in Supabase:", error);
-      return null;
+      console.error("Supabase error creating class:", error);
+      throw new Error(`Database error: ${error.message}`);
     }
     
+    if (!data) {
+      console.error("No data returned from class creation");
+      throw new Error("No data returned from database");
+    }
+    
+    console.log("Class created successfully:", data);
     return formatClassData(data as DatabaseClassData);
   } catch (error) {
     console.error("Error creating class:", error);
-    return null;
+    throw error; // Re-throw to let the caller handle it
   }
 };
 

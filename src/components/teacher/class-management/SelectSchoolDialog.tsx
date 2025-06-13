@@ -107,16 +107,19 @@ export function SelectSchoolDialog({
     
     try {
       const currentTime = new Date().toISOString();
+      const username = localStorage.getItem("teacherUsername") || "";
+      const isAdmin = username === "Admin" || username === "Ayman" || username === "Ayman_1";
       
       // Create class data with required and optional fields
       const classData = {
-        name: newClass.name,
-        description: newClass.description || "",
+        name: newClass.name.trim(),
+        description: newClass.description.trim() || "",
         schoolId: newClass.schoolId,
-        teacherId, // Use the teacherId passed to the component
+        teacherId: isAdmin ? null : teacherId, // Set to null for admin users
         students: [],
         isPublic: true,
         likes: [],
+        assistants: [],
         createdAt: currentTime,
         updatedAt: currentTime
       };
@@ -145,13 +148,13 @@ export function SelectSchoolDialog({
           onClassCreated();
         }
       } else {
-        throw new Error("Failed to create class");
+        throw new Error("Failed to create class - createClass returned null");
       }
     } catch (error) {
       console.error("Error creating class:", error);
       toast({
         title: t("error"),
-        description: t("failed-to-create-class"),
+        description: error instanceof Error ? error.message : t("failed-to-create-class"),
         variant: "destructive"
       });
     } finally {
