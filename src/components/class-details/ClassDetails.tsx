@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
@@ -15,6 +14,7 @@ import ClassTabs from "./ClassTabs";
 import ClassDialogs from "./ClassDialogs";
 import AddAssistantDialog from "@/components/dialogs/AddAssistantDialog";
 import { useClassDetailsWithId } from "./hooks/useClassDetailsWithId";
+import ClassTeachers from "./ClassTeachers";
 
 interface ClassDetailsProps {
   classId?: string;
@@ -259,33 +259,41 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
               <h2 className="text-2xl font-bold text-gray-900">Class Students</h2>
             </div>
             
-            <StudentsGrid
-              students={students}
-              isClassCreator={isClassCreator()}
-              onAwardCoins={(studentId, studentName) => setGiveCoinsDialog({
-                open: true,
-                studentId,
-                studentName
-              })}
-              onManagePokemon={(studentId, studentName, schoolId) => setManagePokemonDialog({
-                open: true,
-                studentId,
-                studentName,
-                schoolId
-              })}
-              onRemoveStudent={(studentId, studentName) => setRemoveStudentDialog({
-                open: true,
-                studentId,
-                studentName
-              })}
-              onRemoveCoins={(studentId, studentName) => setRemoveCoinsDialog({
-                open: true,
-                studentId,
-                studentName
-              })}
-              onRemovePokemon={(studentId, studentName) => console.log("Remove pokemon:", studentName)}
-              classData={classData}
-            />
+            <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+              <div className="lg:col-span-3">
+                <StudentsGrid
+                  students={students}
+                  isClassCreator={isClassCreator()}
+                  onAwardCoins={(studentId, studentName) => setGiveCoinsDialog({
+                    open: true,
+                    studentId,
+                    studentName
+                  })}
+                  onManagePokemon={(studentId, studentName, schoolId) => setManagePokemonDialog({
+                    open: true,
+                    studentId,
+                    studentName,
+                    schoolId
+                  })}
+                  onRemoveStudent={(studentId, studentName) => setRemoveStudentDialog({
+                    open: true,
+                    studentId,
+                    studentName
+                  })}
+                  onRemoveCoins={(studentId, studentName) => setRemoveCoinsDialog({
+                    open: true,
+                    studentId,
+                    studentName
+                  })}
+                  onRemovePokemon={(studentId, studentName) => console.log("Remove pokemon:", studentName)}
+                  classData={classData}
+                />
+              </div>
+              
+              <div className="lg:col-span-1">
+                <ClassTeachers classData={classData} />
+              </div>
+            </div>
           </div>
         ) : (
           <ClassTabs

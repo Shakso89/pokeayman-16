@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate, useNavigate } from "react-router-dom";
 import { ChevronLeft } from "lucide-react";
@@ -147,7 +146,6 @@ const TeacherDashboard: React.FC = () => {
                 onCreateClass={() => {}}
                 teacherId={teacherId || ""}
                 isAdmin={isAdmin}
-                onManageSharedClasses={() => {}} // Remove shared classes functionality
               />
             </motion.div>
           </>

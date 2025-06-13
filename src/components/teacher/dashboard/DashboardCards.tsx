@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Plus, Users, School, GraduationCap, BookOpen, Shield, Coins, Share } from "lucide-react";
+import { Plus, Users, School, GraduationCap, BookOpen, Shield, Coins } from "lucide-react";
 import { useUserRole } from "@/hooks/useUserRole";
 import { getRoleDisplayName, getRoleBadgeColor } from "@/types/roles";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,6 @@ interface DashboardCardsProps {
   isAdmin: boolean;
   onNavigateToClass?: (classId: string) => void;
   onAddStudent: () => void;
-  onManageSharedClasses?: () => void;
 }
 
 const DashboardCards: React.FC<DashboardCardsProps> = ({
@@ -23,8 +22,7 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({
   onManageClasses,
   isAdmin,
   onNavigateToClass,
-  onAddStudent,
-  onManageSharedClasses
+  onAddStudent
 }) => {
   const { userRole, permissions } = useUserRole();
   const navigate = useNavigate();
@@ -114,26 +112,6 @@ const DashboardCards: React.FC<DashboardCardsProps> = ({
           </CardContent>
         </Card>
       )}
-
-      {/* Shared Classes Card - All teachers */}
-      <Card 
-        className="cursor-pointer hover:shadow-md transition-shadow" 
-        onClick={onManageSharedClasses}
-      >
-        <CardHeader className="pb-3">
-          <CardTitle className="flex items-center gap-2 text-lg">
-            <Share className="h-5 w-5 text-indigo-500" />
-            Shared Classes
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          <p className="text-sm text-gray-600">Share classes with other teachers and manage collaboration</p>
-          <Button className="mt-3 w-full" variant="outline">
-            <Share className="h-4 w-4 mr-2" />
-            Manage Sharing
-          </Button>
-        </CardContent>
-      </Card>
 
       {/* Admin Panel Card - Admin only */}
       {permissions.canAssignRoles && (
