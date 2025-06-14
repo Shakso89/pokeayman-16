@@ -31,7 +31,6 @@ const getStarOfClass = (studentId: string, classes: any[]): boolean => {
 };
 const getStudent = (studentId: string) => {
   const students = JSON.parse(localStorage.getItem("students") || "[]");
-  // Show result info for debugging
   const found = students.find((s: any) => s.id === studentId);
   if (!found) {
     console.warn("[StudentDetailPage] Student ID not found in localStorage:", studentId, students);
@@ -39,8 +38,11 @@ const getStudent = (studentId: string) => {
   return found || null;
 };
 const getSchool = (schoolId: string) => {
+  if (!schoolId) {
+    console.warn("[StudentDetailPage] Student has no schoolId.");
+    return null;
+  }
   const schools = JSON.parse(localStorage.getItem("schools") || "[]");
-  // Accept both string and number, allow loose matching for debugging
   const result = schools.find((s: any) => s.id === schoolId);
   if (!result) {
     console.warn("[StudentDetailPage] School not found with schoolId:", schoolId, schools.map((s:any)=>s.id));
@@ -57,7 +59,6 @@ const getClasses = (studentId: string, schoolId: string) => {
 
   // If nothing found by studentClasses, try looking via student.class_id
   if (filtered.length === 0) {
-    // See if student has class_id property (possibly comma separated)
     const students = JSON.parse(localStorage.getItem("students") || "[]");
     const stu = students.find((s: any) => s.id === studentId);
     let studentClassIds: string[] = [];
@@ -65,6 +66,8 @@ const getClasses = (studentId: string, schoolId: string) => {
       const idsString = stu.classId || stu.class_id;
       if (typeof idsString === "string") {
         studentClassIds = idsString.split(",").map((id) => id.trim()).filter(Boolean);
+      } else if (Array.isArray(idsString)) {
+        studentClassIds = idsString;
       }
     }
     filtered = allClasses.filter(
@@ -73,7 +76,6 @@ const getClasses = (studentId: string, schoolId: string) => {
         c.schoolId === (stu?.schoolId || stu?.school_id || schoolId)
     );
   }
-
   if (filtered.length === 0) {
     console.warn(
       "[StudentDetailPage] No classes found for studentId:",
@@ -106,11 +108,20 @@ const StudentDetailPage: React.FC = () => {
     if (!stu) {
       return;
     }
-    // Accept both schoolId and school_id, allow fallback to student property
-    const sch = getSchool(stu.schoolId || stu.school_id);
-    setSchool(sch);
 
-    const cls = getClasses(stu.id, sch?.id || stu.schoolId || stu.school_id);
+    // Prioritize: stu.schoolId, stu.school_id, and fallback to first school if only one exists
+    let resolvedSchoolId = stu.schoolId || stu.school_id;
+    if (!resolvedSchoolId) {
+      const schools = JSON.parse(localStorage.getItem("schools") || "[]");
+      if (schools.length === 1) {
+        resolvedSchoolId = schools[0].id;
+        console.info("[StudentDetailPage] Only one school found, defaulting student to school:", resolvedSchoolId);
+      }
+    }
+    setSchool(getSchool(resolvedSchoolId));
+
+    // Robust class matching (pass resolvedSchoolId!)
+    const cls = getClasses(stu.id, resolvedSchoolId);
     setClasses(cls);
 
     setPokemons(getPokemons(stu.id));
@@ -157,9 +168,8 @@ const StudentDetailPage: React.FC = () => {
       if (
         typeof name === "string" &&
         name.trim().length > 1 &&
-        // Don't display raw IDs
-        !/^\d{6,}$/.test(name.trim()) &&      // No all-numeric IDs
-        !/^[a-f0-9\-]{20,}$/.test(name.trim()) // No UUID style
+        !/^\d+$/g.test(name.trim()) &&
+        !/^[a-f0-9\-]{20,}$/.test(name.trim()) // avoid pure UUID/number
       ) {
         return name.trim();
       }
@@ -199,12 +209,12 @@ const StudentDetailPage: React.FC = () => {
           </div>
 
           {/* School & Classes section at the bottom */}
-          <div className="mt-6 border-t pt-6">
+          <div className="mt-6 border-t pt-6" data-debug="school-and-classes">
             <h3 className="font-bold text-lg mb-2">School & Classes</h3>
             {school ? (
               <div className="mb-3 flex items-center gap-2 text-blue-700 font-medium">
                 <School className="h-5 w-5" />
-                {school.name}
+                {school?.name || <span className="text-gray-500">No school name</span>}
               </div>
             ) : (
               <div className="mb-3 text-gray-500">No school assigned</div>
