@@ -8,6 +8,7 @@ import StudentProfileAchievements from "@/components/student-profile/StudentProf
 import StudentProfileSchoolClasses from "@/components/student-profile/StudentProfileSchoolClasses";
 import { ProfileHeader } from "@/components/student-profile/ProfileHeader";
 import { School, Users } from "lucide-react";
+import AppHeader from "@/components/AppHeader";
 
 const getPokemons = (studentId: string) => {
   const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
@@ -213,70 +214,78 @@ const StudentDetailPage: React.FC = () => {
   
   const displayName = getNiceDisplayName(student);
 
+  // For header (prefer displayName, else username)
+  const username = student?.username || student?.displayName || "Student";
+  const userAvatar = student?.avatar;
+
   return (
-    <div className="container max-w-3xl py-8 mx-auto">
-      <ProfileHeader title="Student Profile" onBack={handleBack} />
+    <>
+      <AppHeader userType="student" userName={username} userAvatar={userAvatar} />
+      <div className="container max-w-3xl py-8 mx-auto">
+        {/* Keep old ProfileHeader for now (you may want to visually replace/remove it later) */}
+        <ProfileHeader title="Student Profile" onBack={handleBack} />
 
-      <Card>
-        <CardContent>
-          {/* Student profile basic info, avatar, name */}
-          <StudentProfileBasicInfo
-            displayName={displayName}
-            avatar={student.avatar}
-            school={school ? { id: school.id, name: school.name } : undefined}
-            classes={classes.map((c: any) => ({ id: c.id, name: c.name }))}
-            isStarOfClass={isStarOfClass}
-          />
-
-          <StudentProfileCoins coins={coins} />
-
-          <div className="mt-6">
-            <h3 className="font-bold text-lg mb-2">Pokémon Collection</h3>
-            <StudentProfilePokemonList pokemons={pokemons} />
-          </div>
-
-          <div className="mt-6">
-            <h3 className="font-bold text-lg mb-2">Achievements</h3>
-            <StudentProfileAchievements 
-              homeworkStreak={homeworkStreak}
+        <Card>
+          <CardContent>
+            {/* Student profile basic info, avatar, name */}
+            <StudentProfileBasicInfo
+              displayName={displayName}
+              avatar={student.avatar}
+              school={school ? { id: school.id, name: school.name } : undefined}
+              classes={classes.map((c: any) => ({ id: c.id, name: c.name }))}
               isStarOfClass={isStarOfClass}
             />
-          </div>
 
-          {/* School & Classes section at the bottom */}
-          <div className="mt-6 border-t pt-6" data-debug="school-and-classes">
-            <h3 className="font-bold text-lg mb-2">School & Classes</h3>
-            {school ? (
-              <div className="mb-3 flex items-center gap-2 text-blue-700 font-medium">
-                <School className="h-5 w-5" />
-                {school?.name || <span className="text-gray-500">No school name</span>}
-              </div>
-            ) : (
-              <div className="mb-3 text-gray-500">No school assigned</div>
-            )}
-            {classes.length > 0 ? (
-              <div className="flex flex-col gap-2">
-                {classes.map((c) => (
-                  <div
-                    key={c.id}
-                    className="p-2 rounded bg-purple-100 text-purple-800 cursor-pointer hover:bg-purple-200 flex items-center gap-2"
-                    onClick={() => navigate(`/class/${c.id}`)}
-                  >
-                    <Users className="w-4 h-4" />
-                    <span className="font-medium">{c.name}</span>
-                    {c.description && (
-                      <span className="text-xs text-gray-500 ml-2">{c.description}</span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            ) : (
-              <div className="text-gray-500">Not assigned to any classes</div>
-            )}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+            <StudentProfileCoins coins={coins} />
+
+            <div className="mt-6">
+              <h3 className="font-bold text-lg mb-2">Pokémon Collection</h3>
+              <StudentProfilePokemonList pokemons={pokemons} />
+            </div>
+
+            <div className="mt-6">
+              <h3 className="font-bold text-lg mb-2">Achievements</h3>
+              <StudentProfileAchievements 
+                homeworkStreak={homeworkStreak}
+                isStarOfClass={isStarOfClass}
+              />
+            </div>
+
+            {/* School & Classes section at the bottom */}
+            <div className="mt-6 border-t pt-6" data-debug="school-and-classes">
+              <h3 className="font-bold text-lg mb-2">School & Classes</h3>
+              {school ? (
+                <div className="mb-3 flex items-center gap-2 text-blue-700 font-medium">
+                  <School className="h-5 w-5" />
+                  {school?.name || <span className="text-gray-500">No school name</span>}
+                </div>
+              ) : (
+                <div className="mb-3 text-gray-500">No school assigned</div>
+              )}
+              {classes.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {classes.map((c) => (
+                    <div
+                      key={c.id}
+                      className="p-2 rounded bg-purple-100 text-purple-800 cursor-pointer hover:bg-purple-200 flex items-center gap-2"
+                      onClick={() => navigate(`/class/${c.id}`)}
+                    >
+                      <Users className="w-4 h-4" />
+                      <span className="font-medium">{c.name}</span>
+                      {c.description && (
+                        <span className="text-xs text-gray-500 ml-2">{c.description}</span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-gray-500">Not assigned to any classes</div>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    </>
   );
 };
 

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -13,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { ProfileTabs } from "@/components/teacher-profile/ProfileTabs";
 import { useTeacherProfile } from "@/hooks/useTeacherProfile";
+import AppHeader from "@/components/AppHeader";
 
 const TeacherProfilePage: React.FC = () => {
   const { teacherId } = useParams();
@@ -122,6 +122,10 @@ const TeacherProfilePage: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
+  // NEW: Gather header props
+  const username = teacher?.username || "";
+  const userAvatar = teacher?.avatar || "";
+  
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
@@ -146,6 +150,8 @@ const TeacherProfilePage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+      {/* Add the unified AppHeader at the top */}
+      <AppHeader userType="teacher" userName={username} userAvatar={userAvatar} />
       <div className="container mx-auto px-4 py-8">
         {/* Header */}
         <div className="flex items-center justify-between mb-6">
