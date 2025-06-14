@@ -44,11 +44,8 @@ const MysteryBallHistoryDatabase: React.FC<MysteryBallHistoryDatabaseProps> = ({
   };
 
   const handlePokemonClick = (historyItem: MysteryBallHistoryRecord) => {
-    if (historyItem.result_type === 'pokemon' && historyItem.pokemon_name) {
-      setSelectedPokemon({
-        name: historyItem.pokemon_name,
-        id: historyItem.pokemon_id
-      });
+    if (historyItem.type === 'pokemon' && historyItem.pokemon_data) {
+      setSelectedPokemon(historyItem.pokemon_data);
       setShowPokemonDialog(true);
     }
   };
@@ -96,22 +93,22 @@ const MysteryBallHistoryDatabase: React.FC<MysteryBallHistoryDatabaseProps> = ({
             <Card key={record.id} className="overflow-hidden">
               <CardContent className="p-4">
                 <div className="flex items-center gap-4">
-                  {record.result_type === "pokemon" && (
+                  {record.type === "pokemon" && record.pokemon_data && (
                     <div 
                       className="w-16 h-16 bg-gray-100 rounded-md p-1 flex-shrink-0 cursor-pointer flex items-center justify-center"
                       onClick={() => handlePokemonClick(record)}
                     >
-                      <span className="text-sm text-center">{record.pokemon_name}</span>
+                      <span className="text-sm text-center">{record.pokemon_data.name}</span>
                     </div>
                   )}
-                  {record.result_type === "coins" && (
+                  {record.type === "coins" && (
                     <div className="w-16 h-16 bg-amber-100 rounded-md flex items-center justify-center flex-shrink-0">
                       <span className="text-amber-700 font-bold">
                         +{record.coins_amount}
                       </span>
                     </div>
                   )}
-                  {record.result_type === "nothing" && (
+                  {record.type === "nothing" && (
                     <div className="w-16 h-16 bg-gray-100 rounded-md flex items-center justify-center flex-shrink-0">
                       <span className="text-gray-500">-</span>
                     </div>
@@ -120,8 +117,8 @@ const MysteryBallHistoryDatabase: React.FC<MysteryBallHistoryDatabaseProps> = ({
                   <div className="flex-1">
                     <div className="flex justify-between">
                       <p className="font-medium">
-                        {record.result_type === "pokemon" ? record.pokemon_name : 
-                         record.result_type === "coins" ? `${record.coins_amount} ${t("coins")}` : 
+                        {record.type === "pokemon" ? record.pokemon_data?.name : 
+                         record.type === "coins" ? `${record.coins_amount} ${t("coins")}` : 
                          t("nothing-found")}
                       </p>
                       <span className="text-xs text-gray-500">{formatDate(record.created_at)}</span>

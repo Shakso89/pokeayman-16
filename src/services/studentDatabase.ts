@@ -272,6 +272,44 @@ export const getStudentProfileById = async (studentId: string): Promise<StudentP
   }
 };
 
+// Add missing functions
+export const addPokemonToCollection = async (
+  studentId: string,
+  pokemon: Pokemon
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('pokemon_collections')
+      .insert({
+        student_id: studentId,
+        pokemon_id: pokemon.id,
+        pokemon_name: pokemon.name,
+        pokemon_image: pokemon.image,
+        pokemon_type: pokemon.type,
+        pokemon_rarity: pokemon.rarity,
+        pokemon_level: 1
+      });
+
+    if (error) {
+      console.error('Error adding pokemon to collection:', error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error('Error in addPokemonToCollection:', error);
+    return false;
+  }
+};
+
+export const assignPokemonFromPool = async (
+  schoolId: string,
+  studentId: string,
+  pokemonId: string
+): Promise<{ success: boolean; pokemon?: Pokemon }> => {
+  return assignPokemonFromSchoolPool(schoolId, studentId);
+};
+
 // Add mystery ball history functions
 export const addMysteryBallHistory = async (
   studentId: string,
@@ -287,11 +325,11 @@ export const addMysteryBallHistory = async (
     
     const newEntry = {
       id: `${Date.now()}_${Math.random()}`,
-      studentId,
-      date: new Date().toISOString(),
+      student_id: studentId,
+      created_at: new Date().toISOString(),
       type,
-      pokemonData: pokemon,
-      coinsAmount
+      pokemon_data: pokemon,
+      coins_amount: coinsAmount
     };
     
     history.unshift(newEntry);
@@ -498,7 +536,12 @@ export const getStudentsByClass = async (classId: string): Promise<StudentProfil
       return [];
     }
 
-    return data.map(item => item.student_profiles).filter(Boolean) as StudentProfile[];
+    // Properly handle the nested structure and filter out nulls
+    const profiles = data
+      .map(item => item.student_profiles)
+      .filter((profile): profile is StudentProfile => profile !== null);
+
+    return profiles;
   } catch (error) {
     console.error('Error in getStudentsByClass:', error);
     return [];

@@ -11,7 +11,7 @@ import {
   addMysteryBallHistory,
   checkDailyAttempt,
   useDailyAttempt,
-  assignPokemonFromPool
+  assignPokemonFromSchoolPool
 } from "@/services/studentDatabase";
 
 interface MysteryBallDatabaseProps {
@@ -91,10 +91,7 @@ const MysteryBallDatabase: React.FC<MysteryBallDatabaseProps> = ({
       try {
         if (random < 0.6 && schoolPokemons.length > 0) {
           // Pokemon result
-          const randomIndex = Math.floor(Math.random() * schoolPokemons.length);
-          const pokemon = schoolPokemons[randomIndex];
-
-          const assignResult = await assignPokemonFromPool(schoolId, studentId, pokemon.id);
+          const assignResult = await assignPokemonFromSchoolPool(schoolId, studentId);
           
           if (assignResult.success && assignResult.pokemon) {
             setResult("pokemon");

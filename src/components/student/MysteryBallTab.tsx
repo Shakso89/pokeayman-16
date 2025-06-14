@@ -284,8 +284,11 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       {/* Result Modal */}
       {showResult && lastResult && (
         <MysteryBallResult
-          result={lastResult}
+          isOpen={showResult}
           onClose={handleCloseResult}
+          result={lastResult}
+          pokemon={lastResult.type === 'pokemon' ? lastResult.pokemon : null}
+          coins={lastResult.type === 'coins' ? lastResult.amount : 0}
         />
       )}
     </div>
