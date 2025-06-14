@@ -108,12 +108,12 @@ const StudentDetailPage: React.FC = () => {
     );
   }
 
-  // Get display name (prefer displayName/display_name, fallback username)
+  // Get display name (prefer displayName/display_name, fallback username, NEVER show id)
   const displayName =
-    student.displayName ||
-    student.display_name ||
-    student.username ||
-    sid;
+    student?.displayName?.trim() ||
+    student?.display_name?.trim() ||
+    student?.username?.trim() ||
+    "Unnamed Student";
 
   return (
     <div className="container max-w-3xl py-8 mx-auto">
@@ -122,6 +122,7 @@ const StudentDetailPage: React.FC = () => {
 
       <Card>
         <CardContent>
+          {/* Pass correct displayName below */}
           <StudentProfileBasicInfo
             displayName={displayName}
             avatar={student.avatar}
