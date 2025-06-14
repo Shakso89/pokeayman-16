@@ -44,17 +44,23 @@ const TeacherProfilePage: React.FC = () => {
   useEffect(() => {
     const loadStats = async () => {
       if (!teacherId) return;
-      
+
       try {
-        // Load classes count
-        const { data: classes, error: classesError } = await supabase
+        // Fetch ALL classes and filter where teacherId or assistants includes teacherId
+        const { data: allClasses, error: classesError } = await supabase
           .from('classes')
-          .select('*')
-          .eq('teacher_id', teacherId);
+          .select('id, teacher_id, assistants');
 
         if (classesError) throw classesError;
 
-        // Load students count
+        // Filter for classes where teacher_id matches or assistants include teacherId
+        const filteredClasses = (allClasses || []).filter(
+          (cls: any) =>
+            cls.teacher_id === teacherId ||
+            (Array.isArray(cls.assistants) && cls.assistants.includes(teacherId))
+        );
+
+        // Students count (same as before, or you could also update with class data if needed)
         const { data: students, error: studentsError } = await supabase
           .from('students')
           .select('*')
@@ -62,7 +68,7 @@ const TeacherProfilePage: React.FC = () => {
 
         if (studentsError) throw studentsError;
 
-        // Load teacher join date
+        // Teacher join date
         const { data: teacherData } = await supabase
           .from('teachers')
           .select('created_at')
@@ -70,7 +76,7 @@ const TeacherProfilePage: React.FC = () => {
           .single();
 
         setStats({
-          totalClasses: classes?.length || 0,
+          totalClasses: filteredClasses.length,
           totalStudents: students?.length || 0,
           joinedDate: teacherData?.created_at ? new Date(teacherData.created_at).toLocaleDateString() : ''
         });
