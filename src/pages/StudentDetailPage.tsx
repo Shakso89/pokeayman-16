@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -81,6 +80,15 @@ const StudentDetailPage: React.FC = () => {
     setIsStarOfClass(getStarOfClass(stu.id, cls));
   }, [sid]);
 
+  // New: Custom back handler for teacher - go to first class or fallback
+  function handleBack() {
+    if (classes && classes.length > 0) {
+      navigate(`/class/${classes[0].id}`);
+    } else {
+      navigate(-1);
+    }
+  }
+
   if (!sid) return <Navigate to="/" />;
 
   if (!student) {
@@ -100,49 +108,22 @@ const StudentDetailPage: React.FC = () => {
     );
   }
 
+  // Get display name (prefer displayName/display_name, fallback username)
+  const displayName =
+    student.displayName ||
+    student.display_name ||
+    student.username ||
+    sid;
+
   return (
     <div className="container max-w-3xl py-8 mx-auto">
-      {/* Profile header with back button and title */}
-      <ProfileHeader title="Student Profile" />
-
-      {/* Prominent: school and class info section */}
-      <div className="flex flex-col md:flex-row gap-3 items-center justify-between bg-blue-50 rounded-lg p-4 mb-6">
-        <div className="flex items-center gap-2">
-          <School className="h-5 w-5 text-blue-700" />
-          {school && (
-            <span
-              className="font-bold text-blue-800 cursor-pointer hover:underline"
-              onClick={() => navigate(`/school/${school.id}`)}
-              title="View School"
-            >
-              {school.name}
-            </span>
-          )}
-        </div>
-
-        <div className="flex items-center gap-2 flex-wrap">
-          <Users className="h-5 w-5 text-purple-700" />
-          {classes && classes.length > 0 ? (
-            classes.map((c: any, i: number) => (
-              <span
-                key={c.id}
-                className="font-semibold text-purple-800 bg-purple-100 px-2 py-1 rounded cursor-pointer hover:bg-purple-200 mr-1"
-                onClick={() => navigate(`/class/${c.id}`)}
-                title="View Class"
-              >
-                {c.name}
-              </span>
-            ))
-          ) : (
-            <span className="text-gray-500">No classes</span>
-          )}
-        </div>
-      </div>
+      {/* Profile header with custom back handler */}
+      <ProfileHeader title="Student Profile" onBack={handleBack} />
 
       <Card>
         <CardContent>
           <StudentProfileBasicInfo
-            displayName={student.displayName || student.display_name || student.username}
+            displayName={displayName}
             avatar={student.avatar}
             school={school ? { id: school.id, name: school.name } : undefined}
             classes={classes.map((c: any) => ({ id: c.id, name: c.name }))}
@@ -164,6 +145,7 @@ const StudentDetailPage: React.FC = () => {
             />
           </div>
 
+          {/* Move School & Classes here */}
           <div className="mt-6">
             <h3 className="font-bold text-lg mb-2">School & Classes</h3>
             <StudentProfileSchoolClasses 
