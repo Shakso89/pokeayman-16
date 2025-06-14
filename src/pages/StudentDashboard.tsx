@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -24,34 +23,30 @@ const StudentDashboard: React.FC = () => {
   const userType = localStorage.getItem("userType");
   const studentName = localStorage.getItem("studentName") || "Student";
   const studentId = localStorage.getItem("studentId") || "";
-  const classId = localStorage.getItem("studentClassId") || "";
   const schoolId = localStorage.getItem("studentSchoolId") || "default-school-1";
   const { t } = useTranslation();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   
-  // Use the new database hook
   const { profile, pokemons, coins, spentCoins, isLoading: dataLoading, refreshData } = useStudentData(
     studentId, 
-    undefined, // userId - would need to get from auth
+    undefined, 
     localStorage.getItem("studentName") || undefined
   );
   
   const [schoolPokemons, setSchoolPokemons] = useState<Pokemon[]>([]);
   const [activeTab, setActiveTab] = useState("home");
   const [activeBattles, setActiveBattles] = useState<any[]>([]);
-  const [avatar, setAvatar] = useState<string | null>(null);
   const [showSchoolPool, setShowSchoolPool] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingPool, setIsLoadingPool] = useState(false);
 
   useEffect(() => {
     console.log("StudentDashboard loaded with:", {
       studentId,
-      classId,
-      schoolId
+      schoolId,
+      profileClassId: profile?.class_id
     });
 
-    // Check for tab parameter in URL
     const tabParam = searchParams.get('tab');
     if (tabParam) {
       setActiveTab(tabParam);
@@ -63,63 +58,64 @@ const StudentDashboard: React.FC = () => {
     if (schoolId) {
       loadSchoolPokemonPool();
     }
-  }, [studentId, schoolId, searchParams]);
+  }, [studentId, schoolId, searchParams, profile?.class_id]);
 
   const loadSchoolPokemonPool = async () => {
     const currentSchoolId = schoolId || "default-school-1";
     console.log("Loading school pokemon pool for:", currentSchoolId);
-    
+    setIsLoadingPool(true);
     try {
       const pool = await getSchoolPokemonPool(currentSchoolId);
       setSchoolPokemons(pool);
     } catch (error) {
       console.error("Error loading school pokemon pool:", error);
       setSchoolPokemons([]);
+    } finally {
+      setIsLoadingPool(false);
     }
   };
 
   const loadActiveBattles = () => {
-    if (!studentId || !classId || !schoolId) return;
+    if (!studentId || !schoolId) return; 
+    const studentClasses = profile?.class_id ? profile.class_id.split(',') : [];
+
     const savedBattles = localStorage.getItem("battles");
     const allBattles = savedBattles ? JSON.parse(savedBattles) : [];
 
-    // Filter battles relevant to this student
     const relevantBattles = allBattles.filter((battle: any) => {
-      const isRelevant = battle.schoolId === schoolId && (!battle.classId || battle.classId === classId);
+      const isSchoolMatch = battle.schoolId === schoolId;
+      const isClassMatch = !battle.classId || studentClasses.includes(battle.classId);
       const isActive = battle.status === "active";
       const isNotExpired = new Date(battle.timeLimit).getTime() > Date.now();
-      return isRelevant && isActive && isNotExpired;
+      return isSchoolMatch && isClassMatch && isActive && isNotExpired;
     });
     setActiveBattles(relevantBattles);
   };
 
-  // Handle Pokemon won event
   const handlePokemonWon = (pokemon: Pokemon) => {
     console.log("Pokemon won:", pokemon);
     toast({
-      title: "Congratulations",
-      description: `You got a new Pokemon: ${pokemon.name}!`
+      title: t("congratulations"),
+      description: t("new-pokemon-toast").replace("{pokemonName}", pokemon.name)
     });
     refreshData();
     loadSchoolPokemonPool();
   };
 
-  // Handle coins won event
   const handleCoinsWon = (amount: number) => {
     console.log("Coins won:", amount);
     toast({
-      title: "Congratulations",
-      description: `You got ${amount} coins!`
+      title: t("congratulations"),
+      description: t("coins-won-toast").replace("{amount}", amount.toString())
     });
     refreshData();
   };
 
-  // Handle refresh pool
   const handleRefreshPool = () => {
-    setIsLoading(true);
+    setIsLoadingPool(true);
     setTimeout(() => {
       loadSchoolPokemonPool();
-      setIsLoading(false);
+      setIsLoadingPool(false);
     }, 1000);
   };
 
@@ -135,19 +131,20 @@ const StudentDashboard: React.FC = () => {
     return <Navigate to="/student-login" />;
   }
 
+  const avatar = profile?.avatar_url || localStorage.getItem("studentAvatar") || undefined;
+
   return (
     <div className="min-h-screen bg-transparent">
-      <NavBar userType="student" userName={studentName} userAvatar={avatar || undefined} />
+      <NavBar userType="student" userName={profile?.display_name || studentName} userAvatar={avatar} />
       
       <div className="container mx-auto py-8 px-4">
         <StudentHeader 
-          studentName={studentName} 
+          studentName={profile?.display_name || studentName} 
           coins={coins} 
           activeBattles={activeBattles} 
           onOpenSchoolPool={() => setShowSchoolPool(true)} 
         />
         
-        {/* Rankings button */}
         <div className="flex justify-end mt-4">
           <Link to="/student/rankings">
             <Button variant="outline" className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg rounded-full shadow-md border-2 border-orange-300 flex items-center gap-2 transform hover:scale-105 transition-all">
@@ -161,18 +158,18 @@ const StudentDashboard: React.FC = () => {
           <Tabs defaultValue="home" className="w-full mt-8" value={activeTab} onValueChange={setActiveTab}>
             <TabsList className="grid w-full grid-cols-4 mb-8 p-2 rounded-full bg-transparent">
               <TabsTrigger value="home" className="data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all">
-                Home
+                {t("home-tab")}
               </TabsTrigger>
               <TabsTrigger value="my-pokemons" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all">
-                My Pokémon
+                {t("my-pokemon-tab")}
               </TabsTrigger>
               <TabsTrigger value="mystery-ball" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all flex items-center justify-center gap-2">
                 <Package className="h-5 w-5" />
-                Mystery Ball
+                {t("mystery-ball-tab")}
               </TabsTrigger>
               <TabsTrigger value="my-classes" className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all flex items-center justify-center gap-2">
                 <Users className="h-5 w-5" />
-                My Class
+                {t("my-class-tab")}
               </TabsTrigger>
             </TabsList>
             
@@ -188,7 +185,7 @@ const StudentDashboard: React.FC = () => {
             <TabsContent value="my-pokemons" className="mt-4">
               {dataLoading ? (
                 <div className="flex justify-center py-8">
-                  <div className="text-gray-500">Loading your collection...</div>
+                  <div className="text-gray-500">{t("loading-collection")}</div>
                 </div>
               ) : (
                 <StudentCollection pokemons={pokemons} />
@@ -201,7 +198,7 @@ const StudentDashboard: React.FC = () => {
                 studentId={studentId} 
                 schoolId={schoolId} 
                 coins={coins} 
-                isLoading={isLoading} 
+                isLoading={isLoadingPool} 
                 onPokemonWon={handlePokemonWon} 
                 onCoinsWon={handleCoinsWon} 
                 onRefreshPool={handleRefreshPool}
@@ -210,13 +207,16 @@ const StudentDashboard: React.FC = () => {
             </TabsContent>
             
             <TabsContent value="my-classes" className="mt-4">
-              <MyClassesTab studentId={studentId} studentName={studentName} classId={classId} />
+              <MyClassesTab 
+                studentId={studentId} 
+                studentName={profile?.display_name || studentName} 
+                classId={profile?.class_id || ""} 
+              />
             </TabsContent>
           </Tabs>
         </div>
       </div>
       
-      {/* School Pool Dialog */}
       <SchoolPoolDialog 
         open={showSchoolPool} 
         onOpenChange={setShowSchoolPool} 

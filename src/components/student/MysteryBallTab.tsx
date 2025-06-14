@@ -3,11 +3,11 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Gift, Coins, Sparkles, Clock, PackageX } from "lucide-react"; // Added PackageX for nothing
+import { Gift, Coins, Sparkles, Clock, PackageX } from "lucide-react";
 import { Pokemon } from "@/types/pokemon";
 import { toast } from "sonner";
 import MysteryBallResult from "./MysteryBallResult";
-import MysteryBallHistory from "./MysteryBallHistory"; // Assuming this is MysteryBallHistoryDatabase
+import MysteryBallHistory from "./MysteryBallHistory";
 import { useTranslation } from "@/hooks/useTranslation";
 import { 
   assignPokemonFromSchoolPool, 
@@ -47,7 +47,7 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
   const [dailyAttemptAvailable, setDailyAttemptAvailable] = useState(false);
   const [sessionOpensCount, setSessionOpensCount] = useState(0);
 
-  const MYSTERY_BALL_COST = 2; // Updated cost
+  const MYSTERY_BALL_COST = 5; // Updated cost
   const MAX_SESSION_OPENS = 10;
 
   useEffect(() => {
@@ -60,29 +60,26 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       setDailyAttemptAvailable(available);
     } catch (error) {
       console.error("Error checking daily attempt:", error);
-      toast.error("Could not check daily attempt status.");
+      toast.error(t("error-check-daily-attempt"));
     }
   };
 
   const handleOpenMysteryBall = async (isFreeAttempt: boolean) => {
     if (sessionOpensCount >= MAX_SESSION_OPENS) {
-      toast.error(`You have reached the maximum of ${MAX_SESSION_OPENS} opens for this session.`);
+      toast.error(t("max-session-opens-reached-msg").replace("{MAX_SESSION_OPENS}", MAX_SESSION_OPENS.toString()));
       return;
     }
 
     if (!isFreeAttempt && coins < MYSTERY_BALL_COST) {
-      toast.error(`Not enough coins! You need ${MYSTERY_BALL_COST} coins to open a Mystery Ball.`);
+      toast.error(t("not-enough-coins-msg").replace("{MYSTERY_BALL_COST}", MYSTERY_BALL_COST.toString()));
       return;
     }
 
     if (isFreeAttempt && !dailyAttemptAvailable) {
-      // This case should ideally be prevented by button disable state, but as a safeguard:
-      toast.error("Daily free attempt already used or not available.");
+      toast.error(t("daily-attempt-not-available-msg"));
       return;
     }
     
-    // Check for empty school pool before spending resources if the main reward is Pokemon
-    // This check is primarily for the 60% Pokemon chance. If it's empty, we'll skip to coins/nothing.
     const canWinPokemon = schoolPokemons.length > 0;
 
     setIsOpening(true);
@@ -91,15 +88,15 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       if (isFreeAttempt) {
         const success = await useDailyAttempt(studentId);
         if (!success) {
-          toast.error("Failed to use daily attempt. Please try again.");
+          toast.error(t("fail-use-daily-attempt-msg"));
           setIsOpening(false);
           return;
         }
-        setDailyAttemptAvailable(false); // Mark as used for the current UI session
+        setDailyAttemptAvailable(false); 
       } else {
         const success = await updateStudentCoins(studentId, -MYSTERY_BALL_COST, MYSTERY_BALL_COST);
         if (!success) {
-          toast.error("Failed to deduct coins. Please try again.");
+          toast.error(t("fail-deduct-coins-msg"));
           setIsOpening(false);
           return;
         }
@@ -107,61 +104,61 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       
       setSessionOpensCount(prev => prev + 1);
 
-      // Simulate opening animation delay
       await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
 
       const rand = Math.random();
       let resultOutcome;
 
-      if (rand < 0.6 && canWinPokemon) { // 60% chance for Pokemon
+      if (rand < 0.6 && canWinPokemon) {
         const pokemonResult = await assignPokemonFromSchoolPool(schoolId, studentId);
         
         if (pokemonResult.success && pokemonResult.pokemon) {
           if (pokemonResult.isDuplicate) {
-            const coinAmount = 10; // Fixed coin amount for duplicate Pokemon
+            const coinAmount = 10; 
             await updateStudentCoins(studentId, coinAmount);
             resultOutcome = {
               type: 'coins',
               amount: coinAmount,
-              message: `You already have ${pokemonResult.pokemon.name}! Here's ${coinAmount} coins instead.`
+              message: t("duplicate-pokemon-msg")
+                .replace("{pokemonName}", pokemonResult.pokemon.name)
+                .replace("{coinAmount}", coinAmount.toString())
             };
-            await addMysteryBallHistory(studentId, 'coins', undefined, coinAmount, pokemonResult.pokemon.name); // Log duplicate
+            await addMysteryBallHistory(studentId, 'coins', undefined, coinAmount); 
             onCoinsWon(coinAmount);
           } else {
             resultOutcome = {
               type: 'pokemon',
               pokemon: pokemonResult.pokemon,
-              message: `Congratulations! You caught ${pokemonResult.pokemon.name}!`
+              message: t("congrats-caught-pokemon-msg").replace("{pokemonName}", pokemonResult.pokemon.name)
             };
             await addMysteryBallHistory(studentId, 'pokemon', pokemonResult.pokemon);
             onPokemonWon(pokemonResult.pokemon);
           }
         } else {
-          // Fallback to coins if Pokemon assignment failed or pool was empty despite initial check
-          const coinAmount = Math.floor(Math.random() * 5) + 1; // 1-5 coins
+          const coinAmount = Math.floor(Math.random() * 5) + 1;
           await updateStudentCoins(studentId, coinAmount);
           resultOutcome = {
             type: 'coins',
             amount: coinAmount,
-            message: `The ball had some coins! You found ${coinAmount} coins.`
+            message: t("ball-had-coins-msg").replace("{coinAmount}", coinAmount.toString())
           };
           await addMysteryBallHistory(studentId, 'coins', undefined, coinAmount);
           onCoinsWon(coinAmount);
         }
-      } else if (rand < 0.9 || (rand < 0.6 && !canWinPokemon) ) { // 30% chance for coins (0.6 to 0.9), or if Pokemon was target but pool empty
-        const coinAmount = Math.floor(Math.random() * 5) + 1; // 1-5 coins
+      } else if (rand < 0.9 || (rand < 0.6 && !canWinPokemon) ) {
+        const coinAmount = Math.floor(Math.random() * 5) + 1;
         await updateStudentCoins(studentId, coinAmount);
         resultOutcome = {
           type: 'coins',
           amount: coinAmount,
-          message: `Lucky! You found ${coinAmount} coins!`
+          message: t("lucky-found-coins-msg").replace("{coinAmount}", coinAmount.toString())
         };
         await addMysteryBallHistory(studentId, 'coins', undefined, coinAmount);
         onCoinsWon(coinAmount);
-      } else { // 10% chance for nothing
+      } else { 
         resultOutcome = {
           type: 'nothing',
-          message: "Better luck next time! The Mystery Ball was empty."
+          message: t("better-luck-next-time-msg")
         };
         await addMysteryBallHistory(studentId, 'nothing');
       }
@@ -169,16 +166,14 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       setLastResult(resultOutcome);
       setShowResult(true);
       
-      onDataRefresh(); // Refresh student's general data (coins, etc.)
-      if (resultOutcome.type === 'pokemon' || (rand < 0.6 && canWinPokemon)) { // Refresh pool if a pokemon was potentially taken
+      onDataRefresh(); 
+      if (resultOutcome.type === 'pokemon' || (rand < 0.6 && canWinPokemon)) {
           onRefreshPool(); 
       }
 
     } catch (error) {
       console.error("Error opening mystery ball:", error);
-      toast.error("Something went wrong opening the Mystery Ball!");
-      // Optionally, refund coins if payment was made but process failed critically before reward
-      // This part needs careful consideration of where the error occurred.
+      toast.error(t("error-opening-mystery-ball"));
     } finally {
       setIsOpening(false);
     }
@@ -188,11 +183,8 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
     setShowResult(false);
     setLastResult(null);
     if (sessionOpensCount >= MAX_SESSION_OPENS) {
-        // Reset session count if max was reached and modal is closed
-        // Or simply let it persist until next page load / day
-        // For now, we'll reset if they hit the cap and close.
         setSessionOpensCount(0); 
-        toast.info("New session started for Mystery Ball.");
+        toast.info(t("new-session-mystery-ball-msg"));
     }
   };
 
@@ -206,10 +198,10 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center gap-2 text-purple-800">
             <Gift className="h-7 w-7" />
-            {t("mystery-ball-title", "Mystery Ball")}
+            {t("mystery-ball-title")}
           </CardTitle>
           <p className="text-purple-600">
-            {t("mystery-ball-description", "Open a Mystery Ball to discover Pokemon, coins, or other surprises!")}
+            {t("mystery-ball-description")}
           </p>
         </CardHeader>
         <CardContent>
@@ -217,27 +209,27 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
             <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
               <div className="flex items-center gap-2">
                 <Sparkles className="h-5 w-5 text-purple-500" />
-                <span className="font-medium">{t("available-pokemon-pool", "Available Pokemon in School Pool")}</span>
+                <span className="font-medium">{t("available-pokemon-pool")}</span>
               </div>
               <Badge variant="outline" className="text-purple-600 border-purple-200">
-                {isLoading ? t("loading", "Loading...") : `${schoolPokemons.length} ${t("pokemon", "Pokemon")}`}
+                {isLoading ? t("loading") : `${schoolPokemons.length} ${t("pokemon")}`}
               </Badge>
             </div>
 
             <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
               <div className="flex items-center gap-2">
                 <Coins className="h-5 w-5 text-yellow-500" />
-                <span className="font-medium text-yellow-700">{t("your-coins", "Your Coins")}</span>
+                <span className="font-medium text-yellow-700">{t("your-coins")}</span>
               </div>
               <Badge className="bg-yellow-500 text-white">
-                {coins} {t("coins", "coins")}
+                {coins} {t("coins")}
               </Badge>
             </div>
             
             <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
               <div className="flex items-center gap-2">
-                <PackageX className="h-5 w-5 text-blue-500" /> {/* Using PackageX as a generic "attempts" icon */}
-                <span className="font-medium text-blue-700">{t("session-opens", "Session Opens")}</span>
+                <PackageX className="h-5 w-5 text-blue-500" />
+                <span className="font-medium text-blue-700">{t("session-opens")}</span>
               </div>
               <Badge className={`${atMaxSessionOpens ? 'bg-red-500' : 'bg-blue-500'} text-white`}>
                 {sessionOpensCount} / {MAX_SESSION_OPENS}
@@ -248,10 +240,10 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
               <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200 animate-fade-in">
                 <div className="flex items-center gap-2">
                   <Clock className="h-5 w-5 text-green-500" />
-                  <span className="font-medium text-green-700">{t("daily-free-attempt", "Daily Free Attempt")}</span>
+                  <span className="font-medium text-green-700">{t("daily-free-attempt")}</span>
                 </div>
                 <Badge className="bg-green-500 text-white">
-                  {t("available", "Available!")}
+                  {t("available")}
                 </Badge>
               </div>
             )}
@@ -267,12 +259,12 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
                   {isOpening ? (
                     <div className="flex items-center gap-2">
                       <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                      {t("opening", "Opening...")}
+                      {t("opening")}
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
                       <Gift className="h-5 w-5" />
-                      {t("open-free-mystery-ball", "Open FREE Mystery Ball (Daily)")}
+                      {t("open-free-mystery-ball")}
                     </div>
                   )}
                 </Button>
@@ -288,12 +280,12 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
                 {isOpening ? (
                   <div className="flex items-center gap-2">
                     <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                    {t("opening", "Opening...")}
+                    {t("opening")}
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
                     <Coins className="h-5 w-5" />
-                    {t("open-mystery-ball-coins", "Open Mystery Ball")} ({MYSTERY_BALL_COST} {t("coins", "coins")})
+                    {t("open-mystery-ball-coins").replace("{MYSTERY_BALL_COST}", MYSTERY_BALL_COST.toString()).replace("{coins}", t("coins"))}
                   </div>
                 )}
               </Button>
@@ -301,12 +293,12 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
 
             {(!canOpenWithCoins && !canOpenFree && !atMaxSessionOpens) && (
               <p className="text-sm text-gray-500 text-center pt-2">
-                {t("mystery-ball-need-coins-or-wait", `You need ${MYSTERY_BALL_COST} coins or wait for your daily free attempt.`)}
+                {t("mystery-ball-need-coins-or-wait").replace("{MYSTERY_BALL_COST}", MYSTERY_BALL_COST.toString())}
               </p>
             )}
              {atMaxSessionOpens && (
               <p className="text-sm text-red-500 text-center font-semibold pt-2">
-                {t("mystery-ball-max-session-opens", "Maximum opens for this session reached.")}
+                {t("mystery-ball-max-session-opens")}
               </p>
             )}
           </div>
@@ -329,4 +321,3 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
 };
 
 export default MysteryBallTab;
-
