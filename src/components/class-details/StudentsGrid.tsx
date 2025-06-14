@@ -213,8 +213,6 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
 
                   {/* Action Buttons */}
                   <div className="flex flex-col space-y-2 w-full">
-                    
-
                     {isClassCreator && <>
                         <div className="flex space-x-2">
                           <Button size="sm" variant="outline" onClick={() => onAwardCoins(student.id, displayName)} className="flex-1">
@@ -237,6 +235,17 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
                           {t("remove-student")}
                         </Button>
                       </>}
+
+                    {/* New "View Profile" Button */}
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="w-full flex items-center justify-center"
+                      onClick={() => navigate(`/student-profile/${student.id}`)}
+                    >
+                      <User className="h-4 w-4 mr-2" />
+                      {t("view-profile") || "View Profile"}
+                    </Button>
                   </div>
                 </div>
               </CardContent>
