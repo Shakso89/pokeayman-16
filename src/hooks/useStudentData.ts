@@ -7,6 +7,7 @@ import {
   getStudentProfileById,
   StudentProfile 
 } from '@/services/studentDatabase';
+import { supabase } from '@/integrations/supabase/client';
 
 export const useStudentData = (studentId: string, userId?: string, username?: string, schoolId?: string) => {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
