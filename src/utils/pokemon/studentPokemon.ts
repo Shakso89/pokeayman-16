@@ -22,40 +22,47 @@ export const removePokemonFromStudent = (studentId: string): { success: boolean;
   
   // Remove the pokemon from the student's collection
   collection.pokemons.splice(randomIndex, 1);
-  
-  // Update localStorage for student collections
+
+  // Update studentPokemons in localStorage
   const studentCollections = getStudentPokemons();
   const studentIndex = studentCollections.findIndex(item => item.studentId === studentId);
-  
+
   if (studentIndex !== -1) {
     studentCollections[studentIndex].pokemons = collection.pokemons;
     saveStudentPokemons(studentCollections);
-    
-    // Now return the Pokemon to the school pool
-    // We need to find the student's school ID to return to the correct pool
-    try {
+
+    // Look up schoolId FIRST from the student profile, fallback to localStorage
+    let schoolId: string | undefined;
+    if (typeof window !== "undefined") {
+      const localStudentProfiles = localStorage.getItem("student_profiles");
+      if (localStudentProfiles) {
+        try {
+          const localProfiles = JSON.parse(localStudentProfiles);
+          const lp = localProfiles.find((s: any) => s.id === studentId);
+          if (lp?.schoolId || lp?.school_id) schoolId = lp.schoolId || lp.school_id;
+        } catch {}
+      }
+    }
+    if (!schoolId) {
       const students = JSON.parse(localStorage.getItem("students") || "[]");
       const student = students.find((s: any) => s.id === studentId);
-      const schoolId = student?.schoolId;
-      
-      if (schoolId) {
-        const pokemonPools = getPokemonPools();
-        const schoolPoolIndex = pokemonPools.findIndex(pool => pool.schoolId === schoolId);
-        
-        if (schoolPoolIndex >= 0) {
-          pokemonPools[schoolPoolIndex].availablePokemons.push(removedPokemon);
-          pokemonPools[schoolPoolIndex].lastUpdated = new Date().toISOString();
-          savePokemonPools(pokemonPools);
-          console.log("Pokemon returned to school pool:", removedPokemon.name);
-        }
-      }
-    } catch (error) {
-      console.error("Error returning Pokemon to school pool:", error);
+      schoolId = student?.schoolId || student?.school_id;
     }
-    
+
+    // Add the removed Pokemon back to the school pool
+    if (schoolId) {
+      const pokemonPools = getPokemonPools();
+      const schoolPoolIndex = pokemonPools.findIndex(pool => pool.schoolId === schoolId);
+      if (schoolPoolIndex >= 0) {
+        pokemonPools[schoolPoolIndex].availablePokemons.push(removedPokemon);
+        pokemonPools[schoolPoolIndex].lastUpdated = new Date().toISOString();
+        savePokemonPools(pokemonPools);
+      }
+    }
+
     return { success: true, pokemon: removedPokemon };
   }
-  
+
   return { success: false };
 };
 
@@ -222,7 +229,7 @@ export const assignRandomPokemonToStudent = (schoolId: string, studentId: string
   // Get all the pools
   const pools = getPokemonPools();
   const poolIndex = pools.findIndex(p => p.schoolId === schoolId);
-  
+
   if (poolIndex < 0 || pools[poolIndex].availablePokemons.length === 0) {
     console.error("School pool not found or empty for:", schoolId);
     return { success: false };

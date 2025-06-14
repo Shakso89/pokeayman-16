@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import {
   Dialog,
@@ -30,10 +29,16 @@ const SchoolPoolDialog: React.FC<SchoolPoolDialogProps> = ({
   const [pokemonPool, setPokemonPool] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(false);
 
+  // Add an effect to update when dialog is re-opened (after giving or returning Pokemon)
   useEffect(() => {
     if (open && schoolId) {
       fetchSchoolPool();
     }
+    // Also listen for localStorage changes (when Pokemon are given/returned)
+    const onStorage = () => fetchSchoolPool();
+    window.addEventListener("storage", onStorage);
+    return () => window.removeEventListener("storage", onStorage);
+    // eslint-disable-next-line
   }, [open, schoolId]);
 
   const fetchSchoolPool = () => {

@@ -89,23 +89,21 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
     try {
       const result = assignRandomPokemonToStudent(classData.schoolId, studentId);
       if (result.success && result.pokemon) {
-        // Show the modal with the awarded Pokemon
         setPokemonActionModal({
           isOpen: true,
           pokemon: result.pokemon,
           actionType: "awarded",
           studentName
         });
-        
+
         toast({
           title: t("success"),
           description: `Random Pokémon awarded to ${studentName}`
         });
-        
-        // Force a page refresh to update the counts
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
+
+        // Do NOT refresh page, update by re-render with new state:
+        // Call a prop function if available to refresh/reload students list from parent (optional pattern)
+        // Otherwise, nothing—use React state/localStorage gets updated above
       } else {
         toast({
           title: t("error"),
@@ -127,23 +125,17 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
     try {
       const result = removePokemonFromStudent(studentId);
       if (result.success && result.pokemon) {
-        // Show the modal with the removed Pokemon
         setPokemonActionModal({
           isOpen: true,
           pokemon: result.pokemon,
           actionType: "removed",
           studentName
         });
-        
         toast({
           title: t("success"),
           description: `Random Pokémon removed from ${studentName} and returned to school pool`
         });
-        
-        // Force a page refresh to update the counts
-        setTimeout(() => {
-          window.location.reload();
-        }, 2000);
+        // No reload needed, localStorage/state is updated
       } else {
         toast({
           title: t("error"),

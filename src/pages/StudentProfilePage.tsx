@@ -32,27 +32,38 @@ const StudentProfilePage: React.FC = () => {
       setLoading(false);
       return;
     }
-    
+
     setLoading(true);
+
+    // Try primary: student_profiles
     try {
-      const { data, error } = await supabase
-        .from('students')
+      let { data: data1, error: error1 } = await supabase
+        .from('student_profiles')
         .select('*')
         .eq('id', studentId)
         .maybeSingle();
-        
-      if (error) throw error;
-      
-      if (data) {
+
+      if (!data1) {
+        // Fallback: students table
+        const { data: data2, error: error2 } = await supabase
+          .from('students')
+          .select('*')
+          .eq('id', studentId)
+          .maybeSingle();
+        if (data2) data1 = data2; // use fallback student
+      }
+
+      if (data1) {
         const studentData = {
-          id: data.id,
-          username: data.username,
-          displayName: data.display_name || data.username,
-          avatar: data.avatar_url || null,
+          id: data1.id,
+          username: data1.username,
+          displayName: data1.display_name || data1.displayName || data1.username,
+          avatar: data1.avatar_url || data1.avatar || null,
           photos: [],
           pokemonCollection: [],
-          contactInfo: '',
-          classId: data.class_id
+          contactInfo: "",
+          classId: data1.class_id || data1.classId,
+          schoolId: data1.school_id || data1.schoolId
         };
         setStudent(studentData);
         setEditData(studentData);
