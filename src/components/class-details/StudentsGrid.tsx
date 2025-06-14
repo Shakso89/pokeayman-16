@@ -44,6 +44,9 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
     t
   } = useTranslation();
 
+  // Determine user type for correct navigation
+  const userType = localStorage.getItem("userType");
+
   // Add state for Pokemon action modal
   const [pokemonActionModal, setPokemonActionModal] = useState({
     isOpen: false,
@@ -163,6 +166,13 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
         const displayName = student.displayName || student.display_name || student.username;
         const coins = getStudentCoins(student.id);
         const pokemonCount = getStudentPokemonCount(student.id);
+
+        // Compute correct student profile route based on userType
+        const profileRoute =
+          userType === "teacher"
+            ? `/teacher/student/${student.id}`
+            : `/student-detail/${student.id}`;
+
         return <Card key={student.id} className="bg-white/20 backdrop-blur-sm">
               <CardContent className="p-6">
                 <div className="flex flex-col items-center space-y-4">
@@ -236,12 +246,12 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
                         </Button>
                       </>}
 
-                    {/* New "View Profile" Button */}
+                    {/* View Profile Button with fixed route */}
                     <Button 
                       size="sm" 
                       variant="outline" 
                       className="w-full flex items-center justify-center"
-                      onClick={() => navigate(`/student-profile/${student.id}`)}
+                      onClick={() => navigate(profileRoute)}
                     >
                       <User className="h-4 w-4 mr-2" />
                       {t("view-profile") || "View Profile"}
