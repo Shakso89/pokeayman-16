@@ -3,8 +3,11 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { User, Users, Crown, UserCheck } from "lucide-react";
+import { User, Users, Crown, UserCheck, UserMinus } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
+import { removeAssistantFromClass } from "@/utils/classSync/classOperations";
+import { Button } from "@/components/ui/button";
 
 interface Teacher {
   id: string;
@@ -18,12 +21,15 @@ interface ClassTeachersProps {
   classData: {
     teacherId: string | null;
     assistants: string[];
+    id?: string; // for assistant removal
   };
+  canRemoveAssistants?: boolean; // manager or owner
 }
 
-const ClassTeachers: React.FC<ClassTeachersProps> = ({ classData }) => {
+const ClassTeachers: React.FC<ClassTeachersProps> = ({ classData, canRemoveAssistants = false }) => {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
+  const [removing, setRemoving] = useState<string | null>(null);
 
   useEffect(() => {
     const loadTeachers = async () => {
@@ -39,7 +45,6 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({ classData }) => {
           return;
         }
 
-        // Try to fetch from Supabase first
         const { data: supabaseTeachers, error } = await supabase
           .from('teachers')
           .select('id, username, display_name, email, role')
@@ -47,9 +52,8 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({ classData }) => {
 
         if (error) {
           console.error("Error fetching teachers from Supabase:", error);
-          // Fallback to localStorage
           const localTeachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-          const filteredTeachers = localTeachers.filter((teacher: any) => 
+          const filteredTeachers = localTeachers.filter((teacher: any) =>
             teacherIds.includes(teacher.id)
           );
           setTeachers(filteredTeachers);
@@ -58,13 +62,12 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({ classData }) => {
         }
       } catch (error) {
         console.error("Error loading teachers:", error);
-        // Fallback to localStorage
         const localTeachers = JSON.parse(localStorage.getItem("teachers") || "[]");
         const teacherIds = [
           ...(classData.teacherId ? [classData.teacherId] : []),
           ...(classData.assistants || [])
         ].filter(Boolean);
-        const filteredTeachers = localTeachers.filter((teacher: any) => 
+        const filteredTeachers = localTeachers.filter((teacher: any) =>
           teacherIds.includes(teacher.id)
         );
         setTeachers(filteredTeachers);
@@ -74,7 +77,48 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({ classData }) => {
     };
 
     loadTeachers();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classData.teacherId, classData.assistants]);
+
+  const handleRemoveAssistant = async (assistantId: string) => {
+    if (!classData.id) {
+      toast({
+        title: "Error",
+        description: "Missing class ID.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setRemoving(assistantId);
+    try {
+      const success = await removeAssistantFromClass(classData.id, assistantId);
+      if (success) {
+        toast({
+          title: "Assistant removed",
+          description: "The assistant has been removed from the class.",
+        });
+        // Remove assistant locally and reload teachers
+        const newAssistants = (classData.assistants || []).filter(id => id !== assistantId);
+        setTeachers(prev => prev.filter(t => t.id !== assistantId));
+        classData.assistants = newAssistants;
+        // Optionally reload data from backend or refetch via parent
+      } else {
+        toast({
+          title: "Error",
+          description: "Failed to remove assistant.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "An error occurred while removing assistant.",
+        variant: "destructive",
+      });
+    } finally {
+      setRemoving(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -93,7 +137,7 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({ classData }) => {
   }
 
   const mainTeacher = teachers.find(t => t.id === classData.teacherId);
-  const assistantTeachers = teachers.filter(t => 
+  const assistantTeachers = teachers.filter(t =>
     classData.assistants && classData.assistants.includes(t.id)
   );
 
@@ -150,6 +194,19 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({ classData }) => {
                       </div>
                       <p className="text-xs text-gray-600">@{teacher.username}</p>
                     </div>
+                    {canRemoveAssistants && (
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="ml-2"
+                        title="Remove Assistant"
+                        onClick={() => handleRemoveAssistant(teacher.id)}
+                        disabled={removing === teacher.id}
+                      >
+                        <UserMinus className="h-5 w-5 text-red-500" />
+                        <span className="sr-only">Remove Assistant</span>
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
@@ -169,3 +226,4 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({ classData }) => {
 };
 
 export default ClassTeachers;
+
