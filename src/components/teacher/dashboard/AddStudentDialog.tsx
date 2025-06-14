@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
@@ -8,6 +8,7 @@ import StudentForm from "./student/StudentForm";
 import { createStudent } from "./student/studentService";
 import { AlertCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AddStudentDialogProps {
   isOpen: boolean;
@@ -15,6 +16,11 @@ interface AddStudentDialogProps {
   teacherId: string | null;
   teacherData: any;
   onTeacherDataUpdate: (newData: any) => void;
+}
+
+interface School {
+  id: string;
+  name: string;
 }
 
 const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
@@ -29,10 +35,50 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
     username: "",
     password: "",
     displayName: "",
-    schoolId: ""  // Keeping this to maintain interface compatibility but we won't use it
+    schoolId: ""
   });
+  const [schools, setSchools] = useState<School[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isLoadingSchools, setIsLoadingSchools] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Load schools when dialog opens
+  useEffect(() => {
+    if (isOpen) {
+      loadSchools();
+    }
+  }, [isOpen]);
+
+  const loadSchools = async () => {
+    setIsLoadingSchools(true);
+    try {
+      const { data, error } = await supabase
+        .from('schools')
+        .select('id, name')
+        .order('name');
+
+      if (error) {
+        console.error('Error loading schools:', error);
+        // Fallback to localStorage
+        const savedSchools = localStorage.getItem("schools");
+        if (savedSchools) {
+          const parsedSchools = JSON.parse(savedSchools);
+          setSchools(parsedSchools);
+        }
+      } else {
+        setSchools(data || []);
+      }
+    } catch (error) {
+      console.error('Error loading schools:', error);
+      toast({
+        title: "Warning",
+        description: "Could not load schools list",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoadingSchools(false);
+    }
+  };
 
   const handleAddStudent = async () => {
     setIsLoading(true);
@@ -41,6 +87,12 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
     try {
       if (!studentData.username || !studentData.password || !studentData.displayName) {
         setError(t("fill-all-fields") || "Please fill all required fields");
+        setIsLoading(false);
+        return;
+      }
+
+      if (!studentData.schoolId) {
+        setError("Please select a school for the student");
         setIsLoading(false);
         return;
       }
@@ -123,6 +175,8 @@ const AddStudentDialog: React.FC<AddStudentDialogProps> = ({
           setStudentData={setStudentData}
           isLoading={isLoading}
           teacherId={teacherId}
+          schools={schools}
+          isLoadingSchools={isLoadingSchools}
         />
         
         <DialogFooter>

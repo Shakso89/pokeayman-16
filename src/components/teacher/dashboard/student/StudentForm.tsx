@@ -2,15 +2,22 @@
 import React, { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import { validateStudentData } from "./studentUtils";
 
 interface ValidationErrors {
   username?: string;
   password?: string;
   displayName?: string;
+  schoolId?: string;
+}
+
+interface School {
+  id: string;
+  name: string;
 }
 
 interface StudentFormProps {
@@ -18,23 +25,27 @@ interface StudentFormProps {
     username: string;
     password: string;
     displayName: string;
-    schoolId?: string;
+    schoolId: string;
   };
   setStudentData: React.Dispatch<React.SetStateAction<{
     username: string;
     password: string;
     displayName: string;
-    schoolId?: string;
+    schoolId: string;
   }>>;
   isLoading: boolean;
   teacherId: string | null;
+  schools: School[];
+  isLoadingSchools: boolean;
 }
 
 const StudentForm: React.FC<StudentFormProps> = ({
   studentData,
   setStudentData,
   isLoading,
-  teacherId
+  teacherId,
+  schools,
+  isLoadingSchools
 }) => {
   const { t } = useTranslation();
   const [validationErrors, setValidationErrors] = useState<ValidationErrors>({});
@@ -79,6 +90,54 @@ const StudentForm: React.FC<StudentFormProps> = ({
 
   return (
     <div className="grid gap-4 py-4">
+      <div className="space-y-2">
+        <Label htmlFor="schoolSelect" className="flex items-center">
+          {t("school") || "School"}
+          <span className="text-red-500 ml-1">*</span>
+        </Label>
+        <Select
+          value={studentData.schoolId}
+          onValueChange={(value) => updateStudentData('schoolId', value)}
+          disabled={isLoading || isLoadingSchools}
+        >
+          <SelectTrigger className={validationErrors.schoolId && touched.schoolId ? "border-red-500" : ""}>
+            <SelectValue placeholder={
+              isLoadingSchools 
+                ? "Loading schools..." 
+                : (t("select-school") || "Select a school")
+            } />
+          </SelectTrigger>
+          <SelectContent>
+            {isLoadingSchools ? (
+              <SelectItem value="loading" disabled>
+                <div className="flex items-center">
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Loading schools...
+                </div>
+              </SelectItem>
+            ) : schools.length === 0 ? (
+              <SelectItem value="no-schools" disabled>
+                No schools available
+              </SelectItem>
+            ) : (
+              schools.map((school) => (
+                <SelectItem key={school.id} value={school.id}>
+                  {school.name}
+                </SelectItem>
+              ))
+            )}
+          </SelectContent>
+        </Select>
+        {validationErrors.schoolId && touched.schoolId && (
+          <p className="text-sm text-red-500 mt-1">{validationErrors.schoolId}</p>
+        )}
+        {!studentData.schoolId && (
+          <p className="text-sm text-gray-500 mt-1">
+            Students will be assigned to the selected school
+          </p>
+        )}
+      </div>
+
       <div className="space-y-2">
         <Label htmlFor="studentUsername" className="flex items-center">
           {t("username")}

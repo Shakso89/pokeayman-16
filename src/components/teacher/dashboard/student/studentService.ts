@@ -10,6 +10,7 @@ interface StudentData {
   username: string;
   password: string;
   displayName: string;
+  schoolId: string;
 }
 
 export const createStudent = async (
@@ -20,8 +21,8 @@ export const createStudent = async (
   console.log("Creating student with data:", { ...studentData, password: "[REDACTED]" });
   
   // Validate student data
-  if (!studentData.username || !studentData.password || !studentData.displayName) {
-    const errorMessage = t("fill-all-fields") || "Please fill all required fields";
+  if (!studentData.username || !studentData.password || !studentData.displayName || !studentData.schoolId) {
+    const errorMessage = t("fill-all-fields") || "Please fill all required fields including school selection";
     toast({
       title: "Error",
       description: errorMessage,
@@ -129,7 +130,7 @@ export const createStudent = async (
     // Hash the password
     const password_hash = await bcrypt.hash(studentData.password, 10);
     
-    console.log("Creating student in database with teacherId:", validTeacherId);
+    console.log("Creating student in database with teacherId:", validTeacherId, "and schoolId:", studentData.schoolId);
     
     // Create student
     const { data, error } = await supabase
@@ -139,6 +140,7 @@ export const createStudent = async (
         password_hash: password_hash,
         display_name: studentData.displayName,
         teacher_id: validTeacherId,
+        school_id: studentData.schoolId,
         is_active: true,
         created_at: new Date().toISOString()
       })
@@ -155,10 +157,32 @@ export const createStudent = async (
     }
     
     console.log("Student created successfully:", data.id);
+
+    // Create student profile entry
+    try {
+      const { error: profileError } = await supabase
+        .from('student_profiles')
+        .insert({
+          user_id: data.id,
+          username: studentData.username,
+          display_name: studentData.displayName,
+          teacher_id: validTeacherId,
+          school_id: studentData.schoolId,
+          coins: 0,
+          spent_coins: 0
+        });
+
+      if (profileError) {
+        console.error("Error creating student profile:", profileError);
+        // Don't fail the whole operation for profile creation
+      }
+    } catch (profileError) {
+      console.error("Error creating student profile:", profileError);
+    }
     
     toast({
       title: "Student Created",
-      description: `Successfully created student account for ${studentData.displayName}`
+      description: `Successfully created student account for ${studentData.displayName} in the selected school`
     });
     
     return {
