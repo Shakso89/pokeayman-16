@@ -167,11 +167,8 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
         const coins = getStudentCoins(student.id);
         const pokemonCount = getStudentPokemonCount(student.id);
 
-        // Compute correct student profile route based on userType
-        const profileRoute =
-          userType === "teacher"
-            ? `/teacher/student/${student.id}`
-            : `/student-detail/${student.id}`;
+        // Route always to /student-profile/:id for profile view
+        const profileRoute = `/student-profile/${student.id}`;
 
         return <Card key={student.id} className="bg-white/20 backdrop-blur-sm">
               <CardContent className="p-6">
@@ -223,39 +220,41 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
 
                   {/* Action Buttons */}
                   <div className="flex flex-col space-y-2 w-full">
-                    {isClassCreator && <>
-                        <div className="flex space-x-2">
-                          <Button size="sm" variant="outline" onClick={() => onAwardCoins(student.id, displayName)} className="flex-1">
-                            <Coins className="h-4 w-4 mr-1" />
-                            {t("give-coins")}
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => onRemoveCoins(student.id, displayName)} className="flex-1">
-                            <Minus className="h-4 w-4 mr-1" />
-                            {t("remove-coins")}
-                          </Button>
-                        </div>
-                        
-                        <Button size="sm" variant="outline" onClick={() => onManagePokemon(student.id, displayName, student.schoolId || classData.schoolId || "")} className="w-full">
-                          <Award className="h-4 w-4 mr-2" />
-                          {t("manage-pokemon")}
-                        </Button>
-                        
-                        <Button size="sm" variant="destructive" onClick={() => onRemoveStudent(student.id, displayName)} className="w-full">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          {t("remove-student")}
-                        </Button>
-                      </>}
+                    {isClassCreator && (
+                        <>
+                          <div className="flex space-x-2">
+                            <Button size="sm" variant="outline" onClick={() => onAwardCoins(student.id, displayName)} className="flex-1">
+                              <Coins className="h-4 w-4 mr-1" />
+                              {t("give-coins")}
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={() => onRemoveCoins(student.id, displayName)} className="flex-1">
+                              <Minus className="h-4 w-4 mr-1" />
+                              {t("remove-coins")}
+                            </Button>
+                          </div>
 
-                    {/* View Profile Button with fixed route */}
-                    <Button 
-                      size="sm" 
-                      variant="outline" 
-                      className="w-full flex items-center justify-center"
-                      onClick={() => navigate(profileRoute)}
-                    >
-                      <User className="h-4 w-4 mr-2" />
-                      {t("view-profile") || "View Profile"}
-                    </Button>
+                          <Button size="sm" variant="outline" onClick={() => onManagePokemon(student.id, displayName, student.schoolId || classData.schoolId || "")} className="w-full">
+                            <Award className="h-4 w-4 mr-2" />
+                            {t("manage-pokemon")}
+                          </Button>
+
+                          {/* MOVE "View Profile" button right ABOVE the Remove Student button */}
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
+                            className="w-full flex items-center justify-center"
+                            onClick={() => navigate(profileRoute)}
+                          >
+                            <User className="h-4 w-4 mr-2" />
+                            {t("view-profile") || "View Profile"}
+                          </Button>
+
+                          <Button size="sm" variant="destructive" onClick={() => onRemoveStudent(student.id, displayName)} className="w-full">
+                            <Trash2 className="h-4 w-4 mr-2" />
+                            {t("remove-student")}
+                          </Button>
+                        </>
+                    )}
                   </div>
                 </div>
               </CardContent>
