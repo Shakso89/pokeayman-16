@@ -203,7 +203,7 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
                   {isClassCreator && <div className="flex space-x-2 w-full">
                       <Button size="sm" className="flex-1 bg-purple-500 hover:bg-purple-600 text-white" onClick={() => handleAwardRandomPokemon(student.id, displayName)}>
                         <Plus className="h-4 w-4 mr-1" />
-                        Give $
+                        Give
                       </Button>
                       <Button size="sm" variant="outline" className="flex-1" onClick={() => handleRemoveRandomPokemon(student.id, displayName)}>
                         <Minus className="h-4 w-4 mr-1" />
