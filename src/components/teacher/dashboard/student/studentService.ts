@@ -132,7 +132,7 @@ export const createStudent = async (
     
     console.log("Creating student in database with teacherId:", validTeacherId, "and schoolId:", studentData.schoolId);
     
-    // Create student
+    // Create student with school_id
     const { data, error } = await supabase
       .from('students')
       .insert({
@@ -158,7 +158,7 @@ export const createStudent = async (
     
     console.log("Student created successfully:", data.id);
 
-    // Create student profile entry
+    // Create student profile entry with school_id
     try {
       const { error: profileError } = await supabase
         .from('student_profiles')
@@ -175,6 +175,8 @@ export const createStudent = async (
       if (profileError) {
         console.error("Error creating student profile:", profileError);
         // Don't fail the whole operation for profile creation
+      } else {
+        console.log("Student profile created successfully with school ID:", studentData.schoolId);
       }
     } catch (profileError) {
       console.error("Error creating student profile:", profileError);
@@ -239,7 +241,6 @@ export const getSchoolName = async (schoolId: string): Promise<string> => {
   }
 };
 
-// Function to get teacher details
 export const getTeacherName = async (teacherId: string): Promise<string> => {
   if (!teacherId) return "Unknown Teacher";
   
@@ -261,7 +262,6 @@ export const getTeacherName = async (teacherId: string): Promise<string> => {
   }
 };
 
-// Add utility to create student utils if it doesn't exist
 export const createStudentUtils = () => {
   if (typeof getValidUUID !== 'function') {
     console.log("Creating studentUtils file");

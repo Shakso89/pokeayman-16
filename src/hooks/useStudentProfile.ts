@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -12,8 +11,11 @@ interface Student {
   photos?: string[]; 
   classId?: string;
   class_id?: string;
+  schoolId?: string;  // Add school ID
+  school_id?: string; // Add school ID
   pokemonCollection?: { id: string; name: string; image: string }[];
   contactInfo?: string;
+  schoolName?: string; // Add school name for display
 }
 
 export const useStudentProfile = (studentId: string | undefined) => {
@@ -43,15 +45,25 @@ export const useStudentProfile = (studentId: string | undefined) => {
     try {
       console.log("Loading student data for ID:", studentId);
       
-      // First try to get student from Supabase
+      // First try to get student from Supabase with school information
       const { data: studentData, error } = await supabase
         .from('students')
-        .select('*')
+        .select(`
+          *,
+          schools:school_id (
+            id,
+            name
+          )
+        `)
         .eq('id', studentId)
         .maybeSingle();
       
       if (studentData) {
         console.log("Found student in Supabase:", studentData);
+        
+        // Get school name from the joined data
+        const schoolName = studentData.schools?.name || "No School Assigned";
+        
         // Found student in Supabase
         setStudent({
           id: studentData.id,
@@ -60,6 +72,9 @@ export const useStudentProfile = (studentId: string | undefined) => {
           displayName: studentData.display_name || studentData.username, // For backward compatibility
           class_id: studentData.class_id,
           classId: studentData.class_id, // For backward compatibility
+          school_id: studentData.school_id,
+          schoolId: studentData.school_id,
+          schoolName: schoolName,
           photos: [],
           pokemonCollection: []
         });
@@ -83,7 +98,10 @@ export const useStudentProfile = (studentId: string | undefined) => {
               displayName: studentData.display_name,
               username: studentData.username,
               class_id: studentData.class_id,
-              classId: studentData.class_id
+              classId: studentData.class_id,
+              school_id: studentData.school_id,
+              schoolId: studentData.school_id,
+              schoolName: schoolName
             };
           } else {
             // Add to local storage
@@ -93,7 +111,10 @@ export const useStudentProfile = (studentId: string | undefined) => {
               display_name: studentData.display_name,
               displayName: studentData.display_name,
               class_id: studentData.class_id,
-              classId: studentData.class_id
+              classId: studentData.class_id,
+              school_id: studentData.school_id,
+              schoolId: studentData.school_id,
+              schoolName: schoolName
             });
           }
           
@@ -125,6 +146,8 @@ export const useStudentProfile = (studentId: string | undefined) => {
             display_name: foundStudent.displayName || foundStudent.display_name || foundStudent.username,
             photos: foundStudent.photos || [],
             class_id: foundStudent.classId || foundStudent.class_id,
+            school_id: foundStudent.schoolId || foundStudent.school_id,
+            schoolName: foundStudent.schoolName || "No School Assigned",
             pokemonCollection: pokemonData?.pokemons || []
           };
           
@@ -145,6 +168,7 @@ export const useStudentProfile = (studentId: string | undefined) => {
                 username: normalizedStudent.username,
                 display_name: normalizedStudent.display_name,
                 class_id: normalizedStudent.class_id,
+                school_id: normalizedStudent.school_id,
                 is_active: true,
                 created_at: new Date().toISOString()
               })

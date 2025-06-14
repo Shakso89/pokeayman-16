@@ -14,6 +14,7 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
   const [coins, setCoins] = useState(0);
   const [spentCoins, setSpentCoins] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
+  const [schoolName, setSchoolName] = useState<string>("");
 
   const loadStudentData = async () => {
     if (!studentId) return;
@@ -38,6 +39,24 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
         // Load Pokemon collection
         const pokemonCollection = await getStudentPokemonCollection(studentProfile.id);
         setPokemons(pokemonCollection);
+
+        // Load school name if school_id exists
+        if (studentProfile.school_id) {
+          try {
+            const { data: schoolData } = await supabase
+              .from('schools')
+              .select('name')
+              .eq('id', studentProfile.school_id)
+              .single();
+            
+            if (schoolData) {
+              setSchoolName(schoolData.name);
+            }
+          } catch (error) {
+            console.error('Error loading school name:', error);
+            setSchoolName("Unknown School");
+          }
+        }
       }
     } catch (error) {
       console.error('Error loading student data:', error);
@@ -59,6 +78,7 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
     pokemons,
     coins,
     spentCoins,
+    schoolName,
     isLoading,
     refreshData
   };

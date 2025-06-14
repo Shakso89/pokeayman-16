@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Loader2, UserPlus, KeyRound, Eye, EyeOff } from "lucide-react";
+import { Loader2, UserPlus, KeyRound, Eye, EyeOff, School } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
@@ -17,7 +17,7 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId }) => {
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
-  const [showPasswords, setShowPasswords] = useState(false); // State to toggle password visibility
+  const [showPasswords, setShowPasswords] = useState(false);
   const { t } = useTranslation();
   const navigate = useNavigate();
 
@@ -43,15 +43,27 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId }) => {
         return;
       }
       
-      // Fetch student details using the IDs from the class
+      // Fetch student details with school information using the IDs from the class
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
-        .select('*')
+        .select(`
+          *,
+          schools:school_id (
+            id,
+            name
+          )
+        `)
         .in('id', classData.students);
         
       if (studentsError) throw studentsError;
       
-      setStudents(studentsData || []);
+      // Add school name to each student
+      const studentsWithSchool = (studentsData || []).map(student => ({
+        ...student,
+        schoolName: student.schools?.name || "No School Assigned"
+      }));
+      
+      setStudents(studentsWithSchool);
     } catch (error) {
       console.error("Error fetching students:", error);
       
@@ -172,6 +184,13 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId }) => {
                     <div>
                       <p className="font-medium">{student.display_name || student.username}</p>
                       <p className="text-sm text-gray-500">@{student.username}</p>
+                      {/* Display school information */}
+                      <div className="flex items-center mt-1">
+                        <School className="h-3 w-3 mr-1 text-gray-400" />
+                        <span className="text-xs text-gray-500">
+                          {student.schoolName || "No School Assigned"}
+                        </span>
+                      </div>
                     </div>
                   </div>
                   

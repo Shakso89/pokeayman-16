@@ -609,6 +609,7 @@ export type Database = {
           is_active: boolean | null
           last_login: string | null
           password_hash: string
+          school_id: string | null
           teacher_id: string | null
           username: string
         }
@@ -620,6 +621,7 @@ export type Database = {
           is_active?: boolean | null
           last_login?: string | null
           password_hash: string
+          school_id?: string | null
           teacher_id?: string | null
           username?: string
         }
@@ -631,6 +633,7 @@ export type Database = {
           is_active?: boolean | null
           last_login?: string | null
           password_hash?: string
+          school_id?: string | null
           teacher_id?: string | null
           username?: string
         }
@@ -640,6 +643,13 @@ export type Database = {
             columns: ["class_id"]
             isOneToOne: false
             referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "students_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
             referencedColumns: ["id"]
           },
           {
