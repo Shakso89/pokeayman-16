@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -80,7 +81,6 @@ const StudentDetailPage: React.FC = () => {
     setIsStarOfClass(getStarOfClass(stu.id, cls));
   }, [sid]);
 
-  // New: Custom back handler for teacher - go to first class or fallback
   function handleBack() {
     if (classes && classes.length > 0) {
       navigate(`/class/${classes[0].id}`);
@@ -108,12 +108,27 @@ const StudentDetailPage: React.FC = () => {
     );
   }
 
-  // Get display name (prefer displayName/display_name, fallback username, NEVER show id)
-  const displayName =
-    student?.displayName?.trim() ||
-    student?.display_name?.trim() ||
-    student?.username?.trim() ||
-    "Unnamed Student";
+  // Improved Get display name (prefer real name, then username, but avoid showing id-like values)
+  function getNiceDisplayName(student: any): string {
+    const candidates = [
+      student?.displayName,
+      student?.display_name,
+      student?.username,
+    ].filter(Boolean);
+    for (const name of candidates) {
+      if (
+        typeof name === "string" &&
+        name.trim() &&
+        // Prevent showing number-only values or id-like values (UUID or large numbers)
+        !/^\d{6,}$/.test(name.trim()) &&
+        !/^[a-f0-9-]{20,}$/.test(name.trim())
+      ) {
+        return name.trim();
+      }
+    }
+    return "Unnamed Student";
+  }
+  const displayName = getNiceDisplayName(student);
 
   return (
     <div className="container max-w-3xl py-8 mx-auto">
@@ -122,7 +137,7 @@ const StudentDetailPage: React.FC = () => {
 
       <Card>
         <CardContent>
-          {/* Pass correct displayName below */}
+          {/* Student profile basic info, avatar, name */}
           <StudentProfileBasicInfo
             displayName={displayName}
             avatar={student.avatar}
@@ -146,15 +161,36 @@ const StudentDetailPage: React.FC = () => {
             />
           </div>
 
-          {/* Move School & Classes here */}
-          <div className="mt-6">
+          {/* Bottom: School & Classes info with better formatting */}
+          <div className="mt-6 border-t pt-6">
             <h3 className="font-bold text-lg mb-2">School & Classes</h3>
-            <StudentProfileSchoolClasses 
-              school={school}
-              classes={classes}
-              onSchoolClick={(schoolId) => navigate(`/school/${schoolId}`)}
-              onClassClick={(classId) => navigate(`/class/${classId}`)}
-            />
+            {school ? (
+              <div className="mb-3 flex items-center gap-2 text-blue-700 font-medium">
+                <School className="h-5 w-5" />
+                {school.name}
+              </div>
+            ) : (
+              <div className="mb-3 text-gray-500">No school assigned</div>
+            )}
+            {classes.length > 0 ? (
+              <div className="flex flex-col gap-2">
+                {classes.map((c) => (
+                  <div
+                    key={c.id}
+                    className="p-2 rounded bg-purple-100 text-purple-800 cursor-pointer hover:bg-purple-200 flex items-center gap-2"
+                    onClick={() => navigate(`/class/${c.id}`)}
+                  >
+                    <Users className="w-4 h-4" />
+                    <span className="font-medium">{c.name}</span>
+                    {c.description && (
+                      <span className="text-xs text-gray-500 ml-2">{c.description}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-gray-500">Not assigned to any classes</div>
+            )}
           </div>
         </CardContent>
       </Card>
