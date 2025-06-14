@@ -537,14 +537,15 @@ export const getStudentsByClass = async (classId: string): Promise<StudentProfil
       return [];
     }
 
-    // Handle the nested structure properly
+    // Handle the nested structure properly - student_profiles is a single object
     const profiles: StudentProfile[] = [];
     
     if (data) {
       for (const item of data) {
-        // Access the student_profiles data correctly
-        if (item.student_profiles) {
-          profiles.push(item.student_profiles as StudentProfile);
+        // The query returns student_profiles as a single object, not an array
+        const studentProfile = item.student_profiles as any;
+        if (studentProfile && typeof studentProfile === 'object') {
+          profiles.push(studentProfile as StudentProfile);
         }
       }
     }
