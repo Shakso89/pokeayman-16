@@ -27,8 +27,8 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
 
   const handleViewProfile = () => {
     if (studentId) {
-      // Navigate to the correct student detail route
-      navigate(`/student-detail/${studentId}`);
+      // Always navigate to the modern student profile route
+      navigate(`/student-profile/${studentId}`);
     }
   };
 
@@ -77,3 +77,4 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
 };
 
 export default ProfileActions;
+
