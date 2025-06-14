@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Pokemon } from "@/types/pokemon";
 
@@ -537,9 +538,16 @@ export const getStudentsByClass = async (classId: string): Promise<StudentProfil
     }
 
     // Properly handle the nested structure and filter out nulls
-    const profiles = data
-      .map(item => item.student_profiles)
-      .filter((profile): profile is StudentProfile => profile !== null);
+    const profiles: StudentProfile[] = [];
+    
+    if (data) {
+      for (const item of data) {
+        // item.student_profiles is a single StudentProfile object, not an array
+        if (item.student_profiles && typeof item.student_profiles === 'object') {
+          profiles.push(item.student_profiles as StudentProfile);
+        }
+      }
+    }
 
     return profiles;
   } catch (error) {
