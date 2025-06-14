@@ -6,8 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Gift, Coins, Sparkles, Clock } from "lucide-react";
 import { Pokemon } from "@/types/pokemon";
 import { toast } from "sonner";
-import { MysteryBallResult } from "./MysteryBallResult";
-import { MysteryBallHistory } from "./MysteryBallHistory";
+import MysteryBallResult from "./MysteryBallResult";
+import MysteryBallHistory from "./MysteryBallHistory";
 import { useTranslation } from "@/hooks/useTranslation";
 import { 
   assignPokemonFromSchoolPool, 

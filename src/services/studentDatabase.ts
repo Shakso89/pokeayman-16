@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Pokemon } from "@/types/pokemon";
 
@@ -35,6 +34,15 @@ export interface StudentClass {
   student_id: string;
   class_id: string;
   assigned_at: string;
+}
+
+export interface MysteryBallHistoryRecord {
+  id: string;
+  student_id: string;
+  type: 'pokemon' | 'coins' | 'nothing';
+  pokemon_data?: Pokemon;
+  coins_amount?: number;
+  created_at: string;
 }
 
 // Get or create student profile with school assignment
@@ -264,6 +272,78 @@ export const getStudentProfileById = async (studentId: string): Promise<StudentP
   }
 };
 
+// Add mystery ball history functions
+export const addMysteryBallHistory = async (
+  studentId: string,
+  type: 'pokemon' | 'coins' | 'nothing',
+  pokemon?: Pokemon,
+  coinsAmount?: number
+): Promise<boolean> => {
+  try {
+    // Store in localStorage for now (can be moved to database later)
+    const historyKey = `mysteryBallHistory_${studentId}`;
+    const existingHistory = localStorage.getItem(historyKey);
+    const history = existingHistory ? JSON.parse(existingHistory) : [];
+    
+    const newEntry = {
+      id: `${Date.now()}_${Math.random()}`,
+      studentId,
+      date: new Date().toISOString(),
+      type,
+      pokemonData: pokemon,
+      coinsAmount
+    };
+    
+    history.unshift(newEntry);
+    // Keep only last 50 entries
+    if (history.length > 50) {
+      history.splice(50);
+    }
+    
+    localStorage.setItem(historyKey, JSON.stringify(history));
+    return true;
+  } catch (error) {
+    console.error('Error adding mystery ball history:', error);
+    return false;
+  }
+};
+
+export const getMysteryBallHistory = async (studentId: string): Promise<MysteryBallHistoryRecord[]> => {
+  try {
+    const historyKey = `mysteryBallHistory_${studentId}`;
+    const existingHistory = localStorage.getItem(historyKey);
+    return existingHistory ? JSON.parse(existingHistory) : [];
+  } catch (error) {
+    console.error('Error getting mystery ball history:', error);
+    return [];
+  }
+};
+
+export const checkDailyAttempt = async (studentId: string): Promise<boolean> => {
+  try {
+    const today = new Date().toDateString();
+    const lastAttemptKey = `dailyAttempt_${studentId}`;
+    const lastAttempt = localStorage.getItem(lastAttemptKey);
+    
+    return lastAttempt !== today;
+  } catch (error) {
+    console.error('Error checking daily attempt:', error);
+    return false;
+  }
+};
+
+export const useDailyAttempt = async (studentId: string): Promise<boolean> => {
+  try {
+    const today = new Date().toDateString();
+    const lastAttemptKey = `dailyAttempt_${studentId}`;
+    localStorage.setItem(lastAttemptKey, today);
+    return true;
+  } catch (error) {
+    console.error('Error using daily attempt:', error);
+    return false;
+  }
+};
+
 // Get student achievements
 export const getStudentAchievements = async (studentId: string): Promise<Achievement[]> => {
   try {
@@ -403,7 +483,7 @@ export const getStudentsBySchool = async (schoolId: string): Promise<StudentProf
   }
 };
 
-// Get students by class (for rankings)
+// Get students by class (for rankings) - fix the return type
 export const getStudentsByClass = async (classId: string): Promise<StudentProfile[]> => {
   try {
     const { data, error } = await supabase
@@ -418,7 +498,7 @@ export const getStudentsByClass = async (classId: string): Promise<StudentProfil
       return [];
     }
 
-    return data.map(item => item.student_profiles).filter(Boolean);
+    return data.map(item => item.student_profiles).filter(Boolean) as StudentProfile[];
   } catch (error) {
     console.error('Error in getStudentsByClass:', error);
     return [];
