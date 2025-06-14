@@ -528,7 +528,7 @@ export const getStudentsByClass = async (classId: string): Promise<StudentProfil
     const { data, error } = await supabase
       .from('student_classes')
       .select(`
-        student_profiles (*)
+        student_profiles!inner (*)
       `)
       .eq('class_id', classId);
 
@@ -537,13 +537,13 @@ export const getStudentsByClass = async (classId: string): Promise<StudentProfil
       return [];
     }
 
-    // Properly handle the nested structure and filter out nulls
+    // Handle the nested structure properly
     const profiles: StudentProfile[] = [];
     
     if (data) {
       for (const item of data) {
-        // item.student_profiles is a single StudentProfile object, not an array
-        if (item.student_profiles && typeof item.student_profiles === 'object') {
+        // Access the student_profiles data correctly
+        if (item.student_profiles) {
           profiles.push(item.student_profiles as StudentProfile);
         }
       }
