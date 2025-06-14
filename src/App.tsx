@@ -50,16 +50,15 @@ function Router() {
       <Route path="/logout" element={<LogoutPage />} />
       <Route path="/teacher-profile/:teacherId" element={<TeacherProfilePage />} />
       <Route path="/student/profile/:studentId" element={<StudentProfilePage />} />
+      {/* NEW: Ensure /student-profile/:studentId shows the profile page */}
+      <Route path="/student-profile/:studentId" element={<StudentDetailPage />} />
       <Route path="/student-detail/:studentId" element={<StudentDetailPage />} />
       <Route path="/class-details/:classId" element={<ClassDetailsPage />} />
-      
       {/* New route for creating classes in any school */}
       <Route path="/create-class/:schoolId" element={<CreateClassPage />} />
-      
       {/* Add missing teacher routes for student profiles */}
       <Route path="/teacher/student/:studentId" element={<StudentDetailPage />} />
       <Route path="/teacher/profile/:teacherId" element={<TeacherProfilePage />} />
-      
       <Route path="*" element={<NotFound />} />
     </Routes>;
 }
