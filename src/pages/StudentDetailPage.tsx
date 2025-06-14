@@ -7,6 +7,8 @@ import StudentProfilePokemonList from "@/components/student-profile/StudentProfi
 import StudentProfileCoins from "@/components/student-profile/StudentProfileCoins";
 import StudentProfileAchievements from "@/components/student-profile/StudentProfileAchievements";
 import StudentProfileSchoolClasses from "@/components/student-profile/StudentProfileSchoolClasses";
+import { ProfileHeader } from "@/components/student-profile/ProfileHeader";
+import { School, Users } from "lucide-react";
 
 const getPokemons = (studentId: string) => {
   const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
@@ -100,6 +102,43 @@ const StudentDetailPage: React.FC = () => {
 
   return (
     <div className="container max-w-3xl py-8 mx-auto">
+      {/* Profile header with back button and title */}
+      <ProfileHeader title="Student Profile" />
+
+      {/* Prominent: school and class info section */}
+      <div className="flex flex-col md:flex-row gap-3 items-center justify-between bg-blue-50 rounded-lg p-4 mb-6">
+        <div className="flex items-center gap-2">
+          <School className="h-5 w-5 text-blue-700" />
+          {school && (
+            <span
+              className="font-bold text-blue-800 cursor-pointer hover:underline"
+              onClick={() => navigate(`/school/${school.id}`)}
+              title="View School"
+            >
+              {school.name}
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-2 flex-wrap">
+          <Users className="h-5 w-5 text-purple-700" />
+          {classes && classes.length > 0 ? (
+            classes.map((c: any, i: number) => (
+              <span
+                key={c.id}
+                className="font-semibold text-purple-800 bg-purple-100 px-2 py-1 rounded cursor-pointer hover:bg-purple-200 mr-1"
+                onClick={() => navigate(`/class/${c.id}`)}
+                title="View Class"
+              >
+                {c.name}
+              </span>
+            ))
+          ) : (
+            <span className="text-gray-500">No classes</span>
+          )}
+        </div>
+      </div>
+
       <Card>
         <CardContent>
           <StudentProfileBasicInfo
