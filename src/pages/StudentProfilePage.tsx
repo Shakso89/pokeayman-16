@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -21,22 +20,26 @@ const StudentProfilePage: React.FC = () => {
 
   // Check if this is the current user's profile
   const currentUserId = localStorage.getItem("currentStudentId");
-  const isOwner = currentUserId === studentId;
+  const actualCurrentUserId = localStorage.getItem("studentId");
+  const isOwner = actualCurrentUserId === studentId;
 
   useEffect(() => {
     loadStudentData();
   }, [studentId]);
 
   const loadStudentData = async () => {
-    if (!studentId) return;
+    if (!studentId) {
+      setLoading(false);
+      return;
+    }
     
+    setLoading(true);
     try {
-      // Try to load from Supabase first
       const { data, error } = await supabase
         .from('students')
         .select('*')
         .eq('id', studentId)
-        .single();
+        .maybeSingle();
         
       if (error) throw error;
       
@@ -44,38 +47,48 @@ const StudentProfilePage: React.FC = () => {
         const studentData = {
           id: data.id,
           username: data.username,
-          displayName: data.display_name,
-          avatar: null, // Add avatar logic if needed
-          photos: [], // Initialize empty photos array
-          pokemonCollection: [], // Initialize empty pokemon collection
-          contactInfo: '', // Initialize empty contact info
+          displayName: data.display_name || data.username,
+          avatar: data.avatar_url || null,
+          photos: [],
+          pokemonCollection: [],
+          contactInfo: '',
           classId: data.class_id
         };
         setStudent(studentData);
         setEditData(studentData);
+      } else {
+        throw new Error("Student not found in Supabase");
       }
     } catch (error) {
       console.error("Error loading from Supabase, falling back to localStorage:", error);
       
-      // Fallback to localStorage
       const savedStudents = localStorage.getItem("students");
       if (savedStudents) {
-        const students = JSON.parse(savedStudents);
-        const foundStudent = students.find((s: any) => s.id === studentId);
-        if (foundStudent) {
-          const studentData = {
-            id: foundStudent.id,
-            username: foundStudent.username,
-            displayName: foundStudent.displayName || foundStudent.username,
-            avatar: foundStudent.avatar,
-            photos: foundStudent.photos || [],
-            pokemonCollection: foundStudent.pokemonCollection || [],
-            contactInfo: foundStudent.contactInfo || '',
-            classId: foundStudent.classId
-          };
-          setStudent(studentData);
-          setEditData(studentData);
+        try {
+          const studentsList = JSON.parse(savedStudents);
+          const foundStudent = studentsList.find((s: any) => s.id === studentId);
+          if (foundStudent) {
+            const studentData = {
+              id: foundStudent.id,
+              username: foundStudent.username,
+              displayName: foundStudent.displayName || foundStudent.username,
+              avatar: foundStudent.avatar,
+              photos: foundStudent.photos || [],
+              pokemonCollection: foundStudent.pokemonCollection || [],
+              contactInfo: foundStudent.contactInfo || '',
+              classId: foundStudent.classId
+            };
+            setStudent(studentData);
+            setEditData(studentData);
+          } else {
+            setStudent(null);
+          }
+        } catch (parseError) {
+          console.error("Error parsing students from localStorage:", parseError);
+          setStudent(null);
         }
+      } else {
+        setStudent(null);
       }
     } finally {
       setLoading(false);
@@ -99,7 +112,8 @@ const StudentProfilePage: React.FC = () => {
   };
 
   const handleSendMessage = () => {
-    navigate("/messages", { state: { recipientId: studentId, recipientName: student?.displayName || student?.username } });
+    const recipientName = student ? (student.displayName || student.username) : t('student');
+    navigate("/messages", { state: { recipientId: studentId, recipientName } });
   };
 
   const handleAddFriend = () => {
@@ -125,9 +139,11 @@ const StudentProfilePage: React.FC = () => {
   if (!student) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <Card className="p-8 text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">{t("student-not-found")}</h2>
-          <Button onClick={() => navigate(-1)}>{t("go-back")}</Button>
+        <Card className="p-8 text-center shadow-xl rounded-lg">
+          <CardContent>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">{t("student-not-found")}</h2>
+            <Button onClick={() => navigate(-1)}>{t("go-back")}</Button>
+          </CardContent>
         </Card>
       </div>
     );
@@ -147,7 +163,7 @@ const StudentProfilePage: React.FC = () => {
             {t("back")}
           </Button>
           
-          {!isOwner && (
+          {!isOwner && student && (
             <Button
               onClick={handleSendMessage}
               className="flex items-center"
