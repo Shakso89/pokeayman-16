@@ -17,33 +17,32 @@ export interface StudentProfile {
   updated_at: string;
 }
 
-export interface PokemonCollection {
+export interface Achievement {
   id: string;
   student_id: string;
-  pokemon_id: string;
-  pokemon_name: string;
-  pokemon_image?: string;
-  pokemon_type?: string;
-  pokemon_rarity?: string;
-  pokemon_level: number;
-  obtained_at: string;
+  type: 'homework_streak' | 'star_of_class' | 'pokemon_master' | 'coin_collector';
+  value: number;
+  class_id?: string;
+  school_id?: string;
+  awarded_by?: string;
+  awarded_at: string;
+  is_active: boolean;
+  metadata?: any;
 }
 
-export interface MysteryBallHistoryRecord {
+export interface StudentClass {
   id: string;
   student_id: string;
-  result_type: 'pokemon' | 'coins' | 'nothing';
-  pokemon_id?: string;
-  pokemon_name?: string;
-  coins_amount?: number;
-  created_at: string;
+  class_id: string;
+  assigned_at: string;
 }
 
-// Get or create student profile
+// Get or create student profile with school assignment
 export const getOrCreateStudentProfile = async (
   userId: string,
   username: string,
-  displayName?: string
+  displayName?: string,
+  schoolId?: string
 ): Promise<StudentProfile | null> => {
   try {
     // First try to get existing profile
@@ -57,13 +56,19 @@ export const getOrCreateStudentProfile = async (
       return existingProfile;
     }
 
-    // Create new profile if it doesn't exist
+    // Create new profile if it doesn't exist - school_id is required for new students
+    if (!schoolId) {
+      console.error('School ID is required for new student profiles');
+      return null;
+    }
+
     const { data: newProfile, error: createError } = await supabase
       .from('student_profiles')
       .insert({
         user_id: userId,
         username,
         display_name: displayName || username,
+        school_id: schoolId,
         coins: 0,
         spent_coins: 0
       })
@@ -109,13 +114,58 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<Po
   }
 };
 
-// Add Pokemon to student's collection
-export const addPokemonToCollection = async (
+// Assign Pokemon from school pool to student
+export const assignPokemonFromSchoolPool = async (
+  schoolId: string,
   studentId: string,
-  pokemon: Pokemon
-): Promise<boolean> => {
+  pokemonRarity?: string
+): Promise<{ success: boolean; pokemon?: Pokemon; isDuplicate?: boolean }> => {
   try {
-    const { error } = await supabase
+    // Get available Pokemon from school pool
+    let query = supabase
+      .from('pokemon_pools')
+      .select('*')
+      .eq('school_id', schoolId)
+      .eq('available', true);
+
+    if (pokemonRarity) {
+      query = query.eq('pokemon_rarity', pokemonRarity);
+    }
+
+    const { data: availablePokemon, error: fetchError } = await query.limit(10);
+
+    if (fetchError || !availablePokemon || availablePokemon.length === 0) {
+      console.error('No available Pokemon in school pool:', fetchError);
+      return { success: false };
+    }
+
+    // Randomly select one Pokemon
+    const selectedPokemon = availablePokemon[Math.floor(Math.random() * availablePokemon.length)];
+    
+    const pokemon: Pokemon = {
+      id: selectedPokemon.pokemon_id,
+      name: selectedPokemon.pokemon_name,
+      image: selectedPokemon.pokemon_image || '',
+      type: selectedPokemon.pokemon_type || '',
+      rarity: selectedPokemon.pokemon_rarity as any || 'common'
+    };
+
+    // Check if student already has this Pokemon
+    const { data: existingPokemon } = await supabase
+      .from('pokemon_collections')
+      .select('id')
+      .eq('student_id', studentId)
+      .eq('pokemon_id', pokemon.id)
+      .maybeSingle();
+
+    if (existingPokemon) {
+      // Give coins instead for duplicate (10 coins)
+      const success = await updateStudentCoins(studentId, 10);
+      return { success, pokemon, isDuplicate: true };
+    }
+
+    // Add to student collection
+    const { error: addError } = await supabase
       .from('pokemon_collections')
       .insert({
         student_id: studentId,
@@ -127,15 +177,30 @@ export const addPokemonToCollection = async (
         pokemon_level: 1
       });
 
-    if (error) {
-      console.error('Error adding pokemon to collection:', error);
-      return false;
+    if (addError) {
+      console.error('Error adding pokemon to collection:', addError);
+      return { success: false };
     }
 
-    return true;
+    // Mark as assigned in pool
+    const { error: updateError } = await supabase
+      .from('pokemon_pools')
+      .update({ 
+        assigned_to: studentId,
+        available: false,
+        assigned_at: new Date().toISOString()
+      })
+      .eq('id', selectedPokemon.id);
+
+    if (updateError) {
+      console.error('Error updating pool:', updateError);
+      return { success: false };
+    }
+
+    return { success: true, pokemon, isDuplicate: false };
   } catch (error) {
-    console.error('Error in addPokemonToCollection:', error);
-    return false;
+    console.error('Error in assignPokemonFromSchoolPool:', error);
+    return { success: false };
   }
 };
 
@@ -199,108 +264,168 @@ export const getStudentProfileById = async (studentId: string): Promise<StudentP
   }
 };
 
-// Add mystery ball history record
-export const addMysteryBallHistory = async (
-  studentId: string,
-  resultType: 'pokemon' | 'coins' | 'nothing',
-  pokemon?: Pokemon,
-  coinsAmount?: number
-): Promise<boolean> => {
-  try {
-    const { error } = await supabase
-      .from('mystery_ball_history')
-      .insert({
-        student_id: studentId,
-        result_type: resultType,
-        pokemon_id: pokemon?.id,
-        pokemon_name: pokemon?.name,
-        coins_amount: coinsAmount
-      });
-
-    if (error) {
-      console.error('Error adding mystery ball history:', error);
-      return false;
-    }
-
-    return true;
-  } catch (error) {
-    console.error('Error in addMysteryBallHistory:', error);
-    return false;
-  }
-};
-
-// Get mystery ball history
-export const getMysteryBallHistory = async (studentId: string): Promise<MysteryBallHistoryRecord[]> => {
+// Get student achievements
+export const getStudentAchievements = async (studentId: string): Promise<Achievement[]> => {
   try {
     const { data, error } = await supabase
-      .from('mystery_ball_history')
+      .from('achievements')
       .select('*')
       .eq('student_id', studentId)
-      .order('created_at', { ascending: false })
-      .limit(10);
+      .eq('is_active', true)
+      .order('awarded_at', { ascending: false });
 
     if (error) {
-      console.error('Error fetching mystery ball history:', error);
+      console.error('Error fetching achievements:', error);
       return [];
     }
 
     return data;
   } catch (error) {
-    console.error('Error in getMysteryBallHistory:', error);
+    console.error('Error in getStudentAchievements:', error);
     return [];
   }
 };
 
-// Check if daily attempt is available
-export const checkDailyAttempt = async (studentId: string): Promise<boolean> => {
+// Award star of class
+export const awardStarOfClass = async (
+  studentId: string,
+  classId: string,
+  awardedBy: string
+): Promise<boolean> => {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    
-    const { data, error } = await supabase
-      .from('daily_attempts')
-      .select('*')
-      .eq('student_id', studentId)
-      .eq('attempt_date', today)
-      .maybeSingle();
+    const { data, error } = await supabase.rpc('award_star_of_class', {
+      p_student_id: studentId,
+      p_class_id: classId,
+      p_awarded_by: awardedBy
+    });
 
     if (error) {
-      console.error('Error checking daily attempt:', error);
+      console.error('Error awarding star of class:', error);
       return false;
     }
 
-    return !data || !data.used;
+    return data;
   } catch (error) {
-    console.error('Error in checkDailyAttempt:', error);
+    console.error('Error in awardStarOfClass:', error);
     return false;
   }
 };
 
-// Use daily attempt
-export const useDailyAttempt = async (studentId: string): Promise<boolean> => {
+// Calculate homework streak
+export const calculateHomeworkStreak = async (studentId: string): Promise<number> => {
   try {
-    const today = new Date().toISOString().split('T')[0];
-    
+    const { data, error } = await supabase.rpc('calculate_homework_streak', {
+      p_student_id: studentId
+    });
+
+    if (error) {
+      console.error('Error calculating homework streak:', error);
+      return 0;
+    }
+
+    return data || 0;
+  } catch (error) {
+    console.error('Error in calculateHomeworkStreak:', error);
+    return 0;
+  }
+};
+
+// Get student's assigned classes
+export const getStudentClasses = async (studentId: string): Promise<StudentClass[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('student_classes')
+      .select(`
+        *,
+        classes:class_id (
+          id,
+          name,
+          description
+        )
+      `)
+      .eq('student_id', studentId);
+
+    if (error) {
+      console.error('Error fetching student classes:', error);
+      return [];
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getStudentClasses:', error);
+    return [];
+  }
+};
+
+// Assign student to class
+export const assignStudentToClass = async (
+  studentId: string,
+  classId: string
+): Promise<boolean> => {
+  try {
     const { error } = await supabase
-      .from('daily_attempts')
-      .upsert({
+      .from('student_classes')
+      .insert({
         student_id: studentId,
-        attempt_date: today,
-        used: true
+        class_id: classId
       });
 
     if (error) {
-      console.error('Error using daily attempt:', error);
+      console.error('Error assigning student to class:', error);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error in useDailyAttempt:', error);
+    console.error('Error in assignStudentToClass:', error);
     return false;
   }
 };
 
-// Get Pokemon pools for a school
+// Get students by school (for rankings)
+export const getStudentsBySchool = async (schoolId: string): Promise<StudentProfile[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('student_profiles')
+      .select('*')
+      .eq('school_id', schoolId)
+      .order('coins', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching students by school:', error);
+      return [];
+    }
+
+    return data;
+  } catch (error) {
+    console.error('Error in getStudentsBySchool:', error);
+    return [];
+  }
+};
+
+// Get students by class (for rankings)
+export const getStudentsByClass = async (classId: string): Promise<StudentProfile[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('student_classes')
+      .select(`
+        student_profiles (*)
+      `)
+      .eq('class_id', classId);
+
+    if (error) {
+      console.error('Error fetching students by class:', error);
+      return [];
+    }
+
+    return data.map(item => item.student_profiles).filter(Boolean);
+  } catch (error) {
+    console.error('Error in getStudentsByClass:', error);
+    return [];
+  }
+};
+
+// Get school Pokemon pool
 export const getSchoolPokemonPool = async (schoolId: string): Promise<Pokemon[]> => {
   try {
     const { data, error } = await supabase
@@ -324,73 +449,5 @@ export const getSchoolPokemonPool = async (schoolId: string): Promise<Pokemon[]>
   } catch (error) {
     console.error('Error in getSchoolPokemonPool:', error);
     return [];
-  }
-};
-
-// Remove Pokemon from pool and add to student collection
-export const assignPokemonFromPool = async (
-  schoolId: string,
-  studentId: string,
-  pokemonId: string
-): Promise<{ success: boolean; pokemon?: Pokemon }> => {
-  try {
-    // Start a transaction-like operation
-    const { data: poolPokemon, error: fetchError } = await supabase
-      .from('pokemon_pools')
-      .select('*')
-      .eq('school_id', schoolId)
-      .eq('pokemon_id', pokemonId)
-      .eq('available', true)
-      .limit(1)
-      .maybeSingle();
-
-    if (fetchError || !poolPokemon) {
-      console.error('Pokemon not found in pool:', fetchError);
-      return { success: false };
-    }
-
-    const pokemon: Pokemon = {
-      id: poolPokemon.pokemon_id,
-      name: poolPokemon.pokemon_name,
-      image: poolPokemon.pokemon_image || '',
-      type: poolPokemon.pokemon_type || '',
-      rarity: poolPokemon.pokemon_rarity as any || 'common'
-    };
-
-    // Check if student already has this Pokemon (duplicate handling)
-    const { data: existingPokemon } = await supabase
-      .from('pokemon_collections')
-      .select('id')
-      .eq('student_id', studentId)
-      .eq('pokemon_id', pokemonId)
-      .maybeSingle();
-
-    if (existingPokemon) {
-      // Give coins instead for duplicate
-      const success = await updateStudentCoins(studentId, 10);
-      return { success, pokemon };
-    }
-
-    // Add to student collection
-    const addSuccess = await addPokemonToCollection(studentId, pokemon);
-    if (!addSuccess) {
-      return { success: false };
-    }
-
-    // Mark as unavailable in pool
-    const { error: updateError } = await supabase
-      .from('pokemon_pools')
-      .update({ available: false })
-      .eq('id', poolPokemon.id);
-
-    if (updateError) {
-      console.error('Error updating pool:', updateError);
-      return { success: false };
-    }
-
-    return { success: true, pokemon };
-  } catch (error) {
-    console.error('Error in assignPokemonFromPool:', error);
-    return { success: false };
   }
 };

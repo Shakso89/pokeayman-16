@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Pokemon } from '@/types/pokemon';
 import { 
@@ -7,7 +8,7 @@ import {
   StudentProfile 
 } from '@/services/studentDatabase';
 
-export const useStudentData = (studentId: string, userId?: string, username?: string) => {
+export const useStudentData = (studentId: string, userId?: string, username?: string, schoolId?: string) => {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
   const [pokemons, setPokemons] = useState<Pokemon[]>([]);
   const [coins, setCoins] = useState(0);
@@ -23,7 +24,7 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
 
       // If we have userId and username, try to get or create profile
       if (userId && username) {
-        studentProfile = await getOrCreateStudentProfile(userId, username);
+        studentProfile = await getOrCreateStudentProfile(userId, username, undefined, schoolId);
       } else {
         // Otherwise get existing profile by student ID
         studentProfile = await getStudentProfileById(studentId);
@@ -51,7 +52,7 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
 
   useEffect(() => {
     loadStudentData();
-  }, [studentId, userId, username]);
+  }, [studentId, userId, username, schoolId]);
 
   return {
     profile,

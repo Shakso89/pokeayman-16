@@ -9,6 +9,67 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      achievements: {
+        Row: {
+          awarded_at: string
+          awarded_by: string | null
+          class_id: string | null
+          id: string
+          is_active: boolean | null
+          metadata: Json | null
+          school_id: string | null
+          student_id: string
+          type: string
+          value: number | null
+        }
+        Insert: {
+          awarded_at?: string
+          awarded_by?: string | null
+          class_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          school_id?: string | null
+          student_id: string
+          type: string
+          value?: number | null
+        }
+        Update: {
+          awarded_at?: string
+          awarded_by?: string | null
+          class_id?: string | null
+          id?: string
+          is_active?: boolean | null
+          metadata?: Json | null
+          school_id?: string | null
+          student_id?: string
+          type?: string
+          value?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "achievements_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "achievements_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "achievements_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           assistants: string[] | null
@@ -375,6 +436,8 @@ export type Database = {
       }
       pokemon_pools: {
         Row: {
+          assigned_at: string | null
+          assigned_to: string | null
           available: boolean | null
           created_at: string
           id: string
@@ -387,6 +450,8 @@ export type Database = {
           school_id: string
         }
         Insert: {
+          assigned_at?: string | null
+          assigned_to?: string | null
           available?: boolean | null
           created_at?: string
           id?: string
@@ -399,6 +464,8 @@ export type Database = {
           school_id: string
         }
         Update: {
+          assigned_at?: string | null
+          assigned_to?: string | null
           available?: boolean | null
           created_at?: string
           id?: string
@@ -410,7 +477,15 @@ export type Database = {
           pokemon_type?: string | null
           school_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "pokemon_pools_assigned_to_fkey"
+            columns: ["assigned_to"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       schools: {
         Row: {
@@ -440,6 +515,42 @@ export type Database = {
             columns: ["created_by"]
             isOneToOne: false
             referencedRelation: "teachers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      student_classes: {
+        Row: {
+          assigned_at: string
+          class_id: string
+          id: string
+          student_id: string
+        }
+        Insert: {
+          assigned_at?: string
+          class_id: string
+          id?: string
+          student_id: string
+        }
+        Update: {
+          assigned_at?: string
+          class_id?: string
+          id?: string
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_classes_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "student_classes_student_id_fkey"
+            columns: ["student_id"]
+            isOneToOne: false
+            referencedRelation: "student_profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -667,6 +778,14 @@ export type Database = {
           assigned_school_id?: string
         }
         Returns: boolean
+      }
+      award_star_of_class: {
+        Args: { p_student_id: string; p_class_id: string; p_awarded_by: string }
+        Returns: boolean
+      }
+      calculate_homework_streak: {
+        Args: { p_student_id: string }
+        Returns: number
       }
       delete_expired_homework: {
         Args: Record<PropertyKey, never>

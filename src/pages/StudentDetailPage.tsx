@@ -6,14 +6,22 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "sonner";
 import { NavBar } from "@/components/NavBar";
-import { UploadPhotos } from "@/components/profile/UploadPhotos";
 import { useTranslation } from "@/hooks/useTranslation";
-import { ChevronLeft, MessageSquare, UserPlus } from "lucide-react";
+import { ChevronLeft, MessageSquare, Star } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { FriendRequest } from "@/types/pokemon";
 import { ProfileSidebar } from "@/components/student-profile/ProfileSidebar";
 import { useStudentData } from "@/hooks/useStudentData";
-import { getStudentProfileById } from "@/services/studentDatabase";
+import { 
+  getStudentProfileById, 
+  getStudentAchievements, 
+  calculateHomeworkStreak,
+  getStudentClasses,
+  awardStarOfClass,
+  Achievement,
+  StudentClass
+} from "@/services/studentDatabase";
+import AchievementsDisplay from "@/components/student/achievements/AchievementsDisplay";
+import SchoolClassInfo from "@/components/student/profile/SchoolClassInfo";
 
 interface StudentData {
   id: string;
@@ -24,17 +32,24 @@ interface StudentData {
   updatedAt?: string;
   avatar?: string;
   classId?: string;
+  schoolId?: string;
+}
+
+interface School {
+  id: string;
+  name: string;
 }
 
 const StudentDetailPage: React.FC = () => {
   const { id, studentId } = useParams<{ id?: string, studentId?: string }>();
   const [student, setStudent] = useState<StudentData | null>(null);
+  const [achievements, setAchievements] = useState<Achievement[]>([]);
+  const [homeworkStreak, setHomeworkStreak] = useState<number>(0);
+  const [studentClasses, setStudentClasses] = useState<StudentClass[]>([]);
+  const [school, setSchool] = useState<School | null>(null);
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
-  const [friendRequestSent, setFriendRequestSent] = useState<boolean>(false);
-  const [friendRequestPending, setFriendRequestPending] = useState<boolean>(false);
-  const [alreadyFriends, setAlreadyFriends] = useState<boolean>(false);
   const [isEditing, setIsEditing] = useState<boolean>(false);
   const [editData, setEditData] = useState<Partial<StudentData>>({});
 
@@ -52,14 +67,17 @@ const StudentDetailPage: React.FC = () => {
   
   // Check if current user is the owner of this profile
   const isOwnProfile = userType === "student" && localStorage.getItem("studentId") === actualStudentId;
+  const isTeacherView = userType === "teacher";
 
   // Use the student data hook
-  const { profile, pokemons, coins, spentCoins, isLoading } = useStudentData(actualStudentId || '');
+  const { profile, pokemons, coins, spentCoins, isLoading: dataLoading, refreshData } = useStudentData(actualStudentId || '');
 
   useEffect(() => {
     if (actualStudentId) {
       loadStudentData(actualStudentId);
-      checkFriendshipStatus(actualStudentId);
+      loadAchievements(actualStudentId);
+      loadHomeworkStreak(actualStudentId);
+      loadStudentClasses(actualStudentId);
     }
   }, [actualStudentId]);
 
@@ -73,18 +91,23 @@ const StudentDetailPage: React.FC = () => {
         createdAt: profile.created_at,
         updatedAt: profile.updated_at,
         avatar: profile.avatar_url,
-        classId: profile.class_id
+        classId: profile.class_id,
+        schoolId: profile.school_id
       });
       setEditData({
         displayName: profile.display_name || profile.username,
         avatar: profile.avatar_url
       });
+
+      // Load school information if we have school_id
+      if (profile.school_id) {
+        loadSchoolInfo(profile.school_id);
+      }
     }
   }, [profile]);
   
   const loadStudentData = async (id: string) => {
     try {
-      // Try to load from database first
       const studentProfile = await getStudentProfileById(id);
       if (studentProfile) {
         setStudent({
@@ -95,198 +118,98 @@ const StudentDetailPage: React.FC = () => {
           createdAt: studentProfile.created_at,
           updatedAt: studentProfile.updated_at,
           avatar: studentProfile.avatar_url,
-          classId: studentProfile.class_id
+          classId: studentProfile.class_id,
+          schoolId: studentProfile.school_id
         });
         setEditData({
           displayName: studentProfile.display_name || studentProfile.username,
           avatar: studentProfile.avatar_url
         });
-        return;
-      }
-
-      // Fallback to localStorage
-      const studentsData = localStorage.getItem("students");
-      if (studentsData) {
-        const students = JSON.parse(studentsData);
-        const foundStudent = students.find((s: StudentData) => s.id === id);
-        if (foundStudent) {
-          setStudent(foundStudent);
-          setEditData(foundStudent);
-        } else {
-          toast(t("student-not-found"));
-          navigate(-1);
-        }
       }
     } catch (error) {
       console.error("Error loading student data:", error);
-      toast(t("error-loading-student"));
+      toast.error(t("error-loading-student"));
     }
   };
 
-  const checkFriendshipStatus = (targetId: string) => {
-    if (!currentUserId) return;
-    
-    const friendRequests: FriendRequest[] = JSON.parse(localStorage.getItem("friendRequests") || "[]");
-    
-    // Check if there's already a request sent
-    const existingSentRequest = friendRequests.find(request => 
-      request.senderId === currentUserId && 
-      request.receiverId === targetId
-    );
-    
-    if (existingSentRequest) {
-      if (existingSentRequest.status === "pending") {
-        setFriendRequestSent(true);
-      } else if (existingSentRequest.status === "accepted") {
-        setAlreadyFriends(true);
-      }
-    }
-    
-    // Check if there's a pending request received
-    const existingReceivedRequest = friendRequests.find(request => 
-      request.senderId === targetId && 
-      request.receiverId === currentUserId &&
-      request.status === "pending"
-    );
-    
-    if (existingReceivedRequest) {
-      setFriendRequestPending(true);
-    }
-    
-    // Check if they're already friends (request accepted in either direction)
-    const existingFriendship = friendRequests.find(request => 
-      ((request.senderId === currentUserId && request.receiverId === targetId) ||
-       (request.senderId === targetId && request.receiverId === currentUserId)) &&
-      request.status === "accepted"
-    );
-    
-    if (existingFriendship) {
-      setAlreadyFriends(true);
+  const loadAchievements = async (studentId: string) => {
+    try {
+      const studentAchievements = await getStudentAchievements(studentId);
+      setAchievements(studentAchievements);
+    } catch (error) {
+      console.error("Error loading achievements:", error);
     }
   };
 
-  const handleAvatarUpdate = (newAvatar: string) => {
-    // Update student data in localStorage
-    const students = JSON.parse(localStorage.getItem("students") || "[]");
-    const studentIndex = students.findIndex((s: any) => s.id === actualStudentId);
-    
-    if (studentIndex !== -1) {
-      students[studentIndex].avatar = newAvatar;
-      localStorage.setItem("students", JSON.stringify(students));
-      
-      // Update component state
-      setStudent({
-        ...student!,
-        avatar: newAvatar
+  const loadHomeworkStreak = async (studentId: string) => {
+    try {
+      const streak = await calculateHomeworkStreak(studentId);
+      setHomeworkStreak(streak);
+    } catch (error) {
+      console.error("Error loading homework streak:", error);
+    }
+  };
+
+  const loadStudentClasses = async (studentId: string) => {
+    try {
+      const classes = await getStudentClasses(studentId);
+      setStudentClasses(classes);
+    } catch (error) {
+      console.error("Error loading student classes:", error);
+    }
+  };
+
+  const loadSchoolInfo = async (schoolId: string) => {
+    try {
+      // For now, we'll use a placeholder. In a real app, you'd fetch from schools table
+      setSchool({
+        id: schoolId,
+        name: "Default School" // This should be fetched from the schools table
       });
-      
-      toast("Avatar updated successfully!");
+    } catch (error) {
+      console.error("Error loading school info:", error);
     }
   };
 
-  const canEdit = userType === "teacher" || isOwnProfile;
+  const handleAwardStar = async () => {
+    if (!student || !currentUserId) return;
+    
+    // For now, we'll assume the student is in one class. In a real app, you'd select which class
+    const classId = student.classId || (studentClasses[0]?.class_id);
+    if (!classId) {
+      toast.error("Student must be assigned to a class to receive star award");
+      return;
+    }
+
+    try {
+      const success = await awardStarOfClass(student.id, classId, currentUserId);
+      if (success) {
+        toast.success("Star of Class awarded! Student received 50 coins.");
+        loadAchievements(student.id);
+        refreshData();
+      } else {
+        toast.error("Failed to award Star of Class");
+      }
+    } catch (error) {
+      console.error("Error awarding star:", error);
+      toast.error("Failed to award Star of Class");
+    }
+  };
 
   const handleSendMessage = () => {
     if (!student) return;
-    
-    // Navigate to messages page
     navigate(userType === "teacher" ? "/teacher/messages" : "/student/messages");
-    
-    // Store the selected contact in localStorage for the messages page to use
     localStorage.setItem("selectedContactId", student.id);
     localStorage.setItem("selectedContactType", "student");
   };
 
-  const handleFriendRequest = () => {
-    if (!student || !currentUserId || !userName) return;
-    
-    const newRequest: FriendRequest = {
-      id: `fr-${Date.now()}`,
-      senderId: currentUserId,
-      senderType: userType as "teacher" | "student",
-      senderName: userName,
-      receiverId: student.id,
-      receiverType: "student",
-      status: "pending",
-      createdAt: new Date().toISOString()
-    };
-    
-    // Add to localStorage
-    const allRequests: FriendRequest[] = JSON.parse(localStorage.getItem("friendRequests") || "[]");
-    allRequests.push(newRequest);
-    localStorage.setItem("friendRequests", JSON.stringify(allRequests));
-    
-    setFriendRequestSent(true);
-    
-    toast(t("friend-request-sent"));
-  };
-
-  const handleAcceptFriendRequest = () => {
-    if (!student || !currentUserId) return;
-    
-    const allRequests: FriendRequest[] = JSON.parse(localStorage.getItem("friendRequests") || "[]");
-    const updatedRequests = allRequests.map(request => {
-      if (request.senderId === student.id && request.receiverId === currentUserId && request.status === "pending") {
-        return { ...request, status: "accepted" };
-      }
-      return request;
-    });
-    
-    localStorage.setItem("friendRequests", JSON.stringify(updatedRequests));
-    
-    setFriendRequestPending(false);
-    setAlreadyFriends(true);
-    
-    toast(t("friend-request-accepted"));
-  };
-  
-  const handleSave = () => {
-    if (!student) return;
-    
-    try {
-      const students = JSON.parse(localStorage.getItem("students") || "[]");
-      const index = students.findIndex((s: any) => s.id === actualStudentId);
-      
-      if (index !== -1) {
-        students[index] = {
-          ...students[index],
-          displayName: editData.displayName || student.displayName,
-          avatar: editData.avatar || student.avatar
-        };
-        
-        localStorage.setItem("students", JSON.stringify(students));
-        
-        // Update the student in local state
-        setStudent({
-          ...student,
-          displayName: editData.displayName || student.displayName,
-          avatar: editData.avatar || student.avatar
-        });
-        
-        // If this is the current logged-in student, update their name in localStorage
-        if (isOwnProfile) {
-          localStorage.setItem("studentName", editData.displayName || student.displayName);
-        }
-        
-        setIsEditing(false);
-        toast(t("profile-updated-successfully"));
-      }
-    } catch (error) {
-      console.error("Error saving profile:", error);
-      toast(t("failed-to-save-profile"));
-    }
-  };
-  
-  const handleCancel = () => {
-    setEditData(student || {});
-    setIsEditing(false);
-  };
+  const hasStarOfClass = achievements.some(a => a.type === 'star_of_class' && a.is_active);
 
   if (!isLoggedIn) {
     return <Navigate to={userType === "teacher" ? "/teacher-login" : "/student-login"} />;
   }
   
-  if (isLoading || !student) {
+  if (dataLoading || !student) {
     return (
       <div className="min-h-screen bg-gray-100">
         <NavBar 
@@ -294,7 +217,7 @@ const StudentDetailPage: React.FC = () => {
           userName={userType === "teacher" ? localStorage.getItem("teacherDisplayName") || "Teacher" : localStorage.getItem("studentName") || ""}
         />
         <div className="container mx-auto py-8 px-4 text-center">
-          <p>{isLoading ? t("loading") : t("student-not-found")}...</p>
+          <p>{dataLoading ? t("loading") : t("student-not-found")}...</p>
         </div>
       </div>
     );
@@ -310,16 +233,35 @@ const StudentDetailPage: React.FC = () => {
       />
       
       <div className="container mx-auto py-8 px-4">
-        <div className="flex items-center mb-6">
-          <Button 
-            variant="outline" 
-            onClick={() => navigate(-1)}
-            className="mr-4"
-          >
-            <ChevronLeft className="h-4 w-4 mr-1" />
-            {t("back")}
-          </Button>
-          <h1 className="text-2xl font-bold">{t("student-profile")}</h1>
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <Button 
+              variant="outline" 
+              onClick={() => navigate(-1)}
+              className="mr-4"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              {t("back")}
+            </Button>
+            <h1 className="text-2xl font-bold flex items-center gap-2">
+              {t("student-profile")}
+              {hasStarOfClass && <Star className="h-6 w-6 text-yellow-500 fill-current" />}
+            </h1>
+          </div>
+
+          {/* Teacher Actions */}
+          {isTeacherView && (
+            <div className="flex gap-2">
+              <Button onClick={handleSendMessage} variant="outline">
+                <MessageSquare className="h-4 w-4 mr-2" />
+                Message
+              </Button>
+              <Button onClick={handleAwardStar} className="bg-yellow-500 hover:bg-yellow-600">
+                <Star className="h-4 w-4 mr-2" />
+                Award Star
+              </Button>
+            </div>
+          )}
         </div>
         
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
@@ -333,12 +275,12 @@ const StudentDetailPage: React.FC = () => {
             }}
             isOwner={isOwnProfile}
             isEditing={isEditing}
-            friendRequestSent={friendRequestSent}
+            friendRequestSent={false}
             onEditClick={() => setIsEditing(true)}
             onSendMessageClick={handleSendMessage}
-            onAddFriendClick={friendRequestPending ? handleAcceptFriendRequest : handleFriendRequest}
-            onSaveClick={handleSave}
-            onCancelClick={handleCancel}
+            onAddFriendClick={() => {}}
+            onSaveClick={() => setIsEditing(false)}
+            onCancelClick={() => setIsEditing(false)}
           />
           
           <div className="col-span-1 lg:col-span-3">
@@ -346,6 +288,8 @@ const StudentDetailPage: React.FC = () => {
               <TabsList className="mb-4">
                 <TabsTrigger value="overview">{t("overview")}</TabsTrigger>
                 <TabsTrigger value="pokemon">{t("pokemon")}</TabsTrigger>
+                <TabsTrigger value="achievements">Achievements</TabsTrigger>
+                <TabsTrigger value="school-classes">School & Classes</TabsTrigger>
                 {isOwnProfile && <TabsTrigger value="settings">{t("settings")}</TabsTrigger>}
               </TabsList>
               
@@ -397,6 +341,24 @@ const StudentDetailPage: React.FC = () => {
                   </CardContent>
                 </Card>
               </TabsContent>
+
+              <TabsContent value="achievements">
+                <AchievementsDisplay 
+                  achievements={achievements} 
+                  homeworkStreak={homeworkStreak} 
+                />
+              </TabsContent>
+
+              <TabsContent value="school-classes">
+                <SchoolClassInfo
+                  school={school || undefined}
+                  classes={studentClasses.map(sc => ({
+                    id: sc.class_id,
+                    name: (sc as any).classes?.name || 'Unknown Class',
+                    description: (sc as any).classes?.description
+                  }))}
+                />
+              </TabsContent>
               
               {isOwnProfile && (
                 <TabsContent value="settings">
@@ -422,6 +384,10 @@ const StudentDetailPage: React.FC = () => {
                         <div>
                           <label className="text-sm font-medium text-gray-500">{t("username")}:</label>
                           <p>{student.username}</p>
+                        </div>
+                        <div>
+                          <label className="text-sm font-medium text-gray-500">School:</label>
+                          <p>{school?.name || 'Not assigned'}</p>
                         </div>
                       </div>
                     </CardContent>
