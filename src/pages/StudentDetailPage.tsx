@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -32,20 +31,59 @@ const getStarOfClass = (studentId: string, classes: any[]): boolean => {
 };
 const getStudent = (studentId: string) => {
   const students = JSON.parse(localStorage.getItem("students") || "[]");
-  return students.find((s: any) => s.id === studentId) || null;
+  // Show result info for debugging
+  const found = students.find((s: any) => s.id === studentId);
+  if (!found) {
+    console.warn("[StudentDetailPage] Student ID not found in localStorage:", studentId, students);
+  }
+  return found || null;
 };
 const getSchool = (schoolId: string) => {
   const schools = JSON.parse(localStorage.getItem("schools") || "[]");
-  return schools.find((s: any) => s.id === schoolId) || null;
+  // Accept both string and number, allow loose matching for debugging
+  const result = schools.find((s: any) => s.id === schoolId);
+  if (!result) {
+    console.warn("[StudentDetailPage] School not found with schoolId:", schoolId, schools.map((s:any)=>s.id));
+  }
+  return result || null;
 };
 const getClasses = (studentId: string, schoolId: string) => {
-  // Classes assignment for demo purposes; in reality, join to student_classes
-  const classAssignments = JSON.parse(localStorage.getItem("studentClasses") || "[]");
-  const assignedClasses = classAssignments
+  let classAssignments = JSON.parse(localStorage.getItem("studentClasses") || "[]");
+  let assignedClasses = classAssignments
     .filter((ca: any) => ca.studentId === studentId)
     .map((ca: any) => ca.classId);
-  const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-  return allClasses.filter((c: any) => assignedClasses.includes(c.id) && c.schoolId === schoolId);
+  let allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+  let filtered = allClasses.filter((c: any) => assignedClasses.includes(c.id) && c.schoolId === schoolId);
+
+  // If nothing found by studentClasses, try looking via student.class_id
+  if (filtered.length === 0) {
+    // See if student has class_id property (possibly comma separated)
+    const students = JSON.parse(localStorage.getItem("students") || "[]");
+    const stu = students.find((s: any) => s.id === studentId);
+    let studentClassIds: string[] = [];
+    if (stu?.classId || stu?.class_id) {
+      const idsString = stu.classId || stu.class_id;
+      if (typeof idsString === "string") {
+        studentClassIds = idsString.split(",").map((id) => id.trim()).filter(Boolean);
+      }
+    }
+    filtered = allClasses.filter(
+      (c: any) =>
+        studentClassIds.includes(c.id) &&
+        c.schoolId === (stu?.schoolId || stu?.school_id || schoolId)
+    );
+  }
+
+  if (filtered.length === 0) {
+    console.warn(
+      "[StudentDetailPage] No classes found for studentId:",
+      studentId,
+      "and schoolId:",
+      schoolId,
+      allClasses
+    );
+  }
+  return filtered;
 };
 
 const StudentDetailPage: React.FC = () => {
@@ -64,15 +102,15 @@ const StudentDetailPage: React.FC = () => {
   useEffect(() => {
     if (!sid) return;
     const stu = getStudent(sid);
+    setStudent(stu);
     if (!stu) {
-      setStudent(null);
       return;
     }
-    setStudent(stu);
+    // Accept both schoolId and school_id, allow fallback to student property
     const sch = getSchool(stu.schoolId || stu.school_id);
     setSchool(sch);
 
-    const cls = getClasses(stu.id, sch?.id);
+    const cls = getClasses(stu.id, sch?.id || stu.schoolId || stu.school_id);
     setClasses(cls);
 
     setPokemons(getPokemons(stu.id));
@@ -108,7 +146,7 @@ const StudentDetailPage: React.FC = () => {
     );
   }
 
-  // Improved Get display name (prefer real name, then username, but avoid showing id-like values)
+  // Get a human-friendly display name for the student
   function getNiceDisplayName(student: any): string {
     const candidates = [
       student?.displayName,
@@ -118,10 +156,10 @@ const StudentDetailPage: React.FC = () => {
     for (const name of candidates) {
       if (
         typeof name === "string" &&
-        name.trim() &&
-        // Prevent showing number-only values or id-like values (UUID or large numbers)
-        !/^\d{6,}$/.test(name.trim()) &&
-        !/^[a-f0-9-]{20,}$/.test(name.trim())
+        name.trim().length > 1 &&
+        // Don't display raw IDs
+        !/^\d{6,}$/.test(name.trim()) &&      // No all-numeric IDs
+        !/^[a-f0-9\-]{20,}$/.test(name.trim()) // No UUID style
       ) {
         return name.trim();
       }
@@ -132,7 +170,6 @@ const StudentDetailPage: React.FC = () => {
 
   return (
     <div className="container max-w-3xl py-8 mx-auto">
-      {/* Profile header with custom back handler */}
       <ProfileHeader title="Student Profile" onBack={handleBack} />
 
       <Card>
@@ -161,7 +198,7 @@ const StudentDetailPage: React.FC = () => {
             />
           </div>
 
-          {/* Bottom: School & Classes info with better formatting */}
+          {/* School & Classes section at the bottom */}
           <div className="mt-6 border-t pt-6">
             <h3 className="font-bold text-lg mb-2">School & Classes</h3>
             {school ? (
