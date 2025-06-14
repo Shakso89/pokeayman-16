@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -14,54 +15,68 @@ const getPokemons = (studentId: string) => {
   const collection = studentPokemons.find((sp: any) => sp.studentId === studentId);
   return collection?.pokemons || [];
 };
+
 const getCoinBalance = (studentId: string): number => {
   const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
   const collection = studentPokemons.find((sp: any) => sp.studentId === studentId);
   return collection?.coins ?? 0;
 };
+
 const getHomeworkStreak = (studentId: string): number => {
-  // Implemented as demo -- in production should be server/API call
   const streaks = JSON.parse(localStorage.getItem("homeworkStreaks") || "{}");
   return streaks[studentId] || 0;
 };
+
 const getStarOfClass = (studentId: string, classes: any[]): boolean => {
-  // Demo logic: Check 'starOfClass' stored in localStorage by class
   const classStars = JSON.parse(localStorage.getItem("starOfClassByClassId") || "{}");
   return classes.some((cls) => classStars[cls.id] === studentId);
 };
+
 const getStudent = (studentId: string) => {
   const students = JSON.parse(localStorage.getItem("students") || "[]");
   const found = students.find((s: any) => s.id === studentId);
   if (!found) {
-    console.warn("[StudentDetailPage] Student ID not found in localStorage:", studentId, students);
+    console.warn("[StudentDetailPage] Student ID not found in localStorage:", studentId);
   }
   return found || null;
 };
+
 const getSchool = (schoolId: string) => {
   if (!schoolId) {
-    console.warn("[StudentDetailPage] Student has no schoolId.");
+    console.warn("[StudentDetailPage] No schoolId provided");
     return null;
   }
   const schools = JSON.parse(localStorage.getItem("schools") || "[]");
   const result = schools.find((s: any) => s.id === schoolId);
   if (!result) {
-    console.warn("[StudentDetailPage] School not found with schoolId:", schoolId, schools.map((s:any)=>s.id));
+    console.warn("[StudentDetailPage] School not found with schoolId:", schoolId, "Available schools:", schools.map((s:any) => ({id: s.id, name: s.name})));
   }
   return result || null;
 };
-const getClasses = (studentId: string, schoolId: string) => {
+
+const getClasses = (studentId: string) => {
+  // First try: Look in studentClasses table
   let classAssignments = JSON.parse(localStorage.getItem("studentClasses") || "[]");
-  let assignedClasses = classAssignments
+  let assignedClassIds = classAssignments
     .filter((ca: any) => ca.studentId === studentId)
     .map((ca: any) => ca.classId);
+  
   let allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-  let filtered = allClasses.filter((c: any) => assignedClasses.includes(c.id) && c.schoolId === schoolId);
+  let filtered = allClasses.filter((c: any) => assignedClassIds.includes(c.id));
 
-  // If nothing found by studentClasses, try looking via student.class_id
+  // Second try: Look in classes.students array
+  if (filtered.length === 0) {
+    filtered = allClasses.filter((c: any) => 
+      c.students && Array.isArray(c.students) && c.students.includes(studentId)
+    );
+  }
+
+  // Third try: Check student.classId or student.class_id
   if (filtered.length === 0) {
     const students = JSON.parse(localStorage.getItem("students") || "[]");
     const stu = students.find((s: any) => s.id === studentId);
     let studentClassIds: string[] = [];
+    
     if (stu?.classId || stu?.class_id) {
       const idsString = stu.classId || stu.class_id;
       if (typeof idsString === "string") {
@@ -70,21 +85,13 @@ const getClasses = (studentId: string, schoolId: string) => {
         studentClassIds = idsString;
       }
     }
-    filtered = allClasses.filter(
-      (c: any) =>
-        studentClassIds.includes(c.id) &&
-        c.schoolId === (stu?.schoolId || stu?.school_id || schoolId)
-    );
+    
+    if (studentClassIds.length > 0) {
+      filtered = allClasses.filter((c: any) => studentClassIds.includes(c.id));
+    }
   }
-  if (filtered.length === 0) {
-    console.warn(
-      "[StudentDetailPage] No classes found for studentId:",
-      studentId,
-      "and schoolId:",
-      schoolId,
-      allClasses
-    );
-  }
+
+  console.log("[StudentDetailPage] Found classes for student:", studentId, filtered);
   return filtered;
 };
 
@@ -103,25 +110,41 @@ const StudentDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (!sid) return;
+    
     const stu = getStudent(sid);
+    console.log("[StudentDetailPage] Student data:", stu);
     setStudent(stu);
+    
     if (!stu) {
       return;
     }
 
-    // Prioritize: stu.schoolId, stu.school_id, and fallback to first school if only one exists
+    // Get school - try multiple approaches
     let resolvedSchoolId = stu.schoolId || stu.school_id;
+    
+    // If no direct school ID, check if there's only one school
     if (!resolvedSchoolId) {
       const schools = JSON.parse(localStorage.getItem("schools") || "[]");
       if (schools.length === 1) {
         resolvedSchoolId = schools[0].id;
-        console.info("[StudentDetailPage] Only one school found, defaulting student to school:", resolvedSchoolId);
+        console.info("[StudentDetailPage] Using single available school:", resolvedSchoolId);
       }
     }
-    setSchool(getSchool(resolvedSchoolId));
+    
+    // Also check if student is in any classes and get school from class
+    if (!resolvedSchoolId) {
+      const cls = getClasses(stu.id);
+      if (cls.length > 0 && cls[0].schoolId) {
+        resolvedSchoolId = cls[0].schoolId;
+        console.info("[StudentDetailPage] Using school from class:", resolvedSchoolId);
+      }
+    }
 
-    // Robust class matching (pass resolvedSchoolId!)
-    const cls = getClasses(stu.id, resolvedSchoolId);
+    const schoolData = getSchool(resolvedSchoolId);
+    console.log("[StudentDetailPage] School data:", schoolData);
+    setSchool(schoolData);
+
+    const cls = getClasses(stu.id);
     setClasses(cls);
 
     setPokemons(getPokemons(stu.id));
@@ -159,23 +182,26 @@ const StudentDetailPage: React.FC = () => {
 
   // Get a human-friendly display name for the student
   function getNiceDisplayName(student: any): string {
+    // Prioritize display_name and displayName over username
     const candidates = [
-      student?.displayName,
       student?.display_name,
+      student?.displayName,
       student?.username,
     ].filter(Boolean);
+    
     for (const name of candidates) {
       if (
         typeof name === "string" &&
         name.trim().length > 1 &&
         !/^\d+$/g.test(name.trim()) &&
-        !/^[a-f0-9\-]{20,}$/.test(name.trim()) // avoid pure UUID/number
+        !/^[a-f0-9\-]{20,}$/.test(name.trim())
       ) {
         return name.trim();
       }
     }
     return "Unnamed Student";
   }
+  
   const displayName = getNiceDisplayName(student);
 
   return (
