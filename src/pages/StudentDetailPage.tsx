@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -155,9 +154,19 @@ const StudentDetailPage: React.FC = () => {
 
   function handleBack() {
     if (classes && classes.length > 0) {
+      // Go to the first class assigned to the student
       navigate(`/class/${classes[0].id}`);
     } else {
-      navigate(-1);
+      // Try to detect user type to provide a dashboard fallback
+      const userType = localStorage.getItem("userType");
+      if (userType === "student") {
+        navigate("/student-dashboard");
+      } else if (userType === "teacher") {
+        navigate("/teacher-dashboard");
+      } else {
+        // Fallback: send to main page if userType is unknown
+        navigate("/");
+      }
     }
   }
 
