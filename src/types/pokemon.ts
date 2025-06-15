@@ -1,27 +1,20 @@
 export interface Pokemon {
-  id: string;
+  id: number; // Pokedex ID from pokemon_catalog
   name: string;
   image: string;
   type: string;
   rarity: "common" | "uncommon" | "rare" | "legendary";
-  level?: number; // Make level optional instead of removing it
+  powerStats?: Record<string, number>;
 }
 
+// Represents a Pokemon in the student's collection.
+export interface StudentCollectionPokemon extends Pokemon {
+  collectionId: string; // Primary key from pokemon_collections table
+}
+
+// Represents an entry in the school's pokemon_pools table, joined with pokemon_catalog
 export interface SchoolPoolPokemon extends Pokemon {
-  schoolPoolRowId: string; // Database row ID for the specific pool entry
-}
-
-export interface PokemonPool {
-  schoolId: string;
-  availablePokemons: Pokemon[];
-  lastUpdated?: string; // Add this property to fix the errors
-}
-
-export interface StudentPokemon {
-  studentId: string;
-  pokemons: Pokemon[];
-  coins: number;
-  spentCoins?: number; // Added spentCoins as optional
+  poolEntryId: string; // The UUID of the row in pokemon_pools
 }
 
 export interface School {

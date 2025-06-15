@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,11 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Trash2, ArrowLeft, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
-import { removePokemonFromStudentAndReturnToPool, assignPokemonToStudent } from "@/utils/pokemon/studentPokemon";
-import { getSchoolPokemonPool, initializeSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
-import { Pokemon, SchoolPoolPokemon } from "@/types/pokemon";
+import { getStudentPokemonCollection, removePokemonFromStudent } from "@/utils/pokemon/studentPokemon";
+import { assignRandomPokemonToStudent } from "@/utils/pokemon/studentPokemon";
+import { getSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
+import { StudentCollectionPokemon, SchoolPoolPokemon } from "@/types/pokemon";
 import { Separator } from "@/components/ui/separator";
-import { supabase } from "@/integrations/supabase/client";
 
 interface ManagePokemonDialogProps {
   isOpen: boolean;
@@ -33,14 +32,12 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
   schoolId,
   onPokemonRemoved,
   isClassCreator,
-  teacherId,
-  classId
 }) => {
   const { t } = useTranslation();
-  const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
+  const [studentPokemons, setStudentPokemons] = useState<StudentCollectionPokemon[]>([]);
   const [schoolPool, setSchoolPool] = useState<SchoolPoolPokemon[]>([]);
   const [loading, setLoading] = useState(false);
-  const [assigningPokemonId, setAssigningPokemonId] = useState<string | null>(null);
+  const [assigningPokemon, setAssigningPokemon] = useState(false);
 
   useEffect(() => {
     if (isOpen && studentId && studentId !== "all") {
@@ -52,45 +49,14 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     if (!studentId || !schoolId) return;
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('pokemon_collections')
-        .select('*')
-        .eq('student_id', studentId);
+      const [studentCollection, schoolPoolData] = await Promise.all([
+        getStudentPokemonCollection(studentId),
+        getSchoolPokemonPool(schoolId)
+      ]);
       
-      if (error) throw error;
-      
-      const pokemons = data.map(p => ({
-        id: p.pokemon_id,
-        name: p.pokemon_name,
-        image: p.pokemon_image || '',
-        type: p.pokemon_type || '',
-        rarity: (p.pokemon_rarity as any) || 'common',
-        level: p.pokemon_level || 1,
-      }));
-      setStudentPokemons(pokemons);
+      setStudentPokemons(studentCollection);
+      setSchoolPool(schoolPoolData || []);
 
-      // Fetch ALL available entries in school pool table (not one per id)
-      const { data: poolRows, error: poolErr } = await supabase
-        .from('pokemon_pools')
-        .select('*')
-        .eq('school_id', schoolId)
-        .eq('available', true);
-
-      if (poolErr) throw poolErr;
-
-      // We'll display each pool row; assign using its DB id
-      // Attach the pool row DB id for assignment
-      const pool: SchoolPoolPokemon[] = (poolRows || []).map(p => ({
-        schoolPoolRowId: p.id, // pool row unique id
-        id: p.pokemon_id,
-        name: p.pokemon_name,
-        image: p.pokemon_image || "",
-        type: p.pokemon_type || "",
-        rarity: (p.pokemon_rarity as any) || "common",
-        level: p.pokemon_level || 1
-      }));
-
-      setSchoolPool(pool);
     } catch (error) {
       console.error("Error fetching Pokemon data:", error);
       setStudentPokemons([]);
@@ -100,7 +66,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     }
   };
 
-  const handleRemovePokemon = async (pokemonId: string, pokemonName: string) => {
+  const handleRemovePokemon = async (collectionId: string, pokemonName: string) => {
     if (!isClassCreator) {
       toast({
         title: t("error"),
@@ -112,7 +78,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
     setLoading(true);
     try {
-      const success = await removePokemonFromStudentAndReturnToPool(studentId, pokemonId, schoolId);
+      const success = await removePokemonFromStudent(collectionId);
       
       if (success) {
         toast({
@@ -141,7 +107,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     }
   };
 
-  const handleAssignPokemon = async (poolRowId: string, pokemonName: string) => {
+  const handleAssignRandomPokemon = async () => {
     if (!isClassCreator) {
       toast({
         title: t("error"),
@@ -151,24 +117,21 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
       return;
     }
 
-    setAssigningPokemonId(poolRowId);
+    setAssigningPokemon(true);
     try {
-      // CHANGE: pass poolRowId to assignment function
-      const result = await assignPokemonToStudent(schoolId, studentId, undefined, poolRowId);
+      const result = await assignRandomPokemonToStudent(schoolId, studentId);
 
-      if (result.success) {
-        if (!result.isDuplicate) {
-          toast({
-            title: t("success"),
-            description: `${pokemonName} has been assigned to ${studentName}`
-          });
-        }
+      if (result.success && result.pokemon) {
+        toast({
+          title: t("success"),
+          description: `${result.pokemon.name} has been assigned to ${studentName}`
+        });
         fetchData();
         onPokemonRemoved();
       } else {
         toast({
           title: t("error"),
-          description: "Failed to assign Pokemon. It might not be available in the pool.",
+          description: "Failed to assign Pokemon. The school pool might be empty.",
           variant: "destructive"
         });
       }
@@ -180,7 +143,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
         variant: "destructive"
       });
     } finally {
-      setAssigningPokemonId(null);
+      setAssigningPokemon(false);
     }
   };
 
@@ -234,7 +197,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {studentPokemons.map((pokemon) => (
-                <Card key={pokemon.id} className="relative">
+                <Card key={pokemon.collectionId} className="relative">
                   <CardContent className="p-4">
                     <div className="flex flex-col items-center space-y-2">
                       <img 
@@ -260,7 +223,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
                         <Button
                           variant="destructive"
                           size="sm"
-                          onClick={() => handleRemovePokemon(pokemon.id, pokemon.name)}
+                          onClick={() => handleRemovePokemon(pokemon.collectionId, pokemon.name)}
                           disabled={loading}
                           className="w-full mt-2"
                         >
@@ -278,10 +241,26 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
           <Separator className="my-6" />
 
           <div className="space-y-4">
-            <h4 className="font-semibold">Assign from School Pool</h4>
-            <p className="text-sm text-gray-500">
-              {schoolPool.length} Pokémon remaining in the school pool.
-            </p>
+            <div className="flex justify-between items-center">
+              <div className="space-y-1">
+                <h4 className="font-semibold">Assign from School Pool</h4>
+                <p className="text-sm text-gray-500">
+                  {schoolPool.length} Pokémon instances remaining in the school pool.
+                </p>
+              </div>
+              {isClassCreator && (
+                <Button
+                  size="sm"
+                  onClick={handleAssignRandomPokemon}
+                  disabled={assigningPokemon}
+                  className="bg-green-600 hover:bg-green-700 text-white"
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  {assigningPokemon ? 'Assigning...' : 'Assign Random Pokemon'}
+                </Button>
+              )}
+            </div>
+
             {loading ? (
                 <div className="text-center py-8">
                     <p>Loading school pool...</p>
@@ -293,7 +272,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {schoolPool.map((pokemon) => (
-                  <Card key={pokemon.schoolPoolRowId} className="relative">
+                  <Card key={pokemon.poolEntryId} className="relative opacity-60">
                     <CardContent className="p-4">
                       <div className="flex flex-col items-center space-y-2">
                         <img 
@@ -318,12 +297,12 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
                         {isClassCreator && (
                           <Button
                             size="sm"
-                            onClick={() => handleAssignPokemon(pokemon.schoolPoolRowId, pokemon.name)}
-                            disabled={assigningPokemonId === pokemon.schoolPoolRowId}
+                            onClick={() => handleAssignRandomPokemon()}
+                            disabled={assigningPokemon}
                             className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white"
                           >
                             <Plus className="h-4 w-4 mr-2" />
-                            {assigningPokemonId === pokemon.schoolPoolRowId ? 'Assigning...' : 'Assign to Student'}
+                            {assigningPokemon ? 'Assigning...' : 'Assign Random Pokemon'}
                           </Button>
                         )}
                       </div>

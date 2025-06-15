@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
-import { Pokemon } from "@/types/pokemon";
-import { getStudentPokemons, saveStudentPokemons } from '@/utils/pokemon/storage';
+import { Pokemon, StudentCollectionPokemon } from "@/types/pokemon";
+import { assignRandomPokemonToStudent } from "@/utils/pokemon/studentPokemon";
 
 export interface StudentProfile {
   id: string;
@@ -96,26 +96,27 @@ export const getOrCreateStudentProfile = async (
   }
 };
 
-// Get student's Pokemon collection
-export const getStudentPokemonCollection = async (studentId: string): Promise<Pokemon[]> => {
+// Get student's Pokemon collection from DB
+export const getStudentPokemonCollection = async (studentId: string): Promise<StudentCollectionPokemon[]> => {
   try {
     const { data, error } = await supabase
       .from('pokemon_collections')
-      .select('*')
-      .eq('student_id', studentId)
-      .order('obtained_at', { ascending: false });
+      .select('id, pokemon_catalog!inner(*)')
+      .eq('student_id', studentId);
 
     if (error) {
       console.error('Error fetching pokemon collection:', error);
       return [];
     }
-
-    return data.map(item => ({
-      id: item.pokemon_id,
-      name: item.pokemon_name,
-      image: item.pokemon_image || '',
-      type: item.pokemon_type || '',
-      rarity: item.pokemon_rarity as any || 'common'
+    
+    return data.map((item: any) => ({
+      collectionId: item.id,
+      id: item.pokemon_catalog.id,
+      name: item.pokemon_catalog.name,
+      image: item.pokemon_catalog.image,
+      type: item.pokemon_catalog.type,
+      rarity: item.pokemon_catalog.rarity as any,
+      powerStats: item.pokemon_catalog.power_stats,
     }));
   } catch (error) {
     console.error('Error in getStudentPokemonCollection:', error);
@@ -166,175 +167,16 @@ export const updateStudentCoins = async (
   }
 };
 
-// Award Pokemon to student - UPDATED to work with database
-export const awardPokemonToStudent = async (
-  studentId: string,
-  pokemon: Pokemon,
-  schoolId: string
-): Promise<{ success: boolean; isDuplicate: boolean }> => {
-  try {
-    // Check if student already has this Pokemon
-    const { data: existingPokemon } = await supabase
-      .from('pokemon_collections')
-      .select('id')
-      .eq('student_id', studentId)
-      .eq('pokemon_id', pokemon.id)
-      .maybeSingle();
-
-    if (existingPokemon) {
-      // It's a duplicate, award coins instead
-      const coinsAwarded = pokemon.rarity === 'legendary' ? 100 : 
-                         pokemon.rarity === 'rare' ? 50 : 
-                         pokemon.rarity === 'uncommon' ? 25 : 10;
-      
-      await updateStudentCoins(studentId, coinsAwarded);
-      return { success: true, isDuplicate: true };
-    }
-
-    // Add to student collection
-    const { error: addError } = await supabase
-      .from('pokemon_collections')
-      .insert({
-        student_id: studentId,
-        pokemon_id: pokemon.id,
-        pokemon_name: pokemon.name,
-        pokemon_image: pokemon.image,
-        pokemon_type: pokemon.type,
-        pokemon_rarity: pokemon.rarity,
-        pokemon_level: 1
-      });
-
-    if (addError) {
-      console.error('Error adding pokemon to collection:', addError);
-      return { success: false, isDuplicate: false };
-    }
-
-    // Remove from school pool
-    const { error: poolError } = await supabase
-      .from('pokemon_pools')
-      .update({ 
-        assigned_to: studentId,
-        available: false,
-        assigned_at: new Date().toISOString()
-      })
-      .eq('school_id', schoolId)
-      .eq('pokemon_id', pokemon.id)
-      .eq('available', true)
-      .limit(1);
-
-    if (poolError) {
-      console.error('Error updating pool:', poolError);
-    }
-
-    return { success: true, isDuplicate: false };
-  } catch (error) {
-    console.error('Error in awardPokemonToStudent:', error);
-    return { success: false, isDuplicate: false };
-  }
-};
-
-// Assign Pokemon from school pool to student
+// This function is now simplified, as the main logic is in studentPokemon.ts
 export const assignPokemonFromSchoolPool = async (
   schoolId: string,
-  studentId: string,
-  pokemonRarity?: string
+  studentId: string
 ): Promise<{ success: boolean; pokemon?: Pokemon; isDuplicate?: boolean }> => {
-  try {
-    // Step 1: Get all available Pokemon IDs from the school pool
-    let idQuery = supabase
-      .from('pokemon_pools')
-      .select('id')
-      .eq('school_id', schoolId)
-      .eq('available', true);
-
-    if (pokemonRarity) {
-      idQuery = idQuery.eq('pokemon_rarity', pokemonRarity);
-    }
-    
-    const { data: availablePokemonIds, error: idsError } = await idQuery;
-
-    if (idsError || !availablePokemonIds || availablePokemonIds.length === 0) {
-      console.error('No available Pokemon in school pool or error fetching IDs:', idsError);
-      return { success: false };
-    }
-
-    // Step 2: Select a random Pokemon ID from the list
-    const randomIndex = Math.floor(Math.random() * availablePokemonIds.length);
-    const randomPokemonPoolId = availablePokemonIds[randomIndex].id;
-    
-    // Step 3: Fetch the full data for the randomly selected Pokemon
-    const { data: randomPokemon, error: fetchError } = await supabase
-      .from('pokemon_pools')
-      .select('*')
-      .eq('id', randomPokemonPoolId)
-      .single();
-
-    if (fetchError || !randomPokemon) {
-      console.error('Error fetching random Pokemon from pool:', fetchError);
-      return { success: false };
-    }
-    
-    const selectedPokemon = randomPokemon;
-    
-    const pokemon: Pokemon = {
-      id: selectedPokemon.pokemon_id,
-      name: selectedPokemon.pokemon_name,
-      image: selectedPokemon.pokemon_image || '',
-      type: selectedPokemon.pokemon_type || '',
-      rarity: selectedPokemon.pokemon_rarity as any || 'common'
-    };
-
-    // Check if student already has this Pokemon
-    const { data: existingPokemon } = await supabase
-      .from('pokemon_collections')
-      .select('id')
-      .eq('student_id', studentId)
-      .eq('pokemon_id', pokemon.id)
-      .maybeSingle();
-
-    if (existingPokemon) {
-      // It's a duplicate. The calling function will handle the coin reward.
-      return { success: true, pokemon, isDuplicate: true };
-    }
-
-    // Add to student collection
-    const { error: addError } = await supabase
-      .from('pokemon_collections')
-      .insert({
-        student_id: studentId,
-        pokemon_id: pokemon.id,
-        pokemon_name: pokemon.name,
-        pokemon_image: pokemon.image,
-        pokemon_type: pokemon.type,
-        pokemon_rarity: pokemon.rarity,
-        pokemon_level: 1
-      });
-
-    if (addError) {
-      console.error('Error adding pokemon to collection:', addError);
-      return { success: false };
-    }
-
-    // Mark as assigned in pool
-    const { error: updateError } = await supabase
-      .from('pokemon_pools')
-      .update({ 
-        assigned_to: studentId,
-        available: false,
-        assigned_at: new Date().toISOString()
-      })
-      .eq('id', selectedPokemon.id);
-
-    if (updateError) {
-      console.error('Error updating pool:', updateError);
-      return { success: false };
-    }
-
-    return { success: true, pokemon, isDuplicate: false };
-  } catch (error) {
-    console.error('Error in assignPokemonFromSchoolPool:', error);
-    return { success: false };
-  }
+  // We no longer check for duplicates here, the new system prevents it.
+  // The concept of duplicates based on pokemon name is gone.
+  // Every pokemon from the pool is a unique instance.
+  const result = await assignRandomPokemonToStudent(schoolId, studentId);
+  return { ...result, isDuplicate: false };
 };
 
 // Get student profile by ID
