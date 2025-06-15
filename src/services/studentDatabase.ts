@@ -484,26 +484,29 @@ export const getStudentsByClass = async (classId: string): Promise<StudentProfil
   }
 };
 
-// Get school Pokemon pool
+// Get school Pokemon pool - CORRECTED to use status and join with pokemon_catalog
 export const getSchoolPokemonPool = async (schoolId: string): Promise<Pokemon[]> => {
   try {
     const { data, error } = await supabase
       .from('pokemon_pools')
-      .select('*')
+      .select('pokemon_catalog!inner(*)')
       .eq('school_id', schoolId)
-      .eq('available', true);
+      .eq('status', 'available');
 
     if (error) {
       console.error('Error fetching pokemon pool:', error);
       return [];
     }
+    
+    if (!data) return [];
 
-    return data.map(item => ({
-      id: item.pokemon_id,
-      name: item.pokemon_name,
-      image: item.pokemon_image || '',
-      type: item.pokemon_type || '',
-      rarity: item.pokemon_rarity as any || 'common'
+    return data.map((item: any) => ({
+      id: item.pokemon_catalog.id,
+      name: item.pokemon_catalog.name,
+      image: item.pokemon_catalog.image || '',
+      type: item.pokemon_catalog.type || '',
+      rarity: item.pokemon_catalog.rarity as any || 'common',
+      powerStats: item.pokemon_catalog.power_stats
     }));
   } catch (error) {
     console.error('Error in getSchoolPokemonPool:', error);

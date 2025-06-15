@@ -87,7 +87,7 @@ export const assignSpecificPokemonToStudent = async (poolEntryId: string, pokemo
     return { success: false };
   }
   const studentProfileId = profile.id;
-  console.log(`Found student profile ID: ${studentProfileId}`);
+  console.log(`Found student profile ID: ${studentProfileId} for user ${studentId}`);
 
   // Update pokemon_pools to mark as assigned
   const { data: updatedPoolEntry, error: updateError } = await supabase
@@ -99,7 +99,13 @@ export const assignSpecificPokemonToStudent = async (poolEntryId: string, pokemo
     .single();
 
   if (updateError || !updatedPoolEntry) {
-    console.error("Failed to assign Pokemon, it might have been claimed.", updateError);
+    console.error(`Failed to assign Pokemon (pool entry: ${poolEntryId}), it might have been claimed.`);
+    if (updateError) {
+      console.error("Supabase update error:", JSON.stringify(updateError, null, 2));
+    }
+    if (!updatedPoolEntry) {
+      console.error("No pool entry was updated. It might have already been assigned or doesn't exist.");
+    }
     return { success: false };
   }
 
