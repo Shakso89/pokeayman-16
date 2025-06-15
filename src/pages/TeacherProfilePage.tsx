@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -47,37 +46,35 @@ const TeacherProfilePage: React.FC = () => {
       if (!teacherId) return;
 
       try {
-        // Fetch ALL classes and filter where teacherId or assistants includes teacherId
-        const { data: allClasses, error: classesError } = await supabase
+        // Fetch classes where user is teacher or assistant, efficiently
+        const { data: filteredClasses, error: classesError } = await supabase
           .from('classes')
-          .select('id, teacher_id, assistants');
+          .select('id, teacher_id, assistants')
+          .or(`teacher_id.eq.${teacherId},assistants.cs.{${teacherId}}`);
 
         if (classesError) throw classesError;
-
-        // Filter for classes where teacher_id matches or assistants include teacherId
-        const filteredClasses = (allClasses || []).filter(
-          (cls: any) =>
-            cls.teacher_id === teacherId ||
-            (Array.isArray(cls.assistants) && cls.assistants.includes(teacherId))
-        );
 
         // Students count (same as before, or you could also update with class data if needed)
         const { data: students, error: studentsError } = await supabase
           .from('students')
-          .select('*')
+          .select('id')
           .eq('teacher_id', teacherId);
 
         if (studentsError) throw studentsError;
 
         // Teacher join date
-        const { data: teacherData } = await supabase
+        const { data: teacherData, error: teacherError } = await supabase
           .from('teachers')
           .select('created_at')
           .eq('id', teacherId)
           .single();
+        
+        if (teacherError && teacherError.code !== 'PGRST116') {
+          throw teacherError;
+        }
 
         setStats({
-          totalClasses: filteredClasses.length,
+          totalClasses: (filteredClasses || []).length,
           totalStudents: students?.length || 0,
           joinedDate: teacherData?.created_at ? new Date(teacherData.created_at).toLocaleDateString() : ''
         });
