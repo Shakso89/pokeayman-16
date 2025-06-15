@@ -68,12 +68,28 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
       }));
       setStudentPokemons(pokemons);
 
-      let pool = await getSchoolPokemonPool(schoolId);
-      if (!pool || pool.length === 0) {
-        console.log("School pool not found or empty, initializing for school:", schoolId);
-        pool = await initializeSchoolPokemonPool(schoolId, 500);
-      }
-      setSchoolPool(pool || []);
+      // Fetch ALL available entries in school pool table (not one per id)
+      const { data: poolRows, error: poolErr } = await supabase
+        .from('pokemon_pools')
+        .select('*')
+        .eq('school_id', schoolId)
+        .eq('available', true);
+
+      if (poolErr) throw poolErr;
+
+      // We'll display each pool row; assign using its DB id
+      // Attach the pool row DB id for assignment
+      const pool = (poolRows || []).map(p => ({
+        schoolPoolRowId: p.id, // pool row unique id
+        id: p.pokemon_id,
+        name: p.pokemon_name,
+        image: p.pokemon_image || "",
+        type: p.pokemon_type || "",
+        rarity: (p.pokemon_rarity as any) || "common",
+        level: p.pokemon_level || 1
+      }));
+
+      setSchoolPool(pool);
     } catch (error) {
       console.error("Error fetching Pokemon data:", error);
       setStudentPokemons([]);
@@ -124,7 +140,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     }
   };
 
-  const handleAssignPokemon = async (pokemonId: string, pokemonName: string) => {
+  const handleAssignPokemon = async (poolRowId: string, pokemonName: string) => {
     if (!isClassCreator) {
       toast({
         title: t("error"),
@@ -134,9 +150,10 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
       return;
     }
 
-    setAssigningPokemonId(pokemonId);
+    setAssigningPokemonId(poolRowId);
     try {
-      const result = await assignPokemonToStudent(schoolId, studentId, pokemonId);
+      // CHANGE: pass poolRowId to assignment function
+      const result = await assignPokemonToStudent(schoolId, studentId, undefined, poolRowId);
 
       if (result.success) {
         if (!result.isDuplicate) {
@@ -275,7 +292,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {schoolPool.map((pokemon) => (
-                  <Card key={pokemon.id} className="relative">
+                  <Card key={pokemon.schoolPoolRowId} className="relative">
                     <CardContent className="p-4">
                       <div className="flex flex-col items-center space-y-2">
                         <img 
@@ -300,12 +317,12 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
                         {isClassCreator && (
                           <Button
                             size="sm"
-                            onClick={() => handleAssignPokemon(pokemon.id, pokemon.name)}
-                            disabled={assigningPokemonId === pokemon.id}
+                            onClick={() => handleAssignPokemon(pokemon.schoolPoolRowId, pokemon.name)}
+                            disabled={assigningPokemonId === pokemon.schoolPoolRowId}
                             className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white"
                           >
                             <Plus className="h-4 w-4 mr-2" />
-                            {assigningPokemonId === pokemon.id ? 'Assigning...' : 'Assign to Student'}
+                            {assigningPokemonId === pokemon.schoolPoolRowId ? 'Assigning...' : 'Assign to Student'}
                           </Button>
                         )}
                       </div>

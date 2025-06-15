@@ -225,41 +225,66 @@ export const awardCoinsToStudent = (studentId: string, amount: number): void => 
 };
 
 // Assign Pokemon to a student with duplicate handling - REMOVES from pool
-export const assignPokemonToStudent = async (schoolId: string, studentId: string, pokemonId: string): Promise<{ success: boolean; isDuplicate: boolean }> => {
-  if (!schoolId || !studentId || !pokemonId) {
-    console.error("Missing required parameters:", { schoolId, studentId, pokemonId });
+export const assignPokemonToStudent = async (schoolId: string, studentId: string, pokemonId?: string, schoolPoolRowId?: string): Promise<{ success: boolean; isDuplicate: boolean }> => {
+  if (!schoolId || !studentId || (!pokemonId && !schoolPoolRowId)) {
+    console.error("Missing required parameters:", { schoolId, studentId, pokemonId, schoolPoolRowId });
     return { success: false, isDuplicate: false };
   }
 
-  console.log("Assigning Pokemon to student:", { schoolId, studentId, pokemonId });
+  console.log("Assigning Pokemon to student:", { schoolId, studentId, pokemonId, schoolPoolRowId });
 
-  // FETCH ALL available with same pokemon by school
-  const { data: pokemonInPoolArray, error: poolError } = await supabase
-    .from('pokemon_pools')
-    .select('*')
-    .eq('school_id', schoolId)
-    .eq('pokemon_id', pokemonId)
-    .eq('available', true)
-    .limit(1);
+  let pokemonInPoolEntry = null;
 
-  if (poolError) {
-    console.error("Error searching pool:", poolError);
+  if (schoolPoolRowId) {
+    // Preferred: assign via DB row ID (unique)
+    const { data, error } = await supabase
+      .from("pokemon_pools")
+      .select("*")
+      .eq("id", schoolPoolRowId)
+      .eq("available", true)
+      .maybeSingle();
+    if (error) {
+      console.error("Error locating pool row for assignment", error);
+      return { success: false, isDuplicate: false };
+    }
+    if (!data) {
+      console.error("No pool row found (may be already assigned)");
+      return { success: false, isDuplicate: false };
+    }
+    pokemonInPoolEntry = data;
+    pokemonId = data.pokemon_id;
+  } else if (pokemonId) {
+    // Backward compatible fallback: pick first available with id
+    const { data: arr, error } = await supabase
+      .from("pokemon_pools")
+      .select("*")
+      .eq("school_id", schoolId)
+      .eq("pokemon_id", pokemonId)
+      .eq("available", true)
+      .limit(1);
+    if (error) {
+      console.error("Error searching pool:", error);
+      return { success: false, isDuplicate: false };
+    }
+    pokemonInPoolEntry = arr?.[0];
+    if (!pokemonInPoolEntry) {
+      console.error("Pokemon not found in school pool - none available:", pokemonId);
+      return { success: false, isDuplicate: false };
+    }
+  }
+
+  if (!pokemonInPoolEntry) {
+    console.error("No available Pokemon entry found for assignment");
     return { success: false, isDuplicate: false };
   }
-  const pokemonInPool = pokemonInPoolArray?.[0];
 
-  if (!pokemonInPool) {
-    console.error("Pokemon not found in school pool - none available:", pokemonId);
-    return { success: false, isDuplicate: false };
-  }
-  
   const pokemon: Pokemon = {
-    id: pokemonInPool.pokemon_id,
-    name: pokemonInPool.pokemon_name,
-    image: pokemonInPool.pokemon_image || '',
-    type: pokemonInPool.pokemon_type || '',
-    rarity: (pokemonInPool.pokemon_rarity as any) || 'common',
-    level: pokemonInPool.pokemon_level || 1,
+    id: pokemonInPoolEntry.pokemon_id,
+    name: pokemonInPoolEntry.pokemon_name,
+    image: pokemonInPoolEntry.pokemon_image || '',
+    type: pokemonInPoolEntry.pokemon_type || '',
+    rarity: (pokemonInPoolEntry.pokemon_rarity as any) || 'common',
+    level: pokemonInPoolEntry.pokemon_level || 1,
   };
 
   // Check for duplicates in Supabase
@@ -277,32 +302,30 @@ export const assignPokemonToStudent = async (schoolId: string, studentId: string
   if (existingPokemon) {
     console.log("Duplicate Pokemon found, awarded coins instead");
     const coinValue = getPokemonCoinValue(pokemon.rarity);
-    
     try {
-        const { data: studentLegacy } = await supabase.from('students').select('username').eq('id', studentId).maybeSingle();
-        if (studentLegacy?.username) {
-            const { data: currentProfile } = await supabase.from('student_profiles').select('user_id, coins').eq('username', studentLegacy.username).maybeSingle();
-            if (currentProfile) {
-                await supabase.from('student_profiles').update({ coins: (currentProfile.coins || 0) + coinValue }).eq('user_id', currentProfile.user_id);
-            }
+      const { data: studentLegacy } = await supabase.from('students').select('username').eq('id', studentId).maybeSingle();
+      if (studentLegacy?.username) {
+        const { data: currentProfile } = await supabase.from('student_profiles').select('user_id, coins').eq('username', studentLegacy.username).maybeSingle();
+        if (currentProfile) {
+          await supabase.from('student_profiles').update({ coins: (currentProfile.coins || 0) + coinValue }).eq('user_id', currentProfile.user_id);
         }
-        
-        if (typeof window !== "undefined") {
-            import("sonner").then(({ toast }) => {
-                toast.info("Duplicate Pokémon!", { description: `You already have ${pokemon.name}. You got ${coinValue} coins instead.` });
-            });
-        }
+      }
+      if (typeof window !== "undefined") {
+        import("sonner").then(({ toast }) => {
+          toast.info("Duplicate Pokémon!", { description: `You already have ${pokemon.name}. You got ${coinValue} coins instead.` });
+        });
+      }
     } catch(e) {
-        console.error("Error awarding coins for duplicate pokemon", e);
+      console.error("Error awarding coins for duplicate pokemon", e);
     }
     return { success: true, isDuplicate: true };
   }
 
-  // Mark Pokemon as unavailable in pool
+  // Mark this unique Pokemon instance as unavailable
   const { error: updatePoolError } = await supabase
     .from('pokemon_pools')
     .update({ available: false, assigned_to: studentId, assigned_at: new Date().toISOString() })
-    .eq('id', pokemonInPool.id);
+    .eq('id', pokemonInPoolEntry.id);
 
   if (updatePoolError) {
     console.error("Error updating pokemon in pool:", updatePoolError);
@@ -323,16 +346,16 @@ export const assignPokemonToStudent = async (schoolId: string, studentId: string
   if (insertError) {
     console.error("Error assigning pokemon in supabase:", insertError);
     // Rollback pool update
-    await supabase.from('pokemon_pools').update({ available: true, assigned_to: null, assigned_at: null }).eq('id', pokemonInPool.id);
+    await supabase.from('pokemon_pools').update({ available: true, assigned_to: null, assigned_at: null }).eq('id', pokemonInPoolEntry.id);
     return { success: false, isDuplicate: false };
   }
-  
+
   // Also add to localStorage for backward compatibility
   const studentPokemons = getStudentPokemons();
   const studentIndex = studentPokemons.findIndex(sp => sp.studentId === studentId);
   if (studentIndex >= 0) {
     if(!studentPokemons[studentIndex].pokemons.some(p => p.id === pokemon.id)) {
-        studentPokemons[studentIndex].pokemons.push(pokemon);
+      studentPokemons[studentIndex].pokemons.push(pokemon);
     }
   } else {
     studentPokemons.push({ studentId, pokemons: [pokemon], coins: 0, spentCoins: 0 });
