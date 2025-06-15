@@ -39,6 +39,10 @@ const SchoolClassInfo: React.FC<SchoolClassInfoProps> = ({
     }
   };
 
+  const handleSchoolClick = (schoolId: string) => {
+    navigate(`/school/${schoolId}/classes`);
+  };
+
   return (
     <Card>
       <CardHeader>
@@ -51,13 +55,16 @@ const SchoolClassInfo: React.FC<SchoolClassInfoProps> = ({
         <div className="space-y-4">
           {/* School Information */}
           {school ? (
-            <div className="p-3 bg-blue-50 rounded-lg">
+            <button
+              className="w-full text-left p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
+              onClick={() => handleSchoolClick(school.id)}
+            >
               <div className="flex items-center gap-2 mb-2">
                 <School className="h-4 w-4 text-blue-600" />
                 <span className="font-semibold text-blue-800">School</span>
               </div>
               <p className="text-blue-700 font-medium">{school.name}</p>
-            </div>
+            </button>
           ) : (
             <div className="p-3 bg-gray-100 rounded-lg">
               <div className="flex items-center gap-2">

@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import Index from "./pages/Index";
@@ -23,6 +24,7 @@ import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider } from "@/components/theme-provider";
 import CreateClassPage from "./pages/CreateClassPage";
 import StudentClassDetailsPage from "./pages/StudentClassDetailsPage";
+import SchoolClassesPage from "./pages/SchoolClassesPage";
 
 function ScrollToTop() {
   const {
@@ -62,6 +64,7 @@ function Router() {
       {/* Add missing teacher routes for student profiles */}
       <Route path="/teacher/student/:studentId" element={<StudentDetailPage />} />
       <Route path="/teacher/profile/:teacherId" element={<TeacherProfilePage />} />
+      <Route path="/school/:schoolId/classes" element={<SchoolClassesPage />} />
       <Route path="*" element={<NotFound />} />
     </Routes>;
 }
