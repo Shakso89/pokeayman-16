@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -107,15 +106,13 @@ export function SelectSchoolDialog({
     
     try {
       const currentTime = new Date().toISOString();
-      const username = localStorage.getItem("teacherUsername") || "";
-      const isAdmin = username === "Admin" || username === "Ayman" || username === "Ayman_1";
       
       // Create class data with required and optional fields
       const classData = {
         name: newClass.name.trim(),
         description: newClass.description.trim() || "",
         schoolId: newClass.schoolId,
-        teacherId: isAdmin ? null : teacherId, // Set to null for admin users
+        teacherId: teacherId, // Always assign the creator as the teacher
         students: [],
         isPublic: true,
         likes: [],
