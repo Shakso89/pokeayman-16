@@ -1,4 +1,3 @@
-
 import { Pokemon, StudentPokemon } from "@/types/pokemon";
 import { getStudentPokemons, saveStudentPokemons } from "./storage";
 import { initializeSchoolPokemonPool, getSchoolPokemonPool } from "./schoolPokemon";
@@ -145,6 +144,7 @@ export const removePokemonFromStudentAndReturnToPool = async (
     .select('id, available')
     .eq('school_id', schoolId)
     .eq('pokemon_id', pokemon.id)
+    .limit(1)
     .maybeSingle();
 
   if (poolCheckError) {
@@ -239,6 +239,7 @@ export const assignPokemonToStudent = async (schoolId: string, studentId: string
     .eq('school_id', schoolId)
     .eq('pokemon_id', pokemonId)
     .eq('available', true)
+    .limit(1)
     .maybeSingle();
 
   if (poolError || !pokemonInPool) {
