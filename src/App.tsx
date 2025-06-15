@@ -22,6 +22,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { Analytics } from '@vercel/analytics/react';
 import { ThemeProvider } from "@/components/theme-provider";
 import CreateClassPage from "./pages/CreateClassPage";
+import StudentClassDetailsPage from "./pages/StudentClassDetailsPage";
+
 function ScrollToTop() {
   const {
     pathname
@@ -54,6 +56,7 @@ function Router() {
       <Route path="/student-profile/:studentId" element={<StudentDetailPage />} />
       <Route path="/student-detail/:studentId" element={<StudentDetailPage />} />
       <Route path="/class-details/:classId" element={<ClassDetailsPage />} />
+      <Route path="/student/class/:classId" element={<StudentClassDetailsPage />} />
       {/* New route for creating classes in any school */}
       <Route path="/create-class/:schoolId" element={<CreateClassPage />} />
       {/* Add missing teacher routes for student profiles */}

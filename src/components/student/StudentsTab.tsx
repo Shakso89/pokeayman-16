@@ -11,9 +11,10 @@ import { useNavigate } from "react-router-dom";
 
 interface StudentsTabProps {
   classId: string;
+  viewOnly?: boolean;
 }
 
-const StudentsTab: React.FC<StudentsTabProps> = ({ classId }) => {
+const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) => {
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
@@ -113,7 +114,11 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId }) => {
   };
   
   const handleViewStudentProfile = (studentId: string) => {
-    navigate(`/teacher/student/${studentId}`);
+    if (viewOnly) {
+      navigate(`/student-profile/${studentId}`);
+    } else {
+      navigate(`/teacher/student/${studentId}`);
+    }
   };
   
   if (loading) {
@@ -131,34 +136,36 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId }) => {
         <h2 className="text-xl font-semibold">
           {t("students")} ({students.length})
         </h2>
-        <div className="flex space-x-2">
-          <Button
-            onClick={() => setShowPasswords(!showPasswords)}
-            variant="outline"
-            size="sm"
-            className="flex items-center"
-          >
-            {showPasswords ? (
-              <>
-                <EyeOff className="h-4 w-4 mr-1" />
-                {t("hide-passwords")}
-              </>
-            ) : (
-              <>
-                <Eye className="h-4 w-4 mr-1" />
-                {t("show-passwords")}
-              </>
-            )}
-          </Button>
-          <Button
-            onClick={() => setIsAddStudentOpen(true)}
-            size="sm"
-            className="flex items-center"
-          >
-            <UserPlus className="h-4 w-4 mr-1" />
-            {t("add-students")}
-          </Button>
-        </div>
+        {!viewOnly && (
+          <div className="flex space-x-2">
+            <Button
+              onClick={() => setShowPasswords(!showPasswords)}
+              variant="outline"
+              size="sm"
+              className="flex items-center"
+            >
+              {showPasswords ? (
+                <>
+                  <EyeOff className="h-4 w-4 mr-1" />
+                  {t("hide-passwords")}
+                </>
+              ) : (
+                <>
+                  <Eye className="h-4 w-4 mr-1" />
+                  {t("show-passwords")}
+                </>
+              )}
+            </Button>
+            <Button
+              onClick={() => setIsAddStudentOpen(true)}
+              size="sm"
+              className="flex items-center"
+            >
+              <UserPlus className="h-4 w-4 mr-1" />
+              {t("add-students")}
+            </Button>
+          </div>
+        )}
       </div>
       
       {students.length === 0 ? (
@@ -196,15 +203,17 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId }) => {
                   
                   <div className="flex items-center space-x-4">
                     {/* Password display section */}
-                    <div className="flex items-center">
-                      <KeyRound className="h-4 w-4 mr-1 text-gray-400" />
-                      <span className="text-sm font-mono">
-                        {showPasswords 
-                          ? (student.password || student.password_hash || t("no-password")) 
-                          : '••••••••'
-                        }
-                      </span>
-                    </div>
+                    {!viewOnly && (
+                      <div className="flex items-center">
+                        <KeyRound className="h-4 w-4 mr-1 text-gray-400" />
+                        <span className="text-sm font-mono">
+                          {showPasswords 
+                            ? (student.password || student.password_hash || t("no-password")) 
+                            : '••••••••'
+                          }
+                        </span>
+                      </div>
+                    )}
                     
                     <Button 
                       variant="ghost" 
@@ -224,15 +233,18 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId }) => {
         </div>
       )}
 
-      <StudentsList
-        classId={classId}
-        open={isAddStudentOpen}
-        onOpenChange={setIsAddStudentOpen}
-        onStudentsAdded={handleStudentsAdded}
-        viewMode={false}
-      />
+      {!viewOnly && (
+        <StudentsList
+          classId={classId}
+          open={isAddStudentOpen}
+          onOpenChange={setIsAddStudentOpen}
+          onStudentsAdded={handleStudentsAdded}
+          viewMode={false}
+        />
+      )}
     </div>
   );
 };
 
 export default StudentsTab;
+
