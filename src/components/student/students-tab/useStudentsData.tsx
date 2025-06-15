@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Student } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
@@ -47,20 +46,16 @@ export const useStudentsData = (classId: string) => {
     
     setIsLoading(true);
     try {
-      // First try to fetch the class to get the students array
-      const { data: classData, error: classError } = await supabase
-        .from('classes')
-        .select('students')
-        .eq('id', classId)
-        .single();
-      
-      if (classError) {
-        console.error("Error fetching class data:", classError);
-        throw new Error("Failed to fetch class data");
-      }
-      
-      // Get all students that are in this class
-      const studentIds = classData && Array.isArray(classData.students) ? classData.students : [];
+      // Fetch student IDs from the student_classes join table
+      const { data: studentLinks, error: linksError } = await supabase
+        .from('student_classes')
+        .select('student_id')
+        .eq('class_id', classId);
+
+      if (linksError) throw linksError;
+
+      const studentIds = studentLinks ? studentLinks.map(link => link.student_id) : [];
+
       if (studentIds.length === 0) {
         setStudents([]);
         setIsLoading(false);

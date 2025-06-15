@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -47,52 +46,51 @@ export const useClassDetailsWithId = (classId?: string) => {
     console.log("useClassDetailsWithId - fetchClassDetails called for ID:", classId);
     setLoading(true);
     try {
-      const cls = await getClassById(classId);
-      console.log("useClassDetailsWithId - getClassById result:", cls);
+      let fetchedClass = await getClassById(classId);
+      console.log("useClassDetailsWithId - getClassById result:", fetchedClass);
+
+      if (!fetchedClass) {
+        console.log("useClassDetailsWithId - Trying Supabase direct query");
+        const { data: classFromSupabase, error: classError } = await supabase
+          .from('classes')
+          .select('*')
+          .eq('id', classId)
+          .maybeSingle();
+        if (classError) throw classError;
+        fetchedClass = classFromSupabase;
+      }
       
-      if (cls) {
-        setClassData(cls);
-        
-        const currentTeacherId = localStorage.getItem("teacherId") || "";
-        if (cls.teacherId === currentTeacherId) {
-          setUserPermissionLevel("owner");
-        } else if (isAdmin) {
-          setUserPermissionLevel("owner");
-        } else {
-          setUserPermissionLevel("viewer");
-        }
-        
-        if (cls.students && cls.students.length > 0) {
-          await fetchStudentsWithCoins(cls.students);
-        }
+      if (!fetchedClass) {
+        console.log("useClassDetailsWithId - No class found, checking localStorage");
+        checkLocalStorageFallback();
         setLoading(false);
         return;
       }
-      
-      console.log("useClassDetailsWithId - Trying Supabase direct query");
-      const { data: classData, error: classError } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('id', classId)
-        .maybeSingle();
+
+      setClassData(fetchedClass);
         
-      if (classError) {
-        console.error("useClassDetailsWithId - Supabase error:", classError);
-        throw classError;
+      const currentTeacherId = localStorage.getItem("teacherId") || "";
+      if ((fetchedClass.teacherId === currentTeacherId) || (fetchedClass.teacher_id === currentTeacherId)) {
+        setUserPermissionLevel("owner");
+      } else if (isAdmin) {
+        setUserPermissionLevel("owner");
+      } else {
+        setUserPermissionLevel("viewer");
       }
       
-      console.log("useClassDetailsWithId - Supabase result:", classData);
-      
-      if (!classData) {
-        console.log("useClassDetailsWithId - No class found, checking localStorage");
-        checkLocalStorageFallback();
-        return;
-      }
-      
-      setClassData(classData);
-      
-      if (classData.students && classData.students.length > 0) {
-        await fetchStudentsWithCoins(classData.students);
+      // Fetch students from student_classes table
+      const { data: studentLinks, error: linksError } = await supabase
+          .from('student_classes')
+          .select('student_id')
+          .eq('class_id', classId);
+
+      if (linksError) throw linksError;
+
+      if (studentLinks && studentLinks.length > 0) {
+          const studentIds = studentLinks.map(link => link.student_id);
+          await fetchStudentsWithCoins(studentIds);
+      } else {
+          setStudents([]);
       }
     } catch (error) {
       console.error("Error fetching class details:", error);
