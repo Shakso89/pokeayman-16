@@ -93,6 +93,79 @@ export const getClassPokemonPool = async (classId: string): Promise<Pokemon[] | 
   return getSchoolPokemonPool(classId);
 };
 
+// Update all school pools to have a specific number of Pokemon
+export const updateAllSchoolPoolsTo500 = async (pokemonCount: number = 500): Promise<void> => {
+  console.log(`Updating all school pools to ${pokemonCount} Pokemon`);
+  
+  try {
+    // Get all unique school IDs from the database
+    const { data: schools, error } = await supabase
+      .from('pokemon_pools')
+      .select('school_id')
+      .neq('school_id', null);
+
+    if (error) {
+      console.error("Error fetching schools:", error);
+      return;
+    }
+
+    const uniqueSchoolIds = [...new Set(schools?.map(s => s.school_id) || [])];
+    
+    for (const schoolId of uniqueSchoolIds) {
+      if (schoolId) {
+        const currentPool = await getSchoolPokemonPool(schoolId);
+        const currentCount = currentPool?.length || 0;
+        
+        if (currentCount < pokemonCount) {
+          const neededCount = pokemonCount - currentCount;
+          await initializeSchoolPokemonPool(schoolId, neededCount);
+        }
+      }
+    }
+    
+    console.log("All school pools updated successfully");
+  } catch (error) {
+    console.error("Error updating school pools:", error);
+  }
+};
+
+// Force update all school pools by clearing and recreating them
+export const forceUpdateAllSchoolPools = async (pokemonCount: number = 500): Promise<void> => {
+  console.log(`Force updating all school pools to ${pokemonCount} Pokemon`);
+  
+  try {
+    // Get all unique school IDs
+    const { data: schools, error } = await supabase
+      .from('pokemon_pools')
+      .select('school_id')
+      .neq('school_id', null);
+
+    if (error) {
+      console.error("Error fetching schools:", error);
+      return;
+    }
+
+    const uniqueSchoolIds = [...new Set(schools?.map(s => s.school_id) || [])];
+    
+    for (const schoolId of uniqueSchoolIds) {
+      if (schoolId) {
+        // Clear existing pool for this school
+        await supabase
+          .from('pokemon_pools')
+          .delete()
+          .eq('school_id', schoolId);
+        
+        // Create new pool
+        await initializeSchoolPokemonPool(schoolId, pokemonCount);
+      }
+    }
+    
+    console.log("All school pools force updated successfully");
+  } catch (error) {
+    console.error("Error force updating school pools:", error);
+  }
+};
+
 // Helper function to create a random Pokemon
 const createRandomPokemon = (id: number): Pokemon => {
   const type = getRandomType();
