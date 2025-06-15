@@ -1,144 +1,154 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare } from "lucide-react";
-import { useTranslation } from "@/hooks/useTranslation";
-import { ProfileSidebar } from "@/components/student-profile/ProfileSidebar";
-import { ProfileTabs } from "@/components/student-profile/ProfileTabs";
+import StudentProfileBasicInfo from "@/components/student-profile/StudentProfileBasicInfo";
+import StudentProfilePokemonList from "@/components/student-profile/StudentProfilePokemonList";
+import StudentProfileCoins from "@/components/student-profile/StudentProfileCoins";
+import StudentProfileAchievements from "@/components/student-profile/StudentProfileAchievements";
+import SchoolClassInfo from "@/components/student/profile/SchoolClassInfo";
+import { ProfileHeader } from "@/components/student-profile/ProfileHeader";
 import { supabase } from "@/integrations/supabase/client";
+import { useTranslation } from "@/hooks/useTranslation";
+import { Button } from "@/components/ui/button";
+
+// Helper functions for fetching data from localStorage as a fallback
+const getPokemons = (studentId: string) => {
+  const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
+  const collection = studentPokemons.find((sp: any) => sp.studentId === studentId);
+  return collection?.pokemons || [];
+};
+
+const getCoinBalance = (studentId: string): number => {
+  const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
+  const collection = studentPokemons.find((sp: any) => sp.studentId === studentId);
+  return collection?.coins ?? 0;
+};
+
+const getHomeworkStreak = (studentId: string): number => {
+  const streaks = JSON.parse(localStorage.getItem("homeworkStreaks") || "{}");
+  return streaks[studentId] || 0;
+};
+
+const getStarOfClass = (studentId: string, classes: any[]): boolean => {
+  const classStars = JSON.parse(localStorage.getItem("starOfClassByClassId") || "{}");
+  return classes.some((cls) => classStars[cls.id] === studentId);
+};
+
+const getStudent = (studentId: string) => {
+  const students = JSON.parse(localStorage.getItem("students") || "[]");
+  return students.find((s: any) => s.id === studentId) || null;
+};
+
+const getSchool = (schoolId: string) => {
+  if (!schoolId) return null;
+  const schools = JSON.parse(localStorage.getItem("schools") || "[]");
+  return schools.find((s: any) => s.id === schoolId) || null;
+};
+
+const getClasses = (studentId: string) => {
+  let classAssignments = JSON.parse(localStorage.getItem("studentClasses") || "[]");
+  let assignedClassIds = classAssignments
+    .filter((ca: any) => ca.studentId === studentId)
+    .map((ca: any) => ca.classId);
+  
+  let allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
+  let filtered = allClasses.filter((c: any) => assignedClassIds.includes(c.id));
+
+  if (filtered.length === 0) {
+    filtered = allClasses.filter((c: any) => c.students?.includes(studentId));
+  }
+  return filtered;
+};
+
+const getNiceDisplayName = (student: any): string => {
+  const candidates = [student?.display_name, student?.displayName, student?.username].filter(Boolean);
+  for (const name of candidates) {
+    if (typeof name === "string" && name.trim().length > 1 && !/^\d+$/g.test(name.trim()) && !/^[a-f0-9\-]{20,}$/.test(name.trim())) {
+      return name.trim();
+    }
+  }
+  return "Unnamed Student";
+};
+
 
 const StudentProfilePage: React.FC = () => {
-  const { studentId } = useParams();
+  const { studentId } = useParams<{ studentId?: string }>();
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [student, setStudent] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [isEditing, setIsEditing] = useState(false);
-  const [editData, setEditData] = useState<any>({});
-  const [friendRequestSent, setFriendRequestSent] = useState(false);
+  const loggedInUserType = localStorage.getItem("userType") || "student";
 
-  // Check if this is the current user's profile
-  const currentUserId = localStorage.getItem("currentStudentId");
-  const actualCurrentUserId = localStorage.getItem("studentId");
-  const isOwner = actualCurrentUserId === studentId;
+  const [student, setStudent] = useState<any | null>(null);
+  const [school, setSchool] = useState<any | null>(null);
+  const [classes, setClasses] = useState<any[]>([]);
+  const [pokemons, setPokemons] = useState<any[]>([]);
+  const [coins, setCoins] = useState(0);
+  const [homeworkStreak, setHomeworkStreak] = useState(0);
+  const [isStarOfClass, setIsStarOfClass] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    loadStudentData();
-  }, [studentId]);
-
-  const loadStudentData = async () => {
     if (!studentId) {
       setLoading(false);
       return;
     }
-
     setLoading(true);
 
-    // Try primary: student_profiles
-    try {
-      let { data: data1, error: error1 } = await supabase
-        .from('student_profiles')
-        .select('*')
+    const loadStudentData = async () => {
+      const { data: studentWithSchool, error: studentError } = await supabase
+        .from('students')
+        .select(`*, school:school_id (id, name)`)
         .eq('id', studentId)
         .maybeSingle();
 
-      if (!data1) {
-        // Fallback: students table
-        const { data: data2, error: error2 } = await supabase
-          .from('students')
-          .select('*')
-          .eq('id', studentId)
-          .maybeSingle();
-        if (data2) data1 = data2; // use fallback student
-      }
-
-      if (data1) {
-        const studentData = {
-          id: data1.id,
-          username: data1.username,
-          displayName: data1.display_name || data1.displayName || data1.username,
-          avatar: data1.avatar_url || data1.avatar || null,
-          photos: [],
-          pokemonCollection: [],
-          contactInfo: "",
-          classId: data1.class_id || data1.classId,
-          schoolId: data1.school_id || data1.schoolId
-        };
-        setStudent(studentData);
-        setEditData(studentData);
-      } else {
-        throw new Error("Student not found in Supabase");
-      }
-    } catch (error) {
-      console.error("Error loading from Supabase, falling back to localStorage:", error);
+      if (studentError) console.error("Error fetching student:", studentError.message);
       
-      const savedStudents = localStorage.getItem("students");
-      if (savedStudents) {
-        try {
-          const studentsList = JSON.parse(savedStudents);
-          const foundStudent = studentsList.find((s: any) => s.id === studentId);
-          if (foundStudent) {
-            const studentData = {
-              id: foundStudent.id,
-              username: foundStudent.username,
-              displayName: foundStudent.displayName || foundStudent.username,
-              avatar: foundStudent.avatar,
-              photos: foundStudent.photos || [],
-              pokemonCollection: foundStudent.pokemonCollection || [],
-              contactInfo: foundStudent.contactInfo || '',
-              classId: foundStudent.classId
-            };
-            setStudent(studentData);
-            setEditData(studentData);
-          } else {
-            setStudent(null);
-          }
-        } catch (parseError) {
-          console.error("Error parsing students from localStorage:", parseError);
-          setStudent(null);
-        }
-      } else {
-        setStudent(null);
+      let stu = studentWithSchool;
+      if (!stu) {
+        console.warn(`Student with id ${studentId} not found in Supabase, falling back to localStorage.`);
+        stu = getStudent(studentId);
       }
-    } finally {
-      setLoading(false);
-    }
-  };
 
-  const handleEditClick = () => {
-    setIsEditing(true);
-  };
+      if (!stu) {
+        setStudent(null);
+        return;
+      }
+      setStudent(stu);
 
-  const handleSaveClick = () => {
-    setIsEditing(false);
-    setStudent(editData);
-    // The ProfileSidebar component handles the actual saving
-  };
+      const schoolData = stu.school || getSchool(stu.school_id || stu.schoolId);
+      setSchool(schoolData);
 
-  const handleCancelClick = () => {
-    setIsEditing(false);
-    // Reset any changes
-    setEditData(student);
-  };
+      let classesData: any[] = [];
+      const { data: classAssignments } = await supabase.from('student_classes').select('class_id').eq('student_id', studentId);
+      let classIds = classAssignments ? classAssignments.map(c => c.class_id) : [];
 
-  const handleSendMessage = () => {
-    const recipientName = student ? (student.displayName || student.username) : t('student');
-    navigate("/messages", { state: { recipientId: studentId, recipientName } });
-  };
+      if (classIds.length === 0 && (stu.class_id || stu.classId)) {
+        const ids = stu.class_id || stu.classId;
+        classIds = Array.isArray(ids) ? ids : String(ids).split(',').map(id => id.trim()).filter(Boolean);
+      }
 
-  const handleAddFriend = () => {
-    setFriendRequestSent(true);
-    // Implement friend request logic here
-  };
+      if (classIds.length > 0) {
+        const { data: fetchedClasses } = await supabase.from('classes').select('*').in('id', classIds);
+        if (fetchedClasses) classesData = fetchedClasses;
+      }
 
-  const handleEditDataChange = (newData: any) => {
-    setEditData(newData);
-  };
+      if (classesData.length === 0) {
+        classesData = getClasses(studentId);
+      }
+      setClasses(classesData);
+      
+      setPokemons(getPokemons(stu.id));
+      setCoins(getCoinBalance(stu.id));
+      setHomeworkStreak(getHomeworkStreak(stu.id));
+      setIsStarOfClass(getStarOfClass(stu.id, classesData));
+    };
+
+    loadStudentData().finally(() => setLoading(false));
+  }, [studentId]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
           <p className="mt-4 text-gray-600">{t("loading")}</p>
@@ -149,7 +159,7 @@ const StudentProfilePage: React.FC = () => {
 
   if (!student) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
         <Card className="p-8 text-center shadow-xl rounded-lg">
           <CardContent>
             <h2 className="text-2xl font-bold text-gray-800 mb-4">{t("student-not-found")}</h2>
@@ -160,57 +170,52 @@ const StudentProfilePage: React.FC = () => {
     );
   }
 
+  const displayName = getNiceDisplayName(student);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <Button
-            variant="outline"
-            onClick={() => navigate(-1)}
-            className="flex items-center"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            {t("back")}
-          </Button>
-          
-          {!isOwner && student && (
-            <Button
-              onClick={handleSendMessage}
-              className="flex items-center"
-            >
-              <MessageSquare className="mr-2 h-4 w-4" />
-              {t("send-message")}
-            </Button>
-          )}
-        </div>
+    <div className="min-h-screen bg-transparent">
+      <div className="container max-w-3xl py-8 mx-auto">
+        <ProfileHeader title={t("student-profile")} onBack={() => navigate(-1)} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Profile Sidebar */}
-          <div className="lg:col-span-1">
-            <ProfileSidebar
-              student={student}
-              isOwner={isOwner}
-              isEditing={isEditing}
-              friendRequestSent={friendRequestSent}
-              onEditClick={handleEditClick}
-              onSendMessageClick={handleSendMessage}
-              onAddFriendClick={handleAddFriend}
-              onSaveClick={handleSaveClick}
-              onCancelClick={handleCancelClick}
+        <Card>
+          <CardContent className="pt-6">
+            <StudentProfileBasicInfo
+              displayName={displayName}
+              avatar={student.avatar}
+              school={school ? { id: school.id, name: school.name } : undefined}
+              classes={classes.map((c: any) => ({ id: c.id, name: c.name }))}
+              isStarOfClass={isStarOfClass}
+              userType={loggedInUserType as 'student' | 'teacher'}
             />
-          </div>
 
-          {/* Main Content */}
-          <div className="lg:col-span-3">
-            <ProfileTabs 
-              student={student}
-              isEditing={isEditing}
-              editData={editData}
-              onEditDataChange={handleEditDataChange}
-            />
-          </div>
-        </div>
+            <StudentProfileCoins coins={coins} />
+
+            <div className="mt-6">
+              <h3 className="font-bold text-lg mb-2">Pokémon Collection</h3>
+              <StudentProfilePokemonList pokemons={pokemons} />
+            </div>
+
+            <div className="mt-6">
+              <h3 className="font-bold text-lg mb-2">Achievements</h3>
+              <StudentProfileAchievements 
+                homeworkStreak={homeworkStreak}
+                isStarOfClass={isStarOfClass}
+              />
+            </div>
+            
+            <div className="mt-6 border-t pt-6">
+              <SchoolClassInfo
+                school={school ? { id: school.id, name: school.name } : undefined}
+                classes={classes.map((c: any) => ({
+                  id: c.id,
+                  name: c.name,
+                  description: c.description,
+                }))}
+                userType={loggedInUserType as 'student' | 'teacher'}
+              />
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
