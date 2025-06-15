@@ -1,4 +1,3 @@
-
 import { Pokemon } from "@/types/pokemon";
 import { getRandomType, getRarityForId } from "./types";
 import { supabase } from "@/integrations/supabase/client";
@@ -11,8 +10,20 @@ export const initializeSchoolPokemonPool = async (schoolId: string, initialPokem
   const pokemonsToInsert: any[] = [];
   const createdPokemons: Pokemon[] = [];
   
-  for (let i = 0; i < initialPokemonCount; i++) {
-    const pokemonId = Math.floor(1 + Math.random() * 150); // Generate Pokemon ID from 1-150
+  // Fetch existing available IDs to avoid true duplicates by (school_id, pokemon_id)
+  const { data: existingRows, error: checkErr } = await supabase
+    .from('pokemon_pools')
+    .select('pokemon_id')
+    .eq('school_id', schoolId)
+    .eq('available', true);
+
+  // Build a set of already-available IDs
+  const availableIds = new Set((existingRows || []).map(r => r.pokemon_id));
+
+  for (let i = 0; pokemonsToInsert.length < initialPokemonCount && i < initialPokemonCount * 2; i++) {
+    const pokemonId = Math.floor(1 + Math.random() * 150);
+    if (availableIds.has(String(pokemonId))) continue;
+    availableIds.add(String(pokemonId));
     const randomPokemon = createRandomPokemon(pokemonId);
 
     pokemonsToInsert.push({
@@ -28,16 +39,18 @@ export const initializeSchoolPokemonPool = async (schoolId: string, initialPokem
     createdPokemons.push(randomPokemon);
   }
 
-  const { error: insertError } = await supabase
-    .from('pokemon_pools')
-    .insert(pokemonsToInsert);
+  if (pokemonsToInsert.length > 0) {
+    const { error: insertError } = await supabase
+      .from('pokemon_pools')
+      .insert(pokemonsToInsert);
 
-  if (insertError) {
-    console.error("Error inserting pokemon into pool:", insertError);
-    return null;
+    if (insertError) {
+      console.error("Error inserting pokemon into pool:", insertError);
+      return null;
+    }
+    console.log(`Created new Pokemon pool for school ${schoolId} with ${pokemonsToInsert.length} Pokemons`);
   }
   
-  console.log(`Created new Pokemon pool for school ${schoolId} with ${initialPokemonCount} Pokemons in Supabase.`);
   return createdPokemons;
 };
 
@@ -58,8 +71,16 @@ export const getSchoolPokemonPool = async (schoolId: string): Promise<Pokemon[] 
   if (!data) {
     return [];
   }
-  
-  const pokemonData: Pokemon[] = data.map(item => ({
+
+  // REMOVE DUPLICATES (only show one Pokemon per id, in UI and logic)
+  const seen = new Set<string>();
+  const uniqueData = data.filter(item => {
+    if (seen.has(item.pokemon_id)) return false;
+    seen.add(item.pokemon_id);
+    return true;
+  });
+
+  const pokemonData: Pokemon[] = uniqueData.map(item => ({
     id: item.pokemon_id,
     name: item.pokemon_name,
     image: item.pokemon_image || '',

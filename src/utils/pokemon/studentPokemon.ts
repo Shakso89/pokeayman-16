@@ -233,17 +233,23 @@ export const assignPokemonToStudent = async (schoolId: string, studentId: string
 
   console.log("Assigning Pokemon to student:", { schoolId, studentId, pokemonId });
 
-  const { data: pokemonInPool, error: poolError } = await supabase
+  // FETCH ALL available with same pokemon by school
+  const { data: pokemonInPoolArray, error: poolError } = await supabase
     .from('pokemon_pools')
     .select('*')
     .eq('school_id', schoolId)
     .eq('pokemon_id', pokemonId)
     .eq('available', true)
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
 
-  if (poolError || !pokemonInPool) {
-    console.error("Pokemon not found in school pool or error occurred:", pokemonId, poolError);
+  if (poolError) {
+    console.error("Error searching pool:", poolError);
+    return { success: false, isDuplicate: false };
+  }
+  const pokemonInPool = pokemonInPoolArray?.[0];
+
+  if (!pokemonInPool) {
+    console.error("Pokemon not found in school pool - none available:", pokemonId);
     return { success: false, isDuplicate: false };
   }
   
@@ -302,7 +308,6 @@ export const assignPokemonToStudent = async (schoolId: string, studentId: string
     console.error("Error updating pokemon in pool:", updatePoolError);
     return { success: false, isDuplicate: false };
   }
-
 
   // Add Pokemon to student in Supabase
   const { error: insertError } = await supabase.from("pokemon_collections").insert({
