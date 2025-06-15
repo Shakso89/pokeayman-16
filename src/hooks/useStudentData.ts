@@ -8,6 +8,7 @@ import {
   StudentProfile 
 } from '@/services/studentDatabase';
 import { supabase } from '@/integrations/supabase/client';
+import { getStudentPokemons } from '@/utils/pokemon/storage';
 
 export const useStudentData = (studentId: string, userId?: string, username?: string, schoolId?: string) => {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
@@ -48,7 +49,7 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
               .from('schools')
               .select('name')
               .eq('id', studentProfile.school_id)
-              .single();
+              .maybeSingle();
             
             if (schoolData) {
               setSchoolName(schoolData.name);
@@ -57,6 +58,36 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
             console.error('Error loading school name:', error);
             setSchoolName("Unknown School");
           }
+        }
+      } else {
+        // Fallback to localStorage if profile not found in Supabase
+        console.warn(`Student profile for ${studentId} not found in Supabase, falling back to localStorage.`);
+        const studentPokemons = getStudentPokemons();
+        const localData = studentPokemons.find(sp => sp.studentId === studentId);
+
+        if (localData) {
+          setCoins(localData.coins || 0);
+          setSpentCoins(localData.spentCoins || 0);
+          setPokemons(localData.pokemons || []);
+        }
+        
+        // Also try to get student info from 'students' table for display name, etc.
+        const { data: studentData } = await supabase.from('students').select('display_name, school_id').eq('id', studentId).maybeSingle();
+        if (studentData && studentData.school_id) {
+            try {
+                const { data: schoolData } = await supabase
+                .from('schools')
+                .select('name')
+                .eq('id', studentData.school_id)
+                .maybeSingle();
+                
+                if (schoolData) {
+                  setSchoolName(schoolData.name);
+                }
+            } catch (error) {
+                console.error('Error loading school name from fallback:', error);
+                setSchoolName("Unknown School");
+            }
         }
       }
     } catch (error) {

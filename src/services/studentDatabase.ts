@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { Pokemon } from "@/types/pokemon";
 
@@ -259,7 +258,7 @@ export const getStudentProfileById = async (studentId: string): Promise<StudentP
       .from('student_profiles')
       .select('*')
       .eq('id', studentId)
-      .single();
+      .maybeSingle();
 
     if (error) {
       console.error('Error fetching student profile:', error);
