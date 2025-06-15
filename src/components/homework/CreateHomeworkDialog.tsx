@@ -61,7 +61,7 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
       const { data, error } = await supabase
         .from('classes')
         .select('id, name')
-        .eq('teacher_id', teacherId);
+        .or(`teacher_id.eq.${teacherId},assistants.cs.{${teacherId}}`);
 
       if (error) throw error;
       setTeacherClasses(data || []);
