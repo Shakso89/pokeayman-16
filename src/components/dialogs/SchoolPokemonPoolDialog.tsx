@@ -42,6 +42,7 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
   const [loading, setLoading] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [givingPokemon, setGivingPokemon] = useState<SchoolPoolPokemon | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && schoolId) {
@@ -52,6 +53,7 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
   const fetchData = async () => {
     setLoading(true);
     setGivingPokemon(null);
+    setSelectedStudent(null);
     try {
       const pokemonDataPromise = getSchoolPokemonPool(schoolId);
       const studentsPromise = passedStudents
@@ -78,7 +80,6 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
   const handleAssignSpecific = async (pokemon: SchoolPoolPokemon, studentId: string) => {
     if (!studentId) return;
     setIsAssigning(true);
-    setGivingPokemon(null);
     try {
       const student = students.find((s) => s.user_id === studentId);
       if (!student) {
@@ -232,24 +233,44 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
                       {givingPokemon?.poolEntryId === pokemon.poolEntryId ? (
                         <div className="space-y-2">
                           <Select
-                            onValueChange={(studentId) => handleAssignSpecific(pokemon, studentId)}
+                            onValueChange={(studentId) => setSelectedStudent(studentId)}
                             disabled={isAssigning}
+                            value={selectedStudent || ""}
                           >
                             <SelectTrigger>
-                              <SelectValue placeholder="Give to..." />
+                              <SelectValue placeholder="Select a student..." />
                             </SelectTrigger>
                             <SelectContent>
                               {students.map((student) => (
-                                <SelectItem key={student.id} value={student.user_id}>
+                                <SelectItem key={student.user_id} value={student.user_id}>
                                   {student.display_name}
                                 </SelectItem>
                               ))}
                             </SelectContent>
                           </Select>
+
+                          {selectedStudent && (
+                            <Button
+                              onClick={() => handleAssignSpecific(pokemon, selectedStudent)}
+                              disabled={isAssigning}
+                              className="w-full"
+                            >
+                              {isAssigning
+                                ? "Assigning..."
+                                : `Give to ${
+                                    students.find((s) => s.user_id === selectedStudent)
+                                      ?.display_name || "student"
+                                  }`}
+                            </Button>
+                          )}
+
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => setGivingPokemon(null)}
+                            onClick={() => {
+                              setGivingPokemon(null);
+                              setSelectedStudent(null);
+                            }}
                             className="w-full"
                           >
                             Cancel
@@ -257,7 +278,10 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
                         </div>
                       ) : (
                         <Button
-                          onClick={() => setGivingPokemon(pokemon)}
+                          onClick={() => {
+                            setGivingPokemon(pokemon);
+                            setSelectedStudent(null);
+                          }}
                           disabled={isAssigning || students.length === 0}
                           className="w-full"
                           variant="outline"
