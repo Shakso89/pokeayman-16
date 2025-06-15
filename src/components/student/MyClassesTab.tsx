@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from "react";
+
+import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Users } from "lucide-react";
@@ -6,6 +7,8 @@ import { useTranslation } from "@/hooks/useTranslation";
 import StudentHomeworkTab from "./StudentHomeworkTab";
 import ClassRankingTab from "./ClassRankingTab";
 import { getStudentClasses } from "@/services/studentDatabase";
+import { subscribeToStudent } from "@/utils/classSync";
+import { supabase } from "@/integrations/supabase/client";
 
 interface MyClassesTabProps {
   studentId: string;
@@ -21,26 +24,29 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
   const [loading, setLoading] = useState(true);
   const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
-  useEffect(() => {
-    loadClassesData();
-  }, [studentId]);
-
-  const loadClassesData = async () => {
+  const loadClassesData = useCallback(async () => {
     if (!studentId) {
+        console.log("MyClassesTab: No studentId provided.");
         setLoading(false);
         return;
     }
+    console.log(`MyClassesTab: Loading classes for studentId: ${studentId}`);
     try {
       setLoading(true);
       const assignments = await getStudentClasses(studentId);
+      console.log("MyClassesTab: Received assignments from DB:", assignments);
       
       const studentClasses = assignments.map((assignment: any) => assignment.classes).filter(Boolean);
+      console.log("MyClassesTab: Parsed student classes:", studentClasses);
 
       setClassesData(studentClasses);
       if (studentClasses.length > 0) {
-        if (!selectedClassId || !studentClasses.some(c => c.id === selectedClassId)) {
-          setSelectedClassId(studentClasses[0].id);
-        }
+        setSelectedClassId(prevSelectedClassId => {
+          if (!prevSelectedClassId || !studentClasses.some(c => c.id === prevSelectedClassId)) {
+            return studentClasses[0].id;
+          }
+          return prevSelectedClassId;
+        });
       } else {
         setSelectedClassId(null);
       }
@@ -50,9 +56,28 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
     } finally {
       setLoading(false);
     }
-  };
+  }, [studentId]);
 
-  if (loading) {
+  useEffect(() => {
+    loadClassesData();
+
+    if (!studentId) {
+        return;
+    }
+
+    const channel = subscribeToStudent(studentId, (payload) => {
+      console.log("MyClassesTab: Realtime update for student classes received.", payload);
+      loadClassesData();
+    });
+
+    return () => {
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
+    };
+  }, [studentId, loadClassesData]);
+
+  if (loading && classesData.length === 0) {
     return (
       <Card>
         <CardContent className="py-8 text-center">
