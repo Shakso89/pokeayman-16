@@ -2,6 +2,7 @@ import { Pokemon, StudentPokemon } from "@/types/pokemon";
 import { getStudentPokemons, saveStudentPokemons } from "./storage";
 import { getPokemonPools, savePokemonPools } from "./storage";
 import { initializeSchoolPokemonPool } from "./schoolPokemon";
+import { handlePokemonDuplicate } from "./duplicateHandler";
 import { supabase } from "@/integrations/supabase/client";
 
 // Get student Pokemon collection
@@ -139,7 +140,7 @@ export const removePokemonFromStudentAndReturnToPool = async (
       schoolPoolIndex = pokemonPools.length - 1;
     } else {
       console.error("Failed to initialize school pool");
-      return { success: false, isDuplicate: false };
+      return false;
     }
   }
   
