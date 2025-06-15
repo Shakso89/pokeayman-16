@@ -5,11 +5,14 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "@/hooks/useTranslation";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "@/hooks/use-toast";
 
 interface GiveCoinsDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   studentName: string;
+  studentId: string;
   onGiveCoins: (amount: number) => void;
 }
 
@@ -17,17 +20,61 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
   isOpen,
   onOpenChange,
   studentName,
+  studentId,
   onGiveCoins
 }) => {
   const { t } = useTranslation();
   const [amount, setAmount] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     const coinAmount = parseInt(amount);
     if (coinAmount > 0) {
-      onGiveCoins(coinAmount);
-      setAmount("");
-      onOpenChange(false);
+      setIsLoading(true);
+      try {
+        // Update coins in the database
+        const { data: currentProfile } = await supabase
+          .from('student_profiles')
+          .select('coins')
+          .eq('user_id', studentId)
+          .maybeSingle();
+
+        if (currentProfile) {
+          const { error } = await supabase
+            .from('student_profiles')
+            .update({ 
+              coins: currentProfile.coins + coinAmount,
+              updated_at: new Date().toISOString()
+            })
+            .eq('user_id', studentId);
+
+          if (error) throw error;
+
+          toast({
+            title: t("success"),
+            description: `${coinAmount} coins awarded to ${studentName}`
+          });
+          
+          onGiveCoins(coinAmount);
+          setAmount("");
+          onOpenChange(false);
+        } else {
+          toast({
+            title: t("error"),
+            description: "Student profile not found",
+            variant: "destructive"
+          });
+        }
+      } catch (error) {
+        console.error("Error awarding coins:", error);
+        toast({
+          title: t("error"),
+          description: "Failed to award coins",
+          variant: "destructive"
+        });
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -56,8 +103,11 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             {t("cancel")}
           </Button>
-          <Button onClick={handleSubmit} disabled={!amount || parseInt(amount) <= 0}>
-            {t("give-coins")}
+          <Button 
+            onClick={handleSubmit} 
+            disabled={!amount || parseInt(amount) <= 0 || isLoading}
+          >
+            {isLoading ? "Awarding..." : t("give-coins")}
           </Button>
         </DialogFooter>
       </DialogContent>

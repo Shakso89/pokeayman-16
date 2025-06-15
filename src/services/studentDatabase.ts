@@ -123,6 +123,116 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<Po
   }
 };
 
+// Update student coins - UPDATED to work with database
+export const updateStudentCoins = async (
+  studentId: string,
+  coinsToAdd: number,
+  spentCoins?: number
+): Promise<boolean> => {
+  try {
+    // Always try database first
+    const { data: currentProfile } = await supabase
+      .from('student_profiles')
+      .select('coins, spent_coins')
+      .eq('user_id', studentId)
+      .maybeSingle();
+
+    if (currentProfile) {
+      const newCoins = Math.max(0, currentProfile.coins + coinsToAdd);
+      const newSpentCoins = (currentProfile.spent_coins || 0) + (spentCoins || 0);
+
+      const { error } = await supabase
+        .from('student_profiles')
+        .update({
+          coins: newCoins,
+          spent_coins: newSpentCoins,
+          updated_at: new Date().toISOString()
+        })
+        .eq('user_id', studentId);
+
+      if (error) {
+        console.error('Error updating student coins in Supabase:', error);
+        return false;
+      }
+      return true;
+    }
+    
+    console.warn(`Student profile for ${studentId} not found in database`);
+    return false;
+
+  } catch (error) {
+    console.error('Error in updateStudentCoins:', error);
+    return false;
+  }
+};
+
+// Award Pokemon to student - UPDATED to work with database
+export const awardPokemonToStudent = async (
+  studentId: string,
+  pokemon: Pokemon,
+  schoolId: string
+): Promise<{ success: boolean; isDuplicate: boolean }> => {
+  try {
+    // Check if student already has this Pokemon
+    const { data: existingPokemon } = await supabase
+      .from('pokemon_collections')
+      .select('id')
+      .eq('student_id', studentId)
+      .eq('pokemon_id', pokemon.id)
+      .maybeSingle();
+
+    if (existingPokemon) {
+      // It's a duplicate, award coins instead
+      const coinsAwarded = pokemon.rarity === 'legendary' ? 100 : 
+                         pokemon.rarity === 'epic' ? 50 : 
+                         pokemon.rarity === 'rare' ? 25 : 10;
+      
+      await updateStudentCoins(studentId, coinsAwarded);
+      return { success: true, isDuplicate: true };
+    }
+
+    // Add to student collection
+    const { error: addError } = await supabase
+      .from('pokemon_collections')
+      .insert({
+        student_id: studentId,
+        pokemon_id: pokemon.id,
+        pokemon_name: pokemon.name,
+        pokemon_image: pokemon.image,
+        pokemon_type: pokemon.type,
+        pokemon_rarity: pokemon.rarity,
+        pokemon_level: 1
+      });
+
+    if (addError) {
+      console.error('Error adding pokemon to collection:', addError);
+      return { success: false, isDuplicate: false };
+    }
+
+    // Remove from school pool
+    const { error: poolError } = await supabase
+      .from('pokemon_pools')
+      .update({ 
+        assigned_to: studentId,
+        available: false,
+        assigned_at: new Date().toISOString()
+      })
+      .eq('school_id', schoolId)
+      .eq('pokemon_id', pokemon.id)
+      .eq('available', true)
+      .limit(1);
+
+    if (poolError) {
+      console.error('Error updating pool:', poolError);
+    }
+
+    return { success: true, isDuplicate: false };
+  } catch (error) {
+    console.error('Error in awardPokemonToStudent:', error);
+    return { success: false, isDuplicate: false };
+  }
+};
+
 // Assign Pokemon from school pool to student
 export const assignPokemonFromSchoolPool = async (
   schoolId: string,
@@ -224,79 +334,6 @@ export const assignPokemonFromSchoolPool = async (
   } catch (error) {
     console.error('Error in assignPokemonFromSchoolPool:', error);
     return { success: false };
-  }
-};
-
-// Update student coins
-export const updateStudentCoins = async (
-  studentId: string,
-  coinsToAdd: number,
-  spentCoins?: number
-): Promise<boolean> => {
-  try {
-    const { data: currentProfile } = await supabase
-      .from('student_profiles')
-      .select('coins, spent_coins')
-      .eq('id', studentId)
-      .maybeSingle();
-
-    if (currentProfile) {
-      const newCoins = Math.max(0, currentProfile.coins + coinsToAdd);
-      const newSpentCoins = currentProfile.spent_coins + (spentCoins || 0);
-
-      const { error } = await supabase
-        .from('student_profiles')
-        .update({
-          coins: newCoins,
-          spent_coins: newSpentCoins,
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', studentId);
-
-      if (error) {
-        console.error('Error updating student coins in Supabase:', error);
-        return false;
-      }
-      return true;
-    }
-    
-    // Fallback to localStorage
-    console.warn(`Student profile for ${studentId} not found in Supabase for coin update, falling back to localStorage.`);
-    
-    const studentPokemons = getStudentPokemons();
-    const studentIndex = studentPokemons.findIndex(sp => sp.studentId === studentId);
-
-    if (studentIndex > -1) {
-      const studentData = studentPokemons[studentIndex];
-      const currentCoins = studentData.coins || 0;
-      
-      if (coinsToAdd < 0 && currentCoins < Math.abs(coinsToAdd)) {
-        return false; // Not enough coins
-      }
-      
-      studentData.coins = Math.max(0, currentCoins + coinsToAdd);
-      studentData.spentCoins = (studentData.spentCoins || 0) + (spentCoins || 0);
-      saveStudentPokemons(studentPokemons);
-      return true;
-    }
-    
-    // If student not in localStorage, but we're adding coins, create a record
-    if (coinsToAdd >= 0) {
-      studentPokemons.push({
-        studentId: studentId,
-        pokemons: [],
-        coins: coinsToAdd,
-        spentCoins: spentCoins || 0,
-      } as any); // Type assertion to match inferred type
-      saveStudentPokemons(studentPokemons);
-      return true;
-    }
-
-    return false; // Can't deduct coins if student doesn't exist
-
-  } catch (error) {
-    console.error('Error in updateStudentCoins:', error);
-    return false;
   }
 };
 

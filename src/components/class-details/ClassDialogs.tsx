@@ -1,14 +1,12 @@
 
 import React from "react";
-import AddStudentsDialog from "@/components/teacher/class-management/AddStudentsDialog";
-import DeleteClassDialog from "@/components/teacher/class-management/DeleteClassDialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
-         AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { StudentsList } from "@/components/student-profile/StudentsList";
+import DeleteClassDialog from "@/components/dialogs/DeleteClassDialog";
+import RemoveStudentDialog from "@/components/dialogs/RemoveStudentDialog";
 import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
 import RemoveCoinsDialog from "@/components/dialogs/RemoveCoinsDialog";
-import SchoolPoolDialog from "@/components/student/SchoolPoolDialog";
-import { useTranslation } from "@/hooks/useTranslation";
+import SchoolPokemonPoolDialog from "@/components/dialogs/SchoolPokemonPoolDialog";
 
 interface ClassDialogsProps {
   classId: string;
@@ -18,22 +16,40 @@ interface ClassDialogsProps {
   deleteDialogOpen: boolean;
   onDeleteDialogOpenChange: (open: boolean) => void;
   onDeleteClass: () => void;
-  removeStudentDialog: { open: boolean; studentId: string; studentName: string };
-  onRemoveStudentDialogChange: (dialog: { open: boolean; studentId: string; studentName: string }) => void;
+  removeStudentDialog: {
+    open: boolean;
+    studentId: string;
+    studentName: string;
+  };
+  onRemoveStudentDialogChange: (dialog: any) => void;
   onRemoveStudent: (studentId: string) => void;
   isClassCreator: boolean;
-  managePokemonDialog: { open: boolean; studentId: string; studentName: string; schoolId: string };
-  onManagePokemonDialogChange: (dialog: { open: boolean; studentId: string; studentName: string; schoolId: string }) => void;
+  managePokemonDialog: {
+    open: boolean;
+    studentId: string;
+    studentName: string;
+    schoolId: string;
+  };
+  onManagePokemonDialogChange: (dialog: any) => void;
   onPokemonRemoved: () => void;
-  giveCoinsDialog: { open: boolean; studentId: string; studentName: string };
-  onGiveCoinsDialogChange: (dialog: { open: boolean; studentId: string; studentName: string }) => void;
+  giveCoinsDialog: {
+    open: boolean;
+    studentId: string;
+    studentName: string;
+  };
+  onGiveCoinsDialogChange: (dialog: any) => void;
   onGiveCoins: (amount: number) => void;
-  removeCoinsDialog: { open: boolean; studentId: string; studentName: string };
-  onRemoveCoinsDialogChange: (dialog: { open: boolean; studentId: string; studentName: string }) => void;
+  removeCoinsDialog: {
+    open: boolean;
+    studentId: string;
+    studentName: string;
+  };
+  onRemoveCoinsDialogChange: (dialog: any) => void;
   onRemoveCoins: (amount: number) => void;
-  schoolPoolDialogOpen?: boolean;
-  onSchoolPoolDialogChange?: (open: boolean) => void;
-  schoolId?: string;
+  schoolPoolDialogOpen: boolean;
+  onSchoolPoolDialogChange: (open: boolean) => void;
+  schoolId: string;
+  studentId?: string;
 }
 
 const ClassDialogs: React.FC<ClassDialogsProps> = ({
@@ -57,90 +73,83 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
   removeCoinsDialog,
   onRemoveCoinsDialogChange,
   onRemoveCoins,
-  schoolPoolDialogOpen = false,
+  schoolPoolDialogOpen,
   onSchoolPoolDialogChange,
-  schoolId = ""
+  schoolId,
+  studentId
 }) => {
-  const { t } = useTranslation();
-
   return (
     <>
       {/* Add Students Dialog */}
-      <AddStudentsDialog
-        isOpen={isStudentListOpen}
+      <StudentsList
+        classId={classId}
+        open={isStudentListOpen}
         onOpenChange={onStudentListOpenChange}
         onStudentsAdded={onStudentsAdded}
-        classId={classId}
+        viewMode={false}
       />
 
       {/* Delete Class Dialog */}
       <DeleteClassDialog
         isOpen={deleteDialogOpen}
         onOpenChange={onDeleteDialogOpenChange}
-        onConfirmDelete={onDeleteClass}
-        classId={classId}
+        onConfirm={onDeleteClass}
       />
 
       {/* Remove Student Dialog */}
-      <AlertDialog 
-        open={removeStudentDialog.open} 
-        onOpenChange={(open) => onRemoveStudentDialogChange({ ...removeStudentDialog, open })}
-      >
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>{t("remove-student")}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {t("remove-student-confirmation")} {removeStudentDialog.studentName}?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
-            <AlertDialogAction 
-              onClick={() => onRemoveStudent(removeStudentDialog.studentId)}
-              className="bg-red-600 hover:bg-red-700"
-            >
-              {t("remove")}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <RemoveStudentDialog
+        isOpen={removeStudentDialog.open}
+        onOpenChange={(open) => onRemoveStudentDialogChange({
+          ...removeStudentDialog,
+          open
+        })}
+        studentName={removeStudentDialog.studentName}
+        onConfirm={() => onRemoveStudent(removeStudentDialog.studentId)}
+      />
 
       {/* Manage Pokemon Dialog */}
       <ManagePokemonDialog
         isOpen={managePokemonDialog.open}
-        onOpenChange={(open) => onManagePokemonDialogChange({ ...managePokemonDialog, open })}
+        onOpenChange={(open) => onManagePokemonDialogChange({
+          ...managePokemonDialog,
+          open
+        })}
         studentId={managePokemonDialog.studentId}
         studentName={managePokemonDialog.studentName}
         schoolId={managePokemonDialog.schoolId}
         onPokemonRemoved={onPokemonRemoved}
-        isClassCreator={isClassCreator}
       />
 
       {/* Give Coins Dialog */}
       <GiveCoinsDialog
         isOpen={giveCoinsDialog.open}
-        onOpenChange={(open) => onGiveCoinsDialogChange({ ...giveCoinsDialog, open })}
+        onOpenChange={(open) => onGiveCoinsDialogChange({
+          ...giveCoinsDialog,
+          open
+        })}
         studentName={giveCoinsDialog.studentName}
+        studentId={giveCoinsDialog.studentId}
         onGiveCoins={onGiveCoins}
       />
 
       {/* Remove Coins Dialog */}
       <RemoveCoinsDialog
         isOpen={removeCoinsDialog.open}
-        onOpenChange={(open) => onRemoveCoinsDialogChange({ ...removeCoinsDialog, open })}
+        onOpenChange={(open) => onRemoveCoinsDialogChange({
+          ...removeCoinsDialog,
+          open
+        })}
         studentName={removeCoinsDialog.studentName}
+        studentId={removeCoinsDialog.studentId}
         onRemoveCoins={onRemoveCoins}
       />
 
-      {/* School Pool Dialog */}
-      {schoolPoolDialogOpen && onSchoolPoolDialogChange && (
-        <SchoolPoolDialog
-          open={schoolPoolDialogOpen}
-          onOpenChange={onSchoolPoolDialogChange}
-          schoolId={schoolId}
-          userType="teacher"
-        />
-      )}
+      {/* School Pokemon Pool Dialog */}
+      <SchoolPokemonPoolDialog
+        isOpen={schoolPoolDialogOpen}
+        onOpenChange={onSchoolPoolDialogChange}
+        schoolId={schoolId}
+      />
     </>
   );
 };

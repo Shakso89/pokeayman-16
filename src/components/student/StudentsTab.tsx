@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -43,7 +44,7 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
       
       const studentIds = studentLinks.map(link => link.student_id);
       
-      // Fetch student details with school information using the IDs
+      // Fetch student details with school information and their profiles for coins/pokemon data
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
         .select(`
@@ -51,19 +52,27 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
           schools:school_id (
             id,
             name
+          ),
+          student_profiles!inner (
+            coins,
+            spent_coins,
+            avatar_url
           )
         `)
         .in('id', studentIds);
         
       if (studentsError) throw studentsError;
       
-      // Add school name to each student
-      const studentsWithSchool = (studentsData || []).map(student => ({
+      // Add school name and profile data to each student
+      const studentsWithData = (studentsData || []).map(student => ({
         ...student,
-        schoolName: student.schools?.name || "No School Assigned"
+        schoolName: student.schools?.name || "No School Assigned",
+        coins: student.student_profiles?.[0]?.coins || 0,
+        spent_coins: student.student_profiles?.[0]?.spent_coins || 0,
+        avatar_url: student.student_profiles?.[0]?.avatar_url
       }));
       
-      setStudents(studentsWithSchool);
+      setStudents(studentsWithData);
     } catch (error) {
       console.error("Error fetching students:", error);
       toast({
@@ -77,8 +86,28 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
     }
   };
 
-  const handleStudentsAdded = (studentIds: string[]) => {
+  const handleStudentsAdded = async (studentIds: string[]) => {
     if (studentIds.length > 0) {
+      // Add students to the student_classes join table
+      const studentClassEntries = studentIds.map(studentId => ({
+        student_id: studentId,
+        class_id: classId
+      }));
+
+      const { error } = await supabase
+        .from('student_classes')
+        .insert(studentClassEntries);
+
+      if (error) {
+        console.error("Error adding students to class:", error);
+        toast({
+          title: t("error"),
+          description: t("failed-to-add-students"),
+          variant: "destructive"
+        });
+        return;
+      }
+
       toast({
         title: t("success"),
         description: `${studentIds.length} ${t("students-added-to-class")}`
@@ -171,6 +200,10 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
                         <span className="text-xs text-gray-500">
                           {student.schoolName || "No School Assigned"}
                         </span>
+                      </div>
+                      {/* Display coins information */}
+                      <div className="text-xs text-blue-600 mt-1">
+                        💰 {student.coins} coins | Spent: {student.spent_coins}
                       </div>
                     </div>
                   </div>

@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
@@ -6,8 +7,6 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { deleteClass } from "@/utils/classSync/classOperations";
-import { addMultipleStudentsToClass } from "@/utils/classSync/studentOperations";
-import { awardCoinsToStudent, removeCoinsFromStudent } from "@/utils/pokemon/studentPokemon";
 import ClassManagementHeader from "./ClassManagementHeader";
 import StudentsGrid from "./StudentsGrid";
 import ClassTabs from "./ClassTabs";
@@ -91,11 +90,12 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
   const handleRemoveStudent = async (studentId: string) => {
     if (!classId || !studentId) return;
     try {
-      const updatedStudents = classData.students.filter((sid: string) => sid !== studentId);
+      // Remove from student_classes join table
       const { error } = await supabase
-        .from('classes')
-        .update({ students: updatedStudents })
-        .eq('id', classId);
+        .from('student_classes')
+        .delete()
+        .eq('student_id', studentId)
+        .eq('class_id', classId);
 
       if (error) throw error;
 
@@ -123,16 +123,23 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
   const handleAddStudents = async (studentIds: string[]) => {
     if (!classId || !studentIds.length) return;
     try {
-      const success = await addMultipleStudentsToClass(classId, studentIds);
-      if (success) {
-        toast({
-          title: t("success"),
-          description: `${studentIds.length} ${t("students-added-to-class")}`
-        });
-        fetchClassDetails();
-      } else {
-        throw new Error("Failed to add students to class");
-      }
+      // Add students to the student_classes join table
+      const studentClassEntries = studentIds.map(studentId => ({
+        student_id: studentId,
+        class_id: classId
+      }));
+
+      const { error } = await supabase
+        .from('student_classes')
+        .insert(studentClassEntries);
+
+      if (error) throw error;
+
+      toast({
+        title: t("success"),
+        description: `${studentIds.length} ${t("students-added-to-class")}`
+      });
+      fetchClassDetails();
     } catch (error) {
       console.error("Error adding students to class:", error);
       toast({
@@ -143,60 +150,24 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
     }
   };
 
-  const handleGiveCoins = (amount: number) => {
-    if (!giveCoinsDialog.studentId) return;
-    try {
-      awardCoinsToStudent(giveCoinsDialog.studentId, amount);
-      toast({
-        title: t("success"),
-        description: `${amount} ${t("coins-awarded-to")} ${giveCoinsDialog.studentName}`
-      });
-      setGiveCoinsDialog({
-        open: false,
-        studentId: "",
-        studentName: ""
-      });
-      fetchClassDetails();
-    } catch (error) {
-      console.error("Error giving coins:", error);
-      toast({
-        title: t("error"),
-        description: t("failed-to-give-coins"),
-        variant: "destructive"
-      });
-    }
+  const handleGiveCoins = () => {
+    // Refresh class details to update coin display
+    fetchClassDetails();
+    setGiveCoinsDialog({
+      open: false,
+      studentId: "",
+      studentName: ""
+    });
   };
 
-  const handleRemoveCoins = (amount: number) => {
-    if (!removeCoinsDialog.studentId) return;
-    try {
-      const success = removeCoinsFromStudent(removeCoinsDialog.studentId, amount);
-      if (success) {
-        toast({
-          title: t("success"),
-          description: `${amount} coins removed from ${removeCoinsDialog.studentName}`
-        });
-        fetchClassDetails();
-      } else {
-        toast({
-          title: t("error"),
-          description: "Student doesn't have enough coins",
-          variant: "destructive"
-        });
-      }
-      setRemoveCoinsDialog({
-        open: false,
-        studentId: "",
-        studentName: ""
-      });
-    } catch (error) {
-      console.error("Error removing coins:", error);
-      toast({
-        title: t("error"),
-        description: "Failed to remove coins",
-        variant: "destructive"
-      });
-    }
+  const handleRemoveCoins = () => {
+    // Refresh class details to update coin display
+    fetchClassDetails();
+    setRemoveCoinsDialog({
+      open: false,
+      studentId: "",
+      studentName: ""
+    });
   };
 
   const handlePokemonRemoved = () => {
@@ -204,6 +175,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
       title: t("success"),
       description: t("pokemon-removed-successfully")
     });
+    fetchClassDetails(); // Refresh to update pokemon counts
   };
 
   const handleSwitchToHomework = () => {
@@ -348,6 +320,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         schoolPoolDialogOpen={schoolPoolDialogOpen}
         onSchoolPoolDialogChange={setSchoolPoolDialogOpen}
         schoolId={classData.schoolId || ""}
+        studentId={giveCoinsDialog.studentId || removeCoinsDialog.studentId}
       />
 
       <AddAssistantDialog
