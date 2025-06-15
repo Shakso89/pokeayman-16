@@ -239,7 +239,7 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
                         onClick={(e) => { e.stopPropagation(); onRemoveCoins(student.id, displayName); }}
                       >
                         <Minus className="h-4 w-4 mr-1" />
-                        Coin
+                        Coins 
                       </Button>
 
                       <Button
