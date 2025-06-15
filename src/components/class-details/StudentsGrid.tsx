@@ -227,11 +227,11 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
                     <div className="grid grid-cols-2 gap-2 w-full pt-4 border-t border-white/20 mt-4">
                       <Button 
                         size="sm" 
-                        variant="outline" 
+                        className="bg-purple-500 hover:bg-purple-600 text-white"
                         onClick={(e) => { e.stopPropagation(); onAwardCoins(student.id, displayName); }}
                       >
                         <Coins className="h-4 w-4 mr-1" />
-                        {t("give-coins")}
+                        Coins
                       </Button>
                       <Button 
                         size="sm" 
