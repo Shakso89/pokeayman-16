@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -29,22 +28,22 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
   const fetchStudents = async () => {
     setLoading(true);
     try {
-      // First try to get the class to retrieve student IDs
-      const { data: classData, error: classError } = await supabase
-        .from('classes')
-        .select('*')
-        .eq('id', classId)
-        .single();
-        
-      if (classError) throw classError;
-      
-      if (!classData || !classData.students || classData.students.length === 0) {
+      // Fetch student IDs from the student_classes join table
+      const { data: studentLinks, error: linksError } = await supabase
+        .from('student_classes')
+        .select('student_id')
+        .eq('class_id', classId);
+
+      if (linksError) throw linksError;
+
+      if (!studentLinks || studentLinks.length === 0) {
         setStudents([]);
-        setLoading(false);
         return;
       }
       
-      // Fetch student details with school information using the IDs from the class
+      const studentIds = studentLinks.map(link => link.student_id);
+      
+      // Fetch student details with school information using the IDs
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
         .select(`
@@ -54,7 +53,7 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
             name
           )
         `)
-        .in('id', classData.students);
+        .in('id', studentIds);
         
       if (studentsError) throw studentsError;
       
@@ -67,37 +66,12 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
       setStudents(studentsWithSchool);
     } catch (error) {
       console.error("Error fetching students:", error);
-      
-      // Try to get from localStorage as fallback
-      try {
-        // Get class data from localStorage
-        const savedClasses = localStorage.getItem("classes");
-        if (savedClasses) {
-          const parsedClasses = JSON.parse(savedClasses);
-          const foundClass = parsedClasses.find((cls: any) => cls.id === classId);
-          
-          if (foundClass && foundClass.students && foundClass.students.length > 0) {
-            // Get student data from localStorage
-            const savedStudents = localStorage.getItem("students");
-            if (savedStudents) {
-              const parsedStudents = JSON.parse(savedStudents);
-              const classStudents = parsedStudents.filter((student: any) => 
-                foundClass.students.includes(student.id)
-              );
-              setStudents(classStudents);
-            }
-          } else {
-            setStudents([]);
-          }
-        }
-      } catch (localStorageError) {
-        console.error("Error accessing localStorage:", localStorageError);
-        toast({
-          title: t("error"),
-          description: t("failed-to-load-students"),
-          variant: "destructive"
-        });
-      }
+      toast({
+        title: t("error"),
+        description: t("failed-to-load-students"),
+        variant: "destructive"
+      });
+      setStudents([]);
     } finally {
       setLoading(false);
     }
@@ -247,4 +221,3 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
 };
 
 export default StudentsTab;
-
