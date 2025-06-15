@@ -13,13 +13,13 @@ import StudentSubmissionDialog from "./homework/StudentSubmissionDialog";
 interface StudentHomeworkTabProps {
   studentId: string;
   studentName: string;
-  classId: string;
+  classIds: string[];
 }
 
 const StudentHomeworkTab: React.FC<StudentHomeworkTabProps> = ({
   studentId,
   studentName,
-  classId
+  classIds
 }) => {
   const [homework, setHomework] = useState<Homework[]>([]);
   const [submissions, setSubmissions] = useState<HomeworkSubmission[]>([]);
@@ -28,31 +28,42 @@ const StudentHomeworkTab: React.FC<StudentHomeworkTabProps> = ({
   const [isSubmissionDialogOpen, setIsSubmissionDialogOpen] = useState(false);
 
   useEffect(() => {
-    loadHomework();
-    loadSubmissions();
+    if (classIds && classIds.length > 0) {
+      loadHomework();
+      loadSubmissions();
 
-    // Subscribe to real-time updates
-    const homeworkChannel = supabase
-      .channel('student-homework')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'homework', filter: `class_id=eq.${classId}` }, () => {
-        loadHomework();
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'homework_submissions', filter: `student_id=eq.${studentId}` }, () => {
-        loadSubmissions();
-      })
-      .subscribe();
+      // Subscribe to real-time updates
+      const homeworkChannel = supabase
+        .channel('student-homework')
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'homework', filter: `class_id=in.(${classIds.join(',')})` }, () => {
+          loadHomework();
+        })
+        .on('postgres_changes', { event: '*', schema: 'public', table: 'homework_submissions', filter: `student_id=eq.${studentId}` }, () => {
+          loadSubmissions();
+        })
+        .subscribe();
 
-    return () => {
-      supabase.removeChannel(homeworkChannel);
-    };
-  }, [classId, studentId]);
+      return () => {
+        supabase.removeChannel(homeworkChannel);
+      };
+    } else {
+      setIsLoading(false);
+      setHomework([]);
+    }
+  }, [classIds, studentId]);
 
   const loadHomework = async () => {
+    if (!classIds || classIds.length === 0) {
+      setHomework([]);
+      setIsLoading(false);
+      return;
+    }
+    setIsLoading(true);
     try {
       const { data, error } = await supabase
         .from('homework')
         .select('*')
-        .eq('class_id', classId)
+        .in('class_id', classIds)
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false });
 

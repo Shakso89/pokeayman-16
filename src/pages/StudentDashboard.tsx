@@ -1,12 +1,14 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Card, CardContent } from "@/components/ui/card";
 import { Pokemon } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Trophy, Users, Package, Sword } from "lucide-react";
+import { Trophy, Users, Package, Sword, Book } from "lucide-react";
 import { useStudentData } from "@/hooks/useStudentData";
 import { getSchoolPokemonPool } from "@/services/studentDatabase";
 
@@ -16,6 +18,7 @@ import StudentCollection from "@/components/student/StudentCollection";
 import MysteryBallTab from "@/components/student/MysteryBallTab";
 import SchoolPoolDialog from "@/components/student/SchoolPoolDialog";
 import StudentDashboardButtons from "@/components/student/StudentDashboardButtons";
+import StudentHomeworkTab from "@/components/student/StudentHomeworkTab";
 
 const StudentDashboard: React.FC = () => {
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
@@ -38,6 +41,8 @@ const StudentDashboard: React.FC = () => {
   const [activeBattles, setActiveBattles] = useState<any[]>([]);
   const [showSchoolPool, setShowSchoolPool] = useState(false);
   const [isLoadingPool, setIsLoadingPool] = useState(false);
+
+  const studentClasses = profile?.class_id ? profile.class_id.split(',') : [];
 
   useEffect(() => {
     console.log("StudentDashboard loaded with:", {
@@ -155,9 +160,13 @@ const StudentDashboard: React.FC = () => {
         
         <div className="mt-6 relative">
           <Tabs defaultValue="home" className="w-full mt-8" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-3 mb-8 p-2 rounded-full bg-transparent">
+            <TabsList className="grid w-full grid-cols-4 mb-8 p-2 rounded-full bg-transparent">
               <TabsTrigger value="home" className="data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all">
                 {t("home-tab")}
+              </TabsTrigger>
+              <TabsTrigger value="my-classes" className="data-[state=active]:bg-red-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all flex items-center justify-center gap-2">
+                <Book className="h-5 w-5" />
+                Homework
               </TabsTrigger>
               <TabsTrigger value="my-pokemons" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all">
                 {t("my-pokemon-tab")}
@@ -175,6 +184,22 @@ const StudentDashboard: React.FC = () => {
                 onMysteryBallClick={handleMysteryBallClick}
                 onCollectionClick={handleCollectionClick}
               />
+            </TabsContent>
+
+            <TabsContent value="my-classes" className="mt-4">
+              {studentClasses.length > 0 ? (
+                <StudentHomeworkTab 
+                  studentId={studentId}
+                  studentName={studentName}
+                  classIds={studentClasses}
+                />
+              ) : (
+                <Card>
+                  <CardContent className="py-8 text-center">
+                    <p className="text-gray-500">You are not enrolled in any class yet, so you can't see homework assignments.</p>
+                  </CardContent>
+                </Card>
+              )}
             </TabsContent>
             
             <TabsContent value="my-pokemons" className="mt-4">
