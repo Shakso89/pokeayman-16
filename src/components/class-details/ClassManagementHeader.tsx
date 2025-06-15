@@ -1,9 +1,8 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
-import { ChevronLeft, Calendar, User, Users, Settings, BookText, PlusCircle, Trash2, UserPlus, Eye } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Users, UserPlus, Trash2, School, HelpCircle, Eye, Package } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 
 interface ClassManagementHeaderProps {
@@ -13,9 +12,10 @@ interface ClassManagementHeaderProps {
   onAddStudent: () => void;
   onSwitchToHomework: () => void;
   pendingSubmissions: number;
-  onDeleteClass?: () => void;
-  onViewSchoolPool?: () => void;
-  onAddAssistant?: () => void;
+  onDeleteClass: () => void;
+  onViewSchoolPool: () => void;
+  onAddAssistant: () => void;
+  onManagePokemon: () => void;
 }
 
 const ClassManagementHeader: React.FC<ClassManagementHeaderProps> = ({
@@ -27,79 +27,97 @@ const ClassManagementHeader: React.FC<ClassManagementHeaderProps> = ({
   pendingSubmissions,
   onDeleteClass,
   onViewSchoolPool,
-  onAddAssistant
+  onAddAssistant,
+  onManagePokemon
 }) => {
-  const navigate = useNavigate();
   const { t } = useTranslation();
 
   return (
-    <div className="">
-      <div className="max-w-7xl mx-auto px-6 py-8">
-        {/* Back Navigation */}
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" onClick={() => navigate("/teacher-dashboard")} className="hover:bg-white/20 mr-4 text-slate-700">
-            <ChevronLeft className="h-5 w-5 mr-1" />
-            Back to Dashboard
-          </Button>
-        </div>
-
-        {/* Class Title and Info */}
-        <div className="mb-8">
-          <h1 className="text-4xl font-bold mb-4">{classData.name}</h1>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-sm">
-            <div className="flex items-center">
-              <Calendar className="h-4 w-4 mr-2" />
-              Created: {new Date(classData.createdAt || classData.created_at).toLocaleDateString()}
-            </div>
-            <div className="flex items-center">
-              <User className="h-4 w-4 mr-2" />
-              Creator: {isClassCreator ? "You" : "Teacher"}
-            </div>
-            <div className="flex items-center">
-              <Users className="h-4 w-4 mr-2" />
-              Students: {studentsCount}
-            </div>
-            <div className="flex items-center">
-              <Settings className="h-4 w-4 mr-2" />
-              Class Manager
-            </div>
-          </div>
-        </div>
-
-        {/* Action Buttons */}
-        {isClassCreator && (
-          <div className="grid grid-cols-2 md:grid-cols-6 gap-4">
-            <Button onClick={onSwitchToHomework} className="bg-green-500 hover:bg-green-600 text-white relative">
-              <BookText className="h-4 w-4 mr-2" />
-              Homework
+    <div className="bg-gradient-to-r from-blue-600 to-purple-700 text-white py-8">
+      <div className="max-w-7xl mx-auto px-6">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-6">
+          <div className="flex-1">
+            <h1 className="text-3xl font-bold mb-2">{classData.name}</h1>
+            <p className="text-blue-100 mb-4">{classData.description}</p>
+            
+            <div className="flex flex-wrap gap-4 text-sm">
+              <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full">
+                <Users className="h-4 w-4" />
+                <span>{studentsCount} {t("students")}</span>
+              </div>
+              <div className="flex items-center gap-2 bg-white/20 px-3 py-1 rounded-full">
+                <School className="h-4 w-4" />
+                <span>{t("class-id")}: {classData.id?.slice(0, 8)}</span>
+              </div>
               {pendingSubmissions > 0 && (
-                <Badge variant="destructive" className="ml-2">
-                  {pendingSubmissions}
-                </Badge>
+                <div className="flex items-center gap-2 bg-orange-500/80 px-3 py-1 rounded-full">
+                  <HelpCircle className="h-4 w-4" />
+                  <span>{pendingSubmissions} {t("pending-submissions")}</span>
+                </div>
               )}
-            </Button>
-            
-            <Button onClick={onAddStudent} className="bg-blue-500 hover:bg-blue-600 text-white">
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Add Students
-            </Button>
-            
-            <Button onClick={onAddAssistant} className="bg-purple-500 hover:bg-purple-600 text-white">
-              <UserPlus className="h-4 w-4 mr-2" />
-              Add Assistant
-            </Button>
-            
-            <Button onClick={onViewSchoolPool} variant="outline" className="border-white/20 text-slate-50 bg-teal-950 hover:bg-teal-800">
-              <Eye className="h-4 w-4 mr-2" />
-              School Pool
-            </Button>
-            
-            <Button onClick={onDeleteClass} variant="outline" className="border-red-300/20 text-white bg-red-900 hover:bg-red-800">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete Class
-            </Button>
+            </div>
           </div>
-        )}
+          
+          <div className="flex flex-wrap gap-3">
+            <Button 
+              onClick={onViewSchoolPool}
+              variant="secondary"
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+            >
+              <Eye className="h-4 w-4 mr-2" />
+              {t("view-school-pool")}
+            </Button>
+            
+            <Button 
+              onClick={onManagePokemon}
+              variant="secondary"
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+            >
+              <Package className="h-4 w-4 mr-2" />
+              Manage Pokémon
+            </Button>
+            
+            {isClassCreator && (
+              <>
+                <Button 
+                  onClick={onAddStudent}
+                  variant="secondary"
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  {t("add-students")}
+                </Button>
+                
+                <Button 
+                  onClick={onAddAssistant}
+                  variant="secondary"
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                >
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  {t("add-assistant")}
+                </Button>
+                
+                <Button 
+                  onClick={onSwitchToHomework}
+                  variant="secondary"
+                  className="bg-white/20 hover:bg-white/30 text-white border-white/30"
+                >
+                  <HelpCircle className="h-4 w-4 mr-2" />
+                  {t("homework")} {pendingSubmissions > 0 && `(${pendingSubmissions})`}
+                </Button>
+                
+                <Button 
+                  onClick={onDeleteClass}
+                  variant="destructive"
+                  className="bg-red-600 hover:bg-red-700"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  {t("delete-class")}
+                </Button>
+              </>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

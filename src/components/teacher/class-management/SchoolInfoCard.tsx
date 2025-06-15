@@ -60,11 +60,6 @@ const SchoolInfoCard: React.FC<SchoolInfoCardProps> = ({ schoolId, teacherId, is
     }
   };
 
-  const handlePokemonGiven = () => {
-    // Callback when Pokemon is given to student
-    console.log("Pokemon was given to a student");
-  };
-
   return (
     <>
       <Card className="pokemon-card">
@@ -119,8 +114,6 @@ const SchoolInfoCard: React.FC<SchoolInfoCardProps> = ({ schoolId, teacherId, is
         isOpen={schoolPoolOpen}
         onOpenChange={setSchoolPoolOpen}
         schoolId={schoolId}
-        classId={classId || ""}
-        onPokemonGiven={handlePokemonGiven}
       />
     </>
   );

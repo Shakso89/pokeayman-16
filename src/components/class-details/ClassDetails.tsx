@@ -12,6 +12,7 @@ import StudentsGrid from "./StudentsGrid";
 import ClassTabs from "./ClassTabs";
 import ClassDialogs from "./ClassDialogs";
 import AddAssistantDialog from "@/components/dialogs/AddAssistantDialog";
+import TeacherManagePokemonDialog from "@/components/dialogs/TeacherManagePokemonDialog";
 import { useClassDetailsWithId } from "./hooks/useClassDetailsWithId";
 import ClassTeachers from "./ClassTeachers";
 
@@ -40,6 +41,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
   const [activeTab, setActiveTab] = useState("students");
   const [isStudentListOpen, setIsStudentListOpen] = useState(false);
   const [isAddAssistantOpen, setIsAddAssistantOpen] = useState(false);
+  const [isManagePokemonOpen, setIsManagePokemonOpen] = useState(false);
   const [pendingSubmissions, setPendingSubmissions] = useState(0);
   const [schoolPoolDialogOpen, setSchoolPoolDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
@@ -223,6 +225,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         onDeleteClass={() => setDeleteDialogOpen(true)}
         onViewSchoolPool={() => setSchoolPoolDialogOpen(true)}
         onAddAssistant={() => setIsAddAssistantOpen(true)}
+        onManagePokemon={() => setIsManagePokemonOpen(true)}
       />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
@@ -336,6 +339,15 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         classId={classId || ""}
         currentAssistants={classData.assistants || []}
         onAssistantAdded={handleAssistantAdded}
+      />
+
+      <TeacherManagePokemonDialog
+        isOpen={isManagePokemonOpen}
+        onOpenChange={setIsManagePokemonOpen}
+        students={students}
+        schoolId={classData.schoolId || ""}
+        isClassCreator={isClassCreator()}
+        onRefresh={fetchClassDetails}
       />
     </div>
   );
