@@ -1,111 +1,120 @@
 
-import { supabase } from '@/integrations/supabase/client';
-import { getStudentPokemons, saveStudentPokemons } from '@/utils/pokemon/storage';
+import { supabase } from "@/integrations/supabase/client";
 
 export interface StudentCoinData {
   coins: number;
-  spent_coins: number;
-  pokemonCount: number;
+  spentCoins: number;
+  totalEarned: number;
 }
 
-// Get student coin and pokemon data from Supabase (primary) with localStorage fallback
-export const getStudentCoinData = async (studentId: string): Promise<StudentCoinData> => {
+// Get student coin data from database
+export const getStudentCoins = async (studentId: string): Promise<StudentCoinData> => {
   try {
-    // Try Supabase first
+    console.log("Fetching coins for student:", studentId);
+    
     const { data: profile, error } = await supabase
       .from('student_profiles')
       .select('coins, spent_coins')
       .eq('user_id', studentId)
       .maybeSingle();
 
-    const { data: pokemonData, error: pokemonError } = await supabase
-      .from('pokemon_collections')
-      .select('id')
-      .eq('student_id', studentId);
-
-    if (!error && !pokemonError && profile) {
-      return {
-        coins: profile.coins || 0,
-        spent_coins: profile.spent_coins || 0,
-        pokemonCount: pokemonData?.length || 0
-      };
+    if (error) {
+      console.error("Error fetching student coins:", error);
+      return { coins: 0, spentCoins: 0, totalEarned: 0 };
     }
-  } catch (error) {
-    console.error('Error fetching from Supabase:', error);
-  }
 
-  // Fallback to localStorage
-  const studentPokemons = getStudentPokemons();
-  const studentData = studentPokemons.find(sp => sp.studentId === studentId);
-  
-  return {
-    coins: studentData?.coins || 0,
-    spent_coins: studentData?.spentCoins || 0,
-    pokemonCount: studentData?.pokemons?.length || 0
-  };
+    if (!profile) {
+      console.log("No profile found for student:", studentId);
+      return { coins: 0, spentCoins: 0, totalEarned: 0 };
+    }
+
+    const coins = profile.coins || 0;
+    const spentCoins = profile.spent_coins || 0;
+    const totalEarned = coins + spentCoins;
+
+    console.log("Student coin data:", { coins, spentCoins, totalEarned });
+    
+    return {
+      coins,
+      spentCoins,
+      totalEarned
+    };
+  } catch (error) {
+    console.error("Error in getStudentCoins:", error);
+    return { coins: 0, spentCoins: 0, totalEarned: 0 };
+  }
 };
 
-// Update student coins in both Supabase and localStorage
+// Update student coins in database
 export const updateStudentCoins = async (
   studentId: string, 
-  newCoins: number, 
-  spentAmount?: number
+  amount: number, 
+  spentAmount: number = 0
 ): Promise<boolean> => {
   try {
-    // Update in Supabase
-    const updateData: any = { coins: newCoins };
-    if (spentAmount !== undefined) {
-      const currentData = await getStudentCoinData(studentId);
-      updateData.spent_coins = currentData.spent_coins + spentAmount;
-    }
+    console.log(`Updating coins for student ${studentId}: amount=${amount}, spent=${spentAmount}`);
+    
+    // Get current values
+    const { data: currentProfile } = await supabase
+      .from('student_profiles')
+      .select('coins, spent_coins')
+      .eq('user_id', studentId)
+      .single();
+
+    const currentCoins = currentProfile?.coins || 0;
+    const currentSpentCoins = currentProfile?.spent_coins || 0;
+
+    // Calculate new values
+    const newCoins = Math.max(0, currentCoins + amount);
+    const newSpentCoins = currentSpentCoins + Math.max(0, spentAmount);
 
     const { error } = await supabase
       .from('student_profiles')
-      .update(updateData)
+      .update({ 
+        coins: newCoins,
+        spent_coins: newSpentCoins
+      })
       .eq('user_id', studentId);
 
     if (error) {
-      console.error('Supabase update error:', error);
-      // Continue to localStorage update as fallback
+      console.error("Error updating student coins:", error);
+      return false;
     }
 
-    // Update in localStorage for immediate UI update
-    const studentPokemons = getStudentPokemons();
-    const studentIndex = studentPokemons.findIndex(sp => sp.studentId === studentId);
-    
-    if (studentIndex >= 0) {
-      studentPokemons[studentIndex].coins = newCoins;
-      if (spentAmount !== undefined) {
-        studentPokemons[studentIndex].spentCoins = (studentPokemons[studentIndex].spentCoins || 0) + spentAmount;
-      }
-    } else {
-      studentPokemons.push({
-        studentId,
-        pokemons: [],
-        coins: newCoins,
-        spentCoins: spentAmount || 0
-      });
-    }
-    
-    saveStudentPokemons(studentPokemons);
+    console.log(`Successfully updated coins for student ${studentId}`);
     return true;
   } catch (error) {
-    console.error('Error updating student coins:', error);
+    console.error("Error in updateStudentCoins:", error);
     return false;
   }
 };
 
-// Award coins to student
-export const awardCoinsToStudent = async (studentId: string, amount: number): Promise<boolean> => {
-  const currentData = await getStudentCoinData(studentId);
-  return updateStudentCoins(studentId, currentData.coins + amount);
+// Award coins to student (positive amount)
+export const awardCoins = async (studentId: string, amount: number): Promise<boolean> => {
+  return await updateStudentCoins(studentId, amount, 0);
 };
 
-// Remove coins from student
-export const removeCoinsFromStudent = async (studentId: string, amount: number): Promise<boolean> => {
-  const currentData = await getStudentCoinData(studentId);
-  if (currentData.coins < amount) {
-    return false; // Not enough coins
+// Spend coins (negative amount for coins, positive for spent_coins tracking)
+export const spendCoins = async (studentId: string, amount: number): Promise<boolean> => {
+  return await updateStudentCoins(studentId, -amount, amount);
+};
+
+// Get student ranking data
+export const getStudentRanking = async (): Promise<any[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('student_profiles')
+      .select('user_id, username, display_name, coins, spent_coins, avatar_url')
+      .order('coins', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching student ranking:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error in getStudentRanking:", error);
+    return [];
   }
-  return updateStudentCoins(studentId, currentData.coins - amount, amount);
 };
