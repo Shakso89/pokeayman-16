@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 
@@ -16,15 +15,15 @@ const subscribeToClass = (classId: string, callback: () => void) => {
     .subscribe();
 };
 
-const subscribeToStudent = (studentId: string, callback: () => void) => {
+const subscribeToStudent = (studentId: string, callback: (payload: any) => void) => {
   return supabase
-    .channel(`student_updates:${studentId}`)
+    .channel(`student_class_updates:${studentId}`)
     .on(
       "postgres_changes",
-      { event: "*", schema: "public", table: "students", filter: `id=eq.${studentId}` },
+      { event: "*", schema: "public", table: "student_classes", filter: `student_id=eq.${studentId}` },
       (payload) => {
-        console.log("Change received!", payload);
-        callback();
+        console.log("Change received on student_classes!", payload);
+        callback(payload);
       }
     )
     .subscribe();
