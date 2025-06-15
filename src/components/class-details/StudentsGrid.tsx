@@ -88,7 +88,7 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
       return;
     }
 
-    console.log("Awarding Pokemon to student:", { studentId, studentName, schoolId });
+    console.log("Awarding Pokémon to student:", { studentId, studentName, schoolId });
 
     try {
       // Ensure school pool exists before assigning
@@ -124,7 +124,7 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
   };
 
   const handleRemoveRandomPokemon = async (studentId: string, studentName: string) => {
-    console.log("Removing Pokemon from student:", { studentId, studentName });
+    console.log("Removing Pokémon from student:", { studentId, studentName });
     
     try {
       const result = removePokemonFromStudent(studentId);
@@ -248,7 +248,7 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
                         onClick={(e) => { e.stopPropagation(); handleAwardRandomPokemon(student.id, displayName); }}
                       >
                         <Plus className="h-4 w-4 mr-1" />
-                        Award Pokémon
+                        Pokémon
                       </Button>
                       <Button
                         size="sm"
