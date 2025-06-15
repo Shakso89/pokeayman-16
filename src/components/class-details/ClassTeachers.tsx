@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { User, Users, Crown, UserCheck, UserMinus } from "lucide-react";
+import { User, Users, Crown, Trash, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { removeAssistantFromClass } from "@/utils/classSync/classOperations";
@@ -151,76 +151,68 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({
   );
 
   return (
-    <Card>
+    <Card className="glass-card">
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
+        <CardTitle className="flex items-center gap-2 font-semibold">
           <Users className="h-5 w-5" />
-          Teachers Involved ({teachers.length})
+          Teachers ({teachers.length})
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         {mainTeacher && (
-          <div className="flex items-center gap-3 p-3 bg-blue-50 rounded-lg">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src="" />
-              <AvatarFallback className="bg-blue-500 text-white">
-                <User className="h-5 w-5" />
-              </AvatarFallback>
-            </Avatar>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <p className="font-medium">{mainTeacher.display_name}</p>
-                <Badge className="bg-blue-500 text-white">
-                  <Crown className="h-3 w-3 mr-1" />
-                  Creator
-                </Badge>
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground mb-2">Creator</h4>
+            <div className="flex items-center gap-3 p-3 bg-background/50 rounded-lg border">
+              <Avatar className="h-10 w-10">
+                <AvatarImage src="" />
+                <AvatarFallback className="bg-primary/10 text-primary font-semibold">
+                  {mainTeacher.display_name.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <div className="flex-1">
+                <p className="font-semibold">{mainTeacher.display_name}</p>
+                <p className="text-sm text-muted-foreground">@{mainTeacher.username}</p>
               </div>
-              <p className="text-sm text-gray-600">@{mainTeacher.username}</p>
+              <Badge variant="secondary" className="border-primary/20 bg-primary/10 text-primary font-semibold">
+                <Crown className="h-3 w-3 mr-1.5" />
+                Creator
+              </Badge>
             </div>
           </div>
         )}
 
         {assistantTeachers.length > 0 && (
-          <>
-            <div className="border-t pt-3">
-              <h4 className="text-sm font-medium text-gray-700 mb-2">Assistants</h4>
-              <div className="space-y-2">
-                {assistantTeachers.map((teacher) => (
-                  <div key={teacher.id} className="flex items-center gap-3 p-2 bg-green-50 rounded-lg">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src="" />
-                      <AvatarFallback className="bg-green-500 text-white text-xs">
-                        <User className="h-4 w-4" />
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2">
-                        <p className="font-medium text-sm">{teacher.display_name}</p>
-                        <Badge variant="outline" className="text-xs">
-                          <UserCheck className="h-3 w-3 mr-1" />
-                          Assistant
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-gray-600">@{teacher.username}</p>
-                    </div>
-                    {canRemoveAssistants && (
-                      <Button
-                        size="sm"
-                        variant="destructive"
-                        className="ml-2"
-                        title="Remove Assistant"
-                        onClick={() => handleRemoveAssistant(teacher.id)}
-                        disabled={removing === teacher.id}
-                      >
-                        <UserMinus className="h-4 w-4 mr-1" />
-                        Remove
-                      </Button>
-                    )}
+          <div>
+            <h4 className="text-sm font-medium text-muted-foreground mb-2">Assistants ({assistantTeachers.length})</h4>
+            <div className="space-y-1">
+              {assistantTeachers.map((teacher) => (
+                <div key={teacher.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-black/5">
+                  <Avatar className="h-8 w-8">
+                    <AvatarImage src="" />
+                    <AvatarFallback className="bg-muted text-muted-foreground">
+                      {teacher.display_name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <p className="font-medium text-sm">{teacher.display_name}</p>
+                    <p className="text-xs text-muted-foreground">@{teacher.username}</p>
                   </div>
-                ))}
-              </div>
+                  {canRemoveAssistants && (
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="text-muted-foreground h-8 w-8 rounded-full hover:text-red-500 hover:bg-red-100"
+                      title="Remove Assistant"
+                      onClick={() => handleRemoveAssistant(teacher.id)}
+                      disabled={removing === teacher.id}
+                    >
+                      {removing === teacher.id ? <Loader2 className="h-4 w-4 animate-spin" /> : <Trash className="h-4 w-4" />}
+                    </Button>
+                  )}
+                </div>
+              ))}
             </div>
-          </>
+          </div>
         )}
 
         {teachers.length === 0 && (

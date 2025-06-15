@@ -70,7 +70,7 @@ export const useClassDetailsWithId = (classId?: string) => {
       setClassData(fetchedClass);
         
       const currentTeacherId = localStorage.getItem("teacherId") || "";
-      if ((fetchedClass.teacherId === currentTeacherId) || (fetchedClass.teacher_id === currentTeacherId)) {
+      if ((fetchedClass.teacherId === currentTeacherId) || ((fetchedClass as any).teacher_id === currentTeacherId)) {
         setUserPermissionLevel("owner");
       } else if (isAdmin) {
         setUserPermissionLevel("owner");
@@ -191,7 +191,7 @@ export const useClassDetailsWithId = (classId?: string) => {
   const isClassCreator = () => {
     const currentTeacherId = localStorage.getItem("teacherId") || "";
     return (classData && 
-      (classData.teacher_id === currentTeacherId || 
+      ((classData as any).teacher_id === currentTeacherId || 
        classData.teacherId === currentTeacherId)
     ) || isAdmin;
   };
