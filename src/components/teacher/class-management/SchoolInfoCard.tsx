@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -38,7 +37,7 @@ const SchoolInfoCard: React.FC<SchoolInfoCardProps> = ({ schoolId, teacherId, is
 
     setRefreshing(true);
     try {
-      forceUpdateAllSchoolPools(500);
+      await forceUpdateAllSchoolPools();
       toast({
         title: t("success"),
         description: "School Pokémon pool has been refreshed with 500 new Pokémon"
