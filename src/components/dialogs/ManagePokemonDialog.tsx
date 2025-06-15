@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,10 +6,11 @@ import { Badge } from "@/components/ui/badge";
 import { Trash2, ArrowLeft, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
-import { getStudentPokemonCollection, removePokemonFromStudentAndReturnToPool, assignPokemonToStudent } from "@/utils/pokemon/studentPokemon";
+import { removePokemonFromStudentAndReturnToPool, assignPokemonToStudent } from "@/utils/pokemon/studentPokemon";
 import { getSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
 import { Pokemon } from "@/types/pokemon";
 import { Separator } from "@/components/ui/separator";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ManagePokemonDialogProps {
   isOpen: boolean;
@@ -47,12 +47,27 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     }
   }, [isOpen, studentId, schoolId]);
 
-  const fetchData = () => {
+  const fetchData = async () => {
     if (!studentId || !schoolId) return;
     setLoading(true);
     try {
-      const collection = getStudentPokemonCollection(studentId);
-      setStudentPokemons(collection?.pokemons || []);
+      const { data, error } = await supabase
+        .from('pokemon_collections')
+        .select('*')
+        .eq('student_id', studentId);
+      
+      if (error) throw error;
+      
+      const pokemons = data.map(p => ({
+        id: p.pokemon_id,
+        name: p.pokemon_name,
+        image: p.pokemon_image || '',
+        type: p.pokemon_type || '',
+        rarity: (p.pokemon_rarity as any) || 'common',
+        level: p.pokemon_level || 1,
+      }));
+      setStudentPokemons(pokemons);
+
       const pool = getSchoolPokemonPool(schoolId);
       setSchoolPool(pool?.availablePokemons || []);
     } catch (error) {
@@ -76,7 +91,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
     setLoading(true);
     try {
-      const success = removePokemonFromStudentAndReturnToPool(studentId, pokemonId, schoolId);
+      const success = await removePokemonFromStudentAndReturnToPool(studentId, pokemonId, schoolId);
       
       if (success) {
         toast({
@@ -117,7 +132,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
     setAssigningPokemonId(pokemonId);
     try {
-      const result = assignPokemonToStudent(schoolId, studentId, pokemonId);
+      const result = await assignPokemonToStudent(schoolId, studentId, pokemonId);
 
       if (result.success) {
         if (!result.isDuplicate) {

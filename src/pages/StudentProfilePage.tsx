@@ -63,15 +63,18 @@ const StudentProfilePage: React.FC = () => {
       setStudent(studentData);
       setSchool(studentData.school);
       
-      // Fetch profile and pokemons in parallel
-      const [profile, pokemonCollection] = await Promise.all([
-          getStudentProfileById(studentId),
-          supabase.from('pokemon_collections').select('*').eq('student_id', studentId)
-      ]);
+      const profilePromise = getStudentProfileById(studentId);
+      
+      const profile = await profilePromise;
+      if (profile) setStudentProfile(profile);
+
+      // Fetch pokemons using both legacy and new user IDs
+      const orFilter = profile?.user_id ? `student_id.eq.${studentId},student_id.eq.${profile.user_id}` : `student_id.eq.${studentId}`;
+      const pokemonPromise = supabase.from('pokemon_collections').select('*').or(orFilter);
+
+      const [pokemonCollection] = await Promise.all([pokemonPromise]);
       
       if (profile) {
-        setStudentProfile(profile);
-      
         // Once we have the profile, use profile.id to fetch related data
         const [achievements, streak] = await Promise.all([
           supabase.from('achievements').select('*').eq('student_id', profile.id).eq('type', 'star_of_class').eq('is_active', true),
