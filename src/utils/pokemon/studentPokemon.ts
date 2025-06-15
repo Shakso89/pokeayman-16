@@ -1,10 +1,9 @@
-
 import { Pokemon, StudentCollectionPokemon } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
 
-// Helper function to get or create student profile
+// Helper function to get student profile (no auto-create; must exist)
 const getOrCreateStudentProfile = async (userId: string): Promise<string | null> => {
-  // First try to get existing profile
+  // Only try to fetch, do NOT try to create if not found (because of RLS!)
   const { data: profile, error: profileError } = await supabase
     .from('student_profiles')
     .select('id')
@@ -14,45 +13,12 @@ const getOrCreateStudentProfile = async (userId: string): Promise<string | null>
   if (profile) {
     return profile.id;
   }
-
+  // Profile does not exist (do NOT attempt to create due to RLS)
   if (profileError && profileError.code !== 'PGRST116') {
     console.error(`Error fetching student profile for user_id: ${userId}`, profileError);
-    return null;
   }
-
-  // Profile doesn't exist, get user info from students table to create it
-  const { data: studentData, error: studentError } = await supabase
-    .from('students')
-    .select('username, display_name, school_id')
-    .eq('id', userId)
-    .maybeSingle();
-
-  if (studentError || !studentData) {
-    console.error(`Could not find student data for user_id: ${userId}`, studentError);
-    return null;
-  }
-
-  // Create new student profile
-  const { data: newProfile, error: createError } = await supabase
-    .from('student_profiles')
-    .insert({
-      user_id: userId,
-      username: studentData.username,
-      display_name: studentData.display_name || studentData.username,
-      school_id: studentData.school_id,
-      coins: 0,
-      spent_coins: 0
-    })
-    .select('id')
-    .single();
-
-  if (createError || !newProfile) {
-    console.error(`Error creating student profile for user_id: ${userId}`, createError);
-    return null;
-  }
-
-  console.log(`Created new student profile ID: ${newProfile.id} for user ${userId}`);
-  return newProfile.id;
+  // Return null: let the UI layer handle user feedback to teacher/admin!
+  return null;
 };
 
 // Assigns a random available Pokemon from a school's pool to a student.
