@@ -15,7 +15,6 @@ import StudentHeader from "@/components/student/StudentHeader";
 import StudentCollection from "@/components/student/StudentCollection";
 import MysteryBallTab from "@/components/student/MysteryBallTab";
 import SchoolPoolDialog from "@/components/student/SchoolPoolDialog";
-import MyClassesTab from "@/components/student/MyClassesTab";
 import StudentDashboardButtons from "@/components/student/StudentDashboardButtons";
 
 const StudentDashboard: React.FC = () => {
@@ -156,7 +155,7 @@ const StudentDashboard: React.FC = () => {
         
         <div className="mt-6 relative">
           <Tabs defaultValue="home" className="w-full mt-8" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 mb-8 p-2 rounded-full bg-transparent">
+            <TabsList className="grid w-full grid-cols-3 mb-8 p-2 rounded-full bg-transparent">
               <TabsTrigger value="home" className="data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all">
                 {t("home-tab")}
               </TabsTrigger>
@@ -166,10 +165,6 @@ const StudentDashboard: React.FC = () => {
               <TabsTrigger value="mystery-ball" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all flex items-center justify-center gap-2">
                 <Package className="h-5 w-5" />
                 {t("mystery-ball-tab")}
-              </TabsTrigger>
-              <TabsTrigger value="my-classes" className="data-[state=active]:bg-indigo-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all flex items-center justify-center gap-2">
-                <Users className="h-5 w-5" />
-                {t("my-class-tab")}
               </TabsTrigger>
             </TabsList>
             
@@ -203,13 +198,6 @@ const StudentDashboard: React.FC = () => {
                 onCoinsWon={handleCoinsWon} 
                 onRefreshPool={handleRefreshPool}
                 onDataRefresh={refreshData}
-              />
-            </TabsContent>
-            
-            <TabsContent value="my-classes" className="mt-4">
-              <MyClassesTab 
-                studentId={studentId} 
-                studentName={profile?.display_name || studentName} 
               />
             </TabsContent>
           </Tabs>
