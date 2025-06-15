@@ -130,7 +130,27 @@ export const assignPokemonFromSchoolPool = async (
   pokemonRarity?: string
 ): Promise<{ success: boolean; pokemon?: Pokemon; isDuplicate?: boolean }> => {
   try {
-    // Get available Pokemon from school pool
+    // Step 1: Get count of available Pokemon from school pool
+    let countQuery = supabase
+      .from('pokemon_pools')
+      .select('id', { count: 'exact', head: true })
+      .eq('school_id', schoolId)
+      .eq('available', true);
+
+    if (pokemonRarity) {
+      countQuery = countQuery.eq('pokemon_rarity', pokemonRarity);
+    }
+    
+    const { count, error: countError } = await countQuery;
+
+    if (countError || !count || count === 0) {
+      console.error('No available Pokemon in school pool or error counting:', countError);
+      return { success: false };
+    }
+
+    // Step 2: Select a random Pokemon using offset
+    const randomIndex = Math.floor(Math.random() * count);
+    
     let query = supabase
       .from('pokemon_pools')
       .select('*')
@@ -140,16 +160,15 @@ export const assignPokemonFromSchoolPool = async (
     if (pokemonRarity) {
       query = query.eq('pokemon_rarity', pokemonRarity);
     }
+    
+    const { data: randomPokemon, error: fetchError } = await query.range(randomIndex, randomIndex).single();
 
-    const { data: availablePokemon, error: fetchError } = await query.limit(10);
-
-    if (fetchError || !availablePokemon || availablePokemon.length === 0) {
-      console.error('No available Pokemon in school pool:', fetchError);
+    if (fetchError || !randomPokemon) {
+      console.error('Error fetching random Pokemon from pool:', fetchError);
       return { success: false };
     }
-
-    // Randomly select one Pokemon
-    const selectedPokemon = availablePokemon[Math.floor(Math.random() * availablePokemon.length)];
+    
+    const selectedPokemon = randomPokemon;
     
     const pokemon: Pokemon = {
       id: selectedPokemon.pokemon_id,
@@ -168,9 +187,8 @@ export const assignPokemonFromSchoolPool = async (
       .maybeSingle();
 
     if (existingPokemon) {
-      // Give coins instead for duplicate (10 coins)
-      const success = await updateStudentCoins(studentId, 10);
-      return { success, pokemon, isDuplicate: true };
+      // It's a duplicate. The calling function will handle the coin reward.
+      return { success: true, pokemon, isDuplicate: true };
     }
 
     // Add to student collection
