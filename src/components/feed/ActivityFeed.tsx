@@ -1,4 +1,3 @@
-
 import React, { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -132,11 +131,27 @@ export default function ActivityFeed({
           </p>
         );
         break;
+      case 'removed_coins':
+        icon = <Coins className="h-6 w-6 text-red-500" />;
+        content = (
+          <p>
+            <span className="font-semibold text-blue-600">{performer.displayName}</span> removed {details.amount} coins from <span className="font-semibold">{details.studentName}</span>.
+          </p>
+        );
+        break;
       case 'assigned_pokemon':
         icon = <Award className="h-6 w-6 text-purple-500" />;
         content = (
           <p>
             <span className="font-semibold text-blue-600">{performer.displayName}</span> assigned Pokémon <span className="font-semibold">{details.pokemonName}</span> to <span className="font-semibold">{details.studentName}</span>.
+          </p>
+        );
+        break;
+      case 'removed_pokemon':
+        icon = <Award className="h-6 w-6 text-red-500" />;
+        content = (
+          <p>
+            <span className="font-semibold text-blue-600">{performer.displayName}</span> removed Pokémon <span className="font-semibold">{details.pokemonName}</span> from <span className="font-semibold">{details.studentName}</span>.
           </p>
         );
         break;

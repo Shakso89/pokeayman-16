@@ -50,6 +50,7 @@ interface ClassDialogsProps {
   onSchoolPoolDialogChange: (open: boolean) => void;
   schoolId: string;
   studentId?: string;
+  teacherId: string;
 }
 
 const ClassDialogs: React.FC<ClassDialogsProps> = ({
@@ -76,7 +77,8 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
   schoolPoolDialogOpen,
   onSchoolPoolDialogChange,
   schoolId,
-  studentId
+  studentId,
+  teacherId,
 }) => {
   return (
     <>
@@ -119,6 +121,8 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
         schoolId={managePokemonDialog.schoolId}
         onPokemonRemoved={onPokemonRemoved}
         isClassCreator={isClassCreator}
+        teacherId={teacherId}
+        classId={classId}
       />
 
       {/* Give Coins Dialog */}
@@ -131,6 +135,9 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
         studentName={giveCoinsDialog.studentName}
         studentId={giveCoinsDialog.studentId}
         onGiveCoins={onGiveCoins}
+        teacherId={teacherId}
+        classId={classId}
+        schoolId={schoolId}
       />
 
       {/* Remove Coins Dialog */}
@@ -143,6 +150,9 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
         studentName={removeCoinsDialog.studentName}
         studentId={removeCoinsDialog.studentId}
         onRemoveCoins={onRemoveCoins}
+        teacherId={teacherId}
+        classId={classId}
+        schoolId={schoolId}
       />
 
       {/* School Pokemon Pool Dialog */}

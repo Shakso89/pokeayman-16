@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { logActivity } from "@/services/activityLogger";
 
 interface RemoveCoinsDialogProps {
   isOpen: boolean;
@@ -14,6 +15,9 @@ interface RemoveCoinsDialogProps {
   studentName: string;
   studentId: string;
   onRemoveCoins: (amount: number) => void;
+  teacherId: string;
+  classId: string;
+  schoolId?: string;
 }
 
 const RemoveCoinsDialog: React.FC<RemoveCoinsDialogProps> = ({
@@ -21,7 +25,10 @@ const RemoveCoinsDialog: React.FC<RemoveCoinsDialogProps> = ({
   onOpenChange,
   studentName,
   studentId,
-  onRemoveCoins
+  onRemoveCoins,
+  teacherId,
+  classId,
+  schoolId,
 }) => {
   const { t } = useTranslation();
   const [amount, setAmount] = useState("");
@@ -56,6 +63,12 @@ const RemoveCoinsDialog: React.FC<RemoveCoinsDialogProps> = ({
             description: `${coinAmount} coins removed from ${studentName}`
           });
           
+          await logActivity(
+            teacherId,
+            'removed_coins',
+            { studentId, studentName, amount: coinAmount, classId, schoolId }
+          );
+
           onRemoveCoins(coinAmount);
           setAmount("");
           onOpenChange(false);

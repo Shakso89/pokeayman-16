@@ -321,6 +321,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         onSchoolPoolDialogChange={setSchoolPoolDialogOpen}
         schoolId={classData.schoolId || ""}
         studentId={giveCoinsDialog.studentId || removeCoinsDialog.studentId}
+        teacherId={teacherId}
       />
 
       <AddAssistantDialog
