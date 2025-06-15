@@ -11,7 +11,6 @@ import AppHeader from "@/components/AppHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { getStudentProfileById } from "@/services/studentDatabase";
 import { Pokemon } from "@/types/pokemon";
-import ActivityFeed from "@/components/feed/ActivityFeed";
 
 const StudentDetailPage: React.FC = () => {
   const { id, studentId } = useParams<{ id?: string; studentId?: string }>();
@@ -23,8 +22,6 @@ const StudentDetailPage: React.FC = () => {
   const [school, setSchool] = useState<any | null>(null);
   const [classes, setClasses] = useState<any[]>([]);
   const [pokemons, setPokemons] = useState<Pokemon[]>([]);
-  const [coins, setCoins] = useState(0);
-  const [spentCoins, setSpentCoins] = useState(0);
   const [homeworkStreak, setHomeworkStreak] = useState(0);
   const [isStarOfClass, setIsStarOfClass] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -60,9 +57,6 @@ const StudentDetailPage: React.FC = () => {
       ]);
       
       if (profile) {
-        setCoins(profile.coins);
-        setSpentCoins(profile.spent_coins);
-      
         // Once we have the profile, use profile.id to fetch related data
         const [achievements, streak] = await Promise.all([
           supabase.from('achievements').select('*').eq('student_id', profile.id).eq('type', 'star_of_class').eq('is_active', true),
@@ -80,8 +74,6 @@ const StudentDetailPage: React.FC = () => {
         }
       } else {
         // if no profile, reset related states
-        setCoins(0);
-        setSpentCoins(0);
         setIsStarOfClass(false);
         setHomeworkStreak(0);
       }
@@ -156,7 +148,6 @@ const StudentDetailPage: React.FC = () => {
     );
   }
 
-  // Get a human-friendly display name for the student
   function getNiceDisplayName(student: any): string {
     // Prioritize display_name and displayName over username
     const candidates = [
@@ -204,7 +195,7 @@ const StudentDetailPage: React.FC = () => {
             />
 
             <div className="mt-6">
-              <CoinsDisplay coins={coins} spentCoins={spentCoins} />
+              <CoinsDisplay studentId={sid} />
             </div>
 
             <div className="mt-6">
@@ -234,10 +225,6 @@ const StudentDetailPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
-
-        <div className="mt-8">
-          <ActivityFeed userId={sid} title="Recent Activity" />
-        </div>
       </div>
     </>
   );

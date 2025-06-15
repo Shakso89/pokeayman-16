@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -6,7 +5,6 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
-import { logActivity } from "@/services/activityLogger";
 import { removeCoinsFromStudent, getStudentCoinData } from "@/services/studentCoinService";
 
 interface RemoveCoinsDialogProps {
@@ -51,12 +49,6 @@ const RemoveCoinsDialog: React.FC<RemoveCoinsDialogProps> = ({
               description: `${coinAmount} coins removed from ${studentName}`
             });
             
-            await logActivity(
-              teacherId,
-              'removed_coins',
-              { studentId, studentName, amount: coinAmount, classId, schoolId }
-            );
-
             onRemoveCoins(coinAmount);
             setAmount("");
             onOpenChange(false);

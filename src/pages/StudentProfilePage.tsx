@@ -12,7 +12,6 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@/components/ui/button";
 import { getStudentProfileById, StudentProfile } from "@/services/studentDatabase";
 import { Pokemon } from "@/types/pokemon";
-import ActivityFeed from "@/components/feed/ActivityFeed";
 
 const getNiceDisplayName = (student: any): string => {
   const candidates = [student?.display_name, student?.displayName, student?.username].filter(Boolean);
@@ -23,7 +22,6 @@ const getNiceDisplayName = (student: any): string => {
   }
   return "Unnamed Student";
 };
-
 
 const StudentProfilePage: React.FC = () => {
   const { studentId } = useParams<{ studentId?: string }>();
@@ -36,8 +34,6 @@ const StudentProfilePage: React.FC = () => {
   const [school, setSchool] = useState<any | null>(null);
   const [classes, setClasses] = useState<any[]>([]);
   const [pokemons, setPokemons] = useState<Pokemon[]>([]);
-  const [coins, setCoins] = useState(0);
-  const [spentCoins, setSpentCoins] = useState(0);
   const [homeworkStreak, setHomeworkStreak] = useState(0);
   const [isStarOfClass, setIsStarOfClass] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -75,8 +71,6 @@ const StudentProfilePage: React.FC = () => {
       
       if (profile) {
         setStudentProfile(profile);
-        setCoins(profile.coins);
-        setSpentCoins(profile.spent_coins);
       
         // Once we have the profile, use profile.id to fetch related data
         const [achievements, streak] = await Promise.all([
@@ -95,8 +89,6 @@ const StudentProfilePage: React.FC = () => {
         }
       } else {
         // if no profile, reset related states
-        setCoins(0);
-        setSpentCoins(0);
         setIsStarOfClass(false);
         setHomeworkStreak(0);
       }
@@ -176,7 +168,7 @@ const StudentProfilePage: React.FC = () => {
             />
 
             <div className="mt-6">
-              <CoinsDisplay coins={coins} spentCoins={spentCoins} />
+              <CoinsDisplay studentId={studentId!} />
             </div>
 
             <div className="mt-6">
@@ -206,9 +198,6 @@ const StudentProfilePage: React.FC = () => {
           </CardContent>
         </Card>
 
-        <div className="mt-8">
-          <ActivityFeed userId={studentId} title="Recent Activity" />
-        </div>
       </div>
     </div>
   );

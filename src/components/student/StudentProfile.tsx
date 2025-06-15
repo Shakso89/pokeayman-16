@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -123,8 +122,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
           />
           
           <CoinsDisplay
-            coins={coins}
-            spentCoins={spentCoins}
+            studentId={student.id}
           />
           
           <ProfileStats
