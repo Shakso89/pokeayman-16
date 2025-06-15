@@ -182,7 +182,7 @@ const StudentsTable: React.FC<StudentsTableProps> = ({
                           onClick={() => handleRemovePokemon(student.id, student.display_name || student.displayName || student.username)}
                         >
                           <Minus className="mr-2 h-4 w-4" />
-                          <span>Remove Pokémon</span>
+                          <span>Pokémon</span>
                         </DropdownMenuItem>
                         <DropdownMenuItem
                           className="text-red-600 focus:text-red-600 focus:bg-red-50"
