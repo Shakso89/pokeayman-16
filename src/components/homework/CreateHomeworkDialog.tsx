@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,6 +9,7 @@ import { Coins } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Homework } from "@/types/homework";
+import { logActivity } from "@/services/activityLogger";
 
 interface CreateHomeworkDialogProps {
   open: boolean;
@@ -157,6 +157,15 @@ const CreateHomeworkDialog: React.FC<CreateHomeworkDialogProps> = ({
         .single();
 
       if (error) throw error;
+
+      await logActivity(
+        teacherId,
+        'created_homework',
+        {
+          classId: formData.selected_class_id,
+          homeworkTitle: formData.title.trim(),
+        }
+      );
 
       toast({
         title: "Success",

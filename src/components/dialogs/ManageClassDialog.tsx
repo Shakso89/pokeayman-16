@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -48,6 +47,8 @@ const ManageClassDialog: React.FC<ManageClassDialogProps> = ({
     studentName: "",
     schoolId: ""
   });
+
+  const schoolId = students.length > 0 ? students[0].schoolId : undefined;
 
   // Handle homework creation
   const handleHomeworkCreated = () => {
@@ -226,6 +227,9 @@ const ManageClassDialog: React.FC<ManageClassDialogProps> = ({
         studentName={giveCoinsDialog.studentName}
         studentId={giveCoinsDialog.studentId}
         onGiveCoins={handleGiveCoins}
+        teacherId={teacherId}
+        classId={classId}
+        schoolId={schoolId}
       />
 
       {/* Manage Pokemon Dialog */}
@@ -237,6 +241,8 @@ const ManageClassDialog: React.FC<ManageClassDialogProps> = ({
         schoolId={managePokemonDialog.schoolId}
         onPokemonRemoved={handlePokemonRemoved}
         isClassCreator={true}
+        teacherId={teacherId}
+        classId={classId}
       />
     </Dialog>
   );

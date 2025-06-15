@@ -1,13 +1,13 @@
 
-import React from "react";
-import { useActivityFeed } from "@/hooks/useRealtimeSubscription";
+import React, { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Loader2 } from "lucide-react";
+import { Loader2, Award, Coins, BookText, UserPlus } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { formatDistanceToNow } from "date-fns";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { Link } from "react-router-dom";
 
 interface ActivityFeedProps {
   userId?: string;
@@ -20,14 +20,57 @@ export default function ActivityFeed({
   userId, 
   global = false, 
   title = "Activity Feed", 
-  maxItems = 10 
+  maxItems = 20
 }: ActivityFeedProps) {
   const { t } = useTranslation();
-  const { activities, loading, error } = useActivityFeed(userId, global);
+  const queryClient = useQueryClient();
+
+  const { data: activities = [], isLoading: loading, error } = useQuery({
+    queryKey: ['user-activities', { userId, global }],
+    queryFn: async () => {
+      let query = supabase.from('user_activities').select('*, user:user_id(id, display_name, username)');
+
+      if (global) {
+        // For a global feed, might need more complex logic later. For now, public activities.
+        query = query.eq('is_public', true);
+      } else if (userId) {
+        // Fetch activities related to classes the student is in.
+        const { data: classLinks } = await supabase.from('student_classes').select('class_id').eq('student_id', userId);
+        if (classLinks && classLinks.length > 0) {
+          const classIds = classLinks.map(c => c.class_id);
+          query = query.in('class_id', classIds);
+        } else {
+            // No classes, so no class-related activities
+            return [];
+        }
+      } else {
+          return [];
+      }
+      
+      const { data, error } = await query.order('created_at', { ascending: false }).limit(maxItems);
+      if (error) throw error;
+      return data || [];
+    },
+    staleTime: 60 * 1000, // 1 minute
+  });
+
+  useEffect(() => {
+    const channel = supabase
+      .channel('user-activities-feed')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'user_activities' },
+        (payload) => {
+          queryClient.invalidateQueries({ queryKey: ['user-activities'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
   
-  // Query to fetch user information for each activity
   const { data: userInfo } = useQuery({
-    queryKey: ['users-info', activities.map(a => a.user_id).join(',')],
+    queryKey: ['users-info-feed', activities.map(a => a.user_id).join(',')],
     queryFn: async () => {
       if (!activities.length) return {};
       
@@ -74,76 +117,63 @@ export default function ActivityFeed({
   
   const renderActivityContent = (activity: any) => {
     const { activity_type, details, created_at } = activity;
-    const user = getUserInfo(activity.user_id);
+    const performer = getUserInfo(activity.user_id);
     const formattedTime = formatDistanceToNow(new Date(created_at), { addSuffix: true });
     
+    let icon;
+    let content;
+
     switch (activity_type) {
-      case 'collected_pokemon':
-        return (
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarImage src={details.pokemon_image} />
-              <AvatarFallback>{details.pokemon_name?.substring(0, 2).toUpperCase() || '??'}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-medium">
-                <span className="text-blue-600">{user.displayName}</span> collected a new Pokémon
-              </p>
-              <p className="text-sm text-gray-500">
-                {details.pokemon_name} ({details.pokemon_level || 'Level 1'})
-              </p>
-              <p className="text-xs text-gray-400">{formattedTime}</p>
-            </div>
-          </div>
+      case 'awarded_coins':
+        icon = <Coins className="h-6 w-6 text-yellow-500" />;
+        content = (
+          <p>
+            <span className="font-semibold text-blue-600">{performer.displayName}</span> awarded {details.amount} coins to <span className="font-semibold">{details.studentName}</span>.
+          </p>
         );
-        
-      case 'joined_class':
-        return (
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback>{user.displayName?.substring(0, 2).toUpperCase() || '??'}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-medium">
-                <span className="text-blue-600">{user.displayName}</span> joined a new class
-              </p>
-              <p className="text-sm text-gray-500">{details.class_name}</p>
-              <p className="text-xs text-gray-400">{formattedTime}</p>
-            </div>
-          </div>
+        break;
+      case 'assigned_pokemon':
+        icon = <Award className="h-6 w-6 text-purple-500" />;
+        content = (
+          <p>
+            <span className="font-semibold text-blue-600">{performer.displayName}</span> assigned Pokémon <span className="font-semibold">{details.pokemonName}</span> to <span className="font-semibold">{details.studentName}</span>.
+          </p>
         );
-        
-      case 'completed_homework':
-        return (
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback>{user.displayName?.substring(0, 2).toUpperCase() || '??'}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-medium">
-                <span className="text-blue-600">{user.displayName}</span> completed homework
-              </p>
-              <p className="text-sm text-gray-500">{details.homework_title}</p>
-              <p className="text-xs text-gray-400">{formattedTime}</p>
-            </div>
-          </div>
+        break;
+      case 'created_homework':
+        icon = <BookText className="h-6 w-6 text-green-500" />;
+        content = (
+          <p>
+            <span className="font-semibold text-blue-600">{performer.displayName}</span> created new homework: <span className="font-semibold">"{details.homeworkTitle}"</span>.
+          </p>
         );
-        
+        break;
+      case 'added_student_to_class':
+        icon = <UserPlus className="h-6 w-6 text-indigo-500" />;
+        content = (
+          <p>
+            <span className="font-semibold text-blue-600">{performer.displayName}</span> added <span className="font-semibold">{details.studentName}</span> to the class.
+          </p>
+        );
+        break;
       default:
-        return (
-          <div className="flex items-center gap-3">
-            <Avatar className="h-10 w-10">
-              <AvatarFallback>{user.displayName?.substring(0, 2).toUpperCase() || '??'}</AvatarFallback>
-            </Avatar>
-            <div>
-              <p className="font-medium">
-                <span className="text-blue-600">{user.displayName}</span> {activity_type.replace(/_/g, ' ')}
-              </p>
-              <p className="text-xs text-gray-400">{formattedTime}</p>
-            </div>
-          </div>
+        icon = <div className="h-6 w-6"></div>
+        content = (
+          <p>
+            <span className="font-semibold text-blue-600">{performer.displayName}</span> performed an action: {activity_type.replace(/_/g, ' ')}.
+          </p>
         );
     }
+    
+    return (
+      <div className="flex items-start gap-3">
+        <div className="flex-shrink-0 pt-1">{icon}</div>
+        <div className="flex-1">
+          {content}
+          <p className="text-xs text-gray-500 mt-1">{formattedTime}</p>
+        </div>
+      </div>
+    );
   };
 
   if (loading) {
@@ -198,8 +228,8 @@ export default function ActivityFeed({
       </CardHeader>
       <CardContent>
         <div className="space-y-4">
-          {activities.slice(0, maxItems).map((activity) => (
-            <div key={activity.id} className="border-b pb-4 last:border-0">
+          {activities.map((activity) => (
+            <div key={activity.id} className="border-b pb-4 last:border-0 last:pb-0">
               {renderActivityContent(activity)}
             </div>
           ))}

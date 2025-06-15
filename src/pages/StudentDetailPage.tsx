@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +11,7 @@ import AppHeader from "@/components/AppHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { getStudentProfileById } from "@/services/studentDatabase";
 import { Pokemon } from "@/types/pokemon";
+import ActivityFeed from "@/components/feed/ActivityFeed";
 
 const StudentDetailPage: React.FC = () => {
   const { id, studentId } = useParams<{ id?: string; studentId?: string }>();
@@ -234,6 +234,10 @@ const StudentDetailPage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
+        <div className="mt-8">
+          <ActivityFeed userId={sid} title="Recent Activity" />
+        </div>
       </div>
     </>
   );

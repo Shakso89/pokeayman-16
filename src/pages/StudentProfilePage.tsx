@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -13,6 +12,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@/components/ui/button";
 import { getStudentProfileById, StudentProfile } from "@/services/studentDatabase";
 import { Pokemon } from "@/types/pokemon";
+import ActivityFeed from "@/components/feed/ActivityFeed";
 
 const getNiceDisplayName = (student: any): string => {
   const candidates = [student?.display_name, student?.displayName, student?.username].filter(Boolean);
@@ -205,6 +205,10 @@ const StudentProfilePage: React.FC = () => {
             </div>
           </CardContent>
         </Card>
+
+        <div className="mt-8">
+          <ActivityFeed userId={studentId} title="Recent Activity" />
+        </div>
       </div>
     </div>
   );
