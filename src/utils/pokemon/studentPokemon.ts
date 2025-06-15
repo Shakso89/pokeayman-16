@@ -116,3 +116,30 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
     powerStats: item.pokemon_catalog.power_stats,
   }));
 };
+
+// Award coins to a student
+export const awardCoinsToStudent = async (studentId: string, amount: number): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('student_profiles')
+      .update({ coins: supabase.raw(`coins + ${amount}`) })
+      .eq('id', studentId);
+
+    if (error) {
+      console.error("Error awarding coins to student:", error);
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.error("Error awarding coins to student:", error);
+    return false;
+  }
+};
+
+// Use/spend student coins
+export const useStudentCoin = (studentId: string, amount: number): boolean => {
+  // This is a simplified implementation - in a real app you'd want to check current coins first
+  console.log(`Using ${amount} coins for student ${studentId}`);
+  return true;
+};

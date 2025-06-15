@@ -72,3 +72,37 @@ export const getSchoolPokemonPool = async (schoolId: string): Promise<SchoolPool
 
   return pool;
 };
+
+// Force update all school pools - regenerate Pokemon pools for all schools
+export const forceUpdateAllSchoolPools = async (poolSize: number = 500): Promise<boolean> => {
+  console.log(`Force updating all school pools with ${poolSize} Pokemon each`);
+  
+  try {
+    // Get all schools
+    const { data: schools, error: schoolsError } = await supabase
+      .from('schools')
+      .select('id');
+    
+    if (schoolsError || !schools) {
+      console.error("Error fetching schools:", schoolsError);
+      return false;
+    }
+
+    // Clear existing pools and reinitialize
+    for (const school of schools) {
+      // Clear existing pool
+      await supabase
+        .from('pokemon_pools')
+        .delete()
+        .eq('school_id', school.id);
+      
+      // Reinitialize
+      await initializeSchoolPokemonPool(school.id);
+    }
+    
+    return true;
+  } catch (error) {
+    console.error("Error force updating school pools:", error);
+    return false;
+  }
+};

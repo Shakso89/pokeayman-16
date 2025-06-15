@@ -215,9 +215,6 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
                           {pokemon.rarity}
                         </Badge>
                       </div>
-                      {pokemon.level && (
-                        <Badge variant="secondary">Level {pokemon.level}</Badge>
-                      )}
                       
                       {isClassCreator && (
                         <Button
@@ -290,9 +287,6 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
                             {pokemon.rarity}
                           </Badge>
                         </div>
-                        {pokemon.level && (
-                          <Badge variant="secondary">Level {pokemon.level}</Badge>
-                        )}
                         
                         {isClassCreator && (
                           <Button
