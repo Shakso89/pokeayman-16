@@ -5,6 +5,7 @@ export interface StudentCoinData {
   coins: number;
   spentCoins: number;
   totalEarned: number;
+  pokemonCount: number;
 }
 
 // Get student coin data from database
@@ -20,30 +21,42 @@ export const getStudentCoins = async (studentId: string): Promise<StudentCoinDat
 
     if (error) {
       console.error("Error fetching student coins:", error);
-      return { coins: 0, spentCoins: 0, totalEarned: 0 };
+      return { coins: 0, spentCoins: 0, totalEarned: 0, pokemonCount: 0 };
     }
 
     if (!profile) {
       console.log("No profile found for student:", studentId);
-      return { coins: 0, spentCoins: 0, totalEarned: 0 };
+      return { coins: 0, spentCoins: 0, totalEarned: 0, pokemonCount: 0 };
     }
 
     const coins = profile.coins || 0;
     const spentCoins = profile.spent_coins || 0;
     const totalEarned = coins + spentCoins;
 
-    console.log("Student coin data:", { coins, spentCoins, totalEarned });
+    // Get Pokemon count
+    const { data: pokemonData } = await supabase
+      .from('pokemon_collections')
+      .select('id')
+      .eq('student_id', studentId);
+    
+    const pokemonCount = pokemonData?.length || 0;
+
+    console.log("Student coin data:", { coins, spentCoins, totalEarned, pokemonCount });
     
     return {
       coins,
       spentCoins,
-      totalEarned
+      totalEarned,
+      pokemonCount
     };
   } catch (error) {
     console.error("Error in getStudentCoins:", error);
-    return { coins: 0, spentCoins: 0, totalEarned: 0 };
+    return { coins: 0, spentCoins: 0, totalEarned: 0, pokemonCount: 0 };
   }
 };
+
+// Export alias for backward compatibility
+export const getStudentCoinData = getStudentCoins;
 
 // Update student coins in database
 export const updateStudentCoins = async (
@@ -94,10 +107,55 @@ export const awardCoins = async (studentId: string, amount: number): Promise<boo
   return await updateStudentCoins(studentId, amount, 0);
 };
 
+// Export alias for backward compatibility
+export const awardCoinsToStudent = awardCoins;
+
 // Spend coins (negative amount for coins, positive for spent_coins tracking)
 export const spendCoins = async (studentId: string, amount: number): Promise<boolean> => {
   return await updateStudentCoins(studentId, -amount, amount);
 };
+
+// Remove coins from student
+export const removeCoins = async (studentId: string, amount: number): Promise<boolean> => {
+  try {
+    console.log(`Removing ${amount} coins from student ${studentId}`);
+    
+    // Get current coins first
+    const { data: profile } = await supabase
+      .from('student_profiles')
+      .select('coins')
+      .eq('user_id', studentId)
+      .single();
+
+    const currentCoins = profile?.coins || 0;
+    
+    if (currentCoins < amount) {
+      console.error("Student doesn't have enough coins");
+      return false;
+    }
+
+    const newCoins = currentCoins - amount;
+
+    const { error } = await supabase
+      .from('student_profiles')
+      .update({ coins: newCoins })
+      .eq('user_id', studentId);
+
+    if (error) {
+      console.error("Error removing coins:", error);
+      return false;
+    }
+
+    console.log(`Successfully removed ${amount} coins from student ${studentId}`);
+    return true;
+  } catch (error) {
+    console.error("Error in removeCoins:", error);
+    return false;
+  }
+};
+
+// Export alias for backward compatibility
+export const removeCoinsFromStudent = removeCoins;
 
 // Get student ranking data
 export const getStudentRanking = async (): Promise<any[]> => {

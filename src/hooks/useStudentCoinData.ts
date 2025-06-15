@@ -5,7 +5,8 @@ import { getStudentCoinData, type StudentCoinData } from '@/services/studentCoin
 export const useStudentCoinData = (studentId: string) => {
   const [coinData, setCoinData] = useState<StudentCoinData>({
     coins: 0,
-    spent_coins: 0,
+    spentCoins: 0,
+    totalEarned: 0,
     pokemonCount: 0
   });
   const [isLoading, setIsLoading] = useState(true);

@@ -10,7 +10,7 @@ interface CoinsDisplayProps {
 
 const CoinsDisplay: React.FC<CoinsDisplayProps> = ({ studentId }) => {
   const { t } = useTranslation();
-  const { coins, spent_coins, isLoading } = useStudentCoinData(studentId);
+  const { coins, spentCoins, isLoading } = useStudentCoinData(studentId);
 
   if (isLoading) {
     return (
@@ -38,7 +38,7 @@ const CoinsDisplay: React.FC<CoinsDisplayProps> = ({ studentId }) => {
       </div>
       <div>
         <p className="text-sm font-medium text-gray-500">{t("spent-coins")}:</p>
-        <p>{spent_coins}</p>
+        <p>{spentCoins}</p>
       </div>
     </div>
   );

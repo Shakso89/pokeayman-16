@@ -8,7 +8,7 @@ interface StudentCoinInfoProps {
 }
 
 export const StudentCoinInfo: React.FC<StudentCoinInfoProps> = ({ studentId }) => {
-  const { coins, spent_coins, isLoading } = useStudentCoinData(studentId);
+  const { coins, spentCoins, isLoading } = useStudentCoinData(studentId);
   
   if (isLoading) {
     return (
@@ -31,7 +31,7 @@ export const StudentCoinInfo: React.FC<StudentCoinInfoProps> = ({ studentId }) =
         </div>
         <div>
           <p className="text-sm font-medium text-amber-800">Spent Coins</p>
-          <p className="text-md text-amber-700 text-right">{spent_coins}</p>
+          <p className="text-md text-amber-700 text-right">{spentCoins}</p>
         </div>
       </div>
     </div>
