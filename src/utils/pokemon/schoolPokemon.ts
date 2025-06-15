@@ -118,7 +118,17 @@ export const forceUpdateAllSchoolPools = async (): Promise<boolean> => {
       return false;
     }
 
-    // Clear existing pools and reinitialize
+    // Get all available Pokemon from catalog
+    const { data: catalog, error: catalogError } = await supabase
+      .from('pokemon_catalog')
+      .select('id');
+    
+    if (catalogError || !catalog || catalog.length === 0) {
+      console.error("Could not fetch pokemon catalog for pool refresh.", catalogError);
+      return false;
+    }
+
+    // Clear existing pools and reinitialize with fresh random selections
     for (const school of schools) {
       // Clear existing pool
       await supabase
@@ -126,10 +136,35 @@ export const forceUpdateAllSchoolPools = async (): Promise<boolean> => {
         .delete()
         .eq('school_id', school.id);
       
-      // Reinitialize
-      await initializeSchoolPokemonPool(school.id);
+      // Create a new random selection of 500 Pokemon for this school
+      const shuffledCatalog = [...catalog];
+      for (let i = shuffledCatalog.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [shuffledCatalog[i], shuffledCatalog[j]] = [shuffledCatalog[j], shuffledCatalog[i]];
+      }
+
+      const poolSize = Math.min(500, shuffledCatalog.length);
+      const selectedPokemon = shuffledCatalog.slice(0, poolSize);
+
+      const pokemonsToInsert = selectedPokemon.map(pokemon => ({
+        school_id: school.id,
+        pokemon_id: pokemon.id,
+        status: 'available'
+      }));
+      
+      const { error: insertError } = await supabase
+        .from('pokemon_pools')
+        .insert(pokemonsToInsert);
+        
+      if (insertError) {
+        console.error(`Error reinitializing pool for school ${school.id}:`, insertError);
+        continue; // Continue with other schools even if one fails
+      }
+      
+      console.log(`Reinitialized school ${school.id} with ${poolSize} new Pokemon`);
     }
     
+    console.log(`Successfully refreshed all school pools with 500 unique Pokemon each`);
     return true;
   } catch (error) {
     console.error("Error force updating school pools:", error);

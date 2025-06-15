@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,11 +38,15 @@ const SchoolInfoCard: React.FC<SchoolInfoCardProps> = ({ schoolId, teacherId, is
 
     setRefreshing(true);
     try {
-      await forceUpdateAllSchoolPools();
-      toast({
-        title: t("success"),
-        description: "School Pokémon pool has been refreshed with 500 new Pokémon"
-      });
+      const success = await forceUpdateAllSchoolPools();
+      if (success) {
+        toast({
+          title: t("success"),
+          description: "School Pokémon pool has been refreshed with 500 new unique Pokémon"
+        });
+      } else {
+        throw new Error("Pool refresh failed");
+      }
     } catch (error) {
       console.error("Error refreshing pool:", error);
       toast({
