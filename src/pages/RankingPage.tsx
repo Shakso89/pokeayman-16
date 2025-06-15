@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Badge } from "@/components/ui/badge";
@@ -11,7 +12,7 @@ import { Student, Pokemon } from "@/types/pokemon";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PokemonList from "@/components/student/PokemonList";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import SchoolRankingTab from "@/components/student/SchoolRankingTab";
+import { SchoolRankingTab } from "@/components/student/SchoolRankingTab";
 import { supabase } from "@/integrations/supabase/client";
 
 interface School {
@@ -153,7 +154,7 @@ const RankingPage: React.FC = () => {
 
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
-        .select('id, display_name, username')
+        .select('id, display_name, username, teacher_id, class_id')
         .in('id', studentIds);
 
       if (studentsError) throw studentsError;
@@ -189,11 +190,15 @@ const RankingPage: React.FC = () => {
         const count = pokemonCounts.get(s.id) || 0;
         const coins = profile?.coins || 0;
         return {
-          ...s,
+          id: s.id,
+          username: s.username,
+          displayName: s.display_name || s.username,
+          teacherId: s.teacher_id || '',
+          classId: s.class_id,
           pokemonCount: count,
           coins,
         };
-      }) as (Student & { pokemonCount: number, coins: number })[];
+      });
 
       const sortedStudents = studentsWithPokemonCount.sort((a, b) => b.pokemonCount - a.pokemonCount);
 
@@ -216,7 +221,7 @@ const RankingPage: React.FC = () => {
     try {
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
-        .select('id, display_name, username')
+        .select('id, display_name, username, teacher_id, class_id')
         .eq('school_id', schoolId);
 
       if (studentsError) throw studentsError;
@@ -256,12 +261,17 @@ const RankingPage: React.FC = () => {
         const count = pokemonCounts.get(s.id) || 0;
         const coins = profile?.coins || 0;
         return {
-          ...s,
+          id: s.id,
+          username: s.username,
+          displayName: s.display_name || s.username,
+          teacherId: s.teacher_id || '',
+          classId: s.class_id,
+          schoolId: schoolId,
+          avatar: profile?.avatar_url,
           pokemonCount: count,
           coins: coins,
-          avatar: profile?.avatar_url
         };
-      }) as StudentWithRank[];
+      });
 
       const sortedStudents = studentsWithPokemonCount.sort((a: any, b: any) => b.pokemonCount - a.pokemonCount);
       const rankedStudents = sortedStudents.map((student, index) => ({

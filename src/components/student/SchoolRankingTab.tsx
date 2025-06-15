@@ -24,7 +24,7 @@ interface SchoolRankingTabProps {
   schoolId: string;
 }
 
-const SchoolRankingTab: React.FC<SchoolRankingTabProps> = ({ schoolId }) => {
+export const SchoolRankingTab: React.FC<SchoolRankingTabProps> = ({ schoolId }) => {
   const { t } = useTranslation();
   const [students, setStudents] = useState<StudentWithScore[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentWithScore | null>(null);
