@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -76,6 +75,15 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
   const handleAwardRandomPokemon = async () => {
     if (!selectedStudent || !isClassCreator) return;
 
+    if (schoolPool.length === 0) {
+      toast({
+        title: t("error"),
+        description: "No Pokémon available in school pool. Please refresh the school pool or contact an administrator.",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setLoading(true);
     try {
       const result = await assignRandomPokemonToStudent(schoolId, selectedStudent.id);
@@ -91,7 +99,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
       } else {
         toast({
           title: t("error"),
-          description: "Failed to award Pokémon. School pool might be empty.",
+          description: "Failed to award Pokémon. Please try again or contact support.",
           variant: "destructive"
         });
       }
@@ -99,7 +107,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
       console.error("Error awarding pokemon:", error);
       toast({
         title: t("error"),
-        description: "Failed to award Pokémon",
+        description: "Failed to award Pokémon. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -125,7 +133,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
       } else {
         toast({
           title: t("error"),
-          description: "Failed to award Pokémon. It might have been already assigned.",
+          description: "Failed to award Pokémon. It might have been already assigned to another student.",
           variant: "destructive"
         });
       }
@@ -133,7 +141,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
       console.error("Error awarding pokemon:", error);
       toast({
         title: t("error"),
-        description: "Failed to award Pokémon",
+        description: "Failed to award Pokémon. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -293,6 +301,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
               {schoolPool.length === 0 ? (
                 <div className="text-center py-8">
                   <p className="text-gray-500">No Pokémon available in school pool</p>
+                  <p className="text-sm text-gray-400 mt-2">Please refresh the school pool or contact an administrator</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
