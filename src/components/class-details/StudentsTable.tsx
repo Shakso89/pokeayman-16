@@ -1,4 +1,3 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -122,12 +121,6 @@ const StudentRow: React.FC<{
               <DropdownMenuItem onClick={handleRemoveCoins}>
                 <Minus className="mr-2 h-4 w-4" />
                 <span>Remove Coin</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem
-                onClick={() => onManagePokemon(student.id, displayName, student.schoolId || classData?.school_id || '')}
-              >
-                <Award className="mr-2 h-4 w-4" />
-                <span>Manage Pokémon</span>
               </DropdownMenuItem>
               {onRemovePokemon && (
                 <DropdownMenuItem onClick={() => onRemovePokemon(student.id, displayName)}>

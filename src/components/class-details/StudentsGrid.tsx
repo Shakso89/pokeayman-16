@@ -5,10 +5,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Coins, Award, Trash2, Plus, Minus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "@/hooks/useTranslation";
-import { assignRandomPokemonToStudent, removePokemonFromStudent } from "@/utils/pokemon/studentPokemon";
 import { toast } from "@/hooks/use-toast";
-import PokemonActionModal from "@/components/pokemon/PokemonActionModal";
-import { Pokemon } from "@/types/pokemon";
 import { useStudentCoinData } from "@/hooks/useStudentCoinData";
 import { awardCoinsToStudent, removeCoinsFromStudent } from "@/services/studentCoinService";
 
@@ -40,7 +37,6 @@ const StudentCard: React.FC<{
   onRemoveStudent: (studentId: string, studentName: string) => void;
   onRemoveCoins: (studentId: string, studentName: string) => void;
   classData: any;
-  onPokemonAction: (pokemon: Pokemon, actionType: "awarded" | "removed", studentName: string) => void;
 }> = ({
   student,
   isClassCreator,
@@ -49,7 +45,6 @@ const StudentCard: React.FC<{
   onRemoveStudent,
   onRemoveCoins,
   classData,
-  onPokemonAction
 }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
@@ -90,44 +85,6 @@ const StudentCard: React.FC<{
       toast({
         title: t("error"),
         description: "Failed to remove coins or insufficient coins",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleAwardRandomPokemon = async () => {
-    const schoolId = classData?.schoolId;
-    if (!schoolId) {
-      toast({
-        title: t("error"),
-        description: "School ID not found",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      const result = await assignRandomPokemonToStudent(schoolId, student.id);
-      
-      if (result.success && result.pokemon) {
-        onPokemonAction(result.pokemon, "awarded", displayName);
-        refreshData();
-        toast({
-          title: t("success"),
-          description: `${result.pokemon.name} awarded to ${displayName}`
-        });
-      } else {
-        toast({
-          title: t("error"),
-          description: "Failed to assign Pokemon. The school pool might be empty.",
-          variant: "destructive"
-        });
-      }
-    } catch (error) {
-      console.error("Error awarding random Pokemon:", error);
-      toast({
-        title: t("error"),
-        description: "Failed to award Pokemon",
         variant: "destructive"
       });
     }
@@ -196,25 +153,6 @@ const StudentCard: React.FC<{
                 Coins 
               </Button>
 
-              <Button
-                size="sm"
-                className="bg-blue-500 hover:bg-blue-600 text-white col-span-2"
-                onClick={(e) => { e.stopPropagation(); handleAwardRandomPokemon(); }}
-              >
-                <Plus className="h-4 w-4 mr-1" />
-                Award Random Pokemon
-              </Button>
-
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={(e) => { e.stopPropagation(); onManagePokemon(student.id, displayName, student.schoolId || classData.schoolId || ""); }}
-                className="col-span-2"
-              >
-                <Award className="h-4 w-4 mr-2" />
-                {t("manage-pokemon")}
-              </Button>
-
               <Button 
                 size="sm" 
                 variant="destructive" 
@@ -243,30 +181,6 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
   classData
 }) => {
   const { t } = useTranslation();
-  const [pokemonActionModal, setPokemonActionModal] = useState({
-    isOpen: false,
-    pokemon: null as Pokemon | null,
-    actionType: "awarded" as "awarded" | "removed",
-    studentName: ""
-  });
-
-  const handlePokemonAction = (pokemon: Pokemon, actionType: "awarded" | "removed", studentName: string) => {
-    setPokemonActionModal({
-      isOpen: true,
-      pokemon,
-      actionType,
-      studentName
-    });
-  };
-
-  const handleCloseModal = () => {
-    setPokemonActionModal({
-      isOpen: false,
-      pokemon: null,
-      actionType: "awarded",
-      studentName: ""
-    });
-  };
 
   if (!students || students.length === 0) {
     return (
@@ -289,18 +203,9 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
             onRemoveStudent={onRemoveStudent}
             onRemoveCoins={onRemoveCoins}
             classData={classData}
-            onPokemonAction={handlePokemonAction}
           />
         ))}
       </div>
-
-      <PokemonActionModal 
-        pokemon={pokemonActionModal.pokemon} 
-        isOpen={pokemonActionModal.isOpen} 
-        onClose={handleCloseModal} 
-        actionType={pokemonActionModal.actionType} 
-        studentName={pokemonActionModal.studentName} 
-      />
     </>
   );
 };
