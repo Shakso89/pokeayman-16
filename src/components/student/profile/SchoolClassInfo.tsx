@@ -1,10 +1,9 @@
 
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { School, Users, ExternalLink } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 interface School {
   id: string;
@@ -30,22 +29,14 @@ const SchoolClassInfo: React.FC<SchoolClassInfoProps> = ({
   onClassClick,
   userType = 'student'
 }) => {
-  const navigate = useNavigate();
-
-  const handleClassClick = (classId: string, className: string) => {
+  const handleClassClick = (classId: string) => {
     if (onClassClick) {
       onClassClick(classId);
-    } else {
-      if (userType === 'teacher') {
-        navigate(`/class-details/${classId}`);
-      } else {
-        navigate(`/student/class/${classId}`, { state: { className } });
-      }
     }
   };
 
-  const handleSchoolClick = (schoolId: string) => {
-    navigate(`/school/${schoolId}/classes`);
+  const getClassPath = (classId: string) => {
+    return userType === 'teacher' ? `/class-details/${classId}` : `/student/class/${classId}`;
   };
 
   return (
@@ -60,16 +51,16 @@ const SchoolClassInfo: React.FC<SchoolClassInfoProps> = ({
         <div className="space-y-4">
           {/* School Information */}
           {school ? (
-            <button
-              className="w-full text-left p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
-              onClick={() => handleSchoolClick(school.id)}
+            <Link
+              to={`/school/${school.id}/classes`}
+              className="w-full text-left block p-3 bg-blue-50 rounded-lg hover:bg-blue-100 transition-colors"
             >
               <div className="flex items-center gap-2 mb-2">
                 <School className="h-4 w-4 text-blue-600" />
                 <span className="font-semibold text-blue-800">School</span>
               </div>
               <p className="text-blue-700 font-medium">{school.name}</p>
-            </button>
+            </Link>
           ) : (
             <div className="p-3 bg-gray-100 rounded-lg">
               <div className="flex items-center gap-2">
@@ -101,15 +92,24 @@ const SchoolClassInfo: React.FC<SchoolClassInfoProps> = ({
                         <p className="text-sm text-gray-500">{classInfo.description}</p>
                       )}
                     </div>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleClassClick(classInfo.id, classInfo.name)}
-                      className="flex items-center gap-1"
-                    >
-                      <ExternalLink className="h-3 w-3" />
-                      View
-                    </Button>
+                    {onClassClick ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleClassClick(classInfo.id)}
+                        className="flex items-center gap-1"
+                      >
+                        <ExternalLink className="h-3 w-3" />
+                        View
+                      </Button>
+                    ) : (
+                      <Button asChild variant="ghost" size="sm" className="flex items-center gap-1">
+                        <Link to={getClassPath(classInfo.id)}>
+                          <ExternalLink className="h-3 w-3" />
+                          View
+                        </Link>
+                      </Button>
+                    )}
                   </div>
                 ))}
               </div>
