@@ -1,5 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 import { Pokemon } from "@/types/pokemon";
+import { getStudentPokemons, saveStudentPokemons } from '@/utils/pokemon/storage';
 
 export interface StudentProfile {
   id: string;
@@ -223,28 +224,62 @@ export const updateStudentCoins = async (
       .from('student_profiles')
       .select('coins, spent_coins')
       .eq('id', studentId)
-      .single();
+      .maybeSingle();
 
-    if (!currentProfile) return false;
+    if (currentProfile) {
+      const newCoins = Math.max(0, currentProfile.coins + coinsToAdd);
+      const newSpentCoins = currentProfile.spent_coins + (spentCoins || 0);
 
-    const newCoins = Math.max(0, currentProfile.coins + coinsToAdd);
-    const newSpentCoins = currentProfile.spent_coins + (spentCoins || 0);
+      const { error } = await supabase
+        .from('student_profiles')
+        .update({
+          coins: newCoins,
+          spent_coins: newSpentCoins,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', studentId);
 
-    const { error } = await supabase
-      .from('student_profiles')
-      .update({
-        coins: newCoins,
-        spent_coins: newSpentCoins,
-        updated_at: new Date().toISOString()
-      })
-      .eq('id', studentId);
+      if (error) {
+        console.error('Error updating student coins in Supabase:', error);
+        return false;
+      }
+      return true;
+    }
+    
+    // Fallback to localStorage
+    console.warn(`Student profile for ${studentId} not found in Supabase for coin update, falling back to localStorage.`);
+    
+    const studentPokemons = getStudentPokemons();
+    const studentIndex = studentPokemons.findIndex(sp => sp.studentId === studentId);
 
-    if (error) {
-      console.error('Error updating student coins:', error);
-      return false;
+    if (studentIndex > -1) {
+      const studentData = studentPokemons[studentIndex];
+      const currentCoins = studentData.coins || 0;
+      
+      if (coinsToAdd < 0 && currentCoins < Math.abs(coinsToAdd)) {
+        return false; // Not enough coins
+      }
+      
+      studentData.coins = Math.max(0, currentCoins + coinsToAdd);
+      studentData.spentCoins = (studentData.spentCoins || 0) + (spentCoins || 0);
+      saveStudentPokemons(studentPokemons);
+      return true;
+    }
+    
+    // If student not in localStorage, but we're adding coins, create a record
+    if (coinsToAdd >= 0) {
+      studentPokemons.push({
+        studentId: studentId,
+        pokemons: [],
+        coins: coinsToAdd,
+        spentCoins: spentCoins || 0,
+      } as any); // Type assertion to match inferred type
+      saveStudentPokemons(studentPokemons);
+      return true;
     }
 
-    return true;
+    return false; // Can't deduct coins if student doesn't exist
+
   } catch (error) {
     console.error('Error in updateStudentCoins:', error);
     return false;
