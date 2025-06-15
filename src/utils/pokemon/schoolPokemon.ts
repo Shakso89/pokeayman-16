@@ -58,15 +58,21 @@ export const getSchoolPokemonPool = async (schoolId: string): Promise<SchoolPool
   const pool: SchoolPoolPokemon[] = data
     .map((item: any) => {
       if (!item.pokemon_catalog) return null;
-      return {
+      const pokemon: SchoolPoolPokemon = {
         poolEntryId: item.id,
         id: item.pokemon_catalog.id,
         name: item.pokemon_catalog.name,
         image: item.pokemon_catalog.image,
         type: item.pokemon_catalog.type,
         rarity: item.pokemon_catalog.rarity,
-        powerStats: item.pokemon_catalog.power_stats || undefined,
       };
+      
+      // Only add powerStats if it exists
+      if (item.pokemon_catalog.power_stats) {
+        pokemon.powerStats = item.pokemon_catalog.power_stats;
+      }
+      
+      return pokemon;
     })
     .filter((p): p is SchoolPoolPokemon => p !== null);
 

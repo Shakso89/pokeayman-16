@@ -117,7 +117,7 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
       // Load coin data using centralized service
       const coinData = await getStudentCoinData(studentId);
       setCoins(coinData.coins);
-      setSpentCoins(coinData.spent_coins);
+      setSpentCoins(coinData.spentCoins);
 
       // If no profile found in Supabase but we have local data
       if (!studentProfile) {
