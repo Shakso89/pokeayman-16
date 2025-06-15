@@ -7,7 +7,6 @@ import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { deleteClass } from "@/utils/classSync/classOperations";
 import { removeStudentFromClass, addMultipleStudentsToClass } from "@/utils/classSync/studentOperations";
-import { logActivity } from "@/services/activityLogger";
 import ClassManagementHeader from "./ClassManagementHeader";
 import StudentsGrid from "./StudentsGrid";
 import ClassTabs from "./ClassTabs";
@@ -99,19 +98,6 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
       const success = await removeStudentFromClass(classId, studentId);
 
       if (success) {
-        // Log the activity
-        await logActivity(
-          teacherId,
-          'removed_student_from_class',
-          { 
-            studentId, 
-            studentName, 
-            classId, 
-            className: classData?.name,
-            schoolId: classData?.schoolId
-          }
-        );
-
         toast({
           title: t("success"),
           description: t("student-removed-successfully")
@@ -145,22 +131,6 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
       const success = await addMultipleStudentsToClass(classId, studentIds);
 
       if (success) {
-        // Log the activity
-        const studentsAdded = students.filter(s => studentIds.includes(s.id));
-        for (const student of studentsAdded) {
-            await logActivity(
-              teacherId,
-              'added_student_to_class',
-              { 
-                studentId: student.id, 
-                studentName: student.display_name || student.username, 
-                classId, 
-                className: classData?.name,
-                schoolId: classData?.schoolId
-              }
-            );
-        }
-
         toast({
           title: t("success"),
           description: `${studentIds.length} ${t("students-added-to-class")}`

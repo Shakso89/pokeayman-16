@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,6 @@ import { getStudentPokemonCollection, removePokemonFromStudentAndReturnToPool, a
 import { getSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
 import { Pokemon } from "@/types/pokemon";
 import { Separator } from "@/components/ui/separator";
-import { logActivity } from "@/services/activityLogger";
 
 interface ManagePokemonDialogProps {
   isOpen: boolean;
@@ -83,12 +83,6 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
           title: t("success"),
           description: `${pokemonName} has been removed and returned to school pool`
         });
-
-        await logActivity(
-          teacherId,
-          'removed_pokemon',
-          { studentId, studentName, pokemonName, classId, schoolId }
-        );
         
         fetchData();
         onPokemonRemoved();
@@ -132,11 +126,6 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
             description: `${pokemonName} has been assigned to ${studentName}`
           });
         }
-        await logActivity(
-          teacherId,
-          'assigned_pokemon',
-          { studentId, studentName, pokemonName, classId, schoolId }
-        );
         fetchData();
         onPokemonRemoved();
       } else {

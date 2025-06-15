@@ -7,7 +7,6 @@ import { Label } from "@/components/ui/label";
 import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { logActivity } from "@/services/activityLogger";
 
 interface GiveCoinsDialogProps {
   isOpen: boolean;
@@ -63,12 +62,6 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
           });
           
           onGiveCoins(coinAmount);
-
-          await logActivity(
-            teacherId,
-            'awarded_coins',
-            { studentId, studentName, amount: coinAmount, classId, schoolId }
-          );
           
           setAmount("");
           onOpenChange(false);
