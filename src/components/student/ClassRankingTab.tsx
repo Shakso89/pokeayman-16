@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -39,7 +40,7 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
     try {
       const { data: profilesData, error: profilesError } = await supabase
         .from('student_profiles')
-        .select('id, display_name, username, avatar_url, coins')
+        .select('id, user_id, display_name, username, avatar_url, coins')
         .eq('class_id', classId);
 
       if (profilesError) throw profilesError;
@@ -48,12 +49,12 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
         return;
       }
 
-      const profileIds = profilesData.map(p => p.id);
+      const profileUserIds = profilesData.map(p => p.user_id);
 
       const { data: pokemonCollections, error: pokemonError } = await supabase
         .from('pokemon_collections')
         .select('student_id')
-        .in('student_id', profileIds);
+        .in('student_id', profileUserIds);
 
       if (pokemonError) throw pokemonError;
 
@@ -65,12 +66,12 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
       }
 
       const studentsWithScore = profilesData.map((p) => {
-        const pokemonCount = pokemonCounts.get(p.id) || 0;
+        const pokemonCount = pokemonCounts.get(p.user_id) || 0;
         const coins = p.coins || 0;
         const totalScore = pokemonCount + Math.floor(coins / 10);
         
         return {
-          id: p.id,
+          id: p.user_id,
           displayName: p.display_name || p.username,
           username: p.username,
           avatar: p.avatar_url || undefined,
@@ -208,3 +209,5 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
     </Card>
   );
 };
+
+export default ClassRankingTab;

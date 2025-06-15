@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Badge } from "@/components/ui/badge";
@@ -143,18 +144,18 @@ const RankingPage: React.FC = () => {
     try {
       const { data: profilesData, error: profilesError } = await supabase
         .from('student_profiles')
-        .select('id, display_name, username, teacher_id, class_id, avatar_url, coins')
+        .select('id, user_id, display_name, username, teacher_id, class_id, avatar_url, coins')
         .eq('class_id', classId);
       
       if (profilesError) throw profilesError;
       if (!profilesData) return [];
 
-      const profileIds = profilesData.map(p => p.id);
+      const profileUserIds = profilesData.map(p => p.user_id);
       
       const { data: pokemonCollections, error: pokemonError } = await supabase
         .from('pokemon_collections')
         .select('student_id')
-        .in('student_id', profileIds);
+        .in('student_id', profileUserIds);
 
       if (pokemonError) throw pokemonError;
       const pokemonCounts = new Map<string, number>();
@@ -165,10 +166,10 @@ const RankingPage: React.FC = () => {
       }
       
       const studentsWithPokemonCount = profilesData.map(s => {
-        const count = pokemonCounts.get(s.id) || 0;
+        const count = pokemonCounts.get(s.user_id) || 0;
         const coins = s.coins || 0;
         return {
-          id: s.id,
+          id: s.user_id,
           username: s.username,
           displayName: s.display_name || s.username,
           teacherId: s.teacher_id || '',
@@ -201,7 +202,7 @@ const RankingPage: React.FC = () => {
     try {
       const { data: profilesData, error: profilesError } = await supabase
         .from('student_profiles')
-        .select('id, display_name, username, teacher_id, class_id, school_id, avatar_url, coins')
+        .select('id, user_id, display_name, username, teacher_id, class_id, school_id, avatar_url, coins')
         .eq('school_id', schoolId);
 
       if (profilesError) throw profilesError;
@@ -210,12 +211,12 @@ const RankingPage: React.FC = () => {
         return;
       }
       
-      const profileIds = profilesData.map(p => p.id);
+      const profileUserIds = profilesData.map(p => p.user_id);
       
       const { data: pokemonCollections, error: pokemonError } = await supabase
         .from('pokemon_collections')
         .select('student_id')
-        .in('student_id', profileIds);
+        .in('student_id', profileUserIds);
 
       if (pokemonError) throw pokemonError;
 
@@ -227,11 +228,11 @@ const RankingPage: React.FC = () => {
       }
 
       const studentsWithPokemonCount = profilesData.map((p) => {
-        const pokemonCount = pokemonCounts.get(p.id) || 0;
+        const pokemonCount = pokemonCounts.get(p.user_id) || 0;
         const coins = p.coins || 0;
         
         return {
-          id: p.id,
+          id: p.user_id,
           username: p.username,
           displayName: p.display_name || p.username,
           teacherId: p.teacher_id || '',
