@@ -1,3 +1,4 @@
+
 import { SchoolPoolPokemon } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -78,4 +79,54 @@ export const getSchoolPokemonPool = async (schoolId: string): Promise<SchoolPool
     .filter((p): p is SchoolPoolPokemon => p !== null);
 
   return pool;
+};
+
+// Force update all school pools - refreshes all school Pokemon pools with new random selections
+export const forceUpdateAllSchoolPools = async (): Promise<boolean> => {
+  try {
+    console.log("Starting force update of all school Pokemon pools");
+    
+    // Get all schools
+    const { data: schools, error: schoolsError } = await supabase
+      .from('schools')
+      .select('id');
+    
+    if (schoolsError || !schools) {
+      console.error("Error fetching schools:", schoolsError);
+      return false;
+    }
+    
+    // For each school, delete existing pool and recreate it
+    for (const school of schools) {
+      try {
+        // Delete existing pool entries for this school
+        const { error: deleteError } = await supabase
+          .from('pokemon_pools')
+          .delete()
+          .eq('school_id', school.id);
+          
+        if (deleteError) {
+          console.error(`Error deleting pool for school ${school.id}:`, deleteError);
+          continue;
+        }
+        
+        // Reinitialize the pool
+        const success = await initializeSchoolPokemonPool(school.id);
+        if (!success) {
+          console.error(`Failed to reinitialize pool for school ${school.id}`);
+        } else {
+          console.log(`Successfully updated pool for school ${school.id}`);
+        }
+      } catch (error) {
+        console.error(`Error updating school ${school.id}:`, error);
+      }
+    }
+    
+    console.log("Completed force update of all school Pokemon pools");
+    return true;
+    
+  } catch (error) {
+    console.error("Error in forceUpdateAllSchoolPools:", error);
+    return false;
+  }
 };
