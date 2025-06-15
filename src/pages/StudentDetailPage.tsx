@@ -5,7 +5,7 @@ import StudentProfileBasicInfo from "@/components/student-profile/StudentProfile
 import StudentProfilePokemonList from "@/components/student-profile/StudentProfilePokemonList";
 import StudentProfileCoins from "@/components/student-profile/StudentProfileCoins";
 import StudentProfileAchievements from "@/components/student-profile/StudentProfileAchievements";
-import StudentProfileSchoolClasses from "@/components/student-profile/StudentProfileSchoolClasses";
+import SchoolClassInfo from "@/components/student/profile/SchoolClassInfo";
 import { ProfileHeader } from "@/components/student-profile/ProfileHeader";
 import { School, Users } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
@@ -253,34 +253,14 @@ const StudentDetailPage: React.FC = () => {
 
             {/* School & Classes section at the bottom */}
             <div className="mt-6 border-t pt-6" data-debug="school-and-classes">
-              <h3 className="font-bold text-lg mb-2">School & Classes</h3>
-              {school ? (
-                <div className="mb-3 flex items-center gap-2 text-blue-700 font-medium">
-                  <School className="h-5 w-5" />
-                  {school?.name || <span className="text-gray-500">No school name</span>}
-                </div>
-              ) : (
-                <div className="mb-3 text-gray-500">No school assigned</div>
-              )}
-              {classes.length > 0 ? (
-                <div className="flex flex-col gap-2">
-                  {classes.map((c) => (
-                    <div
-                      key={c.id}
-                      className="p-2 rounded bg-purple-100 text-purple-800 cursor-pointer hover:bg-purple-200 flex items-center gap-2"
-                      onClick={() => navigate(`/class/${c.id}`)}
-                    >
-                      <Users className="w-4 h-4" />
-                      <span className="font-medium">{c.name}</span>
-                      {c.description && (
-                        <span className="text-xs text-gray-500 ml-2">{c.description}</span>
-                      )}
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="text-gray-500">Not assigned to any classes</div>
-              )}
+              <SchoolClassInfo
+                school={school ? { id: school.id, name: school.name } : undefined}
+                classes={classes.map((c: any) => ({
+                  id: c.id,
+                  name: c.name,
+                  description: c.description,
+                }))}
+              />
             </div>
           </CardContent>
         </Card>

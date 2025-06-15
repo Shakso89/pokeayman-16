@@ -50,13 +50,20 @@ const SchoolClassInfo: React.FC<SchoolClassInfoProps> = ({
       <CardContent>
         <div className="space-y-4">
           {/* School Information */}
-          {school && (
+          {school ? (
             <div className="p-3 bg-blue-50 rounded-lg">
               <div className="flex items-center gap-2 mb-2">
                 <School className="h-4 w-4 text-blue-600" />
                 <span className="font-semibold text-blue-800">School</span>
               </div>
               <p className="text-blue-700 font-medium">{school.name}</p>
+            </div>
+          ) : (
+            <div className="p-3 bg-gray-100 rounded-lg">
+              <div className="flex items-center gap-2">
+                <School className="h-4 w-4 text-gray-500" />
+                <p className="font-medium text-gray-500">No school assigned</p>
+              </div>
             </div>
           )}
 
