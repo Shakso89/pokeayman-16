@@ -36,7 +36,7 @@ const StudentDetailPage: React.FC = () => {
     setLoading(true);
 
     const loadStudentData = async () => {
-      // Fetch student, school, profile, pokemons, achievements, streak in parallel
+      // Fetch student data first
       const { data: studentData, error: studentError } = await supabase
         .from('students')
         .select(`*, school:school_id (id, name)`)
@@ -53,34 +53,46 @@ const StudentDetailPage: React.FC = () => {
       setStudent(studentData);
       setSchool(studentData.school);
       
-      const [profile, pokemonCollection, achievements, streak] = await Promise.all([
-        getStudentProfileById(sid),
-        supabase.from('pokemon_collections').select('*').eq('student_id', sid),
-        supabase.from('achievements').select('*').eq('student_id', sid).eq('type', 'star_of_class').eq('is_active', true),
-        supabase.rpc('calculate_homework_streak', { p_student_id: sid })
-      ]);
+      // Then fetch the profile using the user id (sid)
+      const profile = await getStudentProfileById(sid);
       
       if (profile) {
         setCoins(profile.coins);
         setSpentCoins(profile.spent_coins);
-      }
       
-      if (pokemonCollection.data) {
-        setPokemons(pokemonCollection.data.map((p: any) => ({
-          id: p.pokemon_id,
-          name: p.pokemon_name,
-          image: p.pokemon_image,
-          type: p.pokemon_type,
-          rarity: p.pokemon_rarity
-        } as Pokemon)));
-      }
-      
-      if (achievements.data && achievements.data.length > 0) {
-        setIsStarOfClass(true);
-      }
-      
-      if (streak.data) {
-        setHomeworkStreak(streak.data);
+        // Once we have the profile, use profile.id to fetch related data
+        const [pokemonCollection, achievements, streak] = await Promise.all([
+          supabase.from('pokemon_collections').select('*').eq('student_id', profile.id),
+          supabase.from('achievements').select('*').eq('student_id', profile.id).eq('type', 'star_of_class').eq('is_active', true),
+          supabase.rpc('calculate_homework_streak', { p_student_id: profile.id })
+        ]);
+        
+        if (pokemonCollection.data) {
+          setPokemons(pokemonCollection.data.map((p: any) => ({
+            id: p.pokemon_id,
+            name: p.pokemon_name,
+            image: p.pokemon_image,
+            type: p.pokemon_type,
+            rarity: p.pokemon_rarity
+          } as Pokemon)));
+        }
+        
+        if (achievements.data && achievements.data.length > 0) {
+          setIsStarOfClass(true);
+        } else {
+          setIsStarOfClass(false);
+        }
+        
+        if (streak.data) {
+          setHomeworkStreak(streak.data);
+        }
+      } else {
+        // if no profile, reset related states
+        setPokemons([]);
+        setCoins(0);
+        setSpentCoins(0);
+        setIsStarOfClass(false);
+        setHomeworkStreak(0);
       }
 
       // Fetch classes from the join table first as the source of truth
