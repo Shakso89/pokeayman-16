@@ -2,7 +2,7 @@
 import React from "react";
 import { School, Users, Star } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 
 interface StudentProfileBasicInfoProps {
   displayName: string;
@@ -10,6 +10,7 @@ interface StudentProfileBasicInfoProps {
   school?: { id: string; name: string };
   classes: { id: string; name: string }[];
   isStarOfClass?: boolean;
+  userType?: 'student' | 'teacher';
 }
 
 const StudentProfileBasicInfo: React.FC<StudentProfileBasicInfoProps> = ({
@@ -17,9 +18,13 @@ const StudentProfileBasicInfo: React.FC<StudentProfileBasicInfoProps> = ({
   avatar,
   school,
   classes,
-  isStarOfClass = false
+  isStarOfClass = false,
+  userType = 'student'
 }) => {
-  const navigate = useNavigate();
+
+  const getClassPath = (classId: string) => {
+    return userType === 'teacher' ? `/class-details/${classId}` : `/student/class/${classId}`;
+  };
 
   return (
     <div className="flex flex-col items-center gap-3 pb-2 border-b mb-6">
@@ -36,23 +41,23 @@ const StudentProfileBasicInfo: React.FC<StudentProfileBasicInfoProps> = ({
         {displayName}
       </h2>
       {school && (
-        <div
+        <Link
+          to={`/school/${school.id}/classes`}
           className="flex items-center gap-2 text-blue-600 cursor-pointer hover:underline"
-          onClick={() => navigate(`/school/${school.id}`)}
         >
           <School className="h-5 w-5" /> <span>{school.name}</span>
-        </div>
+        </Link>
       )}
       <div className="w-full flex flex-wrap justify-center gap-2">
         {classes.map((c) => (
-          <div
+          <Link
             key={c.id}
-            onClick={() => navigate(`/class/${c.id}`)}
+            to={getClassPath(c.id)}
             className="px-3 py-1 rounded bg-purple-100 text-purple-700 cursor-pointer hover:bg-purple-200 flex items-center gap-1"
           >
             <Users className="w-4 h-4" />
             {c.name}
-          </div>
+          </Link>
         ))}
       </div>
     </div>

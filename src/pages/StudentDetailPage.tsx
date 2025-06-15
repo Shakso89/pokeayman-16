@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -264,6 +265,7 @@ const StudentDetailPage: React.FC = () => {
               school={school ? { id: school.id, name: school.name } : undefined}
               classes={classes.map((c: any) => ({ id: c.id, name: c.name }))}
               isStarOfClass={isStarOfClass}
+              userType={loggedInUserType as 'student' | 'teacher'}
             />
 
             <StudentProfileCoins coins={coins} />
