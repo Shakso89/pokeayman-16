@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -98,18 +97,15 @@ const StudentProfilePage: React.FC = () => {
         setHomeworkStreak(streak.data);
       }
 
-      // Fetch classes
+      // Fetch classes from the join table first as the source of truth
+      const { data: classAssignments } = await supabase.from('student_classes').select('class_id').eq('student_id', studentId);
       let classIds: string[] = [];
-      const studentClassId = studentData.class_id;
-      if (studentClassId) {
-        classIds = Array.isArray(studentClassId) ? studentClassId : String(studentClassId).split(',').map((id: string) => id.trim()).filter(Boolean);
-      }
-      
-      if (classIds.length === 0) {
-        const { data: classAssignments } = await supabase.from('student_classes').select('class_id').eq('student_id', studentId);
-        if (classAssignments) {
-            classIds = classAssignments.map(c => c.class_id);
-        }
+      if (classAssignments && classAssignments.length > 0) {
+          classIds = classAssignments.map(c => c.class_id);
+      } else if (studentData.class_id) {
+          // Fallback to the deprecated class_id field on students table
+          const studentClassId = studentData.class_id;
+          classIds = Array.isArray(studentClassId) ? studentClassId : String(studentClassId).split(',').map((id: string) => id.trim()).filter(Boolean);
       }
 
       if (classIds.length > 0) {

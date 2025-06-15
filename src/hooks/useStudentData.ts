@@ -34,21 +34,40 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
       }
 
       if (studentProfile) {
-        setProfile(studentProfile);
-        setCoins(studentProfile.coins);
-        setSpentCoins(studentProfile.spent_coins);
+        // Fetch all class enrollments for the student
+        const { data: classEnrollments } = await supabase
+          .from('student_classes')
+          .select('class_id')
+          .eq('student_id', studentId);
+
+        let classIds: string | null = null;
+        if (classEnrollments && classEnrollments.length > 0) {
+          classIds = classEnrollments.map(c => c.class_id).join(',');
+        } else if (studentProfile.class_id) {
+          // Fallback to single class_id from profile if no entries in student_classes
+          classIds = studentProfile.class_id;
+        }
+
+        const fullProfile = {
+          ...studentProfile,
+          class_id: classIds,
+        };
+
+        setProfile(fullProfile);
+        setCoins(fullProfile.coins);
+        setSpentCoins(fullProfile.spent_coins);
 
         // Load Pokemon collection
-        const pokemonCollection = await getStudentPokemonCollection(studentProfile.id);
+        const pokemonCollection = await getStudentPokemonCollection(fullProfile.id);
         setPokemons(pokemonCollection);
 
         // Load school name if school_id exists
-        if (studentProfile.school_id) {
+        if (fullProfile.school_id) {
           try {
             const { data: schoolData } = await supabase
               .from('schools')
               .select('name')
-              .eq('id', studentProfile.school_id)
+              .eq('id', fullProfile.school_id)
               .maybeSingle();
             
             if (schoolData) {
