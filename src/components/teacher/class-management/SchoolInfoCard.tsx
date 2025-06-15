@@ -12,9 +12,10 @@ interface SchoolInfoCardProps {
   schoolId: string;
   teacherId: string;
   isAdmin: boolean;
+  classId?: string;
 }
 
-const SchoolInfoCard: React.FC<SchoolInfoCardProps> = ({ schoolId, teacherId, isAdmin }) => {
+const SchoolInfoCard: React.FC<SchoolInfoCardProps> = ({ schoolId, teacherId, isAdmin, classId }) => {
   const { t } = useTranslation();
   const [schoolPoolOpen, setSchoolPoolOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -57,6 +58,11 @@ const SchoolInfoCard: React.FC<SchoolInfoCardProps> = ({ schoolId, teacherId, is
     } finally {
       setRefreshing(false);
     }
+  };
+
+  const handlePokemonGiven = () => {
+    // Callback when Pokemon is given to student
+    console.log("Pokemon was given to a student");
   };
 
   return (
@@ -113,6 +119,8 @@ const SchoolInfoCard: React.FC<SchoolInfoCardProps> = ({ schoolId, teacherId, is
         isOpen={schoolPoolOpen}
         onOpenChange={setSchoolPoolOpen}
         schoolId={schoolId}
+        classId={classId || ""}
+        onPokemonGiven={handlePokemonGiven}
       />
     </>
   );

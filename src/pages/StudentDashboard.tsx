@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -130,7 +129,13 @@ const StudentDashboard: React.FC = () => {
   const handleCollectionClick = () => {
     setActiveTab("my-pokemons");
   };
-  
+
+  const handlePokemonGiven = () => {
+    // Callback when Pokemon is given to student
+    console.log("Pokemon was given to a student from school pool");
+    loadSchoolPokemonPool();
+  };
+
   if (!isLoggedIn || userType !== "student") {
     return <Navigate to="/student-login" />;
   }
@@ -232,7 +237,9 @@ const StudentDashboard: React.FC = () => {
       <SchoolPokemonPoolDialog 
         isOpen={showSchoolPool} 
         onOpenChange={setShowSchoolPool} 
-        schoolId={schoolId} 
+        schoolId={schoolId}
+        classId={studentClasses.length > 0 ? studentClasses[0] : ""}
+        onPokemonGiven={handlePokemonGiven}
       />
     </div>
   );
