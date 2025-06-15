@@ -149,14 +149,19 @@ export const useClassDetails = () => {
         
       if (studentsError) throw studentsError;
       
-      // Add coin information to each student
-      const studentsWithCoins = (studentsData || []).map(student => {
-        const pokemonCollection = getStudentPokemonCollection(student.id);
+      // Add coin information to each student by fetching from student_profiles
+      const studentsWithCoins = await Promise.all((studentsData || []).map(async (student) => {
+        const { data: profile } = await supabase
+          .from('student_profiles')
+          .select('coins')
+          .eq('user_id', student.id)
+          .maybeSingle();
+        
         return {
           ...student,
-          coins: pokemonCollection?.coins || 0
+          coins: profile?.coins || 0
         };
-      });
+      }));
       
       setStudents(studentsWithCoins);
     } catch (error) {
@@ -172,13 +177,10 @@ export const useClassDetails = () => {
         const parsedStudents = JSON.parse(savedStudents);
         const classStudents = parsedStudents.filter((student: any) => 
           studentIds.includes(student.id)
-        ).map((student: any) => {
-          const pokemonCollection = getStudentPokemonCollection(student.id);
-          return {
-            ...student,
-            coins: pokemonCollection?.coins || 0
-          };
-        });
+        ).map((student: any) => ({
+          ...student,
+          coins: 0 // Default to 0 coins for localStorage fallback
+        }));
         setStudents(classStudents);
       } else {
         setStudents([]);

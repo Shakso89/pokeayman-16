@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -53,7 +54,7 @@ const StudentDetailPage: React.FC = () => {
       
       const [profile, pokemonCollection] = await Promise.all([
         getStudentProfileById(sid),
-        supabase.from('pokemon_collections').select('*').eq('student_id', sid)
+        supabase.from('pokemon_collections').select('*, pokemon_catalog!inner(*)').eq('student_id', sid)
       ]);
       
       if (profile) {
@@ -79,13 +80,15 @@ const StudentDetailPage: React.FC = () => {
       }
 
       if (pokemonCollection.data) {
-        setPokemons(pokemonCollection.data.map((p: any) => ({
-          id: p.pokemon_id,
-          name: p.pokemon_name,
-          image: p.pokemon_image,
-          type: p.pokemon_type,
-          rarity: p.pokemon_rarity
-        } as Pokemon)));
+        const formattedPokemons: Pokemon[] = pokemonCollection.data.map((item: any) => ({
+          id: item.pokemon_catalog.id,
+          name: item.pokemon_catalog.name,
+          image: item.pokemon_catalog.image,
+          type: item.pokemon_catalog.type,
+          rarity: item.pokemon_catalog.rarity,
+          powerStats: item.pokemon_catalog.power_stats
+        }));
+        setPokemons(formattedPokemons);
       } else {
         setPokemons([]);
       }

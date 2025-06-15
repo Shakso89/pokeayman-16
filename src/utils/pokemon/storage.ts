@@ -1,26 +1,19 @@
 
-import { PokemonPool, StudentPokemon } from "@/types/pokemon";
-
-// Get Pokemon pools from localStorage or create default ones
-export const getPokemonPools = (): PokemonPool[] => {
-  const savedPools = localStorage.getItem("pokemonPools");
-  if (savedPools) return JSON.parse(savedPools);
+// Remove unused imports since we're using the database now
+export const getPokemonPools = () => {
+  console.warn("getPokemonPools is deprecated - use database functions instead");
   return [];
 };
 
-// Save Pokemon pools to localStorage
-export const savePokemonPools = (pools: PokemonPool[]) => {
-  localStorage.setItem("pokemonPools", JSON.stringify(pools));
+export const savePokemonPools = () => {
+  console.warn("savePokemonPools is deprecated - use database functions instead");
 };
 
-// Get student Pokemons from localStorage
-export const getStudentPokemons = (): StudentPokemon[] => {
-  const savedStudentPokemons = localStorage.getItem("studentPokemons");
-  if (savedStudentPokemons) return JSON.parse(savedStudentPokemons);
+export const getStudentPokemons = () => {
+  console.warn("getStudentPokemons is deprecated - use database functions instead");
   return [];
 };
 
-// Save student Pokemons to localStorage
-export const saveStudentPokemons = (studentPokemons: StudentPokemon[]) => {
-  localStorage.setItem("studentPokemons", JSON.stringify(studentPokemons));
+export const saveStudentPokemons = () => {
+  console.warn("saveStudentPokemons is deprecated - use database functions instead");
 };

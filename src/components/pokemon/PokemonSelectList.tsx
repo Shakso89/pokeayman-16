@@ -51,7 +51,7 @@ const PokemonSelectList: React.FC<PokemonSelectListProps> = ({
         <SelectContent>
           <SelectGroup>
             {pokemons.map((pokemon) => (
-              <SelectItem key={pokemon.id} value={pokemon.id}>
+              <SelectItem key={pokemon.id} value={pokemon.id.toString()}>
                 <div className="flex items-center">
                   <span className="mr-2">{pokemon.name}</span>
                   <span className="text-xs text-gray-500">({pokemon.type})</span>

@@ -98,6 +98,15 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           if (student && !error) {
             setDisplayName(student.display_name || student.username || '');
             setOriginalDisplayName(student.display_name || student.username || '');
+            
+            // Load student coins from student_profiles
+            const { data: profile } = await supabase
+              .from('student_profiles')
+              .select('coins')
+              .eq('user_id', studentId)
+              .maybeSingle();
+            
+            setCoins(profile?.coins || 0);
             return;
           }
         } catch (error) {
@@ -113,11 +122,8 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           setAvatar(student.avatar || null);
         }
         
-        // Load student coins
-        const collection = getStudentPokemonCollection(studentId);
-        if (collection) {
-          setCoins(collection.coins || 0);
-        }
+        // Default coins to 0 for localStorage fallback
+        setCoins(0);
       }
     }
   };
