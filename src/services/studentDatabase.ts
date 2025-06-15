@@ -130,38 +130,34 @@ export const assignPokemonFromSchoolPool = async (
   pokemonRarity?: string
 ): Promise<{ success: boolean; pokemon?: Pokemon; isDuplicate?: boolean }> => {
   try {
-    // Step 1: Get count of available Pokemon from school pool
-    let countQuery = supabase
+    // Step 1: Get all available Pokemon IDs from the school pool
+    let idQuery = supabase
       .from('pokemon_pools')
-      .select('id', { count: 'exact', head: true })
+      .select('id')
       .eq('school_id', schoolId)
       .eq('available', true);
 
     if (pokemonRarity) {
-      countQuery = countQuery.eq('pokemon_rarity', pokemonRarity);
+      idQuery = idQuery.eq('pokemon_rarity', pokemonRarity);
     }
     
-    const { count, error: countError } = await countQuery;
+    const { data: availablePokemonIds, error: idsError } = await idQuery;
 
-    if (countError || !count || count === 0) {
-      console.error('No available Pokemon in school pool or error counting:', countError);
+    if (idsError || !availablePokemonIds || availablePokemonIds.length === 0) {
+      console.error('No available Pokemon in school pool or error fetching IDs:', idsError);
       return { success: false };
     }
 
-    // Step 2: Select a random Pokemon using offset
-    const randomIndex = Math.floor(Math.random() * count);
+    // Step 2: Select a random Pokemon ID from the list
+    const randomIndex = Math.floor(Math.random() * availablePokemonIds.length);
+    const randomPokemonPoolId = availablePokemonIds[randomIndex].id;
     
-    let query = supabase
+    // Step 3: Fetch the full data for the randomly selected Pokemon
+    const { data: randomPokemon, error: fetchError } = await supabase
       .from('pokemon_pools')
       .select('*')
-      .eq('school_id', schoolId)
-      .eq('available', true);
-
-    if (pokemonRarity) {
-      query = query.eq('pokemon_rarity', pokemonRarity);
-    }
-    
-    const { data: randomPokemon, error: fetchError } = await query.range(randomIndex, randomIndex).single();
+      .eq('id', randomPokemonPoolId)
+      .single();
 
     if (fetchError || !randomPokemon) {
       console.error('Error fetching random Pokemon from pool:', fetchError);
