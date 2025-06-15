@@ -7,6 +7,7 @@ import { Trophy } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PokemonList from "@/components/student/PokemonList";
 import { Card, CardContent } from "@/components/ui/card";
+import { supabase } from "@/integrations/supabase/client";
 
 interface StudentWithScore {
   id: string;
@@ -33,48 +34,86 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
     loadRankings();
   }, [classId]);
   
-  const loadRankings = () => {
+  const loadRankings = async () => {
     try {
-      // Load all students in this class
-      const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
-      const classStudents = allStudents.filter((s: Student) => s.classId === classId);
+      const { data: studentLinks, error: linksError } = await supabase
+        .from('student_classes')
+        .select('student_id')
+        .eq('class_id', classId);
+
+      if (linksError) throw linksError;
+      if (!studentLinks || studentLinks.length === 0) {
+        setStudents([]);
+        return;
+      }
       
-      console.log("Class students for ranking:", classStudents);
+      const studentIds = studentLinks.map(link => link.student_id);
+
+      const { data: studentsData, error: studentsError } = await supabase
+        .from('students')
+        .select('id, display_name, username')
+        .in('id', studentIds);
+
+      if (studentsError) throw studentsError;
+      if (!studentsData) {
+        setStudents([]);
+        return;
+      };
+
+      const studentUsernames = studentsData.map(s => s.username);
       
-      // Get Pokemon counts and coins for each student
-      const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
-      
-      const studentsWithScore = classStudents.map((s: Student) => {
-        const pokemonData = studentPokemons.find((p: any) => p.studentId === s.id);
-        const pokemonCount = pokemonData ? (pokemonData.pokemons || []).length : 0;
-        const coins = pokemonData ? pokemonData.coins : 0;
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('student_profiles')
+        .select('username, coins, avatar_url')
+        .in('username', studentUsernames);
         
-        // Calculate total score (pokemon count + coins/10)
+      if (profilesError) throw profilesError;
+
+      const profilesMap = new Map<string, { coins: number, avatar_url?: string }>();
+      if (profilesData) {
+        profilesData.forEach(p => profilesMap.set(p.username, { coins: p.coins || 0, avatar_url: p.avatar_url || undefined }));
+      }
+      
+      const { data: pokemonCollections, error: pokemonError } = await supabase
+        .from('pokemon_collections')
+        .select('student_id')
+        .in('student_id', studentIds);
+
+      if (pokemonError) throw pokemonError;
+
+      const pokemonCounts = new Map<string, number>();
+      if (pokemonCollections) {
+        pokemonCollections.forEach(p => {
+          pokemonCounts.set(p.student_id, (pokemonCounts.get(p.student_id) || 0) + 1);
+        });
+      }
+
+      const studentsWithScore = studentsData.map((s) => {
+        const profile = profilesMap.get(s.username);
+        const pokemonCount = pokemonCounts.get(s.id) || 0;
+        const coins = profile?.coins || 0;
+        
         const totalScore = pokemonCount + Math.floor(coins / 10);
         
         return {
           id: s.id,
-          displayName: s.displayName,
+          displayName: s.display_name || s.username,
           username: s.username,
-          avatar: s.avatar,
+          avatar: profile?.avatar_url,
           pokemonCount,
           coins,
-          totalScore
+          totalScore,
+          rank: 0
         };
       });
       
-      // Sort by total score
       const sortedStudents = studentsWithScore.sort((a, b) => b.totalScore - a.totalScore);
       
-      // Add rank
       const rankedStudents = sortedStudents.map((student, index) => ({
         ...student,
         rank: index + 1
       }));
       
-      console.log("Ranked students:", rankedStudents);
-      
-      // Only show top 10
       setStudents(rankedStudents.slice(0, 10));
       
     } catch (error) {
@@ -83,19 +122,27 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
     }
   };
   
-  const handleStudentClick = (student: StudentWithScore) => {
+  const handleStudentClick = async (student: StudentWithScore) => {
     setSelectedStudent(student);
-    
-    // Load student's Pokemon
     try {
-      const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
-      const pokemonData = studentPokemons.find((p: any) => p.studentId === student.id);
+      const { data, error } = await supabase
+        .from('pokemon_collections')
+        .select('pokemon_id, pokemon_name, pokemon_image, pokemon_type, pokemon_rarity')
+        .eq('student_id', student.id);
       
-      if (pokemonData && pokemonData.pokemons) {
-        setStudentPokemons(pokemonData.pokemons);
-      } else {
-        setStudentPokemons([]);
-      }
+      if (error) throw error;
+      
+      const pokemons: Pokemon[] = data 
+        ? data.map(p => ({
+            id: p.pokemon_id!,
+            name: p.pokemon_name,
+            image: p.pokemon_image || undefined,
+            type: p.pokemon_type || 'normal',
+            rarity: p.pokemon_rarity || 'common'
+          }))
+        : [];
+      
+      setStudentPokemons(pokemons);
     } catch (error) {
       console.error("Error loading student pokemon:", error);
       setStudentPokemons([]);
@@ -187,5 +234,3 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
     </Card>
   );
 };
-
-export default ClassRankingTab;
