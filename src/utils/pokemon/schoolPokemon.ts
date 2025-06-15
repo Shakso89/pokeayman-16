@@ -32,14 +32,21 @@ export const initializeSchoolPokemonPool = async (schoolId: string): Promise<boo
     return false;
   }
   
-  const pokemonsToInsert: { school_id: string; pokemon_id: number; }[] = [];
-  for (let i = 0; i < 500; i++) {
-    const randomPokemon = catalog[Math.floor(Math.random() * catalog.length)];
-    pokemonsToInsert.push({
-      school_id: schoolId,
-      pokemon_id: randomPokemon.id
-    });
+  // Shuffle the catalog to get a random order of unique Pokemon
+  const shuffledCatalog = [...catalog];
+  for (let i = shuffledCatalog.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffledCatalog[i], shuffledCatalog[j]] = [shuffledCatalog[j], shuffledCatalog[i]];
   }
+
+  // Take the first 500 unique pokemon, or all if the catalog is smaller
+  const poolSize = Math.min(500, shuffledCatalog.length);
+  const selectedPokemon = shuffledCatalog.slice(0, poolSize);
+
+  const pokemonsToInsert = selectedPokemon.map(pokemon => ({
+    school_id: schoolId,
+    pokemon_id: pokemon.id,
+  }));
   
   const { error: insertError } = await supabase
     .from('pokemon_pools')
@@ -50,7 +57,7 @@ export const initializeSchoolPokemonPool = async (schoolId: string): Promise<boo
     return false;
   }
   
-  console.log(`Initialized Pokemon pool for school ${schoolId} with 500 Pokemon`);
+  console.log(`Initialized Pokemon pool for school ${schoolId} with ${poolSize} unique Pokemon`);
   return true;
 };
 
@@ -97,8 +104,8 @@ export const getSchoolPokemonPool = async (schoolId: string): Promise<SchoolPool
 };
 
 // Force update all school pools - regenerate Pokemon pools for all schools
-export const forceUpdateAllSchoolPools = async (poolSize: number = 500): Promise<boolean> => {
-  console.log(`Force updating all school pools with ${poolSize} Pokemon each`);
+export const forceUpdateAllSchoolPools = async (): Promise<boolean> => {
+  console.log(`Force updating all school pools`);
   
   try {
     // Get all schools

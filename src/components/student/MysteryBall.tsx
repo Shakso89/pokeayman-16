@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Pokemon } from "@/types/pokemon";
 import { useToast } from "@/hooks/use-toast";
-import { assignRandomPokemonToStudent, useStudentCoin } from "@/utils/pokemon";
+import { assignRandomPokemonToStudent } from "@/utils/pokemon";
 import MysteryBallResult from "./MysteryBallResult";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { v4 as uuidv4 } from "uuid";
