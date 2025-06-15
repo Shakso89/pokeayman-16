@@ -1,9 +1,27 @@
+
 import { SchoolPoolPokemon } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
 
 // Initialize school Pokemon pool in Supabase with 500 Pokemon.
 export const initializeSchoolPokemonPool = async (schoolId: string): Promise<boolean> => {
   console.log(`Initializing Pokemon pool for school ${schoolId}`);
+  
+  // First check if school already has a pool to avoid duplicates
+  const { data: existingPool, error: checkError } = await supabase
+    .from('pokemon_pools')
+    .select('id')
+    .eq('school_id', schoolId)
+    .limit(1);
+  
+  if (checkError) {
+    console.error("Error checking existing pool:", checkError);
+    return false;
+  }
+  
+  if (existingPool && existingPool.length > 0) {
+    console.log(`School ${schoolId} already has a Pokemon pool, skipping initialization`);
+    return true;
+  }
   
   const { data: catalog, error: catalogError } = await supabase
     .from('pokemon_catalog')

@@ -1,3 +1,4 @@
+
 import { Pokemon, StudentCollectionPokemon } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -174,11 +175,4 @@ export const awardCoinsToStudent = async (studentId: string, amount: number): Pr
     console.error("Error awarding coins to student:", error);
     return false;
   }
-};
-
-// Use/spend student coins
-export const useStudentCoin = (studentId: string, amount: number): boolean => {
-  // This is a simplified implementation - in a real app you'd want to check current coins first
-  console.log(`Using ${amount} coins for student ${studentId}`);
-  return true;
 };

@@ -179,7 +179,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
               createdSchools.push(data[0]);
               
               // Initialize Pokemon pool for the new school
-              initializeSchoolPokemonPool(schoolId);
+              await initializeSchoolPokemonPool(schoolId);
             }
           }
         } catch (schoolError) {
@@ -190,7 +190,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
       if (createdSchools.length > 0) {
         toast({
           title: "Schools created",
-          description: `Created ${createdSchools.length} predefined schools.`,
+          description: `Created ${createdSchools.length} predefined schools with Pokemon pools.`,
         });
         
         // Update local state with new schools
@@ -266,7 +266,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
       console.log("School created successfully:", data);
       
       // Initialize Pokemon pool for the new school
-      initializeSchoolPokemonPool(schoolId);
+      await initializeSchoolPokemonPool(schoolId);
 
       // Reset input field
       setNewSchool({ name: "" });
@@ -278,7 +278,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({ onBack, onSelectSch
       
       toast({
         title: t("success"),
-        description: t("school-created"),
+        description: t("school-created") + " with 500 Pokemon pool.",
       });
     } catch (error: any) {
       console.error("Error creating school:", error);
