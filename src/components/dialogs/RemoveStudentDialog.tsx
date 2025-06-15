@@ -19,19 +19,24 @@ const RemoveStudentDialog: React.FC<RemoveStudentDialogProps> = ({
 }) => {
   const { t } = useTranslation();
   
+  const handleConfirm = () => {
+    onConfirm();
+    onOpenChange(false);
+  };
+  
   return (
     <AlertDialog open={isOpen} onOpenChange={onOpenChange}>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{t("remove-student")}</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to remove {studentName} from this class?
+            Are you sure you want to remove {studentName} from this class? This action will permanently remove the student from the class and update the database.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
           <AlertDialogCancel>{t("cancel")}</AlertDialogCancel>
           <AlertDialogAction 
-            onClick={onConfirm}
+            onClick={handleConfirm}
             className="bg-red-600 hover:bg-red-700"
           >
             {t("remove")}

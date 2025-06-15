@@ -45,7 +45,6 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
   const [schoolPoolDialogOpen, setSchoolPoolDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
-  // Management dialogs state
   const [managePokemonDialog, setManagePokemonDialog] = useState({
     open: false,
     studentId: "",
@@ -95,9 +94,12 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
       const studentToRemove = students.find(s => s.id === studentId);
       const studentName = studentToRemove?.display_name || studentToRemove?.username || removeStudentDialog.studentName || 'a student';
       
+      console.log("Removing student from class:", { classId, studentId, studentName });
+      
       const success = await removeStudentFromClass(classId, studentId);
 
       if (success) {
+        // Log the activity
         await logActivity(
           teacherId,
           'removed_student_from_class',
@@ -105,8 +107,8 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
             studentId, 
             studentName, 
             classId, 
-            schoolId: classData.schoolId, 
-            className: classData.name 
+            className: classData?.name,
+            schoolId: classData?.schoolId
           }
         );
 
@@ -115,7 +117,10 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
           description: t("student-removed-successfully")
         });
 
+        // Refresh the class details to update the UI
         fetchClassDetails();
+        
+        // Close the dialog
         setRemoveStudentDialog({
           open: false,
           studentId: "",
@@ -137,7 +142,6 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
   const handleAddStudents = async (studentIds: string[]) => {
     if (!classId || !studentIds.length) return;
     try {
-      // Add students to the student_classes join table
       const studentClassEntries = studentIds.map(studentId => ({
         student_id: studentId,
         class_id: classId
@@ -165,7 +169,6 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
   };
 
   const handleGiveCoins = () => {
-    // Refresh class details to update coin display
     fetchClassDetails();
     setGiveCoinsDialog({
       open: false,
@@ -175,7 +178,6 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
   };
 
   const handleRemoveCoins = () => {
-    // Refresh class details to update coin display
     fetchClassDetails();
     setRemoveCoinsDialog({
       open: false,
@@ -189,7 +191,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
       title: t("success"),
       description: t("pokemon-removed-successfully")
     });
-    fetchClassDetails(); // Refresh to update pokemon counts
+    fetchClassDetails();
   };
 
   const handleSwitchToHomework = () => {
@@ -197,6 +199,10 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
   };
 
   const handleAssistantAdded = (assistantId: string) => {
+    fetchClassDetails();
+  };
+
+  const handleAssistantRemoved = () => {
     fetchClassDetails();
   };
 
@@ -277,7 +283,11 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
               </div>
               
               <div className="lg:col-span-1">
-                <ClassTeachers classData={classData} />
+                <ClassTeachers 
+                  classData={classData} 
+                  canRemoveAssistants={isClassCreator()}
+                  onAssistantRemoved={handleAssistantRemoved}
+                />
               </div>
             </div>
           </div>

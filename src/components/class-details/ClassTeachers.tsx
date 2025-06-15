@@ -21,12 +21,17 @@ interface ClassTeachersProps {
   classData: {
     teacherId: string | null;
     assistants: string[];
-    id?: string; // for assistant removal
+    id?: string;
   };
-  canRemoveAssistants?: boolean; // manager or owner
+  canRemoveAssistants?: boolean;
+  onAssistantRemoved?: () => void;
 }
 
-const ClassTeachers: React.FC<ClassTeachersProps> = ({ classData, canRemoveAssistants = false }) => {
+const ClassTeachers: React.FC<ClassTeachersProps> = ({ 
+  classData, 
+  canRemoveAssistants = false, 
+  onAssistantRemoved 
+}) => {
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [loading, setLoading] = useState(true);
   const [removing, setRemoving] = useState<string | null>(null);
@@ -77,7 +82,6 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({ classData, canRemoveAssis
     };
 
     loadTeachers();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [classData.teacherId, classData.assistants]);
 
   const handleRemoveAssistant = async (assistantId: string) => {
@@ -89,6 +93,7 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({ classData, canRemoveAssis
       });
       return;
     }
+    
     setRemoving(assistantId);
     try {
       const success = await removeAssistantFromClass(classData.id, assistantId);
@@ -97,11 +102,14 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({ classData, canRemoveAssis
           title: "Assistant removed",
           description: "The assistant has been removed from the class.",
         });
-        // Remove assistant locally and reload teachers
-        const newAssistants = (classData.assistants || []).filter(id => id !== assistantId);
+        
+        // Remove assistant locally
         setTeachers(prev => prev.filter(t => t.id !== assistantId));
-        classData.assistants = newAssistants;
-        // Optionally reload data from backend or refetch via parent
+        
+        // Notify parent component
+        if (onAssistantRemoved) {
+          onAssistantRemoved();
+        }
       } else {
         toast({
           title: "Error",
@@ -110,6 +118,7 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({ classData, canRemoveAssis
         });
       }
     } catch (error) {
+      console.error("Error removing assistant:", error);
       toast({
         title: "Error",
         description: "An error occurred while removing assistant.",
@@ -196,15 +205,15 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({ classData, canRemoveAssis
                     </div>
                     {canRemoveAssistants && (
                       <Button
-                        size="icon"
-                        variant="ghost"
+                        size="sm"
+                        variant="destructive"
                         className="ml-2"
                         title="Remove Assistant"
                         onClick={() => handleRemoveAssistant(teacher.id)}
                         disabled={removing === teacher.id}
                       >
-                        <UserMinus className="h-5 w-5 text-red-500" />
-                        <span className="sr-only">Remove Assistant</span>
+                        <UserMinus className="h-4 w-4 mr-1" />
+                        Remove
                       </Button>
                     )}
                   </div>
@@ -226,4 +235,3 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({ classData, canRemoveAssis
 };
 
 export default ClassTeachers;
-
