@@ -70,7 +70,7 @@ const ProfileTab: React.FC<ProfileTabProps> = ({
     onClose(); // Close the modal
     
     if (userType === "teacher") {
-      navigate(`/teacher-profile`);
+      navigate(`/teacher-profile/${userId}`);
     } else {
       navigate(`/student/profile/${userId}`);
     }
