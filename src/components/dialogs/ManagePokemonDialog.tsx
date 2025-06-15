@@ -7,7 +7,7 @@ import { Trash2, ArrowLeft, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { removePokemonFromStudentAndReturnToPool, assignPokemonToStudent } from "@/utils/pokemon/studentPokemon";
-import { getSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
+import { getSchoolPokemonPool, initializeSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
 import { Pokemon } from "@/types/pokemon";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
@@ -68,8 +68,12 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
       }));
       setStudentPokemons(pokemons);
 
-      const pool = getSchoolPokemonPool(schoolId);
-      setSchoolPool(pool?.availablePokemons || []);
+      let pool = await getSchoolPokemonPool(schoolId);
+      if (!pool || pool.length === 0) {
+        console.log("School pool not found or empty, initializing for school:", schoolId);
+        pool = await initializeSchoolPokemonPool(schoolId, 500);
+      }
+      setSchoolPool(pool || []);
     } catch (error) {
       console.error("Error fetching Pokemon data:", error);
       setStudentPokemons([]);
@@ -201,7 +205,11 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
         
         <div className="space-y-4">
           <h4 className="font-semibold">Student's Collection ({studentPokemons.length})</h4>
-          {studentPokemons.length === 0 ? (
+          {loading ? (
+            <div className="text-center py-8">
+                <p>Loading student's pokemon...</p>
+            </div>
+          ) : studentPokemons.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-500">This student has no Pokemon yet.</p>
             </div>
@@ -256,7 +264,11 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
             <p className="text-sm text-gray-500">
               {schoolPool.length} Pokémon remaining in the school pool.
             </p>
-            {schoolPool.length === 0 ? (
+            {loading ? (
+                <div className="text-center py-8">
+                    <p>Loading school pool...</p>
+                </div>
+            ) : schoolPool.length === 0 ? (
               <div className="text-center py-8">
                 <p className="text-gray-500">The school pool is empty.</p>
               </div>

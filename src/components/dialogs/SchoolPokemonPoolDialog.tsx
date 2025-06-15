@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/hooks/useTranslation";
-import { supabase } from "@/integrations/supabase/client";
+import { getSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
 import { Pokemon } from "@/types/pokemon";
 
 interface SchoolPokemonPoolDialogProps {
@@ -32,23 +31,8 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
   const fetchSchoolPool = async () => {
     setLoading(true);
     try {
-      const { data, error } = await supabase
-        .from('pokemon_pools')
-        .select('*')
-        .eq('school_id', schoolId)
-        .eq('available', true);
-
-      if (error) throw error;
-
-      const pokemonData: Pokemon[] = data.map(item => ({
-        id: item.pokemon_id,
-        name: item.pokemon_name,
-        image: item.pokemon_image || '',
-        type: item.pokemon_type || '',
-        rarity: item.pokemon_rarity as any || 'common'
-      }));
-
-      setPokemonPool(pokemonData);
+      const pokemonData = await getSchoolPokemonPool(schoolId);
+      setPokemonPool(pokemonData || []);
     } catch (error) {
       console.error("Error fetching school pokemon pool:", error);
       setPokemonPool([]);

@@ -1,7 +1,7 @@
 import { Pokemon, StudentPokemon } from "@/types/pokemon";
 import { getStudentPokemons, saveStudentPokemons } from "./storage";
 import { getPokemonPools, savePokemonPools } from "./storage";
-import { initializeSchoolPokemonPool } from "./schoolPokemon";
+import { initializeSchoolPokemonPool, getSchoolPokemonPool } from "./schoolPokemon";
 import { handlePokemonDuplicate } from "./duplicateHandler";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -127,45 +127,52 @@ export const removePokemonFromStudentAndReturnToPool = async (
     }
   }
 
-  // Get school pool
-  const pokemonPools = getPokemonPools();
-  let schoolPoolIndex = pokemonPools.findIndex(pool => pool.schoolId === schoolId);
+  const pokemon: Pokemon = {
+    id: pokemonToRemove ? pokemonToRemove.pokemon_id : pokemonId,
+    name: pokemonToRemove ? pokemonToRemove.pokemon_name : 'Unknown',
+    image: pokemonToRemove ? pokemonToRemove.pokemon_image || '' : '',
+    type: pokemonToRemove ? pokemonToRemove.pokemon_type || '' : '',
+    rarity: (pokemonToRemove ? pokemonToRemove.pokemon_rarity as any : 'common') || 'common',
+    level: pokemonToRemove ? pokemonToRemove.pokemon_level || 1 : 1,
+  };
 
-  // Initialize pool if it doesn't exist
-  if (schoolPoolIndex < 0) {
-    console.log("School pool not found, initializing for school:", schoolId);
-    const newPool = initializeSchoolPokemonPool(schoolId, 500);
-    if (newPool) {
-      pokemonPools.push(newPool);
-      schoolPoolIndex = pokemonPools.length - 1;
-    } else {
-      console.error("Failed to initialize school pool");
-      return false;
+  // Add the Pokemon back to the school pool in Supabase
+  const { data: inPool, error: poolCheckError } = await supabase
+    .from('pokemon_pools')
+    .select('id, available')
+    .eq('school_id', schoolId)
+    .eq('pokemon_id', pokemon.id)
+    .maybeSingle();
+
+  if (poolCheckError) {
+    console.error("Error checking for pokemon in pool", poolCheckError);
+  }
+
+  if (inPool) {
+    if (!inPool.available) {
+      const { error } = await supabase.from('pokemon_pools').update({ available: true, assigned_to: null, assigned_at: null }).eq('id', inPool.id);
+      if (error) {
+        console.error('Error making pokemon available again in pool', error);
+      }
+    }
+  } else {
+    const { error } = await supabase.from('pokemon_pools').insert({
+      school_id: schoolId,
+      pokemon_id: pokemon.id,
+      pokemon_name: pokemon.name,
+      pokemon_image: pokemon.image,
+      pokemon_type: pokemon.type,
+      pokemon_rarity: pokemon.rarity,
+      pokemon_level: pokemon.level,
+      available: true
+    });
+    if (error) {
+      console.error('Error inserting pokemon back to pool', error);
     }
   }
-  
-  if (schoolPoolIndex >= 0) {
-    const pokemon: Pokemon = {
-      id: pokemonToRemove ? pokemonToRemove.pokemon_id : pokemonId,
-      name: pokemonToRemove ? pokemonToRemove.pokemon_name : 'Unknown',
-      image: pokemonToRemove ? pokemonToRemove.pokemon_image || '' : '',
-      type: pokemonToRemove ? pokemonToRemove.pokemon_type || '' : '',
-      rarity: (pokemonToRemove ? pokemonToRemove.pokemon_rarity as any : 'common') || 'common',
-      level: pokemonToRemove ? pokemonToRemove.pokemon_level || 1 : 1,
-    };
-    // Add the Pokemon back to the school pool
-    pokemonPools[schoolPoolIndex].availablePokemons.push(pokemon);
-    pokemonPools[schoolPoolIndex].lastUpdated = new Date().toISOString();
 
-    // Update pools in localStorage
-    savePokemonPools(pokemonPools);
-
-    console.log("Pokemon returned to school pool:", pokemon.name);
-    return true;
-  }
-
-  console.error("Failed to return Pokemon to school pool");
-  return false;
+  console.log("Pokemon returned to school pool:", pokemon.name);
+  return true;
 };
 
 // Remove coins from a student
@@ -223,29 +230,27 @@ export const assignPokemonToStudent = async (schoolId: string, studentId: string
 
   console.log("Assigning Pokemon to student:", { schoolId, studentId, pokemonId });
 
-  const pools = getPokemonPools();
-  let poolIndex = pools.findIndex(p => p.schoolId === schoolId);
+  const { data: pokemonInPool, error: poolError } = await supabase
+    .from('pokemon_pools')
+    .select('*')
+    .eq('school_id', schoolId)
+    .eq('pokemon_id', pokemonId)
+    .eq('available', true)
+    .maybeSingle();
 
-  // Initialize pool if it doesn't exist
-  if (poolIndex < 0) {
-    console.log("School pool not found, initializing for school:", schoolId);
-    const newPool = initializeSchoolPokemonPool(schoolId, 500);
-    if (newPool) {
-      pools.push(newPool);
-      poolIndex = pools.length - 1;
-    } else {
-      console.error("Failed to initialize school pool");
-      return { success: false, isDuplicate: false };
-    }
-  }
-  
-  const pokemonIndex = pools[poolIndex].availablePokemons.findIndex(p => p.id === pokemonId);
-  if (pokemonIndex < 0) {
-    console.error("Pokemon not found in school pool:", pokemonId);
+  if (poolError || !pokemonInPool) {
+    console.error("Pokemon not found in school pool or error occurred:", pokemonId, poolError);
     return { success: false, isDuplicate: false };
   }
-
-  const pokemon = pools[poolIndex].availablePokemons[pokemonIndex];
+  
+  const pokemon: Pokemon = {
+    id: pokemonInPool.pokemon_id,
+    name: pokemonInPool.pokemon_name,
+    image: pokemonInPool.pokemon_image || '',
+    type: pokemonInPool.pokemon_type || '',
+    rarity: (pokemonInPool.pokemon_rarity as any) || 'common',
+    level: pokemonInPool.pokemon_level || 1,
+  };
 
   // Check for duplicates in Supabase
   const { data: existingPokemon, error: checkError } = await supabase
@@ -283,10 +288,17 @@ export const assignPokemonToStudent = async (schoolId: string, studentId: string
     return { success: true, isDuplicate: true };
   }
 
-  // Remove Pokemon from pool only if not a duplicate
-  pools[poolIndex].availablePokemons.splice(pokemonIndex, 1);
-  pools[poolIndex].lastUpdated = new Date().toISOString();
-  savePokemonPools(pools);
+  // Mark Pokemon as unavailable in pool
+  const { error: updatePoolError } = await supabase
+    .from('pokemon_pools')
+    .update({ available: false, assigned_to: studentId, assigned_at: new Date().toISOString() })
+    .eq('id', pokemonInPool.id);
+
+  if (updatePoolError) {
+    console.error("Error updating pokemon in pool:", updatePoolError);
+    return { success: false, isDuplicate: false };
+  }
+
 
   // Add Pokemon to student in Supabase
   const { error: insertError } = await supabase.from("pokemon_collections").insert({
@@ -301,8 +313,8 @@ export const assignPokemonToStudent = async (schoolId: string, studentId: string
 
   if (insertError) {
     console.error("Error assigning pokemon in supabase:", insertError);
-    pools[poolIndex].availablePokemons.splice(pokemonIndex, 0, pokemon); // Rollback
-    savePokemonPools(pools);
+    // Rollback pool update
+    await supabase.from('pokemon_pools').update({ available: true, assigned_to: null, assigned_at: null }).eq('id', pokemonInPool.id);
     return { success: false, isDuplicate: false };
   }
   

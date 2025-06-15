@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/hooks/useTranslation";
-import { getSchoolPokemonPool, initializeSchoolPokemonPool, updateAllSchoolPoolsTo500 } from "@/utils/pokemon/schoolPokemon";
+import { getSchoolPokemonPool, initializeSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
 import { Pokemon } from "@/types/pokemon";
 
 interface SchoolPoolDialogProps {
@@ -29,69 +29,31 @@ const SchoolPoolDialog: React.FC<SchoolPoolDialogProps> = ({
   const [pokemonPool, setPokemonPool] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(false);
 
-  // Add an effect to update when dialog is re-opened (after giving or returning Pokemon)
   useEffect(() => {
     if (open && schoolId) {
       fetchSchoolPool();
     }
-    // Also listen for localStorage changes (when Pokemon are given/returned)
-    const onStorage = () => fetchSchoolPool();
-    window.addEventListener("storage", onStorage);
-    return () => window.removeEventListener("storage", onStorage);
-    // eslint-disable-next-line
   }, [open, schoolId]);
 
-  const fetchSchoolPool = () => {
+  const fetchSchoolPool = async () => {
     setLoading(true);
     try {
       console.log("Fetching school pool for schoolId:", schoolId);
       
-      // First, ensure all school pools are updated to have 500 Pokemon
-      updateAllSchoolPoolsTo500();
+      let pool = await getSchoolPokemonPool(schoolId);
+      console.log("Retrieved pool from Supabase:", pool);
       
-      // Try to get the existing pool
-      let pool = getSchoolPokemonPool(schoolId);
-      console.log("Retrieved pool:", pool);
-      
-      // If no pool exists, initialize it
-      if (!pool) {
-        console.log("No pool found, initializing new pool for school:", schoolId);
-        pool = initializeSchoolPokemonPool(schoolId, 500);
+      if (!pool || pool.length === 0) {
+        console.log("No pool found in Supabase, initializing new pool for school:", schoolId);
+        pool = await initializeSchoolPokemonPool(schoolId, 500);
         console.log("Initialized new pool:", pool);
       }
 
-      if (pool && pool.availablePokemons && Array.isArray(pool.availablePokemons)) {
-        console.log("Setting pokemon pool with", pool.availablePokemons.length, "pokemon");
-        setPokemonPool(pool.availablePokemons);
-      } else if (Array.isArray(pool)) {
-        console.log("Pool is array format, setting directly");
-        setPokemonPool(pool);
-      } else {
-        console.warn("Invalid or empty pool data:", pool);
-        
-        // Force create a new pool if we still don't have valid data
-        const newPool = initializeSchoolPokemonPool(schoolId, 500);
-        if (newPool && newPool.availablePokemons) {
-          setPokemonPool(newPool.availablePokemons);
-        } else {
-          setPokemonPool([]);
-        }
-      }
+      setPokemonPool(pool || []);
+      
     } catch (error) {
       console.error("Error fetching school pool:", error);
-      
-      // Try to recover by creating a new pool
-      try {
-        const recoveryPool = initializeSchoolPokemonPool(schoolId, 500);
-        if (recoveryPool && recoveryPool.availablePokemons) {
-          setPokemonPool(recoveryPool.availablePokemons);
-        } else {
-          setPokemonPool([]);
-        }
-      } catch (recoveryError) {
-        console.error("Recovery attempt failed:", recoveryError);
-        setPokemonPool([]);
-      }
+      setPokemonPool([]);
     } finally {
       setLoading(false);
     }
