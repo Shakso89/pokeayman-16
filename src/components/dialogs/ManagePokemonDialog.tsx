@@ -83,7 +83,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
       if (success) {
         toast({
           title: t("success"),
-          description: `${pokemonName} has been removed and returned to school pool`
+          description: `${pokemonName} has been removed.`
         });
         
         fetchData();
@@ -150,7 +150,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
     setAssigningPokemon(true);
     try {
-      const result = await assignSpecificPokemonToStudent(pokemon.poolEntryId, pokemon.id, schoolId, studentId);
+      const result = await assignSpecificPokemonToStudent(pokemon.id, schoolId, studentId);
 
       if (result.success && result.pokemon) {
         toast({
@@ -162,7 +162,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
       } else {
         toast({
           title: t("error"),
-          description: "Failed to assign Pokemon. The school pool might be empty or this Pokemon was already assigned.",
+          description: `Failed to assign Pokemon. ${result.error ? `Reason: ${result.error}` : 'Please try again.'}`,
           variant: "destructive",
         });
       }
@@ -256,7 +256,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
                           className="w-full mt-2"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Remove & Return to Pool
+                          Remove
                         </Button>
                       )}
                     </div>

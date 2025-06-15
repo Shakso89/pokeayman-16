@@ -178,7 +178,6 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
     setLoading(true);
     try {
       const result = await assignSpecificPokemonToStudent(
-        pokemon.poolEntryId,
         pokemon.id,
         schoolId,
         selectedStudent.id
@@ -241,7 +240,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
       if (success) {
         toast({
           title: t("success"),
-          description: `${pokemonName} removed and returned to school pool`
+          description: `${pokemonName} has been removed from the student's collection.`
         });
         fetchStudentPokemons();
         fetchSchoolPool();

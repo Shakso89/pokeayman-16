@@ -18,7 +18,6 @@ const getStudentProfileId = async (userId: string): Promise<string | null> => {
 
 // Assigns (copies) a Pokemon from the static school pool (by id) to a student.
 export const assignSpecificPokemonToStudent = async (
-  poolEntryId: string,
   pokemonId: number,
   schoolId: string,
   studentId: string
