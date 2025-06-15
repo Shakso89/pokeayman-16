@@ -118,7 +118,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
     try {
       const result = await assignRandomPokemonToStudent(schoolId, selectedStudent.id);
 
-      if (result && result.error === "profile") {
+      if (result && result.error === "profile_missing") {
         toast({
           title: t("error"),
           description: "Student does not have a profile. Ask them to log in at least once before assigning Pokémon.",
@@ -130,13 +130,13 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
           description: "No Pokémon left in school pool. Please refresh the pool.",
           variant: "destructive"
         });
-      } else if (result && result.error === "assign_failed") {
+      } else if (result && result.error) {
         toast({
           title: t("error"),
-          description: "This Pokémon was just assigned to someone else. Try another Pokémon or refresh.",
+          description: `Failed to assign Pokémon: ${result.error}`,
           variant: "destructive"
         });
-      } else if (result.success && result.pokemon) {
+      } else if (result && result.success && result.pokemon) {
         toast({
           title: t("success"),
           description: `${result.pokemon.name} awarded to ${selectedStudent.display_name || selectedStudent.username}`
@@ -151,7 +151,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
           variant: "destructive"
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error awarding pokemon:", error);
       toast({
         title: t("error"),
@@ -192,19 +192,19 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
         selectedStudent.id
       );
 
-      if (result && result.error === "profile") {
+      if (result && result.error === "profile_missing") {
         toast({
           title: t("error"),
           description: "Student does not have a profile. Ask them to log in at least once before assigning Pokémon.",
           variant: "destructive"
         });
-      } else if (result && result.error === "assign_failed") {
+      } else if (result && result.error) {
         toast({
           title: t("error"),
-          description: "This Pokémon was just assigned to someone else. Try another Pokémon or refresh.",
+          description: `Failed to assign Pokémon: ${result.error}`,
           variant: "destructive"
         });
-      } else if (result.success && result.pokemon) {
+      } else if (result && result.success && result.pokemon) {
         toast({
           title: t("success"),
           description: `${result.pokemon.name} awarded to ${selectedStudent.display_name || selectedStudent.username}`
@@ -219,7 +219,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
           variant: "destructive"
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error awarding pokemon:", error);
       toast({
         title: t("error"),
