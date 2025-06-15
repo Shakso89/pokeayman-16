@@ -189,7 +189,7 @@ const StudentCard: React.FC<{
 
   const handleRemoveRandomPokemon = async () => {
     try {
-      const result = removePokemonFromStudent(student.id);
+      const result = await removePokemonFromStudent(student.id);
       if (result.success && result.pokemon) {
         onPokemonAction(result.pokemon, "removed", displayName);
         refreshData();

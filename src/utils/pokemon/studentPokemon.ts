@@ -11,77 +11,46 @@ export const getStudentPokemonCollection = (studentId: string): StudentPokemon |
 };
 
 // Remove a random pokemon from a student and return it to the school pool
-export const removePokemonFromStudent = (studentId: string): { success: boolean; pokemon?: Pokemon } => {
+export const removePokemonFromStudent = async (studentId: string): Promise<{ success: boolean; pokemon?: Pokemon }> => {
   console.log("Removing random Pokemon from student:", studentId);
   
-  const collection = getStudentPokemonCollection(studentId);
-  if (!collection || collection.pokemons.length === 0) {
-    console.log("No Pokemon found for student:", studentId);
+  const { data: collection, error: collectionError } = await supabase
+    .from('pokemon_collections')
+    .select('*')
+    .eq('student_id', studentId);
+
+  if (collectionError || !collection || collection.length === 0) {
+    console.log("No Pokemon found for student:", studentId, collectionError);
     return { success: false };
   }
 
   // Select a random pokemon to remove
-  const randomIndex = Math.floor(Math.random() * collection.pokemons.length);
-  const removedPokemon = collection.pokemons[randomIndex];
+  const randomIndex = Math.floor(Math.random() * collection.length);
+  const pokemonToRemove = collection[randomIndex];
   
-  // Remove the pokemon from the student's collection
-  collection.pokemons.splice(randomIndex, 1);
+  // Need schoolId to return to pool. Let's get it from the student's profile.
+  const { data: studentProfile } = await supabase.from('student_profiles').select('school_id').eq('user_id', studentId).maybeSingle();
+  const schoolId = studentProfile?.school_id;
 
-  // Update studentPokemons in localStorage
-  const studentCollections = getStudentPokemons();
-  const studentIndex = studentCollections.findIndex(item => item.studentId === studentId);
-
-  if (studentIndex !== -1) {
-    studentCollections[studentIndex].pokemons = collection.pokemons;
-    saveStudentPokemons(studentCollections);
-
-    // Look up schoolId from student profile or localStorage
-    let schoolId: string | undefined;
-    if (typeof window !== "undefined") {
-      const localStudentProfiles = localStorage.getItem("student_profiles");
-      if (localStudentProfiles) {
-        try {
-          const localProfiles = JSON.parse(localStudentProfiles);
-          const lp = localProfiles.find((s: any) => s.id === studentId);
-          if (lp?.schoolId || lp?.school_id) schoolId = lp.schoolId || lp.school_id;
-        } catch {}
-      }
-    }
-    if (!schoolId) {
-      const students = JSON.parse(localStorage.getItem("students") || "[]");
-      const student = students.find((s: any) => s.id === studentId);
-      schoolId = student?.schoolId || student?.school_id;
-    }
-
-    // Add the removed Pokemon back to the school pool
-    if (schoolId) {
-      // Use the new database-based approach
-      (async () => {
-        try {
-          const { error } = await supabase.from('pokemon_pools').insert({
-            school_id: schoolId,
-            pokemon_id: removedPokemon.id,
-            pokemon_name: removedPokemon.name,
-            pokemon_image: removedPokemon.image,
-            pokemon_type: removedPokemon.type,
-            pokemon_rarity: removedPokemon.rarity,
-            pokemon_level: removedPokemon.level,
-            available: true
-          });
-          if (error) {
-            console.error('Error returning pokemon to pool', error);
-          } else {
-            console.log("Pokemon returned to school pool:", removedPokemon.name);
-          }
-        } catch (error) {
-          console.error("Error returning pokemon to pool:", error);
-        }
-      })();
-    }
-
-    return { success: true, pokemon: removedPokemon };
+  if (!schoolId) {
+      console.error("Could not find schoolId for student to return pokemon to pool");
+      return { success: false };
   }
 
+  const success = await removePokemonFromStudentAndReturnToPool(studentId, pokemonToRemove.pokemon_id, schoolId);
+
+  if (success) {
+    const returnedPokemon: Pokemon = {
+      id: pokemonToRemove.pokemon_id,
+      name: pokemonToRemove.pokemon_name,
+      image: pokemonToRemove.pokemon_image || '',
+      type: pokemonToRemove.pokemon_type || '',
+      rarity: (pokemonToRemove.pokemon_rarity as any) || 'common',
+      level: pokemonToRemove.pokemon_level || 1,
+    };
+    return { success: true, pokemon: returnedPokemon };
+  }
+  
   return { success: false };
 };
 
@@ -287,12 +256,12 @@ export const assignPokemonToStudent = async (schoolId: string, studentId: string
     level: pokemonInPoolEntry.pokemon_level || 1,
   };
 
-  // Check for duplicates in Supabase
+  // Check for duplicates in Supabase by name
   const { data: existingPokemon, error: checkError } = await supabase
     .from('pokemon_collections')
     .select('id')
     .eq('student_id', studentId)
-    .eq('pokemon_id', pokemon.id)
+    .eq('pokemon_name', pokemon.name)
     .maybeSingle();
 
   if (checkError) {
