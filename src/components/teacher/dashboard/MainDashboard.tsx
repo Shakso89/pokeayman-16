@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Home, BookOpen } from "lucide-react";
@@ -39,73 +38,40 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
         setIsLoadingClasses(false);
         return;
       }
-
+      setIsLoadingClasses(true);
       try {
         console.log("Loading teacher classes for teacherId:", teacherId);
 
-        // Query all classes for debugging
-        const { data: allClassesData, error: allError } = await supabase
+        // Directly query for the teacher's classes
+        const { data, error } = await supabase
           .from('classes')
-          .select('*');
+          .select('*')
+          .or(`teacher_id.eq.${teacherId},assistants.cs.{${teacherId}}`);
 
-        if (allError) {
-          console.error("Error loading classes from Supabase:", allError);
+        if (error) {
+          console.error("Error loading classes from Supabase:", error);
+          setTeacherClasses([]);
         } else {
-          // Classes where teacherId matches or is assistant
-          const classesForThisTeacher = (allClassesData || []).filter(
-            (cls: any) =>
-              cls.teacher_id === teacherId ||
-              (Array.isArray(cls.assistants) && cls.assistants.includes(teacherId))
-          );
+          const classesForThisTeacher = data || [];
+          setTeacherClasses(classesForThisTeacher);
 
           // Also show a warning if there are classes with teacher_id null
-          const brokenClasses = (allClassesData || []).filter(
+          const brokenClasses = classesForThisTeacher.filter(
             (cls: any) =>
               (!cls.teacher_id || cls.teacher_id === null) &&
               (Array.isArray(cls.assistants) && cls.assistants.includes(teacherId))
           );
           if (brokenClasses.length > 0) {
             setClassDataWarning(
-              `Warning: ${brokenClasses.length} class(es) have no teacher assigned (teacher_id is null). Please update your class records!`
+              `Warning: ${brokenClasses.length} class(es) have no teacher assigned. Please update your class records.`
             );
-            // Optionally merge them into the visible list
-            brokenClasses.forEach((broken) => {
-              if (!classesForThisTeacher.find((c) => c.id === broken.id)) {
-                classesForThisTeacher.push(broken);
-              }
-            });
           } else {
             setClassDataWarning(null);
           }
-
-          setTeacherClasses(classesForThisTeacher);
-          setIsLoadingClasses(false);
-          return;
-        }
-
-        // Fallback to old query (won't be needed, but just in case)
-        const { data: supabaseClasses, error } = await supabase
-          .from('classes')
-          .select('*')
-          .or(`teacher_id.eq.${teacherId},assistants.cs.{${teacherId}}`);
-
-        if (error) {
-          // Fallback to localStorage
-          const localClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-          const filteredClasses = localClasses.filter((cls: any) => 
-            cls.teacherId === teacherId || (cls.assistants && cls.assistants.includes(teacherId))
-          );
-          setTeacherClasses(filteredClasses);
-        } else {
-          setTeacherClasses(supabaseClasses || []);
         }
       } catch (error) {
-        // Fallback to localStorage
-        const localClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-        const filteredClasses = localClasses.filter((cls: any) =>
-          cls.teacherId === teacherId || (cls.assistants && cls.assistants.includes(teacherId))
-        );
-        setTeacherClasses(filteredClasses);
+        console.error("Error in loadTeacherClasses:", error);
+        setTeacherClasses([]);
       } finally {
         setIsLoadingClasses(false);
       }
@@ -177,4 +143,3 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
 };
 
 export default MainDashboard;
-
