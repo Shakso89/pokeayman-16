@@ -210,7 +210,6 @@ const StudentDashboard: React.FC = () => {
               <MyClassesTab 
                 studentId={studentId} 
                 studentName={profile?.display_name || studentName} 
-                classId={profile?.class_id || ""} 
               />
             </TabsContent>
           </Tabs>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -6,71 +5,44 @@ import { Users } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import StudentHomeworkTab from "./StudentHomeworkTab";
 import ClassRankingTab from "./ClassRankingTab";
-import { supabase } from "@/integrations/supabase/client";
+import { getStudentClasses } from "@/services/studentDatabase";
 
 interface MyClassesTabProps {
   studentId: string;
   studentName: string;
-  classId: string;
 }
 
 const MyClassesTab: React.FC<MyClassesTabProps> = ({
   studentId,
   studentName,
-  classId
 }) => {
   const { t } = useTranslation();
   const [classesData, setClassesData] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedClassId, setSelectedClassId] = useState(classId);
+  const [selectedClassId, setSelectedClassId] = useState<string | null>(null);
 
   useEffect(() => {
     loadClassesData();
-  }, [classId, studentId]);
+  }, [studentId]);
 
   const loadClassesData = async () => {
+    if (!studentId) {
+        setLoading(false);
+        return;
+    }
     try {
       setLoading(true);
-      console.log("Loading classes data for classId:", classId, "studentId:", studentId);
+      const assignments = await getStudentClasses(studentId);
       
-      // Parse multiple class IDs if they exist (comma-separated)
-      const classIds = classId ? classId.split(',').filter(id => id.trim()) : [];
-      
-      let studentClasses: any[] = [];
-      
-      // First try to load from Supabase
-      if (classIds.length > 0) {
-        const { data: classesFromDB, error } = await supabase
-          .from('classes')
-          .select('*')
-          .in('id', classIds);
-          
-        if (classesFromDB && !error) {
-          console.log("Found classes in Supabase:", classesFromDB);
-          studentClasses = classesFromDB;
-        }
-      }
-      
-      // Fallback to localStorage
-      if (studentClasses.length === 0) {
-        const savedClasses = localStorage.getItem("classes");
-        if (savedClasses) {
-          const classes = JSON.parse(savedClasses);
-          
-          if (classIds.length > 0) {
-            studentClasses = classes.filter((cls: any) => classIds.includes(cls.id));
-          } else {
-            // Try to find by student membership
-            studentClasses = classes.filter((cls: any) => 
-              cls.students && cls.students.includes(studentId)
-            );
-          }
-        }
-      }
-      
+      const studentClasses = assignments.map((assignment: any) => assignment.classes).filter(Boolean);
+
       setClassesData(studentClasses);
-      if (studentClasses.length > 0 && !selectedClassId) {
-        setSelectedClassId(studentClasses[0].id);
+      if (studentClasses.length > 0) {
+        if (!selectedClassId || !studentClasses.some(c => c.id === selectedClassId)) {
+          setSelectedClassId(studentClasses[0].id);
+        }
+      } else {
+        setSelectedClassId(null);
       }
     } catch (error) {
       console.error("Error loading classes data:", error);
@@ -135,39 +107,43 @@ const MyClassesTab: React.FC<MyClassesTabProps> = ({
       )}
 
       {/* Current Class Header */}
-      <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-        <CardContent className="p-6">
-          <h2 className="text-2xl font-bold mb-2">{currentClass.name}</h2>
-          <p className="text-blue-100">
-            {currentClass.description || "Welcome to your class!"}
-          </p>
-          {classesData.length > 1 && (
-            <p className="text-sm text-blue-200 mt-2">
-              You are enrolled in {classesData.length} classes
-            </p>
-          )}
-        </CardContent>
-      </Card>
+      {currentClass && (
+        <>
+          <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white">
+            <CardContent className="p-6">
+              <h2 className="text-2xl font-bold mb-2">{currentClass.name}</h2>
+              <p className="text-blue-100">
+                {currentClass.description || "Welcome to your class!"}
+              </p>
+              {classesData.length > 1 && (
+                <p className="text-sm text-blue-200 mt-2">
+                  You are enrolled in {classesData.length} classes
+                </p>
+              )}
+            </CardContent>
+          </Card>
 
-      {/* Class Tabs */}
-      <Tabs defaultValue="homework" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="homework">📚 Homework</TabsTrigger>
-          <TabsTrigger value="ranking">🏆 Rankings</TabsTrigger>
-        </TabsList>
+          {/* Class Tabs */}
+          <Tabs defaultValue="homework" className="w-full">
+            <TabsList className="grid w-full grid-cols-2">
+              <TabsTrigger value="homework">📚 Homework</TabsTrigger>
+              <TabsTrigger value="ranking">🏆 Rankings</TabsTrigger>
+            </TabsList>
 
-        <TabsContent value="homework" className="mt-6">
-          <StudentHomeworkTab
-            studentId={studentId}
-            studentName={studentName}
-            classId={selectedClassId}
-          />
-        </TabsContent>
+            <TabsContent value="homework" className="mt-6">
+              <StudentHomeworkTab
+                studentId={studentId}
+                studentName={studentName}
+                classId={currentClass.id}
+              />
+            </TabsContent>
 
-        <TabsContent value="ranking" className="mt-6">
-          <ClassRankingTab classId={selectedClassId} />
-        </TabsContent>
-      </Tabs>
+            <TabsContent value="ranking" className="mt-6">
+              <ClassRankingTab classId={currentClass.id} />
+            </TabsContent>
+          </Tabs>
+        </>
+      )}
     </div>
   );
 };
