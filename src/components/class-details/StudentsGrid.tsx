@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,13 +5,14 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { User, Coins, Award, Trash2, Plus, Minus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "@/hooks/useTranslation";
-import { assignRandomPokemonToStudent, removePokemonFromStudent } from "@/utils/pokemon/studentPokemon";
+import { assignPokemonToStudent, removePokemonFromStudent } from "@/utils/pokemon/studentPokemon";
 import { initializeSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
 import { toast } from "@/hooks/use-toast";
 import PokemonActionModal from "@/components/pokemon/PokemonActionModal";
 import { Pokemon } from "@/types/pokemon";
 import { useStudentCoinData } from "@/hooks/useStudentCoinData";
 import { awardCoinsToStudent, removeCoinsFromStudent } from "@/services/studentCoinService";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Student {
   id: string;
@@ -111,27 +111,77 @@ const StudentCard: React.FC<{
     }
 
     try {
-      initializeSchoolPokemonPool(schoolId, 500);
-      const result = assignRandomPokemonToStudent(schoolId, student.id);
-      if (result.success && result.pokemon) {
-        onPokemonAction(result.pokemon, "awarded", displayName);
+      // First ensure the school pool has Pokemon
+      await initializeSchoolPokemonPool(schoolId, 500);
+      
+      // Get a random available Pokemon from the school pool
+      const { data: availablePoolRows, error } = await supabase
+        .from('pokemon_pools')
+        .select('*')
+        .eq('school_id', schoolId)
+        .eq('available', true)
+        .limit(50); // Get a reasonable number to pick from
+
+      if (error) {
+        console.error("Error fetching available Pokemon:", error);
+        toast({
+          title: t("error"),
+          description: "Failed to fetch available Pokemon",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      if (!availablePoolRows || availablePoolRows.length === 0) {
+        toast({
+          title: t("error"),
+          description: "No Pokemon available in school pool",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Pick a random Pokemon from available ones
+      const randomIndex = Math.floor(Math.random() * availablePoolRows.length);
+      const selectedPokemon = availablePoolRows[randomIndex];
+
+      // Assign the Pokemon using the pool row ID
+      const result = await assignPokemonToStudent(schoolId, student.id, undefined, selectedPokemon.id);
+      
+      if (result.success && !result.isDuplicate) {
+        const pokemon: Pokemon = {
+          id: selectedPokemon.pokemon_id,
+          name: selectedPokemon.pokemon_name,
+          image: selectedPokemon.pokemon_image || '',
+          type: selectedPokemon.pokemon_type || '',
+          rarity: (selectedPokemon.pokemon_rarity as any) || 'common',
+          level: selectedPokemon.pokemon_level || 1,
+        };
+        
+        onPokemonAction(pokemon, "awarded", displayName);
         refreshData();
         toast({
           title: t("success"),
-          description: `Random Pokémon awarded to ${displayName}`
+          description: `${pokemon.name} awarded to ${displayName}`
         });
+      } else if (result.isDuplicate) {
+        toast({
+          title: t("info"),
+          description: `Duplicate Pokemon found, coins awarded instead`,
+        });
+        refreshData();
       } else {
         toast({
           title: t("error"),
-          description: "Failed to award Pokémon - no Pokémon available in school pool",
+          description: "Failed to assign Pokemon. It might not be available in the pool.",
           variant: "destructive"
         });
       }
     } catch (error) {
-      console.error("Error awarding random Pokémon:", error);
+      console.error("Error awarding random Pokemon:", error);
       toast({
         title: t("error"),
-        description: "Failed to award Pokémon",
+        description: "Failed to award Pokemon",
         variant: "destructive"
       });
     }
@@ -145,20 +195,20 @@ const StudentCard: React.FC<{
         refreshData();
         toast({
           title: t("success"),
-          description: `Random Pokémon removed from ${displayName} and returned to school pool`
+          description: `Random Pokemon removed from ${displayName} and returned to school pool`
         });
       } else {
         toast({
           title: t("error"),
-          description: "Student has no Pokémon to remove",
+          description: "Student has no Pokemon to remove",
           variant: "destructive"
         });
       }
     } catch (error) {
-      console.error("Error removing random Pokémon:", error);
+      console.error("Error removing random Pokemon:", error);
       toast({
         title: t("error"),
-        description: "Failed to remove Pokémon",
+        description: "Failed to remove Pokemon",
         variant: "destructive"
       });
     }
@@ -195,7 +245,7 @@ const StudentCard: React.FC<{
             <div className="flex-1 bg-purple-100 rounded-lg p-3 text-center">
               <div className="flex items-center justify-center space-x-1 text-purple-700">
                 <Award className="h-4 w-4" />
-                <span className="text-sm font-medium">Pokémon</span>
+                <span className="text-sm font-medium">Pokemon</span>
               </div>
               <p className="text-xl font-bold text-purple-800">{pokemonCount}</p>
             </div>
@@ -226,7 +276,7 @@ const StudentCard: React.FC<{
                 onClick={(e) => { e.stopPropagation(); handleAwardRandomPokemon(); }}
               >
                 <Plus className="h-4 w-4 mr-1" />
-                Pokémon
+                Pokemon
               </Button>
               <Button
                 size="sm"
@@ -234,7 +284,7 @@ const StudentCard: React.FC<{
                 onClick={(e) => { e.stopPropagation(); handleRemoveRandomPokemon(); }}
               >
                 <Minus className="h-4 w-4 mr-1" />
-                Pokémon
+                Pokemon
               </Button>
 
               <Button 
