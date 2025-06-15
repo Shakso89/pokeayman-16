@@ -2,8 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { handleTeacherLogin, handleAdminLogin } from "./auth/teacherAuthService";
-import { checkDevAdminLogin, isAdminUsername, isAdminEmail, isValidAdminPassword } from "@/utils/adminAuth";
+import { handleTeacherLogin } from "./auth/teacherAuthService";
 
 export const useTeacherLogin = () => {
   const navigate = useNavigate();
@@ -16,29 +15,13 @@ export const useTeacherLogin = () => {
     setError("");
 
     try {
-      console.log("Login attempt:", username);
+      console.log("Login attempt via useTeacherLogin hook:", username);
 
-      const isAdmin =
-        (isAdminUsername(username) || isAdminEmail(username)) &&
-        isValidAdminPassword(password);
-
-      let result;
-
-      if (isAdmin || checkDevAdminLogin(username, password) || 
-          username.toLowerCase() === "ayman.soliman.tr@gmail.com" || 
-          username.toLowerCase() === "ayman.soliman.cc@gmail.com" ||
-          username.toLowerCase() === "ayman@pokeayman.com" ||
-          username.toLowerCase() === "ayman") {
-        
-        console.log("Admin login detected for:", username);
-        result = await handleAdminLogin(username, password, () => {});
-      } else {
-        console.log("Regular teacher login for:", username);
-        result = await handleTeacherLogin(username, password, () => {});
-      }
+      // All logic is now encapsulated in the single handleTeacherLogin service function
+      const result = await handleTeacherLogin(username, password, () => {});
       
       if (result.success) {
-        // Small delay to ensure state is set
+        // Small delay to ensure state is set before navigating
         setTimeout(async () => {
           await refreshAuthState();
           navigate(result.redirect, { replace: true });
@@ -47,7 +30,7 @@ export const useTeacherLogin = () => {
         throw new Error(result.message || "Login failed");
       }
     } catch (err: any) {
-      console.error("Login error:", err);
+      console.error("Login error in useTeacherLogin hook:", err);
       setError(err.message || "Login failed");
     } finally {
       setLoginInProgress(false);

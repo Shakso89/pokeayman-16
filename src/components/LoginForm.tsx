@@ -7,14 +7,12 @@ import { AuthLayout } from "./AuthLayout";
 import { toast } from "@/hooks/use-toast";
 import { User, Lock, AlertCircle } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
-import { setActivationStatus } from "@/utils/activationService";
 import { cn } from "@/lib/utils";
 import { supabase } from "@/integrations/supabase/client";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Student } from "@/types/database";
-import { handleTeacherLogin, handleAdminLogin } from "@/hooks/auth/teacherAuthService";
+import { handleTeacherLogin } from "@/hooks/auth/teacherAuthService";
 import { useAuth } from "@/contexts/AuthContext";
-import { checkDevAdminLogin, isAdminUsername, isAdminEmail, isValidAdminPassword } from "@/utils/adminAuth";
 
 export interface LoginFormProps {
   type: "teacher" | "student";
@@ -84,32 +82,16 @@ export const LoginForm: React.FC<LoginFormProps> = ({
 
     try {
       if (type === "teacher") {
-        // Check if this is an admin login
-        const isAdmin = (isAdminUsername(usernameOrEmail) || isAdminEmail(usernameOrEmail)) &&
-                       isValidAdminPassword(password);
-
-        // Special handling for admin users
-        if (isAdmin || checkDevAdminLogin(usernameOrEmail, password) ||
-            usernameOrEmail.toLowerCase() === "ayman.soliman.tr@gmail.com" || 
-            usernameOrEmail.toLowerCase() === "ayman") {
-          
-          const result = await handleAdminLogin(usernameOrEmail, password, () => {});
-          await refreshAuthState();
-          
-          if (onLoginSuccess) {
-            onLoginSuccess(usernameOrEmail, password);
-          }
-          
-          navigate(result.redirect);
+        const result = await handleTeacherLogin(usernameOrEmail, password, () => {});
+        
+        if (result.success) {
+            await refreshAuthState();
+            if (onLoginSuccess) {
+                onLoginSuccess(usernameOrEmail, password);
+            }
+            navigate(result.redirect);
         } else {
-          const result = await handleTeacherLogin(usernameOrEmail, password, () => {});
-          await refreshAuthState();
-          
-          if (onLoginSuccess) {
-            onLoginSuccess(usernameOrEmail, password);
-          }
-          
-          navigate(result.redirect);
+            throw new Error(result.message || "Teacher login failed");
         }
       } else {
         // Student login logic - keeping existing implementation

@@ -5,131 +5,116 @@ import { checkIsAdmin, isSpecialAdminEmail } from './adminUtils';
 import { setupTeacherAuth } from './teacherAuth';
 import { AuthState } from './types';
 
-// Generate a unique teacher ID
-const generateTeacherId = (): string => {
-  return `teacher-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-};
-
-// Unified teacher login handler with improved error handling
+// Unified teacher login handler with improved error handling and identity consolidation
 export const handleTeacherLogin = async (
-  username: string,
+  usernameOrEmail: string,
   password: string,
   updateAuthState: (newState: Partial<AuthState>) => void
 ): Promise<{ success: boolean; redirect: string; message?: string }> => {
   try {
-    console.log("Teacher login attempt:", username);
+    console.log("Unified teacher login attempt for:", usernameOrEmail);
 
-    // Check if this is an admin login first
-    const isAdminUser = checkIsAdmin(null, username) || 
-                       isSpecialAdminEmail(username) ||
-                       username.toLowerCase() === "ayman" ||
-                       username.toLowerCase() === "admin";
+    const isLoginAnEmail = usernameOrEmail.includes('@');
+    let emailToLogin = isLoginAnEmail ? usernameOrEmail.toLowerCase() : '';
+    let resolvedUsername = isLoginAnEmail ? usernameOrEmail.split('@')[0] : usernameOrEmail;
 
-    const isEmail = username.includes("@");
-    const email = isEmail ? username.toLowerCase() : `${username.toLowerCase()}@pokeayman.com`;
-
-    // Try the new database function first for unified login
-    try {
-      const { data: loginData, error: loginError } = await supabase
-        .rpc('get_teacher_by_login', { login_input: username });
-
-      if (!loginError && loginData && loginData.length > 0) {
-        const teacher = loginData[0];
-        console.log("Found teacher via unified login:", teacher.username);
+    // Step 1: Resolve username to email if necessary
+    if (!isLoginAnEmail) {
+      const usernameLower = usernameOrEmail.toLowerCase();
+      if (usernameLower === 'ayman' || usernameLower === 'admin') {
+        // For owner/admin, we can use a canonical email. Let's try to find a real one first.
+        const { data: adminTeacher } = await supabase
+            .from('teachers')
+            .select('email')
+            .in('username', ['Ayman', 'Admin', 'ayman', 'admin'])
+            .not('email', 'is', null)
+            .limit(1)
+            .single();
         
-        if (teacher.password === password) {
-          setupTeacherAuth(teacher.id, {
-            username: teacher.username,
-            email: teacher.email,
-            display_name: teacher.display_name
-          }, updateAuthState, teacher.role === 'owner' || isAdminUser);
-
-          toast({ 
-            title: "Success!", 
-            description: `Welcome back, ${teacher.display_name || teacher.username}!` 
-          });
-          
-          return { 
-            success: true, 
-            redirect: (teacher.role === 'owner' || isAdminUser) ? "/admin-dashboard" : "/teacher-dashboard" 
-          };
+        if (adminTeacher?.email) {
+            emailToLogin = adminTeacher.email;
         } else {
-          return { success: false, redirect: "", message: "Invalid password" };
+            // Fallback to a known owner email if no record found in DB.
+            emailToLogin = 'ayman.soliman.tr@gmail.com'; 
+            console.log(`Username '${usernameOrEmail}' resolved to canonical admin email.`);
         }
-      }
-    } catch (dbError) {
-      console.log("Database function not available, trying Supabase auth");
-    }
+        resolvedUsername = 'Ayman';
+      } else {
+        const { data: teacher, error } = await supabase
+          .from('teachers')
+          .select('email')
+          .ilike('username', usernameOrEmail)
+          .single();
 
-    // Try Supabase authentication with timeout
-    const authPromise = supabase.auth.signInWithPassword({
-      email,
-      password
+        if (error || !teacher?.email) {
+          console.error('Could not find email for username:', usernameOrEmail, error);
+          return { success: false, redirect: "", message: `Username "${usernameOrEmail}" not found or has no associated email.` };
+        }
+        emailToLogin = teacher.email;
+        resolvedUsername = usernameOrEmail;
+      }
+    }
+    
+    console.log(`Attempting Supabase login with email: ${emailToLogin}`);
+
+    // Step 2: Authenticate with Supabase Auth - the single source of truth
+    let { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email: emailToLogin,
+      password,
     });
 
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error("Authentication timeout")), 8000);
-    });
-
-    const { data, error: authError } = await Promise.race([authPromise, timeoutPromise]) as any;
-
-    if (authError) {
-      // If Supabase auth fails, try localStorage fallback for existing users
-      const teachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-      const teacher = teachers.find((t: any) => 
-        t.username.toLowerCase() === username.toLowerCase() || 
-        t.email?.toLowerCase() === username.toLowerCase()
-      );
-
-      if (teacher && teacher.password === password) {
-        // Ensure teacher has an ID
-        if (!teacher.id) {
-          teacher.id = generateTeacherId();
-          // Update the teachers array
-          const updatedTeachers = teachers.map((t: any) => 
-            (t.username === teacher.username) ? teacher : t
-          );
-          localStorage.setItem("teachers", JSON.stringify(updatedTeachers));
+    // If sign-in fails for an admin, try to sign them up. This allows first-time admin login.
+    const isAdminUser = checkIsAdmin(null, resolvedUsername) || isSpecialAdminEmail(emailToLogin);
+    if (authError && isAdminUser) {
+      console.log("Admin sign-in failed, attempting sign-up...", authError.message);
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
+        email: emailToLogin,
+        password,
+        options: {
+          data: {
+            username: resolvedUsername,
+            user_type: "teacher",
+            is_admin: true,
+          }
         }
+      });
 
-        setupTeacherAuth(teacher.id, teacher, updateAuthState, teacher.isAdmin || isAdminUser);
-
-        toast({ 
-          title: "Success!", 
-          description: `Welcome back, ${teacher.username}!` 
-        });
-        
-        return { 
-          success: true, 
-          redirect: teacher.isAdmin || isAdminUser ? "/admin-dashboard" : "/teacher-dashboard" 
-        };
+      if (signUpError) {
+        // If signup also fails (e.g., user exists but password wrong), return original auth error
+        return { success: false, redirect: "", message: authError.message };
       }
+      // After successful signup, we need to sign in again to get a session
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+          email: emailToLogin,
+          password,
+      });
 
-      return { 
-        success: false, 
-        redirect: "", 
-        message: authError.message || "Invalid credentials" 
-      };
+      if (signInError) {
+          return { success: false, redirect: "", message: signInError.message };
+      }
+      authData = signInData;
+
+    } else if (authError) {
+      return { success: false, redirect: "", message: authError.message };
     }
 
-    // Supabase authentication successful
-    const user = data.user;
-    const userMetadata = user.user_metadata;
-    const teacherId = user.id;
-    const displayUsername = userMetadata.username || username.split('@')[0] || 'Teacher';
+    if (!authData?.user) {
+      return { success: false, redirect: "", message: "Login failed, please try again." };
+    }
 
-    // Check if user is admin
-    const finalIsAdmin = isAdminUser || checkIsAdmin(user, displayUsername);
-
-    setupTeacherAuth(teacherId, {
-      username: displayUsername,
+    // Step 3: Setup session using the canonical user ID from Supabase Auth
+    const user = authData.user;
+    const finalIsAdmin = checkIsAdmin(user, resolvedUsername);
+    
+    setupTeacherAuth(user.id, {
+      username: resolvedUsername,
       email: user.email,
-      ...userMetadata
+      ...user.user_metadata
     }, updateAuthState, finalIsAdmin);
 
     toast({ 
       title: "Success!", 
-      description: `Welcome back, ${displayUsername}!` 
+      description: `Welcome back, ${user.user_metadata?.displayName || resolvedUsername}!` 
     });
 
     return { 
@@ -138,97 +123,11 @@ export const handleTeacherLogin = async (
     };
 
   } catch (error: any) {
-    console.error("Teacher login error:", error);
-    const errorMessage = error.message === "Authentication timeout" 
-      ? "Login timeout - please try again" 
-      : "Invalid credentials";
-    
+    console.error("Unified teacher login process failed:", error);
     return { 
       success: false, 
       redirect: "", 
-      message: errorMessage 
-    };
-  }
-};
-
-// Handle special admin cases with enhanced detection
-export const handleAdminLogin = async (
-  username: string,
-  password: string,
-  updateAuthState: (newState: Partial<AuthState>) => void
-): Promise<{ success: boolean; redirect: string; message?: string }> => {
-  try {
-    const email = username.includes("@") ? username.toLowerCase() : 
-                  username.toLowerCase() === "ayman" ? "ayman@pokeayman.com" : 
-                  `${username.toLowerCase()}@pokeayman.com`;
-    const displayUsername = username.includes("ayman") || username === "Ayman" ? "Ayman" : "Admin";
-
-    console.log(`Admin login attempt for: ${email}`);
-
-    // Try to sign in with Supabase first with timeout
-    const authPromise = supabase.auth.signInWithPassword({ 
-      email, 
-      password 
-    });
-
-    const timeoutPromise = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error("Authentication timeout")), 8000);
-    });
-
-    try {
-      const { data, error: signInError } = await Promise.race([authPromise, timeoutPromise]) as any;
-
-      if (signInError) {
-        console.log("Admin signin failed, attempting signup:", signInError.message);
-        
-        const { error: signUpError } = await supabase.auth.signUp({
-          email,
-          password,
-          options: {
-            data: {
-              username: displayUsername,
-              user_type: "teacher",
-              is_admin: true,
-            },
-          },
-        });
-
-        if (signUpError) {
-          return { 
-            success: false, 
-            redirect: "", 
-            message: signUpError.message 
-          };
-        }
-      }
-
-      // Generate teacher ID if needed
-      const teacherId = data?.user?.id || generateTeacherId();
-
-      setupTeacherAuth(teacherId, {
-        username: displayUsername,
-        email: email
-      }, updateAuthState, true);
-
-      toast({ 
-        title: "Success!", 
-        description: `Welcome back, ${displayUsername}!` 
-      });
-      
-      return { success: true, redirect: "/admin-dashboard" };
-    } catch (timeoutError) {
-      return { 
-        success: false, 
-        redirect: "", 
-        message: "Login timeout - please try again" 
-      };
-    }
-  } catch (err: any) {
-    console.error("Admin login failed:", err);
-    return { 
-      success: false, 
-      redirect: "", 
-      message: err.message || "Admin login failed" 
+      message: error.message || "An unexpected error occurred." 
     };
   }
 };
