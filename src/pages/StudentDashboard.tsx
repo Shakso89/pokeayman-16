@@ -16,7 +16,7 @@ import { getSchoolPokemonPool } from "@/services/studentDatabase";
 import StudentHeader from "@/components/student/StudentHeader";
 import StudentCollection from "@/components/student/StudentCollection";
 import MysteryBallTab from "@/components/student/MysteryBallTab";
-import SchoolPoolDialog from "@/components/student/SchoolPoolDialog";
+import SchoolPokemonPoolDialog from "@/components/dialogs/SchoolPokemonPoolDialog";
 import StudentDashboardButtons from "@/components/student/StudentDashboardButtons";
 import StudentHomeworkTab from "@/components/student/StudentHomeworkTab";
 
@@ -229,11 +229,10 @@ const StudentDashboard: React.FC = () => {
         </div>
       </div>
       
-      <SchoolPoolDialog 
-        open={showSchoolPool} 
+      <SchoolPokemonPoolDialog 
+        isOpen={showSchoolPool} 
         onOpenChange={setShowSchoolPool} 
         schoolId={schoolId} 
-        userType="student" 
       />
     </div>
   );

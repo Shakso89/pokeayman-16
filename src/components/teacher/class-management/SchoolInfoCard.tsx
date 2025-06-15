@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { School, Users, Eye, RefreshCw } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
-import SchoolPoolDialog from "@/components/student/SchoolPoolDialog";
+import SchoolPokemonPoolDialog from "@/components/dialogs/SchoolPokemonPoolDialog";
 import { forceUpdateAllSchoolPools } from "@/utils/pokemon/schoolPokemon";
 import { toast } from "@/hooks/use-toast";
 
@@ -105,11 +105,10 @@ const SchoolInfoCard: React.FC<SchoolInfoCardProps> = ({ schoolId, teacherId, is
         </CardContent>
       </Card>
 
-      <SchoolPoolDialog
-        open={schoolPoolOpen}
+      <SchoolPokemonPoolDialog
+        isOpen={schoolPoolOpen}
         onOpenChange={setSchoolPoolOpen}
         schoolId={schoolId}
-        userType="teacher"
       />
     </>
   );
