@@ -100,6 +100,7 @@ const StudentDetailPage: React.FC = () => {
   const { id, studentId } = useParams<{ id?: string; studentId?: string }>();
   const sid = studentId || id;
   const navigate = useNavigate();
+  const loggedInUserType = localStorage.getItem("userType") || "student";
 
   const [student, setStudent] = useState<any | null>(null);
   const [school, setSchool] = useState<any | null>(null);
@@ -289,6 +290,7 @@ const StudentDetailPage: React.FC = () => {
                   name: c.name,
                   description: c.description,
                 }))}
+                userType={loggedInUserType as 'student' | 'teacher'}
               />
             </div>
           </CardContent>

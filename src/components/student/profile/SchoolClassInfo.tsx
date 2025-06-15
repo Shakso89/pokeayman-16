@@ -21,12 +21,14 @@ interface SchoolClassInfoProps {
   school?: School;
   classes: ClassInfo[];
   onClassClick?: (classId: string) => void;
+  userType?: 'student' | 'teacher';
 }
 
 const SchoolClassInfo: React.FC<SchoolClassInfoProps> = ({
   school,
   classes,
-  onClassClick
+  onClassClick,
+  userType = 'student'
 }) => {
   const navigate = useNavigate();
 
@@ -34,8 +36,11 @@ const SchoolClassInfo: React.FC<SchoolClassInfoProps> = ({
     if (onClassClick) {
       onClassClick(classId);
     } else {
-      // Navigate to class view page
-      navigate(`/student/class/${classId}`, { state: { className } });
+      if (userType === 'teacher') {
+        navigate(`/class-details/${classId}`);
+      } else {
+        navigate(`/student/class/${classId}`, { state: { className } });
+      }
     }
   };
 
