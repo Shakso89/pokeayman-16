@@ -1,25 +1,9 @@
-import React, { useState } from "react";
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Coins, Award, Trash2, Plus, Minus } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import { useTranslation } from "@/hooks/useTranslation";
-import { toast } from "@/hooks/use-toast";
-import { useStudentCoinData } from "@/hooks/useStudentCoinData";
-import { awardCoinsToStudent, removeCoinsFromStudent } from "@/services/studentCoinService";
-
-interface Student {
-  id: string;
-  username: string;
-  displayName?: string;
-  display_name?: string;
-  avatar?: string;
-  schoolId?: string;
-}
 
 interface StudentsGridProps {
-  students: Student[];
+  students: any[];
   isClassCreator: boolean;
   onAwardCoins: (studentId: string, studentName: string) => void;
   onManagePokemon: (studentId: string, studentName: string, schoolId: string) => void;
@@ -29,148 +13,7 @@ interface StudentsGridProps {
   classData: any;
 }
 
-const StudentCard: React.FC<{
-  student: Student;
-  isClassCreator: boolean;
-  onAwardCoins: (studentId: string, studentName: string) => void;
-  onManagePokemon: (studentId: string, studentName: string, schoolId: string) => void;
-  onRemoveStudent: (studentId: string, studentName: string) => void;
-  onRemoveCoins: (studentId: string, studentName: string) => void;
-  classData: any;
-}> = ({
-  student,
-  isClassCreator,
-  onAwardCoins,
-  onManagePokemon,
-  onRemoveStudent,
-  onRemoveCoins,
-  classData,
-}) => {
-  const navigate = useNavigate();
-  const { t } = useTranslation();
-  const { coins, pokemonCount, refreshData } = useStudentCoinData(student.id);
-
-  const displayName = student.displayName || student.display_name || student.username;
-
-  const handleViewProfile = () => {
-    navigate(`/student-profile/${student.id}`);
-  };
-
-  const handleAwardCoins = async () => {
-    const success = await awardCoinsToStudent(student.id, 10);
-    if (success) {
-      toast({
-        title: t("success"),
-        description: `10 coins awarded to ${displayName}`
-      });
-      refreshData();
-    } else {
-      toast({
-        title: t("error"),
-        description: "Failed to award coins",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleRemoveCoins = async () => {
-    const success = await removeCoinsFromStudent(student.id, 5);
-    if (success) {
-      toast({
-        title: t("success"),
-        description: `5 coins removed from ${displayName}`
-      });
-      refreshData();
-    } else {
-      toast({
-        title: t("error"),
-        description: "Failed to remove coins or insufficient coins",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleRemoveRandomPokemon = async () => {
-    toast({
-      title: "Action moved",
-      description: 'Please use the "Manage Pokemon" dialog to remove a specific Pokemon.',
-    });
-  };
-
-  return (
-    <Card 
-      className="bg-white/20 backdrop-blur-sm cursor-pointer hover:bg-white/30 transition-colors"
-      onClick={handleViewProfile}
-    >
-      <CardContent className="p-6">
-        <div className="flex flex-col items-center space-y-4">
-          <Avatar className="h-16 w-16">
-            <AvatarImage src={student.avatar} alt={displayName} />
-            <AvatarFallback>
-              <User className="h-8 w-8" />
-            </AvatarFallback>
-          </Avatar>
-
-          <div className="text-center">
-            <h3 className="font-semibold text-lg">{displayName}</h3>
-            <p className="text-sm text-gray-600">@{student.username}</p>
-          </div>
-
-          <div className="flex space-x-4 w-full">
-            <div className="flex-1 bg-yellow-100 rounded-lg p-3 text-center">
-              <div className="flex items-center justify-center space-x-1 text-yellow-700">
-                <Coins className="h-4 w-4" />
-                <span className="text-sm font-medium">Coins</span>
-              </div>
-              <p className="text-xl font-bold text-yellow-800">{coins}</p>
-            </div>
-            
-            <div className="flex-1 bg-purple-100 rounded-lg p-3 text-center">
-              <div className="flex items-center justify-center space-x-1 text-purple-700">
-                <Award className="h-4 w-4" />
-                <span className="text-sm font-medium">Pokemon</span>
-              </div>
-              <p className="text-xl font-bold text-purple-800">{pokemonCount}</p>
-            </div>
-          </div>
-
-          {isClassCreator && (
-            <div className="grid grid-cols-2 gap-2 w-full pt-4 border-t border-white/20 mt-4">
-              <Button 
-                size="sm" 
-                className="bg-green-500 hover:bg-green-600 text-white"
-                onClick={(e) => { e.stopPropagation(); handleAwardCoins(); }}
-              >
-                <Coins className="h-4 w-4 mr-1" />
-                Coins
-              </Button>
-              <Button 
-                size="sm" 
-                variant="outline" 
-                onClick={(e) => { e.stopPropagation(); handleRemoveCoins(); }}
-              >
-                <Minus className="h-4 w-4 mr-1" />
-                Coins 
-              </Button>
-
-              <Button 
-                size="sm" 
-                variant="destructive" 
-                onClick={(e) => { e.stopPropagation(); onRemoveStudent(student.id, displayName); }}
-                className="col-span-2"
-              >
-                <Trash2 className="h-4 w-4 mr-2" />
-                {t("remove-student")}
-              </Button>
-            </div>
-          )}
-        </div>
-      </CardContent>
-    </Card>
-  );
-};
-
-const StudentsGrid: React.FC<StudentsGridProps> = ({
+const StudentsGrid = ({
   students,
   isClassCreator,
   onAwardCoins,
@@ -178,35 +21,68 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
   onRemoveStudent,
   onRemoveCoins,
   onRemovePokemon,
-  classData
+  classData,
 }) => {
-  const { t } = useTranslation();
-
-  if (!students || students.length === 0) {
-    return (
-      <div className="text-center py-8">
-        <p className="text-gray-500">{t("no-students-in-class")}</p>
-      </div>
-    );
-  }
-
   return (
-    <>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {students.map(student => (
-          <StudentCard
-            key={student.id}
-            student={student}
-            isClassCreator={isClassCreator}
-            onAwardCoins={onAwardCoins}
-            onManagePokemon={onManagePokemon}
-            onRemoveStudent={onRemoveStudent}
-            onRemoveCoins={onRemoveCoins}
-            classData={classData}
-          />
-        ))}
-      </div>
-    </>
+    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+      {students.map((student) => (
+        <Card
+          key={student.id}
+          className="flex flex-col items-center justify-between gap-2 p-4"
+        >
+          <div className="flex flex-col items-center gap-1">
+            <div className="h-14 w-14 rounded-full bg-gray-100 flex items-center justify-center">
+              <span className="text-2xl text-gray-400">
+                <svg viewBox="0 0 24 24" width="32" height="32" fill="none"><circle cx="12" cy="8" r="4" stroke="#cbd5e1" strokeWidth="2" /><path d="M21 21c0-4-3.582-7-9-7s-9 3-9 7" stroke="#cbd5e1" strokeWidth="2" /></svg>
+              </span>
+            </div>
+            <span className="font-bold text-lg">{student.display_name || student.displayName || student.username}</span>
+            <span className="text-gray-500 text-sm">@{student.username}</span>
+          </div>
+          <div className="grid grid-cols-2 gap-2 my-2 w-full">
+            <div className="bg-yellow-100 rounded-lg px-2 py-1 flex flex-col items-center">
+              <span className="text-yellow-800 font-semibold">🪙 Coins</span>
+              <span className="text-lg">{student.coins ?? 0}</span>
+            </div>
+            <div className="bg-purple-100 rounded-lg px-2 py-1 flex flex-col items-center">
+              <span className="text-purple-800 font-semibold">🪄 Pokémon</span>
+              <span className="text-lg">{student.pokemonCount ?? 0}</span>
+            </div>
+          </div>
+          <div className="w-full my-2 border-t"></div>
+          <div className="flex gap-2 w-full justify-between mt-2">
+            <Button
+              size="sm"
+              className="flex-1 bg-green-500 hover:bg-green-600 text-white"
+              onClick={() => onAwardCoins(student.id, student.display_name || student.username)}
+            >
+              Coins
+            </Button>
+            <Button
+              size="sm"
+              className="flex-1 bg-gray-100"
+              onClick={() => onRemoveCoins(student.id, student.display_name || student.username)}
+            >
+              – Coins
+            </Button>
+          </div>
+          <Button
+            size="sm"
+            className="w-full my-1 bg-blue-500 hover:bg-blue-600 text-white"
+            onClick={() => onManagePokemon(student.id, student.display_name || student.username, classData.schoolId)}
+          >
+            Manage Pokémon
+          </Button>
+          <Button
+            size="sm"
+            className="w-full bg-red-500 hover:bg-red-600 text-white mt-1"
+            onClick={() => onRemoveStudent(student.id, student.display_name || student.username)}
+          >
+            <span>🗑</span> Remove Student
+          </Button>
+        </Card>
+      ))}
+    </div>
   );
 };
 
