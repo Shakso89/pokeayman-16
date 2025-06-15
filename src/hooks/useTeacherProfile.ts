@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { TeacherProfile } from "@/types/teacher";
@@ -15,7 +14,7 @@ export interface TeacherProfileData extends TeacherProfile {
   id: string;
   displayName: string;
   username: string;
-  avatar?: string;
+  avatar_url?: string;
   photos: string[];
   classes: string[];
   socialLinks?: SocialLinks;
@@ -66,9 +65,10 @@ export function useTeacherProfile(teacherId?: string) {
           displayName: data.display_name || data.username,
           username: data.username,
           email: data.email || "",
-          photos: [],
+          photos: (data.photos as string[]) || [],
           classes: [],
-          socialLinks: {}
+          socialLinks: (data.social_links as SocialLinks) || {},
+          avatar_url: data.avatar_url || undefined,
         };
 
         setTeacher(teacherData);
@@ -96,11 +96,12 @@ export function useTeacherProfile(teacherId?: string) {
         ...foundTeacher,
         teacherId: foundTeacher.id,
         photos: foundTeacher.photos || [],
-        socialLinks: foundTeacher.socialLinks || {}
+        socialLinks: foundTeacher.socialLinks || {},
+        avatar_url: foundTeacher.avatar_url,
       };
 
-      setTeacher(teacherData);
-      setEditData(teacherData);
+      setTeacher(teacherData as TeacherProfileData);
+      setEditData(teacherData as TeacherProfileData);
 
       const classes = getLocalItem("classes", []);
       const teacherClasses = classes.filter((c: any) => foundTeacher.classes?.includes(c.id));
@@ -129,49 +130,36 @@ export function useTeacherProfile(teacherId?: string) {
   };
 
   const handleSave = async () => {
-    if (!teacher) return;
+    if (!teacher || !teacherId) return;
 
     try {
-      // First try to save to Supabase
       const { error } = await supabase
         .from('teachers')
         .update({
-          display_name: editData.displayName || teacher.displayName
+          display_name: editData.displayName,
+          avatar_url: editData.avatar_url,
+          photos: editData.photos,
+          social_links: editData.socialLinks,
         })
         .eq('id', teacherId);
+      
+      const updatedTeacher = { ...teacher, ...editData };
 
       if (error) {
         console.error('Error saving to Supabase:', error);
         // Fall back to localStorage
         const teachers = getLocalItem("teachers", []);
         const index = teachers.findIndex((t: any) => t.id === teacherId);
-        if (index === -1) return;
-
-        const updatedTeacher = {
-          ...teachers[index],
-          displayName: editData.displayName || teacher.displayName,
-          avatar: editData.avatar || teacher.avatar,
-          photos: editData.photos || teacher.photos,
-          socialLinks: editData.socialLinks || teacher.socialLinks
-        };
-
-        teachers[index] = updatedTeacher;
-        localStorage.setItem("teachers", JSON.stringify(teachers));
-        setTeacher(updatedTeacher);
-      } else {
-        // Update local state with new data
-        const updatedTeacher = {
-          ...teacher,
-          displayName: editData.displayName || teacher.displayName,
-          avatar: editData.avatar || teacher.avatar,
-          photos: editData.photos || teacher.photos,
-          socialLinks: editData.socialLinks || teacher.socialLinks
-        };
-        setTeacher(updatedTeacher);
+        if (index !== -1) {
+          teachers[index] = { ...teachers[index], ...updatedTeacher };
+          localStorage.setItem("teachers", JSON.stringify(teachers));
+        }
       }
 
+      setTeacher(updatedTeacher);
+
       if (isOwner) {
-        localStorage.setItem("teacherDisplayName", editData.displayName || teacher.displayName);
+        localStorage.setItem("teacherDisplayName", updatedTeacher.displayName);
       }
 
       setIsEditing(false);

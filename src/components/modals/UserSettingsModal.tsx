@@ -35,6 +35,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   const [userId, setUserId] = useState("");
   const [coins, setCoins] = useState(0);
   const [originalDisplayName, setOriginalDisplayName] = useState("");
+  const [originalAvatar, setOriginalAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     // Load user data when modal opens
@@ -55,14 +56,15 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
             // Get teacher data from Supabase
             const { data: teacher, error } = await supabase
               .from('teachers')
-              .select('*')
+              .select('display_name, avatar_url')
               .eq('id', teacherId)
               .maybeSingle();
             
             if (teacher && !error) {
               setDisplayName(teacher.display_name || '');
               setOriginalDisplayName(teacher.display_name || '');
-              setAvatar(teacher.avatar || null);
+              setAvatar(teacher.avatar_url || null);
+              setOriginalAvatar(teacher.avatar_url || null);
               return;
             }
           } catch (error) {
@@ -76,7 +78,8 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
         if (teacher) {
           setDisplayName(teacher.displayName || "");
           setOriginalDisplayName(teacher.displayName || "");
-          setAvatar(teacher.avatar || null);
+          setAvatar(teacher.avatar_url || null);
+          setOriginalAvatar(teacher.avatar_url || null);
         }
       }
     } else {
@@ -120,8 +123,8 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
   };
 
   const handleSave = async () => {
-    // Only update if display name has changed
-    if (displayName !== originalDisplayName) {
+    // Only update if display name or avatar has changed
+    if (displayName !== originalDisplayName || avatar !== originalAvatar) {
       if (userType === "teacher") {
         const teacherId = localStorage.getItem("teacherId");
         
@@ -130,7 +133,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           try {
             const { error } = await supabase
               .from('teachers')
-              .update({ display_name: displayName })
+              .update({ display_name: displayName, avatar_url: avatar })
               .eq('id', teacherId);
             
             if (error) throw error;
@@ -147,7 +150,7 @@ const UserSettingsModal: React.FC<UserSettingsModalProps> = ({
           teachers[teacherIndex] = {
             ...teachers[teacherIndex],
             displayName,
-            avatar,
+            avatar_url: avatar,
           };
           localStorage.setItem("teachers", JSON.stringify(teachers));
           localStorage.setItem("teacherDisplayName", displayName);

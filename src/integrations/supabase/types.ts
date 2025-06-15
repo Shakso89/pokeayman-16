@@ -701,6 +701,7 @@ export type Database = {
       }
       teachers: {
         Row: {
+          avatar_url: string | null
           created_at: string
           display_name: string
           email: string | null
@@ -709,11 +710,14 @@ export type Database = {
           is_active: boolean | null
           last_login: string | null
           password: string
+          photos: Json | null
           role: Database["public"]["Enums"]["app_role"] | null
+          social_links: Json | null
           subscription_type: string | null
           username: string
         }
         Insert: {
+          avatar_url?: string | null
           created_at?: string
           display_name: string
           email?: string | null
@@ -722,11 +726,14 @@ export type Database = {
           is_active?: boolean | null
           last_login?: string | null
           password: string
+          photos?: Json | null
           role?: Database["public"]["Enums"]["app_role"] | null
+          social_links?: Json | null
           subscription_type?: string | null
           username: string
         }
         Update: {
+          avatar_url?: string | null
           created_at?: string
           display_name?: string
           email?: string | null
@@ -735,7 +742,9 @@ export type Database = {
           is_active?: boolean | null
           last_login?: string | null
           password?: string
+          photos?: Json | null
           role?: Database["public"]["Enums"]["app_role"] | null
+          social_links?: Json | null
           subscription_type?: string | null
           username?: string
         }

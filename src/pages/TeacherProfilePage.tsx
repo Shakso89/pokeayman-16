@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -115,7 +116,7 @@ const TeacherProfilePage: React.FC = () => {
       if (e.target?.result) {
         setEditData({
           ...editData,
-          avatar: e.target.result.toString()
+          avatar_url: e.target.result.toString()
         });
       }
     };
@@ -124,7 +125,7 @@ const TeacherProfilePage: React.FC = () => {
 
   // NEW: Gather header props
   const username = teacher?.username || "";
-  const userAvatar = teacher?.avatar || "";
+  const userAvatar = teacher?.avatar_url || "";
   
   if (isLoading) {
     return (
@@ -226,7 +227,7 @@ const TeacherProfilePage: React.FC = () => {
               <div className="relative">
                 <Avatar className="w-32 h-32">
                   <AvatarImage 
-                    src={isEditing ? editData.avatar || teacher.avatar : teacher.avatar} 
+                    src={isEditing ? editData.avatar_url || teacher.avatar_url : teacher.avatar_url} 
                     alt={teacher.displayName || teacher.username} 
                   />
                   <AvatarFallback className="text-3xl">
