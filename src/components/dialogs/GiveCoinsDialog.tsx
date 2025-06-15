@@ -38,45 +38,47 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
     if (coinAmount > 0) {
       setIsLoading(true);
       try {
-        // Update coins in the database
-        const { data: currentProfile } = await supabase
-          .from('student_profiles')
-          .select('coins')
-          .eq('user_id', studentId)
+        // Find student's profile via username to bridge legacy student ID and user_id
+        const { data: studentLegacy, error: legacyError } = await supabase
+          .from('students')
+          .select('username')
+          .eq('id', studentId) // studentId is legacy ID from 'students' table
           .maybeSingle();
 
-        if (currentProfile) {
-          const { error } = await supabase
-            .from('student_profiles')
-            .update({ 
-              coins: currentProfile.coins + coinAmount,
-              updated_at: new Date().toISOString()
-            })
-            .eq('user_id', studentId);
+        if (legacyError || !studentLegacy) throw new Error("Legacy student record not found.");
 
-          if (error) throw error;
+        const { data: currentProfile, error: profileError } = await supabase
+          .from('student_profiles')
+          .select('user_id, coins')
+          .eq('username', studentLegacy.username)
+          .maybeSingle();
 
-          toast({
-            title: t("success"),
-            description: `${coinAmount} coins awarded to ${studentName}`
-          });
-          
-          onGiveCoins(coinAmount);
-          
-          setAmount("");
-          onOpenChange(false);
-        } else {
-          toast({
-            title: t("error"),
-            description: "Student profile not found",
-            variant: "destructive"
-          });
-        }
+        if (profileError || !currentProfile) throw new Error("Student profile not found.");
+
+        const { error } = await supabase
+          .from('student_profiles')
+          .update({
+            coins: currentProfile.coins + coinAmount,
+            updated_at: new Date().toISOString()
+          })
+          .eq('user_id', currentProfile.user_id);
+
+        if (error) throw error;
+
+        toast({
+          title: t("success"),
+          description: `${coinAmount} coins awarded to ${studentName}`
+        });
+
+        onGiveCoins(coinAmount);
+
+        setAmount("");
+        onOpenChange(false);
       } catch (error) {
         console.error("Error awarding coins:", error);
         toast({
           title: t("error"),
-          description: "Failed to award coins",
+          description: "Failed to award coins.",
           variant: "destructive"
         });
       } finally {

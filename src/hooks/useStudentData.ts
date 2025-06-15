@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Pokemon } from '@/types/pokemon';
 import { 
@@ -33,12 +34,24 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
       }
 
       if (studentProfile) {
-        // Fetch all class enrollments for the student
-        const { data: classEnrollments } = await supabase
-          .from('student_classes')
-          .select('class_id')
-          .eq('student_id', studentId);
+        // Get legacy student ID via username, as it's used in some parts of the app
+        const { data: legacyStudent } = await supabase
+          .from('students')
+          .select('id')
+          .eq('username', studentProfile.username)
+          .maybeSingle();
+        const legacyId = legacyStudent?.id;
 
+        // Fetch all class enrollments for the student using legacy ID
+        let classEnrollments: { class_id: string }[] | null = null;
+        if (legacyId) {
+          const { data, error } = await supabase
+            .from('student_classes')
+            .select('class_id')
+            .eq('student_id', legacyId);
+          if (!error) classEnrollments = data;
+        }
+        
         let classIds: string | null = null;
         if (classEnrollments && classEnrollments.length > 0) {
           classIds = classEnrollments.map(c => c.class_id).join(',');
@@ -54,9 +67,33 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
 
         setProfile(fullProfile);
 
-        // Load Pokemon collection
-        const pokemonCollection = await getStudentPokemonCollection(fullProfile.id);
-        setPokemons(pokemonCollection);
+        // Load Pokemon collection using both user_id and legacy_id to handle data inconsistency
+        let orFilter = `student_id.eq.${studentProfile.user_id}`;
+        if (legacyId) {
+          orFilter += `,student_id.eq.${legacyId}`;
+        }
+        const { data: pokemonData, error: pokemonError } = await supabase
+          .from('pokemon_collections')
+          .select('*')
+          .or(orFilter)
+          .order('obtained_at', { ascending: false });
+
+        if (pokemonError) {
+          console.error("Error fetching pokemons:", pokemonError);
+          setPokemons([]);
+        } else {
+          // Ensure we don't have duplicate Pokemon from querying with two IDs
+          const uniquePokemons = pokemonData.filter((p, index, self) =>
+            index === self.findIndex((t) => t.pokemon_id === p.pokemon_id)
+          );
+          setPokemons(uniquePokemons.map(item => ({
+            id: item.pokemon_id,
+            name: item.pokemon_name,
+            image: item.pokemon_image || '',
+            type: item.pokemon_type || '',
+            rarity: (item.pokemon_rarity as any) || 'common',
+          })));
+        }
 
         // Load school name if school_id exists
         if (fullProfile.school_id) {
