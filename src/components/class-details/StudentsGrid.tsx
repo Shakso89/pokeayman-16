@@ -248,7 +248,7 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
                         onClick={(e) => { e.stopPropagation(); handleAwardRandomPokemon(student.id, displayName); }}
                       >
                         <Plus className="h-4 w-4 mr-1" />
-                        Give Pokémon
+                        + Pokémon
                       </Button>
                       <Button
                         size="sm"
@@ -256,7 +256,7 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
                         onClick={(e) => { e.stopPropagation(); handleRemoveRandomPokemon(student.id, displayName); }}
                       >
                         <Minus className="h-4 w-4 mr-1" />
-                        Remove Pokémon
+                        - Pokémon
                       </Button>
 
                       <Button 
