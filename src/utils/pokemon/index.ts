@@ -4,6 +4,7 @@ import {
   removePokemonFromStudent,
   getStudentPokemonCollection,
   awardCoinsToStudent,
+  assignSpecificPokemonToStudent,
 } from './studentPokemon';
 
 import {
@@ -15,6 +16,7 @@ import {
 export {
   // Student Pokemon operations
   assignRandomPokemonToStudent,
+  assignSpecificPokemonToStudent,
   removePokemonFromStudent,
   getStudentPokemonCollection,
   awardCoinsToStudent,

@@ -7,7 +7,7 @@ import { Trash2, ArrowLeft, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getStudentPokemonCollection, removePokemonFromStudent } from "@/utils/pokemon/studentPokemon";
-import { assignRandomPokemonToStudent } from "@/utils/pokemon/studentPokemon";
+import { assignRandomPokemonToStudent, assignSpecificPokemonToStudent } from "@/utils/pokemon/studentPokemon";
 import { getSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
 import { StudentCollectionPokemon, SchoolPoolPokemon } from "@/types/pokemon";
 import { Separator } from "@/components/ui/separator";
@@ -147,6 +147,46 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     }
   };
 
+  const handleAssignSpecificPokemon = async (pokemon: SchoolPoolPokemon) => {
+    if (!isClassCreator) {
+      toast({
+        title: t("error"),
+        description: "Only class creators can assign Pokemon",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setAssigningPokemon(true);
+    try {
+      const result = await assignSpecificPokemonToStudent(pokemon.poolEntryId, pokemon.id, schoolId, studentId);
+
+      if (result.success && result.pokemon) {
+        toast({
+          title: t("success"),
+          description: `${result.pokemon.name} has been assigned to ${studentName}`,
+        });
+        fetchData();
+        onPokemonRemoved();
+      } else {
+        toast({
+          title: t("error"),
+          description: "Failed to assign Pokemon. The school pool might be empty or this Pokemon was already assigned.",
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      console.error("Error assigning pokemon:", error);
+      toast({
+        title: t("error"),
+        description: "Failed to assign Pokemon",
+        variant: "destructive",
+      });
+    } finally {
+      setAssigningPokemon(false);
+    }
+  };
+
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
       case "legendary": return "bg-yellow-500";
@@ -269,7 +309,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {schoolPool.map((pokemon) => (
-                  <Card key={pokemon.poolEntryId} className="relative opacity-60">
+                  <Card key={pokemon.poolEntryId} className="relative">
                     <CardContent className="p-4">
                       <div className="flex flex-col items-center space-y-2">
                         <img 
@@ -291,12 +331,12 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
                         {isClassCreator && (
                           <Button
                             size="sm"
-                            onClick={() => handleAssignRandomPokemon()}
+                            onClick={() => handleAssignSpecificPokemon(pokemon)}
                             disabled={assigningPokemon}
-                            className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white"
+                            className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white"
                           >
                             <Plus className="h-4 w-4 mr-2" />
-                            {assigningPokemon ? 'Assigning...' : 'Assign Random Pokemon'}
+                            {assigningPokemon ? 'Assigning...' : 'Assign to Student'}
                           </Button>
                         )}
                       </div>

@@ -1,4 +1,3 @@
-
 import { Pokemon, StudentCollectionPokemon } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -37,6 +36,58 @@ export const assignRandomPokemonToStudent = async (schoolId: string, studentId: 
 
   const randomEntry = available[Math.floor(Math.random() * available.length)];
   const { id: poolEntryId, pokemon_id: pokemonId } = randomEntry;
+
+  // Update pokemon_pools to mark as assigned
+  const { data: updatedPoolEntry, error: updateError } = await supabase
+    .from('pokemon_pools')
+    .update({ status: 'assigned', assigned_to_student_id: studentProfileId, assigned_at: new Date().toISOString() })
+    .eq('id', poolEntryId)
+    .eq('status', 'available') // Ensure it hasn't been claimed by another process
+    .select()
+    .single();
+
+  if (updateError || !updatedPoolEntry) {
+    console.error("Failed to assign Pokemon, it might have been claimed.", updateError);
+    return { success: false };
+  }
+
+  // Insert into pokemon_collections
+  const { error: insertError } = await supabase
+    .from('pokemon_collections')
+    .insert({
+      student_id: studentProfileId,
+      school_id: schoolId,
+      pokemon_id: pokemonId,
+      pool_entry_id: poolEntryId
+    });
+
+  if (insertError) {
+    // Rollback the assignment if collection insert fails
+    await supabase.from('pokemon_pools').update({ status: 'available', assigned_to_student_id: null, assigned_at: null }).eq('id', poolEntryId);
+    console.error("Error inserting into pokemon_collections, rolling back.", insertError);
+    return { success: false };
+  }
+
+  const { data: pokemonDetails } = await supabase.from('pokemon_catalog').select('*').eq('id', pokemonId).single();
+  return { success: true, pokemon: pokemonDetails as Pokemon };
+};
+
+// Assigns a specific Pokemon from a school's pool to a student.
+export const assignSpecificPokemonToStudent = async (poolEntryId: string, pokemonId: number, schoolId: string, studentId:string): Promise<{ success: boolean; pokemon?: Pokemon }> => {
+  console.log(`Attempting to assign specific Pokemon (pool entry: ${poolEntryId}) to student (user_id: ${studentId}) from school ${schoolId}`);
+
+  const { data: profile, error: profileError } = await supabase
+    .from('student_profiles')
+    .select('id')
+    .eq('user_id', studentId)
+    .single();
+
+  if (profileError || !profile) {
+    console.error(`Could not find student profile for user_id: ${studentId}`, profileError);
+    return { success: false };
+  }
+  const studentProfileId = profile.id;
+  console.log(`Found student profile ID: ${studentProfileId}`);
 
   // Update pokemon_pools to mark as assigned
   const { data: updatedPoolEntry, error: updateError } = await supabase
