@@ -1,4 +1,3 @@
-
 import React from "react";
 import { StudentsList } from "@/components/student-profile/StudentsList";
 import DeleteClassDialog from "@/components/dialogs/DeleteClassDialog";
@@ -163,9 +162,6 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
         isOpen={schoolPoolDialogOpen}
         onOpenChange={onSchoolPoolDialogChange}
         schoolId={schoolId}
-        classId={classId}
-        onPokemonGiven={onPokemonRemoved}
-        students={students}
       />
     </>
   );

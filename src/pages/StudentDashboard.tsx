@@ -130,12 +130,6 @@ const StudentDashboard: React.FC = () => {
     setActiveTab("my-pokemons");
   };
 
-  const handlePokemonGiven = () => {
-    // Callback when Pokemon is given to student
-    console.log("Pokemon was given to a student from school pool");
-    loadSchoolPokemonPool();
-  };
-
   if (!isLoggedIn || userType !== "student") {
     return <Navigate to="/student-login" />;
   }
@@ -238,8 +232,6 @@ const StudentDashboard: React.FC = () => {
         isOpen={showSchoolPool} 
         onOpenChange={setShowSchoolPool} 
         schoolId={schoolId}
-        classId={studentClasses.length > 0 ? studentClasses[0] : ""}
-        onPokemonGiven={handlePokemonGiven}
       />
     </div>
   );
