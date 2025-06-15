@@ -4,62 +4,15 @@ import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import StudentProfileBasicInfo from "@/components/student-profile/StudentProfileBasicInfo";
 import StudentProfilePokemonList from "@/components/student-profile/StudentProfilePokemonList";
-import StudentProfileCoins from "@/components/student-profile/StudentProfileCoins";
+import CoinsDisplay from "@/components/student/profile/CoinsDisplay";
 import StudentProfileAchievements from "@/components/student-profile/StudentProfileAchievements";
 import SchoolClassInfo from "@/components/student/profile/SchoolClassInfo";
 import { ProfileHeader } from "@/components/student-profile/ProfileHeader";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Button } from "@/components/ui/button";
-
-// Helper functions for fetching data from localStorage as a fallback
-const getPokemons = (studentId: string) => {
-  const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
-  const collection = studentPokemons.find((sp: any) => sp.studentId === studentId);
-  return collection?.pokemons || [];
-};
-
-const getCoinBalance = (studentId: string): number => {
-  const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
-  const collection = studentPokemons.find((sp: any) => sp.studentId === studentId);
-  return collection?.coins ?? 0;
-};
-
-const getHomeworkStreak = (studentId: string): number => {
-  const streaks = JSON.parse(localStorage.getItem("homeworkStreaks") || "{}");
-  return streaks[studentId] || 0;
-};
-
-const getStarOfClass = (studentId: string, classes: any[]): boolean => {
-  const classStars = JSON.parse(localStorage.getItem("starOfClassByClassId") || "{}");
-  return classes.some((cls) => classStars[cls.id] === studentId);
-};
-
-const getStudent = (studentId: string) => {
-  const students = JSON.parse(localStorage.getItem("students") || "[]");
-  return students.find((s: any) => s.id === studentId) || null;
-};
-
-const getSchool = (schoolId: string) => {
-  if (!schoolId) return null;
-  const schools = JSON.parse(localStorage.getItem("schools") || "[]");
-  return schools.find((s: any) => s.id === schoolId) || null;
-};
-
-const getClasses = (studentId: string) => {
-  let classAssignments = JSON.parse(localStorage.getItem("studentClasses") || "[]");
-  let assignedClassIds = classAssignments
-    .filter((ca: any) => ca.studentId === studentId)
-    .map((ca: any) => ca.classId);
-  
-  let allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-  let filtered = allClasses.filter((c: any) => assignedClassIds.includes(c.id));
-
-  if (filtered.length === 0) {
-    filtered = allClasses.filter((c: any) => c.students?.includes(studentId));
-  }
-  return filtered;
-};
+import { getStudentProfileById, StudentProfile } from "@/services/studentDatabase";
+import { Pokemon } from "@/types/pokemon";
 
 const getNiceDisplayName = (student: any): string => {
   const candidates = [student?.display_name, student?.displayName, student?.username].filter(Boolean);
@@ -79,10 +32,12 @@ const StudentProfilePage: React.FC = () => {
   const loggedInUserType = localStorage.getItem("userType") || "student";
 
   const [student, setStudent] = useState<any | null>(null);
+  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
   const [school, setSchool] = useState<any | null>(null);
   const [classes, setClasses] = useState<any[]>([]);
-  const [pokemons, setPokemons] = useState<any[]>([]);
+  const [pokemons, setPokemons] = useState<Pokemon[]>([]);
   const [coins, setCoins] = useState(0);
+  const [spentCoins, setSpentCoins] = useState(0);
   const [homeworkStreak, setHomeworkStreak] = useState(0);
   const [isStarOfClass, setIsStarOfClass] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -95,7 +50,8 @@ const StudentProfilePage: React.FC = () => {
     setLoading(true);
 
     const loadStudentData = async () => {
-      const { data: studentWithSchool, error: studentError } = await supabase
+      // Fetch student, school, profile, pokemons, achievements, streak in parallel
+      const { data: studentData, error: studentError } = await supabase
         .from('students')
         .select(`*, school:school_id (id, name)`)
         .eq('id', studentId)
@@ -103,44 +59,63 @@ const StudentProfilePage: React.FC = () => {
 
       if (studentError) console.error("Error fetching student:", studentError.message);
       
-      let stu = studentWithSchool;
-      if (!stu) {
-        console.warn(`Student with id ${studentId} not found in Supabase, falling back to localStorage.`);
-        stu = getStudent(studentId);
-      }
-
-      if (!stu) {
+      if (!studentData) {
+        setLoading(false);
         setStudent(null);
         return;
       }
-      setStudent(stu);
+      setStudent(studentData);
+      setSchool(studentData.school);
+      
+      const [profile, pokemonCollection, achievements, streak] = await Promise.all([
+        getStudentProfileById(studentId),
+        supabase.from('pokemon_collections').select('*').eq('student_id', studentId),
+        supabase.from('achievements').select('*').eq('student_id', studentId).eq('type', 'star_of_class').eq('is_active', true),
+        supabase.rpc('calculate_homework_streak', { p_student_id: studentId })
+      ]);
+      
+      if (profile) {
+        setStudentProfile(profile);
+        setCoins(profile.coins);
+        setSpentCoins(profile.spent_coins);
+      }
+      
+      if (pokemonCollection.data) {
+        setPokemons(pokemonCollection.data.map((p: any) => ({
+          id: p.pokemon_id,
+          name: p.pokemon_name,
+          image: p.pokemon_image,
+          type: p.pokemon_type,
+          rarity: p.pokemon_rarity
+        } as Pokemon)));
+      }
+      
+      if (achievements.data && achievements.data.length > 0) {
+        setIsStarOfClass(true);
+      }
+      
+      if (streak.data) {
+        setHomeworkStreak(streak.data);
+      }
 
-      const schoolData = stu.school || getSchool(stu.school_id || stu.schoolId);
-      setSchool(schoolData);
-
-      let classesData: any[] = [];
-      const { data: classAssignments } = await supabase.from('student_classes').select('class_id').eq('student_id', studentId);
-      let classIds = classAssignments ? classAssignments.map(c => c.class_id) : [];
-
-      if (classIds.length === 0 && (stu.class_id || stu.classId)) {
-        const ids = stu.class_id || stu.classId;
-        classIds = Array.isArray(ids) ? ids : String(ids).split(',').map(id => id.trim()).filter(Boolean);
+      // Fetch classes
+      let classIds: string[] = [];
+      const studentClassId = studentData.class_id;
+      if (studentClassId) {
+        classIds = Array.isArray(studentClassId) ? studentClassId : String(studentClassId).split(',').map((id: string) => id.trim()).filter(Boolean);
+      }
+      
+      if (classIds.length === 0) {
+        const { data: classAssignments } = await supabase.from('student_classes').select('class_id').eq('student_id', studentId);
+        if (classAssignments) {
+            classIds = classAssignments.map(c => c.class_id);
+        }
       }
 
       if (classIds.length > 0) {
         const { data: fetchedClasses } = await supabase.from('classes').select('*').in('id', classIds);
-        if (fetchedClasses) classesData = fetchedClasses;
+        if (fetchedClasses) setClasses(fetchedClasses);
       }
-
-      if (classesData.length === 0) {
-        classesData = getClasses(studentId);
-      }
-      setClasses(classesData);
-      
-      setPokemons(getPokemons(stu.id));
-      setCoins(getCoinBalance(stu.id));
-      setHomeworkStreak(getHomeworkStreak(stu.id));
-      setIsStarOfClass(getStarOfClass(stu.id, classesData));
     };
 
     loadStudentData().finally(() => setLoading(false));
@@ -181,14 +156,16 @@ const StudentProfilePage: React.FC = () => {
           <CardContent className="pt-6">
             <StudentProfileBasicInfo
               displayName={displayName}
-              avatar={student.avatar}
+              avatar={studentProfile?.avatar_url}
               school={school ? { id: school.id, name: school.name } : undefined}
               classes={classes.map((c: any) => ({ id: c.id, name: c.name }))}
               isStarOfClass={isStarOfClass}
               userType={loggedInUserType as 'student' | 'teacher'}
             />
 
-            <StudentProfileCoins coins={coins} />
+            <div className="mt-6">
+              <CoinsDisplay coins={coins} spentCoins={spentCoins} />
+            </div>
 
             <div className="mt-6">
               <h3 className="font-bold text-lg mb-2">Pokémon Collection</h3>

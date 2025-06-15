@@ -306,7 +306,7 @@ export const getStudentProfileById = async (studentId: string): Promise<StudentP
     const { data, error } = await supabase
       .from('student_profiles')
       .select('*')
-      .eq('id', studentId)
+      .eq('user_id', studentId)
       .maybeSingle();
 
     if (error) {
