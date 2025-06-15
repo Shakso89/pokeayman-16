@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Loader2, Award, Coins, BookText, UserPlus } from "lucide-react";
+import { Loader2, Award, Coins, BookText, UserPlus, UserMinus } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { formatDistanceToNow } from "date-fns";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -168,6 +168,14 @@ export default function ActivityFeed({
         content = (
           <p>
             <span className="font-semibold text-blue-600">{performer.displayName}</span> added <span className="font-semibold">{details.studentName}</span> to the class.
+          </p>
+        );
+        break;
+      case 'removed_student_from_class':
+        icon = <UserMinus className="h-6 w-6 text-red-500" />;
+        content = (
+          <p>
+            <span className="font-semibold text-blue-600">{performer.displayName}</span> removed <span className="font-semibold">{details.studentName}</span> from the class.
           </p>
         );
         break;

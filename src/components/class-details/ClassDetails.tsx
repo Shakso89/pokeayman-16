@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
@@ -7,6 +6,8 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { deleteClass } from "@/utils/classSync/classOperations";
+import { removeStudentFromClass } from "@/utils/classSync/studentOperations";
+import { logActivity } from "@/services/activityLogger";
 import ClassManagementHeader from "./ClassManagementHeader";
 import StudentsGrid from "./StudentsGrid";
 import ClassTabs from "./ClassTabs";
@@ -89,27 +90,40 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
 
   const handleRemoveStudent = async (studentId: string) => {
     if (!classId || !studentId) return;
+
     try {
-      // Remove from student_classes join table
-      const { error } = await supabase
-        .from('student_classes')
-        .delete()
-        .eq('student_id', studentId)
-        .eq('class_id', classId);
+      const studentToRemove = students.find(s => s.id === studentId);
+      const studentName = studentToRemove?.display_name || studentToRemove?.username || removeStudentDialog.studentName || 'a student';
+      
+      const success = await removeStudentFromClass(classId, studentId);
 
-      if (error) throw error;
+      if (success) {
+        await logActivity(
+          teacherId,
+          'removed_student_from_class',
+          { 
+            studentId, 
+            studentName, 
+            classId, 
+            schoolId: classData.schoolId, 
+            className: classData.name 
+          }
+        );
 
-      toast({
-        title: t("success"),
-        description: t("student-removed-successfully")
-      });
+        toast({
+          title: t("success"),
+          description: t("student-removed-successfully")
+        });
 
-      fetchClassDetails();
-      setRemoveStudentDialog({
-        open: false,
-        studentId: "",
-        studentName: ""
-      });
+        fetchClassDetails();
+        setRemoveStudentDialog({
+          open: false,
+          studentId: "",
+          studentName: ""
+        });
+      } else {
+        throw new Error("Failed to remove student from class");
+      }
     } catch (error) {
       console.error("Error removing student:", error);
       toast({
