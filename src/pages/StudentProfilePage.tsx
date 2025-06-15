@@ -67,8 +67,11 @@ const StudentProfilePage: React.FC = () => {
       setStudent(studentData);
       setSchool(studentData.school);
       
-      // Then fetch the profile using the user id (studentId)
-      const profile = await getStudentProfileById(studentId);
+      // Fetch profile and pokemons in parallel
+      const [profile, pokemonCollection] = await Promise.all([
+          getStudentProfileById(studentId),
+          supabase.from('pokemon_collections').select('*').eq('student_id', studentId)
+      ]);
       
       if (profile) {
         setStudentProfile(profile);
@@ -76,21 +79,10 @@ const StudentProfilePage: React.FC = () => {
         setSpentCoins(profile.spent_coins);
       
         // Once we have the profile, use profile.id to fetch related data
-        const [pokemonCollection, achievements, streak] = await Promise.all([
-          supabase.from('pokemon_collections').select('*').eq('student_id', profile.id),
+        const [achievements, streak] = await Promise.all([
           supabase.from('achievements').select('*').eq('student_id', profile.id).eq('type', 'star_of_class').eq('is_active', true),
           supabase.rpc('calculate_homework_streak', { p_student_id: profile.id })
         ]);
-        
-        if (pokemonCollection.data) {
-          setPokemons(pokemonCollection.data.map((p: any) => ({
-            id: p.pokemon_id,
-            name: p.pokemon_name,
-            image: p.pokemon_image,
-            type: p.pokemon_type,
-            rarity: p.pokemon_rarity
-          } as Pokemon)));
-        }
         
         if (achievements.data && achievements.data.length > 0) {
           setIsStarOfClass(true);
@@ -103,11 +95,22 @@ const StudentProfilePage: React.FC = () => {
         }
       } else {
         // if no profile, reset related states
-        setPokemons([]);
         setCoins(0);
         setSpentCoins(0);
         setIsStarOfClass(false);
         setHomeworkStreak(0);
+      }
+
+      if (pokemonCollection.data) {
+        setPokemons(pokemonCollection.data.map((p: any) => ({
+          id: p.pokemon_id,
+          name: p.pokemon_name,
+          image: p.pokemon_image,
+          type: p.pokemon_type,
+          rarity: p.pokemon_rarity
+        } as Pokemon)));
+      } else {
+        setPokemons([]);
       }
 
       // Fetch classes from the join table first as the source of truth
