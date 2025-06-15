@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from "react";
 import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,94 +7,10 @@ import CoinsDisplay from "@/components/student/profile/CoinsDisplay";
 import StudentProfileAchievements from "@/components/student-profile/StudentProfileAchievements";
 import SchoolClassInfo from "@/components/student/profile/SchoolClassInfo";
 import { ProfileHeader } from "@/components/student-profile/ProfileHeader";
-import { School, Users } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { supabase } from "@/integrations/supabase/client";
-
-const getPokemons = (studentId: string) => {
-  const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
-  const collection = studentPokemons.find((sp: any) => sp.studentId === studentId);
-  return collection?.pokemons || [];
-};
-
-const getCoinBalance = (studentId: string): number => {
-  const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
-  const collection = studentPokemons.find((sp: any) => sp.studentId === studentId);
-  return collection?.coins ?? 0;
-};
-
-const getHomeworkStreak = (studentId: string): number => {
-  const streaks = JSON.parse(localStorage.getItem("homeworkStreaks") || "{}");
-  return streaks[studentId] || 0;
-};
-
-const getStarOfClass = (studentId: string, classes: any[]): boolean => {
-  const classStars = JSON.parse(localStorage.getItem("starOfClassByClassId") || "{}");
-  return classes.some((cls) => classStars[cls.id] === studentId);
-};
-
-const getStudent = (studentId: string) => {
-  const students = JSON.parse(localStorage.getItem("students") || "[]");
-  const found = students.find((s: any) => s.id === studentId);
-  if (!found) {
-    console.warn("[StudentDetailPage] Student ID not found in localStorage:", studentId);
-  }
-  return found || null;
-};
-
-const getSchool = (schoolId: string) => {
-  if (!schoolId) {
-    console.warn("[StudentDetailPage] No schoolId provided");
-    return null;
-  }
-  const schools = JSON.parse(localStorage.getItem("schools") || "[]");
-  const result = schools.find((s: any) => s.id === schoolId);
-  if (!result) {
-    console.warn("[StudentDetailPage] School not found with schoolId:", schoolId, "Available schools:", schools.map((s:any) => ({id: s.id, name: s.name})));
-  }
-  return result || null;
-};
-
-const getClasses = (studentId: string) => {
-  // First try: Look in studentClasses table
-  let classAssignments = JSON.parse(localStorage.getItem("studentClasses") || "[]");
-  let assignedClassIds = classAssignments
-    .filter((ca: any) => ca.studentId === studentId)
-    .map((ca: any) => ca.classId);
-  
-  let allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
-  let filtered = allClasses.filter((c: any) => assignedClassIds.includes(c.id));
-
-  // Second try: Look in classes.students array
-  if (filtered.length === 0) {
-    filtered = allClasses.filter((c: any) => 
-      c.students && Array.isArray(c.students) && c.students.includes(studentId)
-    );
-  }
-
-  // Third try: Check student.classId or student.class_id
-  if (filtered.length === 0) {
-    const students = JSON.parse(localStorage.getItem("students") || "[]");
-    const stu = students.find((s: any) => s.id === studentId);
-    let studentClassIds: string[] = [];
-    
-    if (stu?.classId || stu?.class_id) {
-      const idsString = stu.classId || stu.class_id;
-      if (typeof idsString === "string") {
-        studentClassIds = idsString.split(",").map((id) => id.trim()).filter(Boolean);
-      } else if (Array.isArray(idsString)) {
-        studentClassIds = idsString;
-      }
-    }
-    
-    if (studentClassIds.length > 0) {
-      filtered = allClasses.filter((c: any) => studentClassIds.includes(c.id));
-    }
-  }
-
-  console.log("[StudentDetailPage] Found classes for student:", studentId, filtered);
-  return filtered;
-};
+import { getStudentProfileById } from "@/services/studentDatabase";
+import { Pokemon } from "@/types/pokemon";
 
 const StudentDetailPage: React.FC = () => {
   const { id, studentId } = useParams<{ id?: string; studentId?: string }>();
@@ -106,83 +21,86 @@ const StudentDetailPage: React.FC = () => {
   const [student, setStudent] = useState<any | null>(null);
   const [school, setSchool] = useState<any | null>(null);
   const [classes, setClasses] = useState<any[]>([]);
-  const [pokemons, setPokemons] = useState<any[]>([]);
+  const [pokemons, setPokemons] = useState<Pokemon[]>([]);
   const [coins, setCoins] = useState(0);
   const [spentCoins, setSpentCoins] = useState(0);
   const [homeworkStreak, setHomeworkStreak] = useState(0);
   const [isStarOfClass, setIsStarOfClass] = useState(false);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!sid) return;
+    if (!sid) {
+      setLoading(false);
+      return;
+    }
+    setLoading(true);
 
     const loadStudentData = async () => {
-      // 1. Fetch student data with school info
-      const { data: studentWithSchool, error: studentError } = await supabase
+      // Fetch student, school, profile, pokemons, achievements, streak in parallel
+      const { data: studentData, error: studentError } = await supabase
         .from('students')
-        .select(`
-          *,
-          school:school_id (id, name)
-        `)
+        .select(`*, school:school_id (id, name)`)
         .eq('id', sid)
         .maybeSingle();
 
       if (studentError) console.error("Error fetching student:", studentError.message);
       
-      let stu = studentWithSchool;
-      // Fallback to localStorage if Supabase fails
-      if (!stu) {
-        console.warn(`Student with id ${sid} not found in Supabase, falling back to localStorage.`);
-        stu = getStudent(sid);
-      }
-
-      if (!stu) {
+      if (!studentData) {
+        setLoading(false);
         setStudent(null);
         return;
       }
-      setStudent(stu);
+      setStudent(studentData);
+      setSchool(studentData.school);
+      
+      const [profile, pokemonCollection, achievements, streak] = await Promise.all([
+        getStudentProfileById(sid),
+        supabase.from('pokemon_collections').select('*').eq('student_id', sid),
+        supabase.from('achievements').select('*').eq('student_id', sid).eq('type', 'star_of_class').eq('is_active', true),
+        supabase.rpc('calculate_homework_streak', { p_student_id: sid })
+      ]);
+      
+      if (profile) {
+        setCoins(profile.coins);
+        setSpentCoins(profile.spent_coins);
+      }
+      
+      if (pokemonCollection.data) {
+        setPokemons(pokemonCollection.data.map((p: any) => ({
+          id: p.pokemon_id,
+          name: p.pokemon_name,
+          image: p.pokemon_image,
+          type: p.pokemon_type,
+          rarity: p.pokemon_rarity
+        } as Pokemon)));
+      }
+      
+      if (achievements.data && achievements.data.length > 0) {
+        setIsStarOfClass(true);
+      }
+      
+      if (streak.data) {
+        setHomeworkStreak(streak.data);
+      }
 
-      // 2. Set School data
-      const schoolData = stu.school || getSchool(stu.school_id || stu.schoolId);
-      setSchool(schoolData);
-      console.log("[StudentDetailPage] School data:", schoolData);
-
-      // 3. Fetch Classes
-      let classesData: any[] = [];
-      const { data: classAssignments } = await supabase
-        .from('student_classes')
-        .select('class_id')
-        .eq('student_id', sid);
-
-      let classIds = classAssignments ? classAssignments.map(c => c.class_id) : [];
-
-      if (classIds.length === 0 && (stu.class_id || stu.classId)) {
-        const ids = stu.class_id || stu.classId;
-        classIds = Array.isArray(ids) ? ids : String(ids).split(',').map(id => id.trim()).filter(Boolean);
+      // Fetch classes from the join table first as the source of truth
+      const { data: classAssignments } = await supabase.from('student_classes').select('class_id').eq('student_id', sid);
+      let classIds: string[] = [];
+      if (classAssignments && classAssignments.length > 0) {
+          classIds = classAssignments.map(c => c.class_id);
+      } else if (studentData.class_id) {
+          // Fallback to the deprecated class_id field on students table
+          const studentClassId = studentData.class_id;
+          classIds = Array.isArray(studentClassId) ? studentClassId : String(studentClassId).split(',').map((id: string) => id.trim()).filter(Boolean);
       }
 
       if (classIds.length > 0) {
-        const { data: fetchedClasses } = await supabase
-          .from('classes')
-          .select('*')
-          .in('id', classIds);
-        if (fetchedClasses) classesData = fetchedClasses;
+        const { data: fetchedClasses } = await supabase.from('classes').select('*').in('id', classIds);
+        if (fetchedClasses) setClasses(fetchedClasses);
       }
-
-      // Fallback for classes
-      if (classesData.length === 0) {
-        console.warn(`Classes for student ${sid} not found in Supabase, falling back to localStorage.`);
-        classesData = getClasses(sid);
-      }
-      setClasses(classesData);
-      
-      // 4. Set other info from localStorage
-      setPokemons(getPokemons(stu.id));
-      setCoins(getCoinBalance(stu.id));
-      setHomeworkStreak(getHomeworkStreak(stu.id));
-      setIsStarOfClass(getStarOfClass(stu.id, classesData));
     };
 
-    loadStudentData();
+    loadStudentData().finally(() => setLoading(false));
   }, [sid]);
 
   function handleBack() {
@@ -259,7 +177,7 @@ const StudentDetailPage: React.FC = () => {
         <ProfileHeader title="Student Profile" onBack={handleBack} />
 
         <Card>
-          <CardContent>
+          <CardContent className="pt-6">
             {/* Student profile basic info, avatar, name */}
             <StudentProfileBasicInfo
               displayName={displayName}

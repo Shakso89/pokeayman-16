@@ -3,7 +3,7 @@ import React, { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Student, Pokemon } from "@/types/pokemon";
-import { Trophy } from "lucide-react";
+import { Trophy, Users } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PokemonList from "@/components/student/PokemonList";
 import { Card, CardContent } from "@/components/ui/card";
@@ -18,6 +18,7 @@ interface StudentWithScore {
   coins: number;
   totalScore: number;
   rank: number;
+  className?: string;
 }
 
 interface SchoolRankingTabProps {
@@ -40,7 +41,7 @@ export const SchoolRankingTab: React.FC<SchoolRankingTabProps> = ({ schoolId }) 
     try {
       const { data: profilesData, error: profilesError } = await supabase
         .from('student_profiles')
-        .select('id, user_id, display_name, username, avatar_url, coins')
+        .select('id, user_id, display_name, username, avatar_url, coins, class_id')
         .eq('school_id', schoolId);
 
       if (profilesError) throw profilesError;
@@ -51,24 +52,55 @@ export const SchoolRankingTab: React.FC<SchoolRankingTabProps> = ({ schoolId }) 
 
       const profileUserIds = profilesData.map(p => p.user_id);
 
-      const { data: pokemonCollections, error: pokemonError } = await supabase
-        .from('pokemon_collections')
-        .select('student_id')
-        .in('student_id', profileUserIds);
-
-      if (pokemonError) throw pokemonError;
+      const [pokemonCollections, studentClassAssignments, schoolClasses] = await Promise.all([
+        supabase
+          .from('pokemon_collections')
+          .select('student_id')
+          .in('student_id', profileUserIds),
+        supabase
+          .from('student_classes')
+          .select('student_id, class_id')
+          .in('student_id', profileUserIds),
+        supabase
+          .from('classes')
+          .select('id, name')
+          .eq('school_id', schoolId)
+      ]);
+      
+      if (pokemonCollections.error) throw pokemonCollections.error;
+      if (studentClassAssignments.error) throw studentClassAssignments.error;
+      if (schoolClasses.error) throw schoolClasses.error;
 
       const pokemonCounts = new Map<string, number>();
-      if (pokemonCollections) {
-        pokemonCollections.forEach(p => {
+      if (pokemonCollections.data) {
+        pokemonCollections.data.forEach(p => {
           pokemonCounts.set(p.student_id, (pokemonCounts.get(p.student_id) || 0) + 1);
         });
+      }
+
+      const classNamesById = new Map<string, string>();
+      if(schoolClasses.data) {
+          schoolClasses.data.forEach(c => classNamesById.set(c.id, c.name));
+      }
+
+      const studentClassNames = new Map<string, string>();
+      if (studentClassAssignments.data) {
+          studentClassAssignments.data.forEach(sc => {
+              if (sc.class_id && classNamesById.has(sc.class_id)) {
+                  studentClassNames.set(sc.student_id, classNamesById.get(sc.class_id)!);
+              }
+          });
       }
 
       const studentsWithScore = profilesData.map((p) => {
         const pokemonCount = pokemonCounts.get(p.user_id) || 0;
         const coins = p.coins || 0;
         const totalScore = pokemonCount + Math.floor(coins / 10);
+        
+        let className = studentClassNames.get(p.user_id);
+        if(!className && p.class_id && classNamesById.has(p.class_id)) {
+            className = classNamesById.get(p.class_id);
+        }
         
         return {
           id: p.user_id,
@@ -78,7 +110,8 @@ export const SchoolRankingTab: React.FC<SchoolRankingTabProps> = ({ schoolId }) 
           pokemonCount,
           coins,
           totalScore,
-          rank: 0
+          rank: 0,
+          className: className,
         };
       });
       
@@ -176,6 +209,12 @@ export const SchoolRankingTab: React.FC<SchoolRankingTabProps> = ({ schoolId }) 
                 <div>
                   <p className="font-medium text-sm">{student.displayName}</p>
                   <p className="text-xs text-gray-500">@{student.username}</p>
+                  {student.className && (
+                    <div className="text-xs text-purple-600 flex items-center gap-1 mt-0.5">
+                      <Users className="h-3 w-3" />
+                      {student.className}
+                    </div>
+                  )}
                 </div>
               </div>
               
