@@ -10,6 +10,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { getSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
 import { getStudentPokemonCollection, removePokemonFromStudent, assignRandomPokemonToStudent, assignSpecificPokemonToStudent } from "@/utils/pokemon/studentPokemon";
 import { SchoolPoolPokemon, StudentCollectionPokemon } from "@/types/pokemon";
+import { supabase } from "@/integrations/supabase/client";
 
 interface TeacherManagePokemonDialogProps {
   isOpen: boolean;
