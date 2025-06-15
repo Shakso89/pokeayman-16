@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -7,7 +8,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import CreateHomeworkDialog from "@/components/homework/CreateHomeworkDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
 import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
-import { awardCoinsToStudent } from "@/utils/pokemon/studentPokemon";
+import { awardCoinsToStudent } from "@/services/studentCoinService";
 import { useToast } from "@/hooks/use-toast";
 
 interface ManageClassDialogProps {

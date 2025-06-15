@@ -1,12 +1,11 @@
-
 import { useState, useEffect } from 'react';
 import { Pokemon } from '@/types/pokemon';
 import { 
   getOrCreateStudentProfile, 
-  getStudentPokemonCollection, 
   getStudentProfileById,
   StudentProfile 
 } from '@/services/studentDatabase';
+import { getStudentPokemonCollection } from '@/utils/pokemon/studentPokemon';
 import { supabase } from '@/integrations/supabase/client';
 import { getStudentCoinData } from '@/services/studentCoinService';
 
@@ -67,32 +66,18 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
 
         setProfile(fullProfile);
 
-        // Load Pokemon collection using both user_id and legacy_id to handle data inconsistency
-        let orFilter = `student_id.eq.${studentProfile.user_id}`;
-        if (legacyId) {
-          orFilter += `,student_id.eq.${legacyId}`;
-        }
-        const { data: pokemonData, error: pokemonError } = await supabase
-          .from('pokemon_collections')
-          .select('*')
-          .or(orFilter)
-          .order('obtained_at', { ascending: false });
-
-        if (pokemonError) {
-          console.error("Error fetching pokemons:", pokemonError);
-          setPokemons([]);
-        } else {
-          // Ensure we don't have duplicate Pokemon from querying with two IDs
-          const uniquePokemons = pokemonData.filter((p, index, self) =>
-            index === self.findIndex((t) => t.pokemon_id === p.pokemon_id)
-          );
-          setPokemons(uniquePokemons.map(item => ({
-            id: item.pokemon_id,
-            name: item.pokemon_name,
-            image: item.pokemon_image || '',
-            type: item.pokemon_type || '',
-            rarity: (item.pokemon_rarity as any) || 'common',
+        // Load Pokemon collection
+        const pokemonCollection = await getStudentPokemonCollection(studentProfile.user_id);
+        if (pokemonCollection) {
+          setPokemons(pokemonCollection.map(p => ({
+            id: p.id,
+            name: p.name,
+            image: p.image,
+            type: p.type,
+            rarity: p.rarity,
           })));
+        } else {
+          setPokemons([]);
         }
 
         // Load school name if school_id exists

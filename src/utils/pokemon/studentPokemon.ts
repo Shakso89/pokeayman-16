@@ -3,7 +3,24 @@ import { supabase } from "@/integrations/supabase/client";
 
 // Assigns a random available Pokemon from a school's pool to a student.
 export const assignRandomPokemonToStudent = async (schoolId: string, studentId: string): Promise<{ success: boolean; pokemon?: Pokemon }> => {
-  console.log(`Assigning random Pokemon to student ${studentId} from school ${schoolId}`);
+  // The studentId passed is the user_id from auth.users.
+  // We need student_profiles.id for the foreign key constraints.
+  console.log(`Attempting to assign random Pokemon to student (user_id: ${studentId}) from school ${schoolId}`);
+
+  const { data: profile, error: profileError } = await supabase
+    .from('student_profiles')
+    .select('id')
+    .eq('user_id', studentId)
+    .single();
+
+  if (profileError || !profile) {
+    console.error(`Could not find student profile for user_id: ${studentId}`, profileError);
+    return { success: false };
+  }
+  const studentProfileId = profile.id;
+  console.log(`Found student profile ID: ${studentProfileId}`);
+
+  console.log(`Assigning random Pokemon to student ${studentProfileId} from school ${schoolId}`);
   
   const { data: available, error: availableError } = await supabase
     .from('pokemon_pools')
@@ -23,7 +40,7 @@ export const assignRandomPokemonToStudent = async (schoolId: string, studentId: 
   // Update pokemon_pools to mark as assigned
   const { data: updatedPoolEntry, error: updateError } = await supabase
     .from('pokemon_pools')
-    .update({ status: 'assigned', assigned_to_student_id: studentId, assigned_at: new Date().toISOString() })
+    .update({ status: 'assigned', assigned_to_student_id: studentProfileId, assigned_at: new Date().toISOString() })
     .eq('id', poolEntryId)
     .eq('status', 'available') // Ensure it hasn't been claimed by another process
     .select()
@@ -38,7 +55,7 @@ export const assignRandomPokemonToStudent = async (schoolId: string, studentId: 
   const { error: insertError } = await supabase
     .from('pokemon_collections')
     .insert({
-      student_id: studentId,
+      student_id: studentProfileId,
       school_id: schoolId,
       pokemon_id: pokemonId,
       pool_entry_id: poolEntryId
@@ -95,10 +112,23 @@ export const removePokemonFromStudent = async (collectionId: string): Promise<bo
 
 // Get a student's Pokemon collection from the database.
 export const getStudentPokemonCollection = async (studentId: string): Promise<StudentCollectionPokemon[]> => {
+  // studentId here is the user_id. We need student_profiles.id to query pokemon_collections
+  const { data: profile, error: profileError } = await supabase
+    .from('student_profiles')
+    .select('id')
+    .eq('user_id', studentId)
+    .single();
+  
+  if (profileError || !profile) {
+    console.error("Error fetching student profile for collection:", profileError);
+    return [];
+  }
+  const studentProfileId = profile.id;
+
   const { data, error } = await supabase
     .from('pokemon_collections')
     .select('id, school_id, pool_entry_id, pokemon_catalog!inner(*)')
-    .eq('student_id', studentId);
+    .eq('student_id', studentProfileId);
 
   if (error) {
     console.error("Error fetching student's pokemon collection", error);
