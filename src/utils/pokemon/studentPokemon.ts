@@ -1,4 +1,3 @@
-
 import { Pokemon, StudentCollectionPokemon } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -117,13 +116,23 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
   }));
 };
 
-// Award coins to a student
+// Award coins to a student - simplified approach
 export const awardCoinsToStudent = async (studentId: string, amount: number): Promise<boolean> => {
   try {
+    // Get current coins first
+    const { data: profile } = await supabase
+      .from('student_profiles')
+      .select('coins')
+      .eq('user_id', studentId)
+      .single();
+
+    const currentCoins = profile?.coins || 0;
+    const newCoins = currentCoins + amount;
+
     const { error } = await supabase
       .from('student_profiles')
-      .update({ coins: supabase.raw(`coins + ${amount}`) })
-      .eq('id', studentId);
+      .update({ coins: newCoins })
+      .eq('user_id', studentId);
 
     if (error) {
       console.error("Error awarding coins to student:", error);

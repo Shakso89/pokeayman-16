@@ -3,7 +3,7 @@ import React from "react";
 import { Award } from "lucide-react";
 
 interface Pokemon {
-  id: string;
+  id: number; // Changed from string to number to match database
   name: string;
   image: string;
   type?: string;
