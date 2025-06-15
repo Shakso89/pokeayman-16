@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +24,7 @@ interface StudentWithRank extends Student {
   pokemonCount: number;
   rank: number;
   coins: number;
+  totalScore: number;
 }
 const RankingPage: React.FC = () => {
   const {
@@ -168,6 +168,7 @@ const RankingPage: React.FC = () => {
       const studentsWithPokemonCount = profilesData.map(s => {
         const count = pokemonCounts.get(s.user_id) || 0;
         const coins = s.coins || 0;
+        const totalScore = count + Math.floor(coins / 10);
         return {
           id: s.user_id,
           username: s.username,
@@ -177,11 +178,11 @@ const RankingPage: React.FC = () => {
           avatar: s.avatar_url || undefined,
           pokemonCount: count,
           coins,
+          totalScore,
         };
       });
 
-      const totalScore = (s: {pokemonCount: number, coins: number}) => s.pokemonCount + Math.floor(s.coins / 10);
-      const sortedStudents = studentsWithPokemonCount.sort((a, b) => totalScore(b) - totalScore(a));
+      const sortedStudents = studentsWithPokemonCount.sort((a, b) => b.totalScore - a.totalScore);
 
       const rankedStudents = sortedStudents.map((student, index) => ({
         ...student,
@@ -230,6 +231,7 @@ const RankingPage: React.FC = () => {
       const studentsWithPokemonCount = profilesData.map((p) => {
         const pokemonCount = pokemonCounts.get(p.user_id) || 0;
         const coins = p.coins || 0;
+        const totalScore = pokemonCount + Math.floor(coins / 10);
         
         return {
           id: p.user_id,
@@ -241,11 +243,11 @@ const RankingPage: React.FC = () => {
           avatar: p.avatar_url || undefined,
           pokemonCount: pokemonCount,
           coins: coins,
+          totalScore,
         };
       });
       
-      const totalScore = (s: {pokemonCount: number, coins: number}) => s.pokemonCount + Math.floor(s.coins / 10);
-      const sortedStudents = studentsWithPokemonCount.sort((a, b) => totalScore(b) - totalScore(a));
+      const sortedStudents = studentsWithPokemonCount.sort((a, b) => b.totalScore - a.totalScore);
       const rankedStudents = sortedStudents.map((student, index) => ({
         ...student,
         rank: index + 1,
@@ -294,7 +296,7 @@ const RankingPage: React.FC = () => {
         return "bg-gray-200";
     }
   };
-  const renderStudentList = (studentList: StudentWithRank[], title: string) => {
+  const renderStudentList = (studentList: StudentWithRank[], title: string, showClassName = false) => {
     if (!studentList || studentList.length === 0) {
       return <div className="text-center py-12">
           <p className="text-xl text-gray-500">{t("no-students")}</p>
@@ -302,32 +304,43 @@ const RankingPage: React.FC = () => {
     }
     return <div className="space-y-4">
         <h3 className="text-lg font-medium mb-3">{title}</h3>
-        {studentList.map(student => <div key={student.id} className="flex items-center p-4 border rounded-lg hover:bg-gray-50 cursor-pointer" onClick={() => handleStudentClick(student)}>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${getRankingColor(student.rank)}`}>
-              {student.rank <= 3 ? <Trophy size={16} /> : student.rank}
-            </div>
-            
-            <div className="ml-4 flex-1 flex items-center">
-              <Avatar className="h-10 w-10 mr-3">
-                <AvatarImage src={student.avatar} />
-                <AvatarFallback>
-                  {student.displayName?.substring(0, 2).toUpperCase() || "ST"}
-                </AvatarFallback>
-              </Avatar>
+        {studentList.map(student => {
+          const studentClass = showClassName ? classes.find(c => c.id === student.classId) : null;
+          return (
+            <div key={student.id} className="flex items-center p-4 border rounded-lg hover:bg-gray-50 cursor-pointer" onClick={() => handleStudentClick(student)}>
+              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white font-bold ${getRankingColor(student.rank)}`}>
+                {student.rank <= 3 ? <Trophy size={16} /> : student.rank}
+              </div>
               
-              <div>
-                <p className="font-medium">{student.displayName}</p>
-                <p className="text-sm text-gray-500">@{student.username}</p>
+              <div className="ml-4 flex-1 flex items-center">
+                <Avatar className="h-10 w-10 mr-3">
+                  <AvatarImage src={student.avatar} />
+                  <AvatarFallback>
+                    {student.displayName?.substring(0, 2).toUpperCase() || "ST"}
+                  </AvatarFallback>
+                </Avatar>
+                
+                <div>
+                  <p className="font-medium">{student.displayName}</p>
+                  <p className="text-sm text-gray-500">@{student.username}</p>
+                  {studentClass && (
+                    <Badge variant="outline" className="mt-1 font-normal text-xs flex items-center w-fit">
+                      <Users className="h-3 w-3 mr-1" />
+                      {studentClass.name}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              
+              <div className="text-right">
+                <p className="font-bold">{student.totalScore} {t("points")}</p>
+                <p className="text-sm text-gray-500">
+                  {student.pokemonCount} {t("pokemon")} • {student.coins} {t("coins")}
+                </p>
               </div>
             </div>
-            
-            <div className="text-right">
-              <p className="font-bold">{student.pokemonCount}</p>
-              <p className="text-sm text-gray-500">
-                {t("pokemon")} • {student.coins} {t("coins")}
-              </p>
-            </div>
-          </div>)}
+          );
+        })}
       </div>;
   };
 
@@ -413,7 +426,7 @@ const RankingPage: React.FC = () => {
             <CardContent>
               <Tabs value={currentTab}>
                 <TabsContent value="school">
-                  {renderStudentList(students, `${t("top")} 20 - ${t("school-ranking")}`)}
+                  {renderStudentList(students, `${t("top")} 20 - ${t("school-ranking")}`, true)}
                 </TabsContent>
                 
                 <TabsContent value="class">
@@ -422,7 +435,7 @@ const RankingPage: React.FC = () => {
                           <h3 className="font-medium text-lg mb-3 px-2 py-1 bg-gray-50 rounded-md">
                             {cls.name}
                           </h3>
-                          {renderStudentList(classStudents[cls.id] || [], `${t("top")} 10 - ${cls.name}`)}
+                          {renderStudentList(classStudents[cls.id] || [], `${t("top")} 10`)}
                         </div>)}
                     </div> : <div className="text-center py-12">
                       <p className="text-xl text-gray-500">{t("no-classes")}</p>
