@@ -4,7 +4,7 @@ import { useParams, useNavigate, Navigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import StudentProfileBasicInfo from "@/components/student-profile/StudentProfileBasicInfo";
 import StudentProfilePokemonList from "@/components/student-profile/StudentProfilePokemonList";
-import StudentProfileCoins from "@/components/student-profile/StudentProfileCoins";
+import CoinsDisplay from "@/components/student/profile/CoinsDisplay";
 import StudentProfileAchievements from "@/components/student-profile/StudentProfileAchievements";
 import SchoolClassInfo from "@/components/student/profile/SchoolClassInfo";
 import { ProfileHeader } from "@/components/student-profile/ProfileHeader";
@@ -108,6 +108,7 @@ const StudentDetailPage: React.FC = () => {
   const [classes, setClasses] = useState<any[]>([]);
   const [pokemons, setPokemons] = useState<any[]>([]);
   const [coins, setCoins] = useState(0);
+  const [spentCoins, setSpentCoins] = useState(0);
   const [homeworkStreak, setHomeworkStreak] = useState(0);
   const [isStarOfClass, setIsStarOfClass] = useState(false);
 
@@ -269,7 +270,9 @@ const StudentDetailPage: React.FC = () => {
               userType={loggedInUserType as 'student' | 'teacher'}
             />
 
-            <StudentProfileCoins coins={coins} />
+            <div className="mt-6">
+              <CoinsDisplay coins={coins} spentCoins={spentCoins} />
+            </div>
 
             <div className="mt-6">
               <h3 className="font-bold text-lg mb-2">Pokémon Collection</h3>
