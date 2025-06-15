@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,9 +9,11 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getStudentPokemonCollection } from "@/utils/pokemon/studentPokemon";
 import { assignRandomPokemonToStudent, removePokemonFromStudent } from "@/utils/pokemon/studentPokemon";
+import { initializeSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
 import { toast } from "@/hooks/use-toast";
 import PokemonActionModal from "@/components/pokemon/PokemonActionModal";
 import { Pokemon } from "@/types/pokemon";
+
 interface Student {
   id: string;
   username: string;
@@ -19,6 +22,7 @@ interface Student {
   avatar?: string;
   schoolId?: string;
 }
+
 interface StudentsGridProps {
   students: Student[];
   isClassCreator: boolean;
@@ -29,6 +33,7 @@ interface StudentsGridProps {
   onRemovePokemon: (studentId: string, studentName: string) => void;
   classData: any;
 }
+
 const StudentsGrid: React.FC<StudentsGridProps> = ({
   students,
   isClassCreator,
@@ -40,12 +45,7 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
   classData
 }) => {
   const navigate = useNavigate();
-  const {
-    t
-  } = useTranslation();
-
-  // Determine user type for correct navigation
-  const userType = localStorage.getItem("userType");
+  const { t } = useTranslation();
 
   // Add state for Pokemon action modal
   const [pokemonActionModal, setPokemonActionModal] = useState({
@@ -54,9 +54,11 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
     actionType: "awarded" as "awarded" | "removed",
     studentName: ""
   });
+
   const handleViewProfile = (studentId: string) => {
     navigate(`/student-profile/${studentId}`);
   };
+
   const getStudentCoins = (studentId: string): number => {
     try {
       const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
@@ -66,6 +68,7 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
       return 0;
     }
   };
+
   const getStudentPokemonCount = (studentId: string): number => {
     try {
       const collection = getStudentPokemonCollection(studentId);
@@ -74,8 +77,10 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
       return 0;
     }
   };
+
   const handleAwardRandomPokemon = async (studentId: string, studentName: string) => {
-    if (!classData?.schoolId) {
+    const schoolId = classData?.schoolId;
+    if (!schoolId) {
       toast({
         title: t("error"),
         description: "School ID not found",
@@ -83,8 +88,14 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
       });
       return;
     }
+
+    console.log("Awarding Pokemon to student:", { studentId, studentName, schoolId });
+
     try {
-      const result = assignRandomPokemonToStudent(classData.schoolId, studentId);
+      // Ensure school pool exists before assigning
+      initializeSchoolPokemonPool(schoolId, 500);
+      
+      const result = assignRandomPokemonToStudent(schoolId, studentId);
       if (result.success && result.pokemon) {
         setPokemonActionModal({
           isOpen: true,
@@ -96,10 +107,6 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
           title: t("success"),
           description: `Random Pokémon awarded to ${studentName}`
         });
-
-        // Do NOT refresh page, update by re-render with new state:
-        // Call a prop function if available to refresh/reload students list from parent (optional pattern)
-        // Otherwise, nothing—use React state/localStorage gets updated above
       } else {
         toast({
           title: t("error"),
@@ -116,7 +123,10 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
       });
     }
   };
+
   const handleRemoveRandomPokemon = async (studentId: string, studentName: string) => {
+    console.log("Removing Pokemon from student:", { studentId, studentName });
+    
     try {
       const result = removePokemonFromStudent(studentId);
       if (result.success && result.pokemon) {
@@ -130,7 +140,6 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
           title: t("success"),
           description: `Random Pokémon removed from ${studentName} and returned to school pool`
         });
-        // No reload needed, localStorage/state is updated
       } else {
         toast({
           title: t("error"),
@@ -147,6 +156,7 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
       });
     }
   };
+
   const handleCloseModal = () => {
     setPokemonActionModal({
       isOpen: false,
@@ -155,22 +165,26 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
       studentName: ""
     });
   };
+
   if (!students || students.length === 0) {
-    return <div className="text-center py-8">
+    return (
+      <div className="text-center py-8">
         <p className="text-gray-500">{t("no-students-in-class")}</p>
-      </div>;
+      </div>
+    );
   }
-  return <>
+
+  return (
+    <>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {students.map(student => {
-        const displayName = student.displayName || student.display_name || student.username;
-        const coins = getStudentCoins(student.id);
-        const pokemonCount = getStudentPokemonCount(student.id);
+          const displayName = student.displayName || student.display_name || student.username;
+          const coins = getStudentCoins(student.id);
+          const pokemonCount = getStudentPokemonCount(student.id);
+          const profileRoute = `/student-profile/${student.id}`;
 
-        // Route always to /student-profile/:id for profile view
-        const profileRoute = `/student-profile/${student.id}`;
-
-        return <Card key={student.id} className="bg-white/20 backdrop-blur-sm">
+          return (
+            <Card key={student.id} className="bg-white/20 backdrop-blur-sm">
               <CardContent className="p-6">
                 <div className="flex flex-col items-center space-y-4">
                   {/* Avatar */}
@@ -207,63 +221,82 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
                   </div>
 
                   {/* Quick Action Buttons */}
-                  {isClassCreator && <div className="flex space-x-2 w-full">
-                      <Button size="sm" className="flex-1 bg-purple-500 hover:bg-purple-600 text-white" onClick={() => handleAwardRandomPokemon(student.id, displayName)}>
+                  {isClassCreator && (
+                    <div className="flex space-x-2 w-full">
+                      <Button 
+                        size="sm" 
+                        className="flex-1 bg-purple-500 hover:bg-purple-600 text-white" 
+                        onClick={() => handleAwardRandomPokemon(student.id, displayName)}
+                      >
                         <Plus className="h-4 w-4 mr-1" />
-                        Give $
+                        Give Pokémon
                       </Button>
-                      <Button size="sm" variant="outline" className="flex-1" onClick={() => handleRemoveRandomPokemon(student.id, displayName)}>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="flex-1" 
+                        onClick={() => handleRemoveRandomPokemon(student.id, displayName)}
+                      >
                         <Minus className="h-4 w-4 mr-1" />
-                        Pokémon
+                        Remove Pokémon
                       </Button>
-                    </div>}
+                    </div>
+                  )}
 
                   {/* Action Buttons */}
                   <div className="flex flex-col space-y-2 w-full">
                     {isClassCreator && (
-                        <>
-                          <div className="flex space-x-2">
-                            <Button size="sm" variant="outline" onClick={() => onAwardCoins(student.id, displayName)} className="flex-1">
-                              <Coins className="h-4 w-4 mr-1" />
-                              {t("give-coins")}
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={() => onRemoveCoins(student.id, displayName)} className="flex-1">
-                              <Minus className="h-4 w-4 mr-1" />
-                              {t("remove-coins")}
-                            </Button>
-                          </div>
-
-                          <Button size="sm" variant="outline" onClick={() => onManagePokemon(student.id, displayName, student.schoolId || classData.schoolId || "")} className="w-full">
-                            <Award className="h-4 w-4 mr-2" />
-                            {t("manage-pokemon")}
+                      <>
+                        <div className="flex space-x-2">
+                          <Button size="sm" variant="outline" onClick={() => onAwardCoins(student.id, displayName)} className="flex-1">
+                            <Coins className="h-4 w-4 mr-1" />
+                            {t("give-coins")}
                           </Button>
-
-                          {/* MOVE "View Profile" button right ABOVE the Remove Student button */}
-                          <Button 
-                            size="sm" 
-                            variant="outline" 
-                            className="w-full flex items-center justify-center"
-                            onClick={() => navigate(profileRoute)}
-                          >
-                            <User className="h-4 w-4 mr-2" />
-                            {t("view-profile") || "View Profile"}
+                          <Button size="sm" variant="outline" onClick={() => onRemoveCoins(student.id, displayName)} className="flex-1">
+                            <Minus className="h-4 w-4 mr-1" />
+                            {t("remove-coins")}
                           </Button>
+                        </div>
 
-                          <Button size="sm" variant="destructive" onClick={() => onRemoveStudent(student.id, displayName)} className="w-full">
-                            <Trash2 className="h-4 w-4 mr-2" />
-                            {t("remove-student")}
-                          </Button>
-                        </>
+                        <Button size="sm" variant="outline" onClick={() => onManagePokemon(student.id, displayName, student.schoolId || classData.schoolId || "")} className="w-full">
+                          <Award className="h-4 w-4 mr-2" />
+                          {t("manage-pokemon")}
+                        </Button>
+
+                        <Button 
+                          size="sm" 
+                          variant="outline" 
+                          className="w-full flex items-center justify-center"
+                          onClick={() => navigate(profileRoute)}
+                        >
+                          <User className="h-4 w-4 mr-2" />
+                          {t("view-profile") || "View Profile"}
+                        </Button>
+
+                        <Button size="sm" variant="destructive" onClick={() => onRemoveStudent(student.id, displayName)} className="w-full">
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          {t("remove-student")}
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
               </CardContent>
-            </Card>;
-      })}
+            </Card>
+          );
+        })}
       </div>
 
       {/* Pokemon Action Modal */}
-      <PokemonActionModal pokemon={pokemonActionModal.pokemon} isOpen={pokemonActionModal.isOpen} onClose={handleCloseModal} actionType={pokemonActionModal.actionType} studentName={pokemonActionModal.studentName} />
-    </>;
+      <PokemonActionModal 
+        pokemon={pokemonActionModal.pokemon} 
+        isOpen={pokemonActionModal.isOpen} 
+        onClose={handleCloseModal} 
+        actionType={pokemonActionModal.actionType} 
+        studentName={pokemonActionModal.studentName} 
+      />
+    </>
+  );
 };
+
 export default StudentsGrid;

@@ -1,7 +1,9 @@
+
 import { Pokemon, StudentPokemon } from "@/types/pokemon";
 import { getStudentPokemons, saveStudentPokemons } from "./storage";
 import { getPokemonPools, savePokemonPools } from "./storage";
 import { handlePokemonDuplicate } from "./duplicateHandler";
+import { initializeSchoolPokemonPool, getSchoolPokemonPool } from "./schoolPokemon";
 
 // Get student Pokemon collection
 export const getStudentPokemonCollection = (studentId: string): StudentPokemon | null => {
@@ -11,8 +13,11 @@ export const getStudentPokemonCollection = (studentId: string): StudentPokemon |
 
 // Remove a random pokemon from a student and return it to the school pool
 export const removePokemonFromStudent = (studentId: string): { success: boolean; pokemon?: Pokemon } => {
+  console.log("Removing random Pokemon from student:", studentId);
+  
   const collection = getStudentPokemonCollection(studentId);
   if (!collection || collection.pokemons.length === 0) {
+    console.log("No Pokemon found for student:", studentId);
     return { success: false };
   }
 
@@ -31,7 +36,7 @@ export const removePokemonFromStudent = (studentId: string): { success: boolean;
     studentCollections[studentIndex].pokemons = collection.pokemons;
     saveStudentPokemons(studentCollections);
 
-    // Look up schoolId FIRST from the student profile, fallback to localStorage
+    // Look up schoolId from student profile or localStorage
     let schoolId: string | undefined;
     if (typeof window !== "undefined") {
       const localStudentProfiles = localStorage.getItem("student_profiles");
@@ -52,11 +57,23 @@ export const removePokemonFromStudent = (studentId: string): { success: boolean;
     // Add the removed Pokemon back to the school pool
     if (schoolId) {
       const pokemonPools = getPokemonPools();
-      const schoolPoolIndex = pokemonPools.findIndex(pool => pool.schoolId === schoolId);
+      let schoolPoolIndex = pokemonPools.findIndex(pool => pool.schoolId === schoolId);
+      
+      // Initialize pool if it doesn't exist
+      if (schoolPoolIndex < 0) {
+        console.log("School pool not found, initializing for school:", schoolId);
+        const newPool = initializeSchoolPokemonPool(schoolId, 500);
+        if (newPool) {
+          pokemonPools.push(newPool);
+          schoolPoolIndex = pokemonPools.length - 1;
+        }
+      }
+      
       if (schoolPoolIndex >= 0) {
         pokemonPools[schoolPoolIndex].availablePokemons.push(removedPokemon);
         pokemonPools[schoolPoolIndex].lastUpdated = new Date().toISOString();
         savePokemonPools(pokemonPools);
+        console.log("Pokemon returned to school pool:", removedPokemon.name);
       }
     }
 
@@ -72,6 +89,8 @@ export const removePokemonFromStudentAndReturnToPool = (
   pokemonId: string,
   schoolId: string
 ): boolean => {
+  console.log("Removing specific Pokemon from student:", { studentId, pokemonId, schoolId });
+  
   // Get student's collection
   const studentPokemons = getStudentPokemons();
   const studentIndex = studentPokemons.findIndex(sp => sp.studentId === studentId);
@@ -97,22 +116,32 @@ export const removePokemonFromStudentAndReturnToPool = (
   
   // Get school pool
   const pokemonPools = getPokemonPools();
-  const schoolPoolIndex = pokemonPools.findIndex(pool => pool.schoolId === schoolId);
+  let schoolPoolIndex = pokemonPools.findIndex(pool => pool.schoolId === schoolId);
   
+  // Initialize pool if it doesn't exist
   if (schoolPoolIndex < 0) {
-    console.error("School pool not found:", schoolId);
-    return false;
+    console.log("School pool not found, initializing for school:", schoolId);
+    const newPool = initializeSchoolPokemonPool(schoolId, 500);
+    if (newPool) {
+      pokemonPools.push(newPool);
+      schoolPoolIndex = pokemonPools.length - 1;
+    }
   }
   
-  // Add the Pokemon back to the school pool
-  pokemonPools[schoolPoolIndex].availablePokemons.push(removedPokemon);
-  pokemonPools[schoolPoolIndex].lastUpdated = new Date().toISOString();
+  if (schoolPoolIndex >= 0) {
+    // Add the Pokemon back to the school pool
+    pokemonPools[schoolPoolIndex].availablePokemons.push(removedPokemon);
+    pokemonPools[schoolPoolIndex].lastUpdated = new Date().toISOString();
+    
+    // Update pools in localStorage
+    savePokemonPools(pokemonPools);
+    
+    console.log("Pokemon returned to school pool:", removedPokemon.name);
+    return true;
+  }
   
-  // Update pools in localStorage
-  savePokemonPools(pokemonPools);
-  
-  console.log("Pokemon returned to school pool:", removedPokemon.name);
-  return true;
+  console.error("Failed to return Pokemon to school pool");
+  return false;
 };
 
 // Remove coins from a student
@@ -168,13 +197,23 @@ export const assignPokemonToStudent = (schoolId: string, studentId: string, poke
     return false;
   }
 
+  console.log("Assigning Pokemon to student:", { schoolId, studentId, pokemonId });
+
   // Get all the pools
   const pools = getPokemonPools();
-  const poolIndex = pools.findIndex(p => p.schoolId === schoolId);
+  let poolIndex = pools.findIndex(p => p.schoolId === schoolId);
   
+  // Initialize pool if it doesn't exist
   if (poolIndex < 0) {
-    console.error("School pool not found for:", schoolId);
-    return false;
+    console.log("School pool not found, initializing for school:", schoolId);
+    const newPool = initializeSchoolPokemonPool(schoolId, 500);
+    if (newPool) {
+      pools.push(newPool);
+      poolIndex = pools.length - 1;
+    } else {
+      console.error("Failed to initialize school pool");
+      return false;
+    }
   }
   
   // Find the Pokemon in the school pool
@@ -226,12 +265,27 @@ export const assignRandomPokemonToStudent = (schoolId: string, studentId: string
     return { success: false };
   }
 
+  console.log("Assigning random Pokemon to student:", { schoolId, studentId });
+
   // Get all the pools
   const pools = getPokemonPools();
-  const poolIndex = pools.findIndex(p => p.schoolId === schoolId);
+  let poolIndex = pools.findIndex(p => p.schoolId === schoolId);
 
-  if (poolIndex < 0 || pools[poolIndex].availablePokemons.length === 0) {
-    console.error("School pool not found or empty for:", schoolId);
+  // Initialize pool if it doesn't exist
+  if (poolIndex < 0) {
+    console.log("School pool not found, initializing for school:", schoolId);
+    const newPool = initializeSchoolPokemonPool(schoolId, 500);
+    if (newPool) {
+      pools.push(newPool);
+      poolIndex = pools.length - 1;
+    } else {
+      console.error("Failed to initialize school pool");
+      return { success: false };
+    }
+  }
+
+  if (pools[poolIndex].availablePokemons.length === 0) {
+    console.error("School pool is empty for:", schoolId);
     return { success: false };
   }
   
