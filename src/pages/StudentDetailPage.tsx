@@ -186,17 +186,18 @@ const StudentDetailPage: React.FC = () => {
 
   function handleBack() {
     if (classes && classes.length > 0) {
-      // Go to the first class assigned to the student
-      navigate(`/class/${classes[0].id}`);
+      const classId = classes[0].id;
+      if (loggedInUserType === 'teacher') {
+        navigate(`/class-details/${classId}`);
+      } else {
+        navigate(`/student/class/${classId}`);
+      }
     } else {
-      // Try to detect user type to provide a dashboard fallback
-      const userType = localStorage.getItem("userType");
-      if (userType === "student") {
+      if (loggedInUserType === "student") {
         navigate("/student-dashboard");
-      } else if (userType === "teacher") {
+      } else if (loggedInUserType === "teacher") {
         navigate("/teacher-dashboard");
       } else {
-        // Fallback: send to main page if userType is unknown
         navigate("/");
       }
     }
