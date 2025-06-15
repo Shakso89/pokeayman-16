@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -9,16 +8,9 @@ import { getSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
 import { SchoolPoolPokemon } from "@/types/pokemon";
 import { getStudentsByClass, StudentProfile } from "@/services/studentDatabase";
 import { assignSpecificPokemonToStudent } from "@/utils/pokemon/studentPokemon";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { Plus } from "lucide-react";
-
 interface SchoolPokemonPoolDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
@@ -27,45 +19,36 @@ interface SchoolPokemonPoolDialogProps {
   onPokemonGiven: () => void;
   students?: StudentProfile[];
 }
-
 const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
   isOpen,
   onOpenChange,
   schoolId,
   classId,
   onPokemonGiven,
-  students: passedStudents,
+  students: passedStudents
 }) => {
-  const { t } = useTranslation();
+  const {
+    t
+  } = useTranslation();
   const [pokemonPool, setPokemonPool] = useState<SchoolPoolPokemon[]>([]);
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [loading, setLoading] = useState(false);
   const [isAssigning, setIsAssigning] = useState(false);
   const [givingPokemon, setGivingPokemon] = useState<SchoolPoolPokemon | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<string | null>(null);
-
   useEffect(() => {
     if (isOpen && schoolId) {
       fetchData();
     }
   }, [isOpen, schoolId, classId, passedStudents]);
-
   const fetchData = async () => {
     setLoading(true);
     setGivingPokemon(null);
     setSelectedStudent(null);
     try {
       const pokemonDataPromise = getSchoolPokemonPool(schoolId);
-      const studentsPromise = passedStudents
-        ? Promise.resolve(passedStudents)
-        : classId
-        ? getStudentsByClass(classId)
-        : Promise.resolve([]);
-
-      const [pokemonData, studentsData] = await Promise.all([
-        pokemonDataPromise,
-        studentsPromise,
-      ]);
+      const studentsPromise = passedStudents ? Promise.resolve(passedStudents) : classId ? getStudentsByClass(classId) : Promise.resolve([]);
+      const [pokemonData, studentsData] = await Promise.all([pokemonDataPromise, studentsPromise]);
       setPokemonPool(pokemonData || []);
       setStudents(studentsData || []);
     } catch (error) {
@@ -76,26 +59,19 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
       setLoading(false);
     }
   };
-
   const handleAssignSpecific = async (pokemon: SchoolPoolPokemon, studentId: string) => {
     if (!studentId) return;
     setIsAssigning(true);
     try {
-      const student = students.find((s) => s.user_id === studentId);
+      const student = students.find(s => s.user_id === studentId);
       if (!student) {
         throw new Error("Student not found");
       }
-      const result = await assignSpecificPokemonToStudent(
-        pokemon.poolEntryId,
-        pokemon.id,
-        schoolId,
-        studentId
-      );
-
+      const result = await assignSpecificPokemonToStudent(pokemon.poolEntryId, pokemon.id, schoolId, studentId);
       if (result.success && result.pokemon) {
         toast({
           title: t("success"),
-          description: `${result.pokemon.name} has been assigned to ${student.display_name}.`,
+          description: `${result.pokemon.name} has been assigned to ${student.display_name}.`
         });
         fetchData();
         onPokemonGiven();
@@ -103,7 +79,7 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
         toast({
           title: t("error"),
           description: "Failed to assign Pokemon. It might have been claimed already.",
-          variant: "destructive",
+          variant: "destructive"
         });
       }
     } catch (error) {
@@ -111,19 +87,18 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
       toast({
         title: t("error"),
         description: "An unexpected error occurred while assigning the Pokemon.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsAssigning(false);
     }
   };
-
   const handleAssignRandom = async () => {
     if (pokemonPool.length === 0 || students.length === 0) {
       toast({
         title: t("error"),
         description: "Not enough Pokémon or students to perform a random assignment.",
-        variant: "destructive",
+        variant: "destructive"
       });
       return;
     }
@@ -131,18 +106,11 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
     try {
       const randomPokemon = pokemonPool[Math.floor(Math.random() * pokemonPool.length)];
       const randomStudent = students[Math.floor(Math.random() * students.length)];
-
-      const result = await assignSpecificPokemonToStudent(
-        randomPokemon.poolEntryId,
-        randomPokemon.id,
-        schoolId,
-        randomStudent.user_id
-      );
-
+      const result = await assignSpecificPokemonToStudent(randomPokemon.poolEntryId, randomPokemon.id, schoolId, randomStudent.user_id);
       if (result.success && result.pokemon) {
         toast({
           title: t("success"),
-          description: `${result.pokemon.name} has been randomly assigned to ${randomStudent.display_name}.`,
+          description: `${result.pokemon.name} has been randomly assigned to ${randomStudent.display_name}.`
         });
         fetchData();
         onPokemonGiven();
@@ -150,7 +118,7 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
         toast({
           title: t("error"),
           description: "Failed to assign random Pokemon. Please try again.",
-          variant: "destructive",
+          variant: "destructive"
         });
       }
     } catch (error) {
@@ -158,13 +126,12 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
       toast({
         title: t("error"),
         description: "Failed to assign random Pokemon.",
-        variant: "destructive",
+        variant: "destructive"
       });
     } finally {
       setIsAssigning(false);
     }
   };
-
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
       case "legendary":
@@ -177,9 +144,7 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
         return "bg-gray-500";
     }
   };
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+  return <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>{t("school-pokemon-pool")}</DialogTitle>
@@ -190,37 +155,20 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
             <p className="text-sm text-gray-500">
               {pokemonPool.length} Pokémon available in the school pool.
             </p>
-            <Button
-              onClick={handleAssignRandom}
-              disabled={isAssigning || loading || pokemonPool.length === 0 || students.length === 0}
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              {isAssigning ? "Assigning..." : "Assign Randomly"}
-            </Button>
+            
           </div>
 
-          {loading ? (
-            <div className="text-center py-8">
+          {loading ? <div className="text-center py-8">
               <p>Loading...</p>
-            </div>
-          ) : pokemonPool.length === 0 ? (
-            <div className="text-center py-8">
+            </div> : pokemonPool.length === 0 ? <div className="text-center py-8">
               <p className="text-gray-500">No Pokémon available in the school pool.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {pokemonPool.map((pokemon) => (
-                <Card key={pokemon.poolEntryId} className="relative">
+            </div> : <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pokemonPool.map(pokemon => <Card key={pokemon.poolEntryId} className="relative">
                   <CardContent className="p-4 flex flex-col justify-between h-full">
                     <div className="flex flex-col items-center space-y-2">
-                      <img
-                        src={pokemon.image}
-                        alt={pokemon.name}
-                        className="w-20 h-20 object-contain"
-                        onError={(e) => {
-                          e.currentTarget.src = "/placeholder.svg";
-                        }}
-                      />
+                      <img src={pokemon.image} alt={pokemon.name} className="w-20 h-20 object-contain" onError={e => {
+                  e.currentTarget.src = "/placeholder.svg";
+                }} />
                       <h3 className="font-semibold text-center">{pokemon.name}</h3>
                       <div className="flex gap-2">
                         <Badge variant="outline">{pokemon.type}</Badge>
@@ -230,80 +178,45 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
                       </div>
                     </div>
                     <div className="mt-4 space-y-2">
-                      {givingPokemon?.poolEntryId === pokemon.poolEntryId ? (
-                        <div className="space-y-2">
-                          <Select
-                            onValueChange={(studentId) => setSelectedStudent(studentId)}
-                            disabled={isAssigning}
-                            value={selectedStudent || ""}
-                          >
+                      {givingPokemon?.poolEntryId === pokemon.poolEntryId ? <div className="space-y-2">
+                          <Select onValueChange={studentId => setSelectedStudent(studentId)} disabled={isAssigning} value={selectedStudent || ""}>
                             <SelectTrigger>
                               <SelectValue placeholder="Select a student..." />
                             </SelectTrigger>
                             <SelectContent>
-                              {students.map((student) => (
-                                <SelectItem key={student.user_id} value={student.user_id}>
+                              {students.map(student => <SelectItem key={student.user_id} value={student.user_id}>
                                   {student.display_name}
-                                </SelectItem>
-                              ))}
+                                </SelectItem>)}
                             </SelectContent>
                           </Select>
 
-                          {selectedStudent && (
-                            <Button
-                              onClick={() => handleAssignSpecific(pokemon, selectedStudent)}
-                              disabled={isAssigning}
-                              className="w-full"
-                            >
-                              {isAssigning
-                                ? "Assigning..."
-                                : `Give to ${
-                                    students.find((s) => s.user_id === selectedStudent)
-                                      ?.display_name || "student"
-                                  }`}
-                            </Button>
-                          )}
+                          {selectedStudent && <Button onClick={() => handleAssignSpecific(pokemon, selectedStudent)} disabled={isAssigning} className="w-full">
+                              {isAssigning ? "Assigning..." : `Give to ${students.find(s => s.user_id === selectedStudent)?.display_name || "student"}`}
+                            </Button>}
 
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => {
-                              setGivingPokemon(null);
-                              setSelectedStudent(null);
-                            }}
-                            className="w-full"
-                          >
+                          <Button variant="ghost" size="sm" onClick={() => {
+                    setGivingPokemon(null);
+                    setSelectedStudent(null);
+                  }} className="w-full">
                             Cancel
                           </Button>
-                        </div>
-                      ) : (
-                        <Button
-                          onClick={() => {
-                            setGivingPokemon(pokemon);
-                            setSelectedStudent(null);
-                          }}
-                          disabled={isAssigning || students.length === 0}
-                          className="w-full"
-                          variant="outline"
-                        >
+                        </div> : <Button onClick={() => {
+                  setGivingPokemon(pokemon);
+                  setSelectedStudent(null);
+                }} disabled={isAssigning || students.length === 0} className="w-full" variant="outline">
                           <Plus className="h-4 w-4 mr-2" />
                           {students.length === 0 ? "No students in class" : "Give"}
-                        </Button>
-                      )}
+                        </Button>}
                     </div>
                   </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
+                </Card>)}
+            </div>}
 
           <div className="flex justify-end pt-4">
             <Button onClick={() => onOpenChange(false)}>Close</Button>
           </div>
         </div>
       </DialogContent>
-    </Dialog>
-  );
+    </Dialog>;
 };
-
 export default SchoolPokemonPoolDialog;
