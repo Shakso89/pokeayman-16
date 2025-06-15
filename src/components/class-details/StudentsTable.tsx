@@ -1,12 +1,12 @@
-
 import React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Plus, User, Coins, Award, UserMinus, Minus } from "lucide-react";
+import { Plus, User, Coins, Award, UserMinus, Minus, MoreHorizontal } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useNavigate } from "react-router-dom";
 import { updateStudentCoins } from "@/services/studentDatabase";
 import { toast } from "sonner";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 interface StudentsTableProps {
   students: any[];
@@ -144,7 +144,6 @@ const StudentsTable: React.FC<StudentsTableProps> = ({
 
                 {isClassCreator && (
                   <div className="flex items-center gap-2">
-                    {/* Award Coins */}
                     <Button
                       size="sm"
                       variant="outline"
@@ -158,65 +157,41 @@ const StudentsTable: React.FC<StudentsTableProps> = ({
                       <span className="hidden sm:inline">Award Coin</span>
                     </Button>
                     
-                    {/* Remove Coins */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemoveCoins(student.id, student.display_name || student.displayName || student.username);
-                      }}
-                      className="bg-yellow-50 border-yellow-200 text-yellow-700 hover:bg-yellow-100 flex items-center gap-1"
-                    >
-                      <Minus className="h-4 w-4" />
-                      <span className="hidden sm:inline">Remove Coin</span>
-                    </Button>
-                    
-                    {/* Manage Pokemon */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onManagePokemon(
-                          student.id, 
-                          student.display_name || student.displayName || student.username,
-                          student.schoolId || classData?.school_id || ''
-                        );
-                      }}
-                      className="bg-purple-50 border-purple-200 text-purple-700 hover:bg-purple-100 flex items-center gap-1"
-                    >
-                      <Award className="h-4 w-4" />
-                      <span className="hidden sm:inline">Manage Pokémon</span>
-                    </Button>
-                    
-                    {/* Remove Pokemon */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleRemovePokemon(student.id, student.display_name || student.displayName || student.username);
-                      }}
-                      className="bg-orange-50 border-orange-200 text-orange-700 hover:bg-orange-100 flex items-center gap-1"
-                    >
-                      <Minus className="h-4 w-4" />
-                      <span className="hidden sm:inline">Remove Pokémon</span>
-                    </Button>
-                    
-                    {/* Remove Student */}
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemoveStudent(student.id, student.display_name || student.displayName || student.username);
-                      }}
-                      className="bg-red-50 border-red-200 text-red-700 hover:bg-red-100 flex items-center gap-1"
-                    >
-                      <UserMinus className="h-4 w-4" />
-                      <span className="hidden sm:inline">Remove</span>
-                    </Button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button size="sm" variant="ghost" className="h-8 w-8 p-0" onClick={(e) => e.stopPropagation()}>
+                          <span className="sr-only">Open menu</span>
+                          <MoreHorizontal className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" onClick={(e) => e.stopPropagation()}>
+                        <DropdownMenuItem
+                          onClick={() => handleRemoveCoins(student.id, student.display_name || student.displayName || student.username)}
+                        >
+                          <Minus className="mr-2 h-4 w-4" />
+                          <span>Remove Coin</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => onManagePokemon(student.id, student.display_name || student.displayName || student.username, student.schoolId || classData?.school_id || '')}
+                        >
+                          <Award className="mr-2 h-4 w-4" />
+                          <span>Manage Pokémon</span>
+                        </DropdownMenuItem>
+                         <DropdownMenuItem
+                          onClick={() => handleRemovePokemon(student.id, student.display_name || student.displayName || student.username)}
+                        >
+                          <Minus className="mr-2 h-4 w-4" />
+                          <span>Remove Pokémon</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          className="text-red-600 focus:text-red-600 focus:bg-red-50"
+                          onClick={() => onRemoveStudent(student.id, student.display_name || student.displayName || student.username)}
+                        >
+                          <UserMinus className="mr-2 h-4 w-4" />
+                          <span>Remove Student</span>
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 )}
               </div>

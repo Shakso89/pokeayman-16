@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -181,10 +180,13 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
           const displayName = student.displayName || student.display_name || student.username;
           const coins = getStudentCoins(student.id);
           const pokemonCount = getStudentPokemonCount(student.id);
-          const profileRoute = `/student-profile/${student.id}`;
 
           return (
-            <Card key={student.id} className="bg-white/20 backdrop-blur-sm">
+            <Card 
+              key={student.id} 
+              className="bg-white/20 backdrop-blur-sm cursor-pointer hover:bg-white/30 transition-colors"
+              onClick={() => handleViewProfile(student.id)}
+            >
               <CardContent className="p-6">
                 <div className="flex flex-col items-center space-y-4">
                   {/* Avatar */}
@@ -220,66 +222,64 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
                     </div>
                   </div>
 
-                  {/* Quick Action Buttons */}
+                  {/* Action Buttons */}
                   {isClassCreator && (
-                    <div className="flex space-x-2 w-full">
+                    <div className="grid grid-cols-2 gap-2 w-full pt-4 border-t border-white/20 mt-4">
                       <Button 
                         size="sm" 
-                        className="flex-1 bg-purple-500 hover:bg-purple-600 text-white" 
-                        onClick={() => handleAwardRandomPokemon(student.id, displayName)}
+                        variant="outline" 
+                        onClick={(e) => { e.stopPropagation(); onAwardCoins(student.id, displayName); }}
                       >
-                        <Plus className="h-4 w-4 mr-1" />
-                        Give Pokémon
+                        <Coins className="h-4 w-4 mr-1" />
+                        {t("give-coins")}
                       </Button>
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        className="flex-1" 
-                        onClick={() => handleRemoveRandomPokemon(student.id, displayName)}
+                        onClick={(e) => { e.stopPropagation(); onRemoveCoins(student.id, displayName); }}
+                      >
+                        <Minus className="h-4 w-4 mr-1" />
+                        {t("remove-coins")}
+                      </Button>
+
+                      <Button
+                        size="sm"
+                        className="bg-purple-500 hover:bg-purple-600 text-white"
+                        onClick={(e) => { e.stopPropagation(); handleAwardRandomPokemon(student.id, displayName); }}
+                      >
+                        <Plus className="h-4 w-4 mr-1" />
+                        Give Pokémon
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={(e) => { e.stopPropagation(); handleRemoveRandomPokemon(student.id, displayName); }}
                       >
                         <Minus className="h-4 w-4 mr-1" />
                         Remove Pokémon
                       </Button>
+
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        onClick={(e) => { e.stopPropagation(); onManagePokemon(student.id, displayName, student.schoolId || classData.schoolId || ""); }}
+                        className="col-span-2"
+                      >
+                        <Award className="h-4 w-4 mr-2" />
+                        {t("manage-pokemon")}
+                      </Button>
+
+                      <Button 
+                        size="sm" 
+                        variant="destructive" 
+                        onClick={(e) => { e.stopPropagation(); onRemoveStudent(student.id, displayName); }}
+                        className="col-span-2"
+                      >
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        {t("remove-student")}
+                      </Button>
                     </div>
                   )}
-
-                  {/* Action Buttons */}
-                  <div className="flex flex-col space-y-2 w-full">
-                    {isClassCreator && (
-                      <>
-                        <div className="flex space-x-2">
-                          <Button size="sm" variant="outline" onClick={() => onAwardCoins(student.id, displayName)} className="flex-1">
-                            <Coins className="h-4 w-4 mr-1" />
-                            {t("give-coins")}
-                          </Button>
-                          <Button size="sm" variant="outline" onClick={() => onRemoveCoins(student.id, displayName)} className="flex-1">
-                            <Minus className="h-4 w-4 mr-1" />
-                            {t("remove-coins")}
-                          </Button>
-                        </div>
-
-                        <Button size="sm" variant="outline" onClick={() => onManagePokemon(student.id, displayName, student.schoolId || classData.schoolId || "")} className="w-full">
-                          <Award className="h-4 w-4 mr-2" />
-                          {t("manage-pokemon")}
-                        </Button>
-
-                        <Button 
-                          size="sm" 
-                          variant="outline" 
-                          className="w-full flex items-center justify-center"
-                          onClick={() => navigate(profileRoute)}
-                        >
-                          <User className="h-4 w-4 mr-2" />
-                          {t("view-profile") || "View Profile"}
-                        </Button>
-
-                        <Button size="sm" variant="destructive" onClick={() => onRemoveStudent(student.id, displayName)} className="w-full">
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          {t("remove-student")}
-                        </Button>
-                      </>
-                    )}
-                  </div>
                 </div>
               </CardContent>
             </Card>
