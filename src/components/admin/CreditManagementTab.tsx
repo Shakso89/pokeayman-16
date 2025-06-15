@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -10,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Coins, Plus, Minus, History } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from '@/hooks/use-toast';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Teacher {
   id: string;
@@ -41,6 +41,7 @@ const CreditManagementTab: React.FC<CreditManagementTabProps> = ({ teachers, onR
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [transactions, setTransactions] = useState<CreditTransaction[]>([]);
   const [showHistory, setShowHistory] = useState(false);
+  const { user } = useAuth();
 
   const loadTransactions = async () => {
     try {
@@ -79,11 +80,26 @@ const CreditManagementTab: React.FC<CreditManagementTabProps> = ({ teachers, onR
     try {
       const amount = action === 'add' ? creditAmount : -creditAmount;
       
-      const { error } = await supabase.rpc('manage_user_credits', {
+      console.log('Current user ID:', user?.id);
+      console.log('Attempting credit management:', { target_user_id: selectedTeacher.id, credit_amount: amount });
+      
+      // Check current user's role before making the call
+      const { data: userRole, error: roleError } = await supabase
+        .from('user_roles')
+        .select('role')
+        .eq('user_id', user?.id)
+        .eq('role', 'owner')
+        .single();
+      
+      console.log('Current user role check:', userRole, roleError);
+      
+      const { data, error } = await supabase.rpc('manage_user_credits', {
         target_user_id: selectedTeacher.id,
         credit_amount: amount,
         reason: reason || `${action === 'add' ? 'Added' : 'Deducted'} ${creditAmount} credits`
       });
+
+      console.log('RPC response:', data, error);
 
       if (error) throw error;
 
@@ -99,11 +115,21 @@ const CreditManagementTab: React.FC<CreditManagementTabProps> = ({ teachers, onR
       if (showHistory) loadTransactions();
     } catch (error: any) {
       console.error('Error managing credits:', error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to manage credits",
-        variant: "destructive"
-      });
+      
+      // Enhanced error handling for debugging
+      if (error.message === 'Only owners can manage credits') {
+        toast({
+          title: "Permission Error",
+          description: "Your account doesn't have owner permissions in the database. Please check your role assignment.",
+          variant: "destructive"
+        });
+      } else {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to manage credits",
+          variant: "destructive"
+        });
+      }
     } finally {
       setIsProcessing(false);
     }

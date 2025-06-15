@@ -24,7 +24,7 @@ export const useUserRole = () => {
         const storedEmail = localStorage.getItem("userEmail")?.toLowerCase();
         const username = localStorage.getItem("teacherUsername");
         
-        console.log("Role check - Email:", userEmail, "Stored email:", storedEmail, "Username:", username);
+        console.log("Role check - Email:", userEmail, "Stored email:", storedEmail, "Username:", username, "User ID:", user.id);
         
         // Enhanced owner detection
         const isOwnerEmail = userEmail === 'ayman.soliman.tr@gmail.com' || 
@@ -40,12 +40,46 @@ export const useUserRole = () => {
                                userEmail === 'ayman@pokeayman.com';
 
         if (isOwnerEmail || isOwnerUsername) {
-          console.log("Owner detected, ensuring role assignment");
-          // Ensure owner role is assigned in database
-          await supabase.rpc('assign_user_role', {
-            target_user_id: user.id,
-            new_role: 'owner'
-          });
+          console.log("Owner detected, ensuring role assignment for user ID:", user.id);
+          
+          // First check if user_roles entry exists
+          const { data: existingRole } = await supabase
+            .from('user_roles')
+            .select('role')
+            .eq('user_id', user.id)
+            .eq('role', 'owner')
+            .single();
+
+          if (!existingRole) {
+            console.log("No owner role found, creating one...");
+            // Insert owner role directly
+            const { error: insertError } = await supabase
+              .from('user_roles')
+              .insert({
+                user_id: user.id,
+                role: 'owner',
+                assigned_by: user.id
+              });
+            
+            if (insertError) {
+              console.error("Error inserting owner role:", insertError);
+            } else {
+              console.log("Owner role inserted successfully");
+            }
+          } else {
+            console.log("Owner role already exists");
+          }
+          
+          // Also ensure owner role is assigned via RPC (if it exists and works)
+          try {
+            await supabase.rpc('assign_user_role', {
+              target_user_id: user.id,
+              new_role: 'owner'
+            });
+            console.log("RPC assign_user_role called successfully");
+          } catch (rpcError) {
+            console.log("RPC call failed (might not have permissions):", rpcError);
+          }
           
           setUserRole('owner');
           setPermissions(getRolePermissions('owner'));
