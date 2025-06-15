@@ -7,6 +7,10 @@ export interface Pokemon {
   level?: number; // Make level optional instead of removing it
 }
 
+export interface SchoolPoolPokemon extends Pokemon {
+  schoolPoolRowId: string; // Database row ID for the specific pool entry
+}
+
 export interface PokemonPool {
   schoolId: string;
   availablePokemons: Pokemon[];

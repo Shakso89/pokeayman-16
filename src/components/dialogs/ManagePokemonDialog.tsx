@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -8,7 +9,7 @@ import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { removePokemonFromStudentAndReturnToPool, assignPokemonToStudent } from "@/utils/pokemon/studentPokemon";
 import { getSchoolPokemonPool, initializeSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
-import { Pokemon } from "@/types/pokemon";
+import { Pokemon, SchoolPoolPokemon } from "@/types/pokemon";
 import { Separator } from "@/components/ui/separator";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -37,7 +38,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 }) => {
   const { t } = useTranslation();
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
-  const [schoolPool, setSchoolPool] = useState<Pokemon[]>([]);
+  const [schoolPool, setSchoolPool] = useState<SchoolPoolPokemon[]>([]);
   const [loading, setLoading] = useState(false);
   const [assigningPokemonId, setAssigningPokemonId] = useState<string | null>(null);
 
@@ -79,7 +80,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
       // We'll display each pool row; assign using its DB id
       // Attach the pool row DB id for assignment
-      const pool = (poolRows || []).map(p => ({
+      const pool: SchoolPoolPokemon[] = (poolRows || []).map(p => ({
         schoolPoolRowId: p.id, // pool row unique id
         id: p.pokemon_id,
         name: p.pokemon_name,
