@@ -73,21 +73,17 @@ export const StudentsList = ({
 
   const getClassStudents = async () => {
     try {
-      // Get current students in the class
-      const { data: classData, error } = await supabase
-        .from('classes')
-        .select('students')
-        .eq('id', classId)
-        .single();
+      // Get current students in the class from the student_classes join table
+      const { data, error } = await supabase
+        .from('student_classes')
+        .select('student_id')
+        .eq('class_id', classId);
 
       if (error) {
         console.error("Error fetching class students:", error);
-        // Try localStorage fallback
-        const classes = JSON.parse(localStorage.getItem("classes") || "[]");
-        const classFound = classes.find((c: any) => c.id === classId);
-        setCurrentStudents(classFound?.students || []);
+        setCurrentStudents([]);
       } else {
-        setCurrentStudents(classData?.students || []);
+        setCurrentStudents(data?.map(item => item.student_id) || []);
       }
     } catch (error) {
       console.error("Error in getClassStudents:", error);
@@ -100,7 +96,7 @@ export const StudentsList = ({
       // Fetch all active students from Supabase
       const { data: studentsData, error } = await supabase
         .from("students")
-        .select("*")
+        .select("id, username, display_name, class_id")
         .eq('is_active', true)
         .order('display_name', { ascending: true });
       
@@ -108,21 +104,16 @@ export const StudentsList = ({
       
       let studentsList: Student[] = [];
       
-      if (studentsData && studentsData.length > 0) {
-        console.log(`Found ${studentsData.length} students in Supabase`);
-        
-        // Map to Student type and filter based on mode
+      if (studentsData) {
         studentsList = studentsData.map(student => ({
           id: student.id,
           username: student.username,
           displayName: student.display_name || student.username,
-          teacherId: student.teacher_id || "",
+          teacherId: "",
           schoolId: "",
           avatar: "",
           classId: student.class_id || null
         }));
-      } else {
-        throw new Error("No students found in Supabase");
       }
 
       // Filter students based on view mode
@@ -142,44 +133,12 @@ export const StudentsList = ({
 
     } catch (supabaseError) {
       console.error("Error searching in Supabase:", supabaseError);
-      
-      // Fallback to localStorage
-      try {
-        const storedStudents = JSON.parse(localStorage.getItem("students") || "[]");
-        
-        const mappedStudents = storedStudents.map((student: any) => ({
-          id: student.id,
-          username: student.username,
-          displayName: student.display_name || student.displayName || student.username,
-          teacherId: student.teacher_id || student.teacherId || "",
-          schoolId: student.school_id || student.schoolId || "", 
-          avatar: student.avatar || "",
-          classId: student.class_id || student.classId || null
-        }));
-
-        // Filter based on mode
-        let filteredStudents: Student[];
-        if (viewMode) {
-          filteredStudents = mappedStudents.filter((student: Student) => 
-            currentStudents.includes(student.id)
-          );
-        } else {
-          filteredStudents = mappedStudents.filter((student: Student) => 
-            !currentStudents.includes(student.id)
-          );
-        }
-        
-        console.log(`Found ${filteredStudents.length} students in localStorage`);
-        setAllStudents(filteredStudents);
-      } catch (localError) {
-        console.error("Error searching in localStorage:", localError);
-        setAllStudents([]);
-        toast({
-          title: t("error"),
-          description: "Failed to load students",
-          variant: "destructive"
-        });
-      }
+      setAllStudents([]);
+      toast({
+        title: t("error"),
+        description: "Failed to load students",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { deleteClass } from "@/utils/classSync/classOperations";
-import { removeStudentFromClass } from "@/utils/classSync/studentOperations";
+import { removeStudentFromClass, addMultipleStudentsToClass } from "@/utils/classSync/studentOperations";
 import { logActivity } from "@/services/activityLogger";
 import ClassManagementHeader from "./ClassManagementHeader";
 import StudentsGrid from "./StudentsGrid";
@@ -142,22 +142,33 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
   const handleAddStudents = async (studentIds: string[]) => {
     if (!classId || !studentIds.length) return;
     try {
-      const studentClassEntries = studentIds.map(studentId => ({
-        student_id: studentId,
-        class_id: classId
-      }));
+      const success = await addMultipleStudentsToClass(classId, studentIds);
 
-      const { error } = await supabase
-        .from('student_classes')
-        .insert(studentClassEntries);
+      if (success) {
+        // Log the activity
+        const studentsAdded = students.filter(s => studentIds.includes(s.id));
+        for (const student of studentsAdded) {
+            await logActivity(
+              teacherId,
+              'added_student_to_class',
+              { 
+                studentId: student.id, 
+                studentName: student.display_name || student.username, 
+                classId, 
+                className: classData?.name,
+                schoolId: classData?.schoolId
+              }
+            );
+        }
 
-      if (error) throw error;
-
-      toast({
-        title: t("success"),
-        description: `${studentIds.length} ${t("students-added-to-class")}`
-      });
-      fetchClassDetails();
+        toast({
+          title: t("success"),
+          description: `${studentIds.length} ${t("students-added-to-class")}`
+        });
+        fetchClassDetails();
+      } else {
+        throw new Error("Failed to add students to class");
+      }
     } catch (error) {
       console.error("Error adding students to class:", error);
       toast({

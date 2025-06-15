@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -70,26 +69,22 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
     try {
       console.log("Fetching students for class:", classId);
       
-      // First get current class data to check which students are already in this specific class
-      const { data: classData, error: classError } = await supabase
-        .from('classes')
-        .select('students, school_id')
-        .eq('id', classId)
-        .single();
+      const { data: classStudentLinks, error: classLinksError } = await supabase
+        .from('student_classes')
+        .select('student_id')
+        .eq('class_id', classId);
 
-      if (classError) {
-        console.error("Error fetching class data:", classError);
-        // Continue with localStorage fallback
+      if (classLinksError) {
+        console.error("Error fetching class students:", classLinksError);
+        throw classLinksError;
       }
-
-      console.log("Class data:", classData);
-      const currentStudentIds = classData?.students || [];
-      const schoolId = classData?.school_id;
+      
+      const currentStudentIds = classStudentLinks?.map(link => link.student_id) || [];
 
       // Get all active students from database
       const { data: allStudentsData, error: allStudentsError } = await supabase
         .from('students')
-        .select('*')
+        .select('id, username, display_name, class_id')
         .eq('is_active', true)
         .order('display_name', { ascending: true });
 
@@ -98,77 +93,24 @@ const AddStudentsDialog: React.FC<AddStudentsDialogProps> = ({
         throw allStudentsError;
       }
 
-      console.log("All students from Supabase:", allStudentsData?.length || 0);
-
-      if (allStudentsData && allStudentsData.length > 0) {
-        // Filter out students already in THIS specific class
-        // Allow students who are in other classes within the same school
+      if (allStudentsData) {
         const studentsNotInThisClass = allStudentsData.filter(student => 
           !currentStudentIds.includes(student.id)
         );
-
-        console.log("Students not in this class:", studentsNotInThisClass.length);
         setAllStudents(studentsNotInThisClass);
         setAvailableStudents(studentsNotInThisClass);
       } else {
-        // Fallback to localStorage
-        console.log("No students found in Supabase, trying localStorage...");
-        const savedStudents = localStorage.getItem("students");
-        if (savedStudents) {
-          const localStudents = JSON.parse(savedStudents);
-          const filteredLocal = localStudents.filter((student: any) => 
-            !currentStudentIds.includes(student.id) && student.is_active !== false
-          );
-          console.log("Students from localStorage:", filteredLocal.length);
-          setAllStudents(filteredLocal);
-          setAvailableStudents(filteredLocal);
-        } else {
-          console.log("No students found in localStorage either");
           setAllStudents([]);
           setAvailableStudents([]);
-        }
       }
       
     } catch (error) {
       console.error("Error fetching students:", error);
-      
-      // Enhanced fallback to localStorage
-      try {
-        const savedStudents = localStorage.getItem("students");
-        const savedClasses = localStorage.getItem("classes");
-        
-        if (savedStudents) {
-          const localStudents = JSON.parse(savedStudents);
-          let currentStudentIds: string[] = [];
-          
-          if (savedClasses) {
-            const localClasses = JSON.parse(savedClasses);
-            const currentClass = localClasses.find((cls: any) => cls.id === classId);
-            currentStudentIds = currentClass?.students || [];
-          }
-          
-          const availableLocal = localStudents.filter((student: any) => 
-            !currentStudentIds.includes(student.id) && student.is_active !== false
-          );
-          
-          console.log("Fallback: Students from localStorage:", availableLocal.length);
-          setAllStudents(availableLocal);
-          setAvailableStudents(availableLocal);
-        } else {
-          toast({
-            title: t("error"),
-            description: "No students found. Please create students first.",
-            variant: "destructive"
-          });
-        }
-      } catch (localError) {
-        console.error("Error accessing localStorage:", localError);
-        toast({
-          title: t("error"),
-          description: "Failed to load students from any source",
-          variant: "destructive"
-        });
-      }
+      toast({
+        title: t("error"),
+        description: "Failed to load students from any source",
+        variant: "destructive"
+      });
     } finally {
       setLoading(false);
     }
