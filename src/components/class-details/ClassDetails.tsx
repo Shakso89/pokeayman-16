@@ -327,6 +327,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         schoolId={classData.schoolId || ""}
         studentId={giveCoinsDialog.studentId || removeCoinsDialog.studentId}
         teacherId={teacherId}
+        students={students}
       />
 
       <AddAssistantDialog

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { StudentsList } from "@/components/student-profile/StudentsList";
 import DeleteClassDialog from "@/components/dialogs/DeleteClassDialog";
@@ -6,12 +7,14 @@ import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
 import RemoveCoinsDialog from "@/components/dialogs/RemoveCoinsDialog";
 import SchoolPokemonPoolDialog from "@/components/dialogs/SchoolPokemonPoolDialog";
+import { StudentProfile } from "@/services/studentDatabase";
 
 interface ClassDialogsProps {
   classId: string;
   isStudentListOpen: boolean;
   onStudentListOpenChange: (open: boolean) => void;
   onStudentsAdded: (studentIds: string[]) => void;
+  students: StudentProfile[];
   deleteDialogOpen: boolean;
   onDeleteDialogOpenChange: (open: boolean) => void;
   onDeleteClass: () => void;
@@ -78,6 +81,7 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
   schoolId,
   studentId,
   teacherId,
+  students,
 }) => {
   return (
     <>
@@ -161,6 +165,7 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
         schoolId={schoolId}
         classId={classId}
         onPokemonGiven={onPokemonRemoved}
+        students={students}
       />
     </>
   );

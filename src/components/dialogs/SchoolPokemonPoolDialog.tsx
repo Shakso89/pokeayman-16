@@ -25,6 +25,7 @@ interface SchoolPokemonPoolDialogProps {
   schoolId: string;
   classId: string;
   onPokemonGiven: () => void;
+  students?: StudentProfile[];
 }
 
 const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
@@ -33,6 +34,7 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
   schoolId,
   classId,
   onPokemonGiven,
+  students: passedStudents,
 }) => {
   const { t } = useTranslation();
   const [pokemonPool, setPokemonPool] = useState<SchoolPoolPokemon[]>([]);
@@ -42,18 +44,25 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
   const [givingPokemon, setGivingPokemon] = useState<SchoolPoolPokemon | null>(null);
 
   useEffect(() => {
-    if (isOpen && schoolId && classId) {
+    if (isOpen && schoolId) {
       fetchData();
     }
-  }, [isOpen, schoolId, classId]);
+  }, [isOpen, schoolId, classId, passedStudents]);
 
   const fetchData = async () => {
     setLoading(true);
     setGivingPokemon(null);
     try {
+      const pokemonDataPromise = getSchoolPokemonPool(schoolId);
+      const studentsPromise = passedStudents
+        ? Promise.resolve(passedStudents)
+        : classId
+        ? getStudentsByClass(classId)
+        : Promise.resolve([]);
+
       const [pokemonData, studentsData] = await Promise.all([
-        getSchoolPokemonPool(schoolId),
-        getStudentsByClass(classId),
+        pokemonDataPromise,
+        studentsPromise,
       ]);
       setPokemonPool(pokemonData || []);
       setStudents(studentsData || []);
