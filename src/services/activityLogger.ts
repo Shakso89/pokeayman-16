@@ -15,6 +15,7 @@ export interface ActivityDetails {
   studentName?: string;
   teacherId?: string;
   classId?: string;
+  className?: string;
   schoolId?: string;
   amount?: number;
   pokemonName?: string;
