@@ -6,15 +6,20 @@ import App from './App.tsx'
 import './index.css'
 import { AuthProvider } from './contexts/AuthContext'
 import { LanguageProvider } from './hooks/useTranslation'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+
+const queryClient = new QueryClient()
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
-    <LanguageProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <App />
-        </AuthProvider>
-      </BrowserRouter>
-    </LanguageProvider>
+    <QueryClientProvider client={queryClient}>
+      <LanguageProvider>
+        <BrowserRouter>
+          <AuthProvider>
+            <App />
+          </AuthProvider>
+        </BrowserRouter>
+      </LanguageProvider>
+    </QueryClientProvider>
   </React.StrictMode>
 );
