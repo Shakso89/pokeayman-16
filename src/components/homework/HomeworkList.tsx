@@ -27,7 +27,6 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
 }) => {
   const [homework, setHomework] = useState<Homework[]>([]);
   const [submissions, setSubmissions] = useState<HomeworkSubmission[]>([]);
-  const [classes, setClasses] = useState<any[]>(teacherClasses);
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
   const [reviewDialogState, setReviewDialogState] = useState<{
     isOpen: boolean;
@@ -36,49 +35,23 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    if (showClassSelector && teacherClasses.length > 0) {
-      setClasses(teacherClasses);
-    }
-    loadHomework();
-    loadSubmissions();
-    if (showClassSelector && teacherClasses.length === 0) {
-      loadClasses();
-    }
-  }, [classId, teacherId, showClassSelector, teacherClasses]);
+    loadData();
+  }, [classId, teacherId, showClassSelector, JSON.stringify(teacherClasses)]);
 
-  const loadClasses = async () => {
-    try {
-      // Get classes where teacher is the main teacher or an assistant
-      const { data, error } = await supabase
-        .from('classes')
-        .select('*')
-        .or(`teacher_id.eq.${teacherId},assistants.cs.{${teacherId}}`);
-
-      if (error) throw error;
-      setClasses(data || []);
-    } catch (error) {
-      console.error("Error loading classes:", error);
-    }
+  const loadData = async () => {
+    setIsLoading(true);
+    await Promise.all([loadHomework(), loadSubmissions()]);
+    setIsLoading(false);
   };
 
   const loadHomework = async () => {
     try {
-      console.log("Loading homework for teacher:", teacherId, "showClassSelector:", showClassSelector);
-      
       if (showClassSelector) {
-        // Load homework from all classes where teacher is involved
-        const classesToQuery = classes.length > 0 ? classes : teacherClasses;
-        
-        if (classesToQuery.length === 0) {
-          console.log("No classes found for teacher");
+        if (teacherClasses.length === 0) {
           setHomework([]);
-          setIsLoading(false);
           return;
         }
-
-        const classIds = classesToQuery.map(cls => cls.id);
-        console.log("Querying homework for class IDs:", classIds);
-
+        const classIds = teacherClasses.map(cls => cls.id);
         const { data, error } = await supabase
           .from('homework')
           .select('*')
@@ -86,11 +59,8 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
           .order('created_at', { ascending: false });
 
         if (error) throw error;
-        
-        console.log("Loaded homework:", data);
         setHomework(data || []);
       } else {
-        // Load homework for specific class
         const query = supabase
           .from('homework')
           .select('*')
@@ -102,7 +72,6 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
         }
 
         const { data, error } = await query;
-
         if (error) throw error;
         setHomework(data || []);
       }
@@ -113,25 +82,18 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
         description: "Failed to load homework",
         variant: "destructive"
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 
   const loadSubmissions = async () => {
     try {
       if (showClassSelector) {
-        // Load submissions for all homework in teacher's classes
-        const classesToQuery = classes.length > 0 ? classes : teacherClasses;
-        
-        if (classesToQuery.length === 0) {
+        if (teacherClasses.length === 0) {
           setSubmissions([]);
           return;
         }
 
-        const classIds = classesToQuery.map(cls => cls.id);
-
-        // First get all homework IDs for these classes
+        const classIds = teacherClasses.map(cls => cls.id);
         const { data: homeworkData, error: homeworkError } = await supabase
           .from('homework')
           .select('id')
@@ -141,18 +103,17 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
 
         if (homeworkData && homeworkData.length > 0) {
           const homeworkIds = homeworkData.map(hw => hw.id);
-
-          const { data: submissionsData, error: submissionsError } = await supabase
+          const { data, error } = await supabase
             .from('homework_submissions')
             .select('*')
             .in('homework_id', homeworkIds)
             .order('submitted_at', { ascending: false });
-
-          if (submissionsError) throw submissionsError;
-          setSubmissions(submissionsData || []);
+          if (error) throw error;
+          setSubmissions(data || []);
+        } else {
+          setSubmissions([]);
         }
       } else {
-        // Load submissions for specific teacher/class
         const homeworkQuery = supabase
           .from('homework')
           .select('id')
@@ -163,20 +124,19 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
         }
 
         const { data: homeworkData, error: homeworkError } = await homeworkQuery;
-
         if (homeworkError) throw homeworkError;
 
         if (homeworkData && homeworkData.length > 0) {
           const homeworkIds = homeworkData.map(hw => hw.id);
-
-          const { data: submissionsData, error: submissionsError } = await supabase
+          const { data, error } = await supabase
             .from('homework_submissions')
             .select('*')
             .in('homework_id', homeworkIds)
             .order('submitted_at', { ascending: false });
-
-          if (submissionsError) throw submissionsError;
-          setSubmissions(submissionsData || []);
+          if (error) throw error;
+          setSubmissions(data || []);
+        } else {
+          setSubmissions([]);
         }
       }
     } catch (error) {
@@ -193,7 +153,7 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
   };
 
   const getClassName = (classId: string) => {
-    const classData = classes.find(cls => cls.id === classId);
+    const classData = teacherClasses.find(cls => cls.id === classId);
     return classData ? classData.name : 'Unknown Class';
   };
 
@@ -215,8 +175,7 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
         description: "Homework deleted successfully"
       });
 
-      loadHomework();
-      loadSubmissions();
+      loadData();
     } catch (error) {
       console.error("Error deleting homework:", error);
       toast({
@@ -250,7 +209,7 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
           <Button 
             onClick={() => setIsCreateDialogOpen(true)}
             className="bg-blue-500 hover:bg-blue-600 text-white"
-            disabled={showClassSelector && classes.length === 0}
+            disabled={showClassSelector && teacherClasses.length === 0}
           >
             <Plus className="h-4 w-4 mr-2" />
             Create Homework
@@ -258,18 +217,19 @@ const HomeworkList: React.FC<HomeworkListProps> = ({
         </div>
       )}
 
-      {homework.length === 0 ? (
+      {showClassSelector && teacherClasses.length === 0 ? (
         <div className="text-center py-8 text-gray-500">
           <div className="text-4xl mb-4">📚</div>
-          <p className="text-lg font-medium">
-            {showClassSelector && classes.length === 0 
-              ? "No classes found" 
-              : "No homework assignments yet"
-            }
-          </p>
-          {showClassSelector && classes.length === 0 ? (
+          <p className="text-lg font-medium">No classes found</p>
+          {isTeacher && (
             <p className="text-sm">Create a class to start managing homework.</p>
-          ) : isTeacher && (
+          )}
+        </div>
+      ) : homework.length === 0 ? (
+        <div className="text-center py-8 text-gray-500">
+          <div className="text-4xl mb-4">📚</div>
+          <p className="text-lg font-medium">No homework assignments yet</p>
+          {isTeacher && (
             <p className="text-sm">Create your first homework assignment to get started!</p>
           )}
         </div>
