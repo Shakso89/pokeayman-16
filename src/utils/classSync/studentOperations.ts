@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { handleDatabaseError } from "./errorHandling";
 
@@ -14,12 +13,11 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
       .insert({ student_id: studentId, class_id: classId });
       
     if (error) {
-      // Error code '23505' is for unique violation, meaning student is already in class.
       if (error.code === '23505') {
         console.log('Student already in class.');
         return true;
       }
-      handleDatabaseError(error);
+      handleDatabaseError(error, "Error adding student to class");
       return false;
     }
     
@@ -45,7 +43,7 @@ export const removeStudentFromClass = async (classId: string, studentId: string)
       .eq('class_id', classId);
 
     if (error) {
-      handleDatabaseError(error);
+      handleDatabaseError(error, "Error removing student from class");
       return false;
     }
 
@@ -73,14 +71,12 @@ export const addMultipleStudentsToClass = async (classId: string, studentIds: st
       student_id: studentId,
     }));
     
-    // Using upsert with ignoreDuplicates to avoid errors for students already in the class.
-    // This relies on the UNIQUE constraint on (student_id, class_id).
     const { error } = await supabase
       .from('student_classes')
       .upsert(recordsToInsert, { onConflict: 'student_id,class_id', ignoreDuplicates: true });
 
     if (error) {
-      handleDatabaseError(error);
+      handleDatabaseError(error, "Error adding multiple students to class");
       return false;
     }
     
