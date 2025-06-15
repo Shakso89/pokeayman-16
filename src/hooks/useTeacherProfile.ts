@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { TeacherProfile } from "@/types/teacher";
@@ -16,7 +17,7 @@ export interface TeacherProfileData extends TeacherProfile {
   username: string;
   avatar_url?: string;
   photos: string[];
-  classes: string[];
+  classes: { id: string; name: string }[];
   socialLinks?: SocialLinks;
 }
 
@@ -59,6 +60,16 @@ export function useTeacherProfile(teacherId?: string) {
         .single();
 
       if (data) {
+        const { data: classesData, error: classesError } = await supabase
+          .from("classes")
+          .select("id, name")
+          .or(`teacher_id.eq.${teacherId},assistants.cs.{${teacherId}}`);
+
+        if (classesError) {
+          toast.error("Failed to load teacher's classes.");
+          console.error(classesError);
+        }
+
         const teacherData: TeacherProfileData = {
           id: data.id,
           teacherId: data.id,
@@ -66,7 +77,7 @@ export function useTeacherProfile(teacherId?: string) {
           username: data.username,
           email: data.email || "",
           photos: (data.photos as string[]) || [],
-          classes: [],
+          classes: classesData || [],
           socialLinks: (data.social_links as SocialLinks) || {},
           avatar_url: data.avatar_url || undefined,
         };
@@ -92,22 +103,28 @@ export function useTeacherProfile(teacherId?: string) {
         return;
       }
 
+      const classes = getLocalItem("classes", []);
+      const teacherClasses = classes.filter((c: any) =>
+        foundTeacher.classes?.includes(c.id)
+      );
+
       const teacherData = {
         ...foundTeacher,
         teacherId: foundTeacher.id,
         photos: foundTeacher.photos || [],
         socialLinks: foundTeacher.socialLinks || {},
         avatar_url: foundTeacher.avatar_url,
+        classes: teacherClasses.map((c: any) => ({ id: c.id, name: c.name })),
       };
 
       setTeacher(teacherData as TeacherProfileData);
       setEditData(teacherData as TeacherProfileData);
 
-      const classes = getLocalItem("classes", []);
-      const teacherClasses = classes.filter((c: any) => foundTeacher.classes?.includes(c.id));
-      const totalStudents = teacherClasses.reduce((acc: number, cls: any) => acc + (cls.students?.length || 0), 0);
+      const totalStudents = teacherClasses.reduce(
+        (acc: number, cls: any) => acc + (cls.students?.length || 0),
+        0
+      );
       setStudentCount(totalStudents);
-
     } catch (error) {
       console.error("Error loading teacher profile:", error);
       toast.error("Error loading profile");
@@ -234,6 +251,6 @@ export function useTeacherProfile(teacherId?: string) {
     handleSave,
     handleCancel,
     handleAddFriend,
-    updateSocialLink
+    updateSocialLink,
   };
 }

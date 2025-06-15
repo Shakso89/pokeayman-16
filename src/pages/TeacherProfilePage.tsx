@@ -1,14 +1,12 @@
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { ArrowLeft, MessageSquare, UserPlus, Edit3, Save, X, Camera, Users, BookOpen, GraduationCap } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { toast } from "@/hooks/use-toast";
 import { ProfileTabs } from "@/components/teacher-profile/ProfileTabs";
 import { useTeacherProfile } from "@/hooks/useTeacherProfile";
@@ -18,6 +16,7 @@ const TeacherProfilePage: React.FC = () => {
   const { teacherId } = useParams();
   const navigate = useNavigate();
   const { t } = useTranslation();
+  const [activeTab, setActiveTab] = useState("photos");
   
   const {
     teacher,
@@ -35,34 +34,13 @@ const TeacherProfilePage: React.FC = () => {
     updateSocialLink
   } = useTeacherProfile(teacherId);
 
-  const [stats, setStats] = useState({
-    totalClasses: 0,
-    totalStudents: 0,
-    joinedDate: ''
-  });
+  const [joinedDate, setJoinedDate] = useState('');
 
   useEffect(() => {
-    const loadStats = async () => {
+    const loadJoinDate = async () => {
       if (!teacherId) return;
 
       try {
-        // Fetch classes where user is teacher or assistant, efficiently
-        const { data: filteredClasses, error: classesError } = await supabase
-          .from('classes')
-          .select('id, teacher_id, assistants')
-          .or(`teacher_id.eq.${teacherId},assistants.cs.{${teacherId}}`);
-
-        if (classesError) throw classesError;
-
-        // Students count (same as before, or you could also update with class data if needed)
-        const { data: students, error: studentsError } = await supabase
-          .from('students')
-          .select('id')
-          .eq('teacher_id', teacherId);
-
-        if (studentsError) throw studentsError;
-
-        // Teacher join date
         const { data: teacherData, error: teacherError } = await supabase
           .from('teachers')
           .select('created_at')
@@ -73,17 +51,15 @@ const TeacherProfilePage: React.FC = () => {
           throw teacherError;
         }
 
-        setStats({
-          totalClasses: (filteredClasses || []).length,
-          totalStudents: students?.length || 0,
-          joinedDate: teacherData?.created_at ? new Date(teacherData.created_at).toLocaleDateString() : ''
-        });
+        if (teacherData?.created_at) {
+          setJoinedDate(new Date(teacherData.created_at).toLocaleDateString());
+        }
       } catch (error) {
-        console.error('Error loading stats:', error);
+        console.error('Error loading join date:', error);
       }
     };
 
-    loadStats();
+    loadJoinDate();
   }, [teacherId]);
 
   const handleSendMessage = () => {
@@ -147,7 +123,7 @@ const TeacherProfilePage: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
+    <div className="min-h-screen">
       {/* Add the unified AppHeader at the top */}
       <AppHeader userType="teacher" userName={username} userAvatar={userAvatar} />
       <div className="container mx-auto px-4 py-8">
@@ -280,22 +256,28 @@ const TeacherProfilePage: React.FC = () => {
                   
                   {/* Stats Cards */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                    <Card className="bg-blue-50 border-blue-200">
+                    <Card 
+                      className="bg-blue-50 border-blue-200 cursor-pointer transition-shadow hover:shadow-lg" 
+                      onClick={() => setActiveTab("classes")}
+                    >
                       <CardContent className="p-4 text-center">
                         <div className="flex items-center justify-center mb-2">
                           <BookOpen className="h-6 w-6 text-blue-600" />
                         </div>
-                        <div className="text-2xl font-bold text-blue-700">{stats.totalClasses}</div>
+                        <div className="text-2xl font-bold text-blue-700">{teacher?.classes?.length || 0}</div>
                         <div className="text-sm text-blue-600">Classes</div>
                       </CardContent>
                     </Card>
                     
-                    <Card className="bg-green-50 border-green-200">
+                    <Card 
+                      className="bg-green-50 border-green-200 cursor-pointer transition-shadow hover:shadow-lg"
+                      onClick={() => setActiveTab("students")}
+                    >
                       <CardContent className="p-4 text-center">
                         <div className="flex items-center justify-center mb-2">
                           <GraduationCap className="h-6 w-6 text-green-600" />
                         </div>
-                        <div className="text-2xl font-bold text-green-700">{stats.totalStudents}</div>
+                        <div className="text-2xl font-bold text-green-700">{studentCount}</div>
                         <div className="text-sm text-green-600">Students</div>
                       </CardContent>
                     </Card>
@@ -306,7 +288,7 @@ const TeacherProfilePage: React.FC = () => {
                           <Users className="h-6 w-6 text-purple-600" />
                         </div>
                         <div className="text-sm font-bold text-purple-700">Joined</div>
-                        <div className="text-sm text-purple-600">{stats.joinedDate}</div>
+                        <div className="text-sm text-purple-600">{joinedDate}</div>
                       </CardContent>
                     </Card>
                   </div>
@@ -325,6 +307,8 @@ const TeacherProfilePage: React.FC = () => {
           editData={editData}
           setEditData={setEditData}
           updateSocialLink={updateSocialLink}
+          activeTab={activeTab}
+          onTabChange={setActiveTab}
         />
       </div>
     </div>
