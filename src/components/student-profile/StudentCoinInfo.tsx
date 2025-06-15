@@ -1,42 +1,23 @@
 
-import React, { useState, useEffect } from "react";
+import React from "react";
 import { Coins } from "lucide-react";
-import { getStudentPokemons } from "@/utils/pokemon/storage";
+import { useStudentCoinData } from "@/hooks/useStudentCoinData";
 
 interface StudentCoinInfoProps {
   studentId: string;
 }
 
 export const StudentCoinInfo: React.FC<StudentCoinInfoProps> = ({ studentId }) => {
-  const [coinBalance, setCoinBalance] = useState(0);
-  const [spentCoins, setSpentCoins] = useState(0);
+  const { coins, spent_coins, isLoading } = useStudentCoinData(studentId);
   
-  useEffect(() => {
-    if (studentId) {
-      loadStudentCoins();
-    }
-  }, [studentId]);
-  
-  const loadStudentCoins = () => {
-    try {
-      const studentPokemons = getStudentPokemons();
-      const studentData = studentPokemons.find(sp => sp.studentId === studentId);
-      
-      if (studentData) {
-        setCoinBalance(studentData.coins || 0);
-        
-        // Check if spentCoins exists, if not calculate it or set to 0
-        if (studentData.spentCoins !== undefined) {
-          setSpentCoins(studentData.spentCoins);
-        } else {
-          // Default to 0 since spentCoins property doesn't exist in the type
-          setSpentCoins(0);
-        }
-      }
-    } catch (error) {
-      console.error("Error loading student coins:", error);
-    }
-  };
+  if (isLoading) {
+    return (
+      <div className="mt-2 p-3 bg-amber-50 rounded-md animate-pulse">
+        <div className="h-4 bg-amber-200 rounded mb-2"></div>
+        <div className="h-6 bg-amber-200 rounded"></div>
+      </div>
+    );
+  }
   
   return (
     <div className="mt-2 p-3 bg-amber-50 rounded-md">
@@ -45,12 +26,12 @@ export const StudentCoinInfo: React.FC<StudentCoinInfoProps> = ({ studentId }) =
           <p className="text-sm font-medium text-amber-800">Coin Balance</p>
           <p className="text-xl font-bold text-amber-600 flex items-center">
             <Coins className="h-4 w-4 mr-1 text-amber-500" />
-            {coinBalance}
+            {coins}
           </p>
         </div>
         <div>
           <p className="text-sm font-medium text-amber-800">Spent Coins</p>
-          <p className="text-md text-amber-700 text-right">{spentCoins}</p>
+          <p className="text-md text-amber-700 text-right">{spent_coins}</p>
         </div>
       </div>
     </div>

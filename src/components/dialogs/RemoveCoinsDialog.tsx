@@ -5,9 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "@/hooks/useTranslation";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { logActivity } from "@/services/activityLogger";
+import { removeCoinsFromStudent, getStudentCoinData } from "@/services/studentCoinService";
 
 interface RemoveCoinsDialogProps {
   isOpen: boolean;
@@ -39,39 +39,34 @@ const RemoveCoinsDialog: React.FC<RemoveCoinsDialogProps> = ({
     if (coinAmount > 0) {
       setIsLoading(true);
       try {
-        // Get current coins and check if student has enough
-        const { data: currentProfile } = await supabase
-          .from('student_profiles')
-          .select('coins, spent_coins')
-          .eq('user_id', studentId)
-          .maybeSingle();
-
-        if (currentProfile && currentProfile.coins >= coinAmount) {
-          const { error } = await supabase
-            .from('student_profiles')
-            .update({ 
-              coins: currentProfile.coins - coinAmount,
-              spent_coins: (currentProfile.spent_coins || 0) + coinAmount,
-              updated_at: new Date().toISOString()
-            })
-            .eq('user_id', studentId);
-
-          if (error) throw error;
-
-          toast({
-            title: t("success"),
-            description: `${coinAmount} coins removed from ${studentName}`
-          });
+        // Check current coins first
+        const currentData = await getStudentCoinData(studentId);
+        
+        if (currentData.coins >= coinAmount) {
+          const success = await removeCoinsFromStudent(studentId, coinAmount);
           
-          await logActivity(
-            teacherId,
-            'removed_coins',
-            { studentId, studentName, amount: coinAmount, classId, schoolId }
-          );
+          if (success) {
+            toast({
+              title: t("success"),
+              description: `${coinAmount} coins removed from ${studentName}`
+            });
+            
+            await logActivity(
+              teacherId,
+              'removed_coins',
+              { studentId, studentName, amount: coinAmount, classId, schoolId }
+            );
 
-          onRemoveCoins(coinAmount);
-          setAmount("");
-          onOpenChange(false);
+            onRemoveCoins(coinAmount);
+            setAmount("");
+            onOpenChange(false);
+          } else {
+            toast({
+              title: t("error"),
+              description: "Failed to remove coins",
+              variant: "destructive"
+            });
+          }
         } else {
           toast({
             title: t("error"),

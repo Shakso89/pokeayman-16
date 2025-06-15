@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { Pokemon } from '@/types/pokemon';
 import { 
@@ -8,7 +7,7 @@ import {
   StudentProfile 
 } from '@/services/studentDatabase';
 import { supabase } from '@/integrations/supabase/client';
-import { getStudentPokemons } from '@/utils/pokemon/storage';
+import { getStudentCoinData } from '@/services/studentCoinService';
 
 export const useStudentData = (studentId: string, userId?: string, username?: string, schoolId?: string) => {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
@@ -54,8 +53,6 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
         };
 
         setProfile(fullProfile);
-        setCoins(fullProfile.coins);
-        setSpentCoins(fullProfile.spent_coins);
 
         // Load Pokemon collection
         const pokemonCollection = await getStudentPokemonCollection(fullProfile.id);
@@ -78,17 +75,16 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
             setSchoolName("Unknown School");
           }
         }
-      } else {
-        // Fallback to localStorage if profile not found in Supabase
-        console.warn(`Student profile for ${studentId} not found in Supabase, falling back to localStorage.`);
-        const studentPokemons = getStudentPokemons();
-        const localData = studentPokemons.find(sp => sp.studentId === studentId);
+      }
 
-        if (localData) {
-          setCoins(localData.coins || 0);
-          setSpentCoins(localData.spentCoins || 0);
-          setPokemons(localData.pokemons || []);
-        }
+      // Load coin data using centralized service
+      const coinData = await getStudentCoinData(studentId);
+      setCoins(coinData.coins);
+      setSpentCoins(coinData.spent_coins);
+
+      // If no profile found in Supabase but we have local data
+      if (!studentProfile) {
+        console.warn(`Student profile for ${studentId} not found in Supabase, using coin data only.`);
         
         // Also try to get student info from 'students' table for display name, etc.
         const { data: studentData } = await supabase.from('students').select('display_name, school_id').eq('id', studentId).maybeSingle();
