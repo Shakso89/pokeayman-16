@@ -116,11 +116,9 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
       });
       return;
     }
-
     setAssigningPokemon(true);
     try {
       const result = await assignRandomPokemonToStudent(schoolId, studentId);
-
       if (result.success && result.pokemon) {
         toast({
           title: t("success"),
@@ -131,17 +129,10 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
       } else {
         toast({
           title: t("error"),
-          description: "Failed to assign Pokemon. The school pool might be empty.",
+          description: "Failed to assign Pokemon.",
           variant: "destructive"
         });
       }
-    } catch (error) {
-      console.error("Error assigning pokemon:", error);
-      toast({
-        title: t("error"),
-        description: "Failed to assign Pokemon",
-        variant: "destructive"
-      });
     } finally {
       setAssigningPokemon(false);
     }

@@ -422,7 +422,6 @@ export type Database = {
           id: string
           obtained_at: string
           pokemon_id: number
-          pool_entry_id: string
           school_id: string
           student_id: string
         }
@@ -430,7 +429,6 @@ export type Database = {
           id?: string
           obtained_at?: string
           pokemon_id: number
-          pool_entry_id: string
           school_id: string
           student_id: string
         }
@@ -438,7 +436,6 @@ export type Database = {
           id?: string
           obtained_at?: string
           pokemon_id?: number
-          pool_entry_id?: string
           school_id?: string
           student_id?: string
         }
@@ -448,13 +445,6 @@ export type Database = {
             columns: ["pokemon_id"]
             isOneToOne: false
             referencedRelation: "pokemon_catalog"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "pokemon_collections_pool_entry_id_fkey"
-            columns: ["pool_entry_id"]
-            isOneToOne: false
-            referencedRelation: "pokemon_pools"
             referencedColumns: ["id"]
           },
           {
@@ -475,37 +465,21 @@ export type Database = {
       }
       pokemon_pools: {
         Row: {
-          assigned_at: string | null
-          assigned_to_student_id: string | null
           id: string
           pokemon_id: number
           school_id: string
-          status: string
         }
         Insert: {
-          assigned_at?: string | null
-          assigned_to_student_id?: string | null
           id?: string
           pokemon_id: number
           school_id: string
-          status?: string
         }
         Update: {
-          assigned_at?: string | null
-          assigned_to_student_id?: string | null
           id?: string
           pokemon_id?: number
           school_id?: string
-          status?: string
         }
         Relationships: [
-          {
-            foreignKeyName: "pokemon_pools_assigned_to_student_id_fkey"
-            columns: ["assigned_to_student_id"]
-            isOneToOne: false
-            referencedRelation: "student_profiles"
-            referencedColumns: ["id"]
-          },
           {
             foreignKeyName: "pokemon_pools_pokemon_id_fkey"
             columns: ["pokemon_id"]

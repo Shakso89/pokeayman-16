@@ -172,11 +172,43 @@ export const assignPokemonFromSchoolPool = async (
   schoolId: string,
   studentId: string
 ): Promise<{ success: boolean; pokemon?: Pokemon; isDuplicate?: boolean }> => {
-  // We no longer check for duplicates here, the new system prevents it.
-  // The concept of duplicates based on pokemon name is gone.
-  // Every pokemon from the pool is a unique instance.
-  const result = await assignRandomPokemonToStudent(schoolId, studentId);
-  return { ...result, isDuplicate: false };
+  // Assign random pokemon by "copying" from static catalog to student collection
+  const profileId = await (async () => {
+    const { data: profile } = await supabase
+      .from('student_profiles')
+      .select('id')
+      .eq('user_id', studentId)
+      .maybeSingle();
+    return profile?.id || null;
+  })();
+  if (!profileId) {
+    return { success: false, isDuplicate: false };
+  }
+  const { data: available, error: availableError } = await supabase
+    .from('pokemon_pools')
+    .select('pokemon_id')
+    .eq('school_id', schoolId)
+    .limit(300);
+  if (availableError || !available || available.length === 0) {
+    return { success: false, isDuplicate: false };
+  }
+  const random = available[Math.floor(Math.random() * available.length)];
+  const { pokemon_id } = random;
+  const { data: pokemonDetails, error: pokemonError } = await supabase
+    .from('pokemon_catalog')
+    .select('*')
+    .eq('id', pokemon_id)
+    .single();
+  if (pokemonError || !pokemonDetails) {
+    return { success: false, isDuplicate: false };
+  }
+  // insert to collection (don't check for duplicates, just allow "copies")
+  await supabase.from('pokemon_collections').insert({
+    student_id: profileId,
+    school_id: schoolId,
+    pokemon_id
+  });
+  return { success: true, pokemon: pokemonDetails, isDuplicate: false }; // 'isDuplicate' always false (no more check)
 };
 
 // Get student profile by ID

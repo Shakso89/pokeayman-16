@@ -108,7 +108,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
     if (schoolPool.length === 0) {
       toast({
         title: t("error"),
-        description: "No Pokémon available in school pool. Please refresh the pool or contact support.",
+        description: "No Pokémon available in school catalog. Please contact support.",
         variant: "destructive"
       });
       return;
@@ -124,12 +124,6 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
           description: "Student does not have a profile. Ask them to log in at least once before assigning Pokémon.",
           variant: "destructive"
         });
-      } else if (result && result.error === "empty_pool") {
-        toast({
-          title: t("error"),
-          description: "No Pokémon left in school pool. Please refresh the pool.",
-          variant: "destructive"
-        });
       } else if (result && result.error) {
         toast({
           title: t("error"),
@@ -142,7 +136,6 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
           description: `${result.pokemon.name} awarded to ${selectedStudent.display_name || selectedStudent.username}`
         });
         fetchStudentPokemons();
-        fetchSchoolPool();
         onRefresh();
       } else {
         toast({
@@ -152,7 +145,6 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
         });
       }
     } catch (error: any) {
-      console.error("Error awarding pokemon:", error);
       toast({
         title: t("error"),
         description: "Failed to award Pokémon. Please try again.",
@@ -373,7 +365,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
           {activeTab === "award" && (
             <div className="space-y-4">
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-semibold">Award Pokémon from School Pool</h3>
+                <h3 className="text-lg font-semibold">Award Pokémon from School Catalog</h3>
                 <Button
                   onClick={handleAwardRandomPokemon}
                   disabled={loading || schoolPool.length === 0}
@@ -385,13 +377,13 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
               </div>
               
               <p className="text-sm text-gray-600">
-                {schoolPool.length} Pokémon available in school pool
+                {schoolPool.length} Pokémon available in school catalog
               </p>
               
               {schoolPool.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-500">No Pokémon available in school pool</p>
-                  <p className="text-sm text-gray-400 mt-2">Please refresh the school pool or contact an administrator</p>
+                  <p className="text-gray-500">No Pokémon available in school catalog</p>
+                  <p className="text-sm text-gray-400 mt-2">Please contact support</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">

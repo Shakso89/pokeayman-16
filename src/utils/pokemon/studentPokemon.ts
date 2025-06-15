@@ -2,43 +2,77 @@ import { Pokemon, StudentCollectionPokemon } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
 
 // Helper function to get student profile (no auto-create; must exist)
-const getOrCreateStudentProfile = async (userId: string): Promise<string | null> => {
-  // Only try to fetch, do NOT try to create if not found (because of RLS!)
+const getStudentProfileId = async (userId: string): Promise<string | null> => {
   const { data: profile, error: profileError } = await supabase
     .from('student_profiles')
     .select('id')
     .eq('user_id', userId)
     .maybeSingle();
 
-  if (profile) {
-    return profile.id;
-  }
-  // Profile does not exist (do NOT attempt to create due to RLS)
+  if (profile) return profile.id;
   if (profileError && profileError.code !== 'PGRST116') {
     console.error(`Error fetching student profile for user_id: ${userId}`, profileError);
   }
-  // Return null: let the UI layer handle user feedback to teacher/admin!
   return null;
 };
 
-// Assigns a random available Pokemon from a school's pool to a student.
-export const assignRandomPokemonToStudent = async (schoolId: string, studentId: string): Promise<{ success: boolean; pokemon?: Pokemon; error?: string }> => {
-  console.log(`Attempting to assign random Pokemon to student (user_id: ${studentId}) from school ${schoolId}`);
-
-  const studentProfileId = await getOrCreateStudentProfile(studentId);
+// Assigns (copies) a Pokemon from the static school pool (by id) to a student.
+export const assignSpecificPokemonToStudent = async (
+  poolEntryId: string,
+  pokemonId: number,
+  schoolId: string,
+  studentId: string
+): Promise<{ success: boolean; pokemon?: Pokemon; error?: string }> => {
+  const studentProfileId = await getStudentProfileId(studentId);
   if (!studentProfileId) {
     return { success: false, error: "profile_missing" };
   }
 
+  // Lookup pokemon data from catalog
+  const { data: pokemonDetails, error } = await supabase
+    .from('pokemon_catalog')
+    .select('*')
+    .eq('id', pokemonId)
+    .single();
+
+  if (error || !pokemonDetails) {
+    return { success: false, error: error?.message || "pokemon_not_found" };
+  }
+
+  // Copy to student's collection (no unique/depletion logic)
+  const { error: insertError } = await supabase
+    .from('pokemon_collections')
+    .insert({
+      student_id: studentProfileId,
+      school_id: schoolId,
+      pokemon_id: pokemonId
+    });
+
+  if (insertError) {
+    return { success: false, error: insertError.message || "assign_failed" };
+  }
+
+  return { success: true, pokemon: pokemonDetails as Pokemon };
+};
+
+// Award a random Pokemon from the school's static catalog to student
+export const assignRandomPokemonToStudent = async (
+  schoolId: string,
+  studentId: string
+): Promise<{ success: boolean; pokemon?: Pokemon; error?: string }> => {
+  const studentProfileId = await getStudentProfileId(studentId);
+  if (!studentProfileId) {
+    return { success: false, error: "profile_missing" };
+  }
+
+  // Get all pokémon in the school's pool
   const { data: available, error: availableError } = await supabase
     .from('pokemon_pools')
-    .select('id, pokemon_id')
+    .select('pokemon_id')
     .eq('school_id', schoolId)
-    .eq('status', 'available')
-    .limit(500);
+    .limit(300);
 
   if (availableError) {
-    console.error("Supabase error fetching available Pokémon:", availableError);
     return { success: false, error: availableError.message || "supabase_fetch_error" };
   }
   if (!available || available.length === 0) {
@@ -46,65 +80,16 @@ export const assignRandomPokemonToStudent = async (schoolId: string, studentId: 
   }
 
   const randomEntry = available[Math.floor(Math.random() * available.length)];
-  const { id: poolEntryId, pokemon_id: pokemonId } = randomEntry;
+  const { pokemon_id: pokemonId } = randomEntry;
 
-  // Try to update the pool row
-  const { data: updatedPoolEntry, error: updateError } = await supabase
-    .from('pokemon_pools')
-    .update({ status: 'assigned', assigned_to_student_id: studentProfileId, assigned_at: new Date().toISOString() })
-    .eq('id', poolEntryId)
-    .eq('status', 'available')
-    .select()
+  // Copy pokemon details from catalog to student collection
+  const { data: pokemonDetails, error: pokemonError } = await supabase
+    .from('pokemon_catalog')
+    .select('*')
+    .eq('id', pokemonId)
     .single();
-
-  if (updateError || !updatedPoolEntry) {
-    console.error("Failed to assign Pokémon pool entry.", updateError);
-    return { success: false, error: updateError?.message || "assign_failed" };
-  }
-
-  // Add to collection
-  const { error: insertError } = await supabase
-    .from('pokemon_collections')
-    .insert({
-      student_id: studentProfileId,
-      school_id: schoolId,
-      pokemon_id: pokemonId,
-      pool_entry_id: poolEntryId
-    });
-
-  if (insertError) {
-    console.error("Failed to insert into pokemon_collections.", insertError);
-    await supabase.from('pokemon_pools').update({ status: 'available', assigned_to_student_id: null, assigned_at: null }).eq('id', poolEntryId);
-    return { success: false, error: insertError.message || "assign_failed" };
-  }
-
-  const { data: pokemonDetails } = await supabase.from('pokemon_catalog').select('*').eq('id', pokemonId).single();
-  return { success: true, pokemon: pokemonDetails as Pokemon };
-};
-
-export const assignSpecificPokemonToStudent = async (
-  poolEntryId: string,
-  pokemonId: number,
-  schoolId: string,
-  studentId: string
-): Promise<{ success: boolean; pokemon?: Pokemon; error?: string }> => {
-  const studentProfileId = await getOrCreateStudentProfile(studentId);
-  if (!studentProfileId) {
-    return { success: false, error: "profile_missing" };
-  }
-
-  // Try to update the pool row
-  const { data: updatedPoolEntry, error: updateError } = await supabase
-    .from('pokemon_pools')
-    .update({ status: 'assigned', assigned_to_student_id: studentProfileId, assigned_at: new Date().toISOString() })
-    .eq('id', poolEntryId)
-    .eq('status', 'available')
-    .select()
-    .single();
-
-  if (updateError || !updatedPoolEntry) {
-    console.error("Failed to assign Pokémon pool entry.", updateError);
-    return { success: false, error: updateError?.message || "assign_failed" };
+  if (pokemonError || !pokemonDetails) {
+    return { success: false, error: pokemonError?.message || "pokemon_not_found" };
   }
 
   const { error: insertError } = await supabase
@@ -112,76 +97,38 @@ export const assignSpecificPokemonToStudent = async (
     .insert({
       student_id: studentProfileId,
       school_id: schoolId,
-      pokemon_id: pokemonId,
-      pool_entry_id: poolEntryId
+      pokemon_id: pokemonId
     });
 
   if (insertError) {
-    await supabase.from('pokemon_pools').update({ status: 'available', assigned_to_student_id: null, assigned_at: null }).eq('id', poolEntryId);
-    console.error("Failed to insert into pokemon_collections.", insertError);
     return { success: false, error: insertError.message || "assign_failed" };
   }
 
-  const { data: pokemonDetails } = await supabase.from('pokemon_catalog').select('*').eq('id', pokemonId).single();
   return { success: true, pokemon: pokemonDetails as Pokemon };
 };
 
-// Removes a specific Pokemon from a student's collection and returns it to the school pool.
+// Removes a Pokemon only from student's collection (does NOT return to pool)
 export const removePokemonFromStudent = async (collectionId: string): Promise<boolean> => {
-  console.log(`Removing Pokemon with collection ID ${collectionId}`);
-
-  const { data: collectionEntry, error: findError } = await supabase
-    .from('pokemon_collections')
-    .select('pool_entry_id')
-    .eq('id', collectionId)
-    .single();
-
-  if (findError || !collectionEntry) {
-    console.error("Could not find Pokemon in student's collection", findError);
-    return false;
-  }
-
   const { error: deleteError } = await supabase
     .from('pokemon_collections')
     .delete()
     .eq('id', collectionId);
-
-  if (deleteError) {
-    console.error("Error deleting from pokemon_collections", deleteError);
-    return false;
-  }
-
-  const { error: updateError } = await supabase
-    .from('pokemon_pools')
-    .update({ status: 'available', assigned_to_student_id: null, assigned_at: null })
-    .eq('id', collectionEntry.pool_entry_id);
-
-  if (updateError) {
-    console.error("Error returning Pokemon to pool. The collection entry was deleted but pool was not updated.", updateError);
-    // This is a partial failure state, but we'll return true as the pokemon is removed from student.
-  }
-  
-  return true;
+  return !deleteError;
 };
 
 // Get a student's Pokemon collection from the database.
 export const getStudentPokemonCollection = async (studentId: string): Promise<StudentCollectionPokemon[]> => {
-  const studentProfileId = await getOrCreateStudentProfile(studentId);
+  const studentProfileId = await getStudentProfileId(studentId);
   if (!studentProfileId) {
-    console.error("Could not get or create student profile for collection");
+    console.error("Could not get student profile for collection");
     return [];
   }
-
   const { data, error } = await supabase
     .from('pokemon_collections')
-    .select('id, school_id, pool_entry_id, pokemon_catalog!inner(*)')
+    .select('id, school_id, pokemon_catalog!inner(*)')
     .eq('student_id', studentProfileId);
 
-  if (error) {
-    console.error("Error fetching student's pokemon collection", error);
-    return [];
-  }
-
+  if (error) return [];
   return data.map((item: any) => ({
     collectionId: item.id,
     id: item.pokemon_catalog.id,
@@ -193,7 +140,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
   }));
 };
 
-// Award coins to a student - simplified approach
+// Award coins to a student - unchanged
 export const awardCoinsToStudent = async (studentId: string, amount: number): Promise<boolean> => {
   try {
     // Get current coins first
