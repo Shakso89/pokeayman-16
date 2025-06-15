@@ -184,8 +184,8 @@ export const awardPokemonToStudent = async (
     if (existingPokemon) {
       // It's a duplicate, award coins instead
       const coinsAwarded = pokemon.rarity === 'legendary' ? 100 : 
-                         pokemon.rarity === 'epic' ? 50 : 
-                         pokemon.rarity === 'rare' ? 25 : 10;
+                         pokemon.rarity === 'rare' ? 50 : 
+                         pokemon.rarity === 'uncommon' ? 25 : 10;
       
       await updateStudentCoins(studentId, coinsAwarded);
       return { success: true, isDuplicate: true };

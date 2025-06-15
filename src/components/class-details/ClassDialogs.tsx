@@ -118,6 +118,7 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
         studentName={managePokemonDialog.studentName}
         schoolId={managePokemonDialog.schoolId}
         onPokemonRemoved={onPokemonRemoved}
+        isClassCreator={isClassCreator}
       />
 
       {/* Give Coins Dialog */}

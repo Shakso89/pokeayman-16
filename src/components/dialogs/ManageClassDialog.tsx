@@ -224,6 +224,7 @@ const ManageClassDialog: React.FC<ManageClassDialogProps> = ({
         isOpen={giveCoinsDialog.open}
         onOpenChange={(open) => setGiveCoinsDialog({...giveCoinsDialog, open})}
         studentName={giveCoinsDialog.studentName}
+        studentId={giveCoinsDialog.studentId}
         onGiveCoins={handleGiveCoins}
       />
 
