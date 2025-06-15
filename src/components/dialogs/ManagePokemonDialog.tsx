@@ -4,11 +4,13 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Trash2, ArrowLeft } from "lucide-react";
+import { Trash2, ArrowLeft, Plus } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
-import { getStudentPokemonCollection, removePokemonFromStudentAndReturnToPool } from "@/utils/pokemon/studentPokemon";
+import { getStudentPokemonCollection, removePokemonFromStudentAndReturnToPool, assignPokemonToStudent } from "@/utils/pokemon/studentPokemon";
+import { getSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
 import { Pokemon } from "@/types/pokemon";
+import { Separator } from "@/components/ui/separator";
 
 interface ManagePokemonDialogProps {
   isOpen: boolean;
@@ -31,21 +33,30 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 }) => {
   const { t } = useTranslation();
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
+  const [schoolPool, setSchoolPool] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(false);
+  const [assigningPokemonId, setAssigningPokemonId] = useState<string | null>(null);
 
   useEffect(() => {
     if (isOpen && studentId && studentId !== "all") {
-      fetchStudentPokemons();
+      fetchData();
     }
-  }, [isOpen, studentId]);
+  }, [isOpen, studentId, schoolId]);
 
-  const fetchStudentPokemons = () => {
+  const fetchData = () => {
+    if (!studentId || !schoolId) return;
+    setLoading(true);
     try {
       const collection = getStudentPokemonCollection(studentId);
       setStudentPokemons(collection?.pokemons || []);
+      const pool = getSchoolPokemonPool(schoolId);
+      setSchoolPool(pool?.availablePokemons || []);
     } catch (error) {
-      console.error("Error fetching student pokemons:", error);
+      console.error("Error fetching Pokemon data:", error);
       setStudentPokemons([]);
+      setSchoolPool([]);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -69,8 +80,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
           description: `${pokemonName} has been removed and returned to school pool`
         });
         
-        // Refresh the pokemon list
-        fetchStudentPokemons();
+        fetchData();
         onPokemonRemoved();
       } else {
         toast({
@@ -88,6 +98,48 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
       });
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAssignPokemon = async (pokemonId: string, pokemonName: string) => {
+    if (!isClassCreator) {
+      toast({
+        title: t("error"),
+        description: "Only class creators can assign Pokemon",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setAssigningPokemonId(pokemonId);
+    try {
+      const result = assignPokemonToStudent(schoolId, studentId, pokemonId);
+
+      if (result.success) {
+        if (!result.isDuplicate) {
+          toast({
+            title: t("success"),
+            description: `${pokemonName} has been assigned to ${studentName}`
+          });
+        }
+        fetchData();
+        onPokemonRemoved();
+      } else {
+        toast({
+          title: t("error"),
+          description: "Failed to assign Pokemon. It might not be available in the pool.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error("Error assigning pokemon:", error);
+      toast({
+        title: t("error"),
+        description: "Failed to assign Pokemon",
+        variant: "destructive"
+      });
+    } finally {
+      setAssigningPokemonId(null);
     }
   };
 
@@ -129,6 +181,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
         </DialogHeader>
         
         <div className="space-y-4">
+          <h4 className="font-semibold">Student's Collection ({studentPokemons.length})</h4>
           {studentPokemons.length === 0 ? (
             <div className="text-center py-8">
               <p className="text-gray-500">This student has no Pokemon yet.</p>
@@ -176,6 +229,61 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
               ))}
             </div>
           )}
+
+          <Separator className="my-6" />
+
+          <div className="space-y-4">
+            <h4 className="font-semibold">Assign from School Pool</h4>
+            <p className="text-sm text-gray-500">
+              {schoolPool.length} Pokémon remaining in the school pool.
+            </p>
+            {schoolPool.length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-gray-500">The school pool is empty.</p>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {schoolPool.map((pokemon) => (
+                  <Card key={pokemon.id} className="relative">
+                    <CardContent className="p-4">
+                      <div className="flex flex-col items-center space-y-2">
+                        <img 
+                          src={pokemon.image} 
+                          alt={pokemon.name}
+                          className="w-20 h-20 object-contain"
+                          onError={(e) => {
+                            e.currentTarget.src = "/placeholder.svg";
+                          }}
+                        />
+                        <h3 className="font-semibold text-center">{pokemon.name}</h3>
+                        <div className="flex gap-2">
+                          <Badge variant="outline">{pokemon.type}</Badge>
+                          <Badge className={`text-white ${getRarityColor(pokemon.rarity)}`}>
+                            {pokemon.rarity}
+                          </Badge>
+                        </div>
+                        {pokemon.level && (
+                          <Badge variant="secondary">Level {pokemon.level}</Badge>
+                        )}
+                        
+                        {isClassCreator && (
+                          <Button
+                            size="sm"
+                            onClick={() => handleAssignPokemon(pokemon.id, pokemon.name)}
+                            disabled={assigningPokemonId === pokemon.id}
+                            className="w-full mt-2 bg-green-600 hover:bg-green-700 text-white"
+                          >
+                            <Plus className="h-4 w-4 mr-2" />
+                            {assigningPokemonId === pokemon.id ? 'Assigning...' : 'Assign to Student'}
+                          </Button>
+                        )}
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
           
           <div className="flex justify-end pt-4">
             <Button onClick={() => onOpenChange(false)}>

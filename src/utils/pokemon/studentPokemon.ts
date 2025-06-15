@@ -1,4 +1,3 @@
-
 import { Pokemon, StudentPokemon } from "@/types/pokemon";
 import { getStudentPokemons, saveStudentPokemons } from "./storage";
 import { getPokemonPools, savePokemonPools } from "./storage";
@@ -191,10 +190,10 @@ export const awardCoinsToStudent = (studentId: string, amount: number): void => 
 };
 
 // Assign Pokemon to a student with duplicate handling - REMOVES from pool
-export const assignPokemonToStudent = (schoolId: string, studentId: string, pokemonId: string): boolean => {
+export const assignPokemonToStudent = (schoolId: string, studentId: string, pokemonId: string): { success: boolean; isDuplicate: boolean } => {
   if (!schoolId || !studentId || !pokemonId) {
     console.error("Missing required parameters:", { schoolId, studentId, pokemonId });
-    return false;
+    return { success: false, isDuplicate: false };
   }
 
   console.log("Assigning Pokemon to student:", { schoolId, studentId, pokemonId });
@@ -212,7 +211,7 @@ export const assignPokemonToStudent = (schoolId: string, studentId: string, poke
       poolIndex = pools.length - 1;
     } else {
       console.error("Failed to initialize school pool");
-      return false;
+      return { success: false, isDuplicate: false };
     }
   }
   
@@ -220,7 +219,7 @@ export const assignPokemonToStudent = (schoolId: string, studentId: string, poke
   const pokemonIndex = pools[poolIndex].availablePokemons.findIndex(p => p.id === pokemonId);
   if (pokemonIndex < 0) {
     console.error("Pokemon not found in school pool:", pokemonId);
-    return false;
+    return { success: false, isDuplicate: false };
   }
   
   // Get the Pokemon before removing it from pool
@@ -231,7 +230,7 @@ export const assignPokemonToStudent = (schoolId: string, studentId: string, poke
   if (isDuplicate) {
     // Don't remove from pool for duplicates, just award coins
     console.log("Duplicate Pokemon found, awarded coins instead");
-    return true;
+    return { success: true, isDuplicate: true };
   }
   
   // Remove Pokemon from pool only if not a duplicate
@@ -255,7 +254,7 @@ export const assignPokemonToStudent = (schoolId: string, studentId: string, poke
   
   saveStudentPokemons(studentPokemons);
   console.log("Pokemon assigned successfully:", pokemon.name, "to student:", studentId);
-  return true;
+  return { success: true, isDuplicate: false };
 };
 
 // Assign a random Pokemon from the school pool to a student - REMOVES from pool
