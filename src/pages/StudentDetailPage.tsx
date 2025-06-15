@@ -9,6 +9,7 @@ import SchoolClassInfo from "@/components/student/profile/SchoolClassInfo";
 import { ProfileHeader } from "@/components/student-profile/ProfileHeader";
 import { School, Users } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
+import { supabase } from "@/integrations/supabase/client";
 
 const getPokemons = (studentId: string) => {
   const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
@@ -110,47 +111,75 @@ const StudentDetailPage: React.FC = () => {
 
   useEffect(() => {
     if (!sid) return;
-    
-    const stu = getStudent(sid);
-    console.log("[StudentDetailPage] Student data:", stu);
-    setStudent(stu);
-    
-    if (!stu) {
-      return;
-    }
 
-    // Get school - try multiple approaches
-    let resolvedSchoolId = stu.schoolId || stu.school_id;
-    
-    // If no direct school ID, check if there's only one school
-    if (!resolvedSchoolId) {
-      const schools = JSON.parse(localStorage.getItem("schools") || "[]");
-      if (schools.length === 1) {
-        resolvedSchoolId = schools[0].id;
-        console.info("[StudentDetailPage] Using single available school:", resolvedSchoolId);
+    const loadStudentData = async () => {
+      // 1. Fetch student data with school info
+      const { data: studentWithSchool, error: studentError } = await supabase
+        .from('students')
+        .select(`
+          *,
+          school:school_id (id, name)
+        `)
+        .eq('id', sid)
+        .maybeSingle();
+
+      if (studentError) console.error("Error fetching student:", studentError.message);
+      
+      let stu = studentWithSchool;
+      // Fallback to localStorage if Supabase fails
+      if (!stu) {
+        console.warn(`Student with id ${sid} not found in Supabase, falling back to localStorage.`);
+        stu = getStudent(sid);
       }
-    }
-    
-    // Also check if student is in any classes and get school from class
-    if (!resolvedSchoolId) {
-      const cls = getClasses(stu.id);
-      if (cls.length > 0 && cls[0].schoolId) {
-        resolvedSchoolId = cls[0].schoolId;
-        console.info("[StudentDetailPage] Using school from class:", resolvedSchoolId);
+
+      if (!stu) {
+        setStudent(null);
+        return;
       }
-    }
+      setStudent(stu);
 
-    const schoolData = getSchool(resolvedSchoolId);
-    console.log("[StudentDetailPage] School data:", schoolData);
-    setSchool(schoolData);
+      // 2. Set School data
+      const schoolData = stu.school || getSchool(stu.school_id || stu.schoolId);
+      setSchool(schoolData);
+      console.log("[StudentDetailPage] School data:", schoolData);
 
-    const cls = getClasses(stu.id);
-    setClasses(cls);
+      // 3. Fetch Classes
+      let classesData: any[] = [];
+      const { data: classAssignments } = await supabase
+        .from('student_classes')
+        .select('class_id')
+        .eq('student_id', sid);
 
-    setPokemons(getPokemons(stu.id));
-    setCoins(getCoinBalance(stu.id));
-    setHomeworkStreak(getHomeworkStreak(stu.id));
-    setIsStarOfClass(getStarOfClass(stu.id, cls));
+      let classIds = classAssignments ? classAssignments.map(c => c.class_id) : [];
+
+      if (classIds.length === 0 && (stu.class_id || stu.classId)) {
+        const ids = stu.class_id || stu.classId;
+        classIds = Array.isArray(ids) ? ids : String(ids).split(',').map(id => id.trim()).filter(Boolean);
+      }
+
+      if (classIds.length > 0) {
+        const { data: fetchedClasses } = await supabase
+          .from('classes')
+          .select('*')
+          .in('id', classIds);
+        if (fetchedClasses) classesData = fetchedClasses;
+      }
+
+      // Fallback for classes
+      if (classesData.length === 0) {
+        console.warn(`Classes for student ${sid} not found in Supabase, falling back to localStorage.`);
+        classesData = getClasses(sid);
+      }
+      setClasses(classesData);
+      
+      // 4. Set other info from localStorage
+      setPokemons(getPokemons(stu.id));
+      setCoins(getCoinBalance(stu.id));
+      setHomeworkStreak(getHomeworkStreak(stu.id));
+      setIsStarOfClass(getStarOfClass(stu.id, classesData));
+    };
+
+    loadStudentData();
   }, [sid]);
 
   function handleBack() {
