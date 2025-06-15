@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -31,53 +30,30 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
   
   useEffect(() => {
-    loadRankings();
+    if (classId) {
+      loadRankings();
+    }
   }, [classId]);
   
   const loadRankings = async () => {
     try {
-      const { data: studentLinks, error: linksError } = await supabase
-        .from('student_classes')
-        .select('student_id')
-        .eq('class_id', classId);
-
-      if (linksError) throw linksError;
-      if (!studentLinks || studentLinks.length === 0) {
-        setStudents([]);
-        return;
-      }
-      
-      const studentIds = studentLinks.map(link => link.student_id);
-
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('students')
-        .select('id, display_name, username')
-        .in('id', studentIds);
-
-      if (studentsError) throw studentsError;
-      if (!studentsData) {
-        setStudents([]);
-        return;
-      };
-
-      const studentUsernames = studentsData.map(s => s.username);
-      
       const { data: profilesData, error: profilesError } = await supabase
         .from('student_profiles')
-        .select('username, coins, avatar_url')
-        .in('username', studentUsernames);
-        
-      if (profilesError) throw profilesError;
+        .select('id, display_name, username, avatar_url, coins')
+        .eq('class_id', classId);
 
-      const profilesMap = new Map<string, { coins: number, avatar_url?: string }>();
-      if (profilesData) {
-        profilesData.forEach(p => profilesMap.set(p.username, { coins: p.coins || 0, avatar_url: p.avatar_url || undefined }));
+      if (profilesError) throw profilesError;
+      if (!profilesData || profilesData.length === 0) {
+        setStudents([]);
+        return;
       }
-      
+
+      const profileIds = profilesData.map(p => p.id);
+
       const { data: pokemonCollections, error: pokemonError } = await supabase
         .from('pokemon_collections')
         .select('student_id')
-        .in('student_id', studentIds);
+        .in('student_id', profileIds);
 
       if (pokemonError) throw pokemonError;
 
@@ -88,18 +64,16 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
         });
       }
 
-      const studentsWithScore = studentsData.map((s) => {
-        const profile = profilesMap.get(s.username);
-        const pokemonCount = pokemonCounts.get(s.id) || 0;
-        const coins = profile?.coins || 0;
-        
+      const studentsWithScore = profilesData.map((p) => {
+        const pokemonCount = pokemonCounts.get(p.id) || 0;
+        const coins = p.coins || 0;
         const totalScore = pokemonCount + Math.floor(coins / 10);
         
         return {
-          id: s.id,
-          displayName: s.display_name || s.username,
-          username: s.username,
-          avatar: profile?.avatar_url,
+          id: p.id,
+          displayName: p.display_name || p.username,
+          username: p.username,
+          avatar: p.avatar_url || undefined,
           pokemonCount,
           coins,
           totalScore,
