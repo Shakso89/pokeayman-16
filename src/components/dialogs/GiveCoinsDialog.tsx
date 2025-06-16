@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "@/hooks/useTranslation";
-import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { awardCoinsToStudent } from "@/services/studentCoinService";
 
 interface GiveCoinsDialogProps {
   isOpen: boolean;
@@ -38,47 +38,27 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
     if (coinAmount > 0) {
       setIsLoading(true);
       try {
-        // Find student's profile via username to bridge legacy student ID and user_id
-        const { data: studentLegacy, error: legacyError } = await supabase
-          .from('students')
-          .select('username')
-          .eq('id', studentId) // studentId is legacy ID from 'students' table
-          .maybeSingle();
+        console.log("Awarding coins:", { studentId, studentName, coinAmount });
+        
+        const success = await awardCoinsToStudent(studentId, coinAmount);
+        
+        if (success) {
+          toast({
+            title: t("success"),
+            description: `${coinAmount} coins awarded to ${studentName}`
+          });
 
-        if (legacyError || !studentLegacy) throw new Error("Legacy student record not found.");
-
-        const { data: currentProfile, error: profileError } = await supabase
-          .from('student_profiles')
-          .select('user_id, coins')
-          .eq('username', studentLegacy.username)
-          .maybeSingle();
-
-        if (profileError || !currentProfile) throw new Error("Student profile not found.");
-
-        const { error } = await supabase
-          .from('student_profiles')
-          .update({
-            coins: currentProfile.coins + coinAmount,
-            updated_at: new Date().toISOString()
-          })
-          .eq('user_id', currentProfile.user_id);
-
-        if (error) throw error;
-
-        toast({
-          title: t("success"),
-          description: `${coinAmount} coins awarded to ${studentName}`
-        });
-
-        onGiveCoins(coinAmount);
-
-        setAmount("");
-        onOpenChange(false);
+          onGiveCoins(coinAmount);
+          setAmount("");
+          onOpenChange(false);
+        } else {
+          throw new Error("Failed to award coins");
+        }
       } catch (error) {
         console.error("Error awarding coins:", error);
         toast({
           title: t("error"),
-          description: "Failed to award coins.",
+          description: "Failed to award coins",
           variant: "destructive"
         });
       } finally {

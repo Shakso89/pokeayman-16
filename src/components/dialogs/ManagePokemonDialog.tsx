@@ -1,16 +1,17 @@
+
 import React, { useState, useEffect } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Trash2, ArrowLeft, Plus } from "lucide-react";
-import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
-import { getStudentPokemonCollection, removePokemonFromStudent } from "@/utils/pokemon/studentPokemon";
-import { assignRandomPokemonToStudent, assignSpecificPokemonToStudent } from "@/utils/pokemon/studentPokemon";
+import { toast } from "@/hooks/use-toast";
+import { assignRandomPokemonToStudent, assignSpecificPokemonToStudent, getStudentPokemonCollection, removePokemonFromStudent } from "@/utils/pokemon/studentPokemon";
 import { getSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
-import { StudentCollectionPokemon, SchoolPoolPokemon } from "@/types/pokemon";
+import { Pokemon, StudentCollectionPokemon } from "@/types/pokemon";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Trash2, Gift, Zap } from "lucide-react";
 
 interface ManagePokemonDialogProps {
   isOpen: boolean;
@@ -32,318 +33,246 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
   schoolId,
   onPokemonRemoved,
   isClassCreator,
+  teacherId,
+  classId,
 }) => {
   const { t } = useTranslation();
   const [studentPokemons, setStudentPokemons] = useState<StudentCollectionPokemon[]>([]);
-  const [schoolPool, setSchoolPool] = useState<SchoolPoolPokemon[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [assigningPokemon, setAssigningPokemon] = useState(false);
+  const [schoolPool, setSchoolPool] = useState<Pokemon[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+  const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
 
   useEffect(() => {
-    if (isOpen && studentId && studentId !== "all") {
-      fetchData();
+    if (isOpen && studentId && schoolId) {
+      loadData();
     }
   }, [isOpen, studentId, schoolId]);
 
-  const fetchData = async () => {
-    if (!studentId || !schoolId) return;
-    setLoading(true);
+  const loadData = async () => {
+    setIsLoading(true);
     try {
-      const [studentCollection, schoolPoolData] = await Promise.all([
+      console.log("Loading data for student:", studentId, "school:", schoolId);
+      
+      const [pokemons, pool] = await Promise.all([
         getStudentPokemonCollection(studentId),
         getSchoolPokemonPool(schoolId)
       ]);
-      
-      setStudentPokemons(studentCollection);
-      setSchoolPool(schoolPoolData || []);
 
+      console.log("Student pokemons:", pokemons);
+      console.log("School pool:", pool);
+      
+      setStudentPokemons(pokemons);
+      setSchoolPool(pool);
     } catch (error) {
-      console.error("Error fetching Pokemon data:", error);
-      setStudentPokemons([]);
-      setSchoolPool([]);
+      console.error("Error loading data:", error);
+      toast({
+        title: t("error"),
+        description: "Failed to load Pokemon data",
+        variant: "destructive"
+      });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
+    }
+  };
+
+  const handleAwardRandomPokemon = async () => {
+    if (!schoolId || !studentId) return;
+    
+    setIsLoading(true);
+    try {
+      console.log("Awarding random Pokemon to student:", studentId);
+      
+      const result = await assignRandomPokemonToStudent(schoolId, studentId);
+      
+      if (result.success && result.pokemon) {
+        toast({
+          title: t("success"),
+          description: `${result.pokemon.name} awarded to ${studentName}!`
+        });
+        await loadData();
+        onPokemonRemoved();
+      } else {
+        throw new Error(result.error || "Failed to award Pokemon");
+      }
+    } catch (error) {
+      console.error("Error awarding random Pokemon:", error);
+      toast({
+        title: t("error"),
+        description: "Failed to award Pokemon",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAwardSpecificPokemon = async (pokemon: Pokemon) => {
+    if (!schoolId || !studentId) return;
+    
+    setIsLoading(true);
+    try {
+      console.log("Awarding specific Pokemon:", pokemon.name, "to student:", studentId);
+      
+      const result = await assignSpecificPokemonToStudent(pokemon.id, schoolId, studentId);
+      
+      if (result.success) {
+        toast({
+          title: t("success"),
+          description: `${pokemon.name} awarded to ${studentName}!`
+        });
+        await loadData();
+        onPokemonRemoved();
+      } else {
+        throw new Error(result.error || "Failed to award Pokemon");
+      }
+    } catch (error) {
+      console.error("Error awarding specific Pokemon:", error);
+      toast({
+        title: t("error"),
+        description: "Failed to award Pokemon",
+        variant: "destructive"
+      });
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleRemovePokemon = async (collectionId: string, pokemonName: string) => {
-    if (!isClassCreator) {
-      toast({
-        title: t("error"),
-        description: "Only class creators can remove Pokemon",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setLoading(true);
+    setIsLoading(true);
     try {
+      console.log("Removing Pokemon:", pokemonName, "collection ID:", collectionId);
+      
       const success = await removePokemonFromStudent(collectionId);
       
       if (success) {
         toast({
           title: t("success"),
-          description: `${pokemonName} has been removed.`
+          description: `${pokemonName} removed from ${studentName}`
         });
-        
-        fetchData();
+        await loadData();
         onPokemonRemoved();
       } else {
-        toast({
-          title: t("error"),
-          description: "Failed to remove Pokemon",
-          variant: "destructive"
-        });
+        throw new Error("Failed to remove Pokemon");
       }
     } catch (error) {
-      console.error("Error removing pokemon:", error);
+      console.error("Error removing Pokemon:", error);
       toast({
         title: t("error"),
         description: "Failed to remove Pokemon",
         variant: "destructive"
       });
     } finally {
-      setLoading(false);
+      setIsLoading(false);
     }
   };
 
-  const handleAssignRandomPokemon = async () => {
-    if (!isClassCreator) {
-      toast({
-        title: t("error"),
-        description: "Only class creators can assign Pokemon",
-        variant: "destructive"
-      });
-      return;
-    }
-    setAssigningPokemon(true);
-    try {
-      const result = await assignRandomPokemonToStudent(schoolId, studentId);
-      if (result.success && result.pokemon) {
-        toast({
-          title: t("success"),
-          description: `${result.pokemon.name} has been assigned to ${studentName}`
-        });
-        fetchData();
-        onPokemonRemoved();
-      } else {
-        toast({
-          title: t("error"),
-          description: "Failed to assign Pokemon.",
-          variant: "destructive"
-        });
-      }
-    } finally {
-      setAssigningPokemon(false);
-    }
-  };
-
-  const handleAssignSpecificPokemon = async (pokemon: SchoolPoolPokemon) => {
-    if (!isClassCreator) {
-      toast({
-        title: t("error"),
-        description: "Only class creators can assign Pokemon",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setAssigningPokemon(true);
-    try {
-      const result = await assignSpecificPokemonToStudent(pokemon.id, schoolId, studentId);
-
-      if (result.success && result.pokemon) {
-        toast({
-          title: t("success"),
-          description: `${result.pokemon.name} has been assigned to ${studentName}`,
-        });
-        fetchData();
-        onPokemonRemoved();
-      } else {
-        toast({
-          title: t("error"),
-          description: `Failed to assign Pokemon. ${result.error ? `Reason: ${result.error}` : 'Please try again.'}`,
-          variant: "destructive",
-        });
-      }
-    } catch (error) {
-      console.error("Error assigning pokemon:", error);
-      toast({
-        title: t("error"),
-        description: "Failed to assign Pokemon",
-        variant: "destructive",
-      });
-    } finally {
-      setAssigningPokemon(false);
-    }
-  };
-
-  const getRarityColor = (rarity: string) => {
-    switch (rarity) {
-      case "legendary": return "bg-yellow-500";
-      case "rare": return "bg-purple-500";
-      case "uncommon": return "bg-blue-500";
-      default: return "bg-gray-500";
-    }
-  };
-
-  if (studentId === "all") {
-    return (
-      <Dialog open={isOpen} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle>Manage Class Pokemon</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <p className="text-gray-600">
-              To manage Pokemon for individual students, please use the "Manage Pokemon" button on each student card in the students grid.
-            </p>
-            <Button onClick={() => onOpenChange(false)} className="w-full">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              Back to Class
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-    );
+  if (!isClassCreator) {
+    return null;
   }
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[80vh]">
         <DialogHeader>
-          <DialogTitle>Manage Pokemon - {studentName}</DialogTitle>
+          <DialogTitle>Manage Pokémon - {studentName}</DialogTitle>
         </DialogHeader>
         
-        <div className="space-y-4">
-          <h4 className="font-semibold">Student's Collection ({studentPokemons.length})</h4>
-          {loading ? (
-            <div className="text-center py-8">
-                <p>Loading student's pokemon...</p>
-            </div>
-          ) : studentPokemons.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-gray-500">This student has no Pokemon yet.</p>
-            </div>
-          ) : (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {studentPokemons.map((pokemon) => (
-                <Card key={pokemon.collectionId} className="relative">
-                  <CardContent className="p-4">
-                    <div className="flex flex-col items-center space-y-2">
-                      <img 
-                        src={pokemon.image} 
-                        alt={pokemon.name}
-                        className="w-20 h-20 object-contain"
-                        onError={(e) => {
-                          e.currentTarget.src = "/placeholder.svg";
-                        }}
-                      />
-                      <h3 className="font-semibold text-center">{pokemon.name}</h3>
-                      <div className="flex gap-2">
-                        <Badge variant="outline">{pokemon.type}</Badge>
-                        <Badge className={`text-white ${getRarityColor(pokemon.rarity)}`}>
-                          {pokemon.rarity}
-                        </Badge>
-                      </div>
-                      
-                      {isClassCreator && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => handleRemovePokemon(pokemon.collectionId, pokemon.name)}
-                          disabled={loading}
-                          className="w-full mt-2"
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Remove
-                        </Button>
-                      )}
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          )}
-
-          <Separator className="my-6" />
-
-          <div className="space-y-4">
-            <div className="flex justify-between items-center">
-              <div className="space-y-1">
-                <h4 className="font-semibold">Assign from School Pool</h4>
-                <p className="text-sm text-gray-500">
-                  {schoolPool.length} Pokémon instances remaining in the school pool.
-                </p>
-              </div>
-              {isClassCreator && (
-                <Button
-                  size="sm"
-                  onClick={handleAssignRandomPokemon}
-                  disabled={assigningPokemon}
-                  className="bg-green-600 hover:bg-green-700 text-white"
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  {assigningPokemon ? 'Assigning...' : 'Assign Random Pokemon'}
-                </Button>
-              )}
-            </div>
-
-            {loading ? (
-                <div className="text-center py-8">
-                    <p>Loading school pool...</p>
-                </div>
-            ) : schoolPool.length === 0 ? (
-              <div className="text-center py-8">
-                <p className="text-gray-500">The school pool is empty.</p>
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {schoolPool.map((pokemon) => (
-                  <Card key={pokemon.poolEntryId} className="relative">
-                    <CardContent className="p-4">
-                      <div className="flex flex-col items-center space-y-2">
-                        <img 
-                          src={pokemon.image} 
-                          alt={pokemon.name}
-                          className="w-20 h-20 object-contain"
-                          onError={(e) => {
-                            e.currentTarget.src = "/placeholder.svg";
-                          }}
-                        />
-                        <h3 className="font-semibold text-center">{pokemon.name}</h3>
-                        <div className="flex gap-2">
-                          <Badge variant="outline">{pokemon.type}</Badge>
-                          <Badge className={`text-white ${getRarityColor(pokemon.rarity)}`}>
-                            {pokemon.rarity}
-                          </Badge>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Student's Pokemon Collection */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">Student's Collection ({studentPokemons.length})</h3>
+            <ScrollArea className="h-[400px] border rounded-lg p-4">
+              {studentPokemons.length === 0 ? (
+                <p className="text-gray-500 text-center">No Pokémon yet</p>
+              ) : (
+                <div className="space-y-3">
+                  {studentPokemons.map((pokemon) => (
+                    <div key={pokemon.collectionId} className="flex items-center justify-between p-3 border rounded-lg">
+                      <div className="flex items-center gap-3">
+                        <Avatar className="h-10 w-10">
+                          <AvatarImage src={pokemon.image} alt={pokemon.name} />
+                          <AvatarFallback>{pokemon.name[0]}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <p className="font-medium">{pokemon.name}</p>
+                          <div className="flex gap-2">
+                            <Badge variant="outline">{pokemon.type}</Badge>
+                            <Badge variant="outline">{pokemon.rarity}</Badge>
+                          </div>
                         </div>
-                        
-                        {isClassCreator && (
-                          <Button
-                            size="sm"
-                            onClick={() => handleAssignSpecificPokemon(pokemon)}
-                            disabled={assigningPokemon}
-                            className="w-full mt-2 bg-blue-600 hover:bg-blue-700 text-white"
-                          >
-                            <Plus className="h-4 w-4 mr-2" />
-                            {assigningPokemon ? 'Assigning...' : 'Assign to Student'}
-                          </Button>
-                        )}
                       </div>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div>
-            )}
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => handleRemovePokemon(pokemon.collectionId, pokemon.name)}
+                        disabled={isLoading}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </ScrollArea>
           </div>
-          
-          <div className="flex justify-end pt-4">
-            <Button onClick={() => onOpenChange(false)}>
-              Close
-            </Button>
+
+          {/* School Pokemon Pool */}
+          <div>
+            <h3 className="text-lg font-semibold mb-4">School Pool ({schoolPool.length})</h3>
+            <div className="space-y-4">
+              <Button
+                onClick={handleAwardRandomPokemon}
+                disabled={isLoading || schoolPool.length === 0}
+                className="w-full"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                Award Random Pokémon
+              </Button>
+              
+              <Separator />
+              
+              <ScrollArea className="h-[340px] border rounded-lg p-4">
+                {schoolPool.length === 0 ? (
+                  <p className="text-gray-500 text-center">No Pokémon in school pool</p>
+                ) : (
+                  <div className="space-y-3">
+                    {schoolPool.map((pokemon) => (
+                      <div key={pokemon.id} className="flex items-center justify-between p-3 border rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <Avatar className="h-10 w-10">
+                            <AvatarImage src={pokemon.image} alt={pokemon.name} />
+                            <AvatarFallback>{pokemon.name[0]}</AvatarFallback>
+                          </Avatar>
+                          <div>
+                            <p className="font-medium">{pokemon.name}</p>
+                            <div className="flex gap-2">
+                              <Badge variant="outline">{pokemon.type}</Badge>
+                              <Badge variant="outline">{pokemon.rarity}</Badge>
+                            </div>
+                          </div>
+                        </div>
+                        <Button
+                          variant="default"
+                          size="sm"
+                          onClick={() => handleAwardSpecificPokemon(pokemon)}
+                          disabled={isLoading}
+                        >
+                          <Gift className="h-4 w-4" />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </ScrollArea>
+            </div>
           </div>
         </div>
+
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Close
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

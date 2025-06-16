@@ -5,7 +5,22 @@ import { supabase } from "@/integrations/supabase/client";
 // Award coins to a student (creates profile if needed)
 export const awardCoinsToStudent = async (studentId: string, amount: number): Promise<boolean> => {
   console.log(`Service: Awarding ${amount} coins to student ${studentId}`);
-  return await awardCoinsToStudentProfile(studentId, amount);
+  
+  try {
+    // Use the studentProfileManager to handle the coin awarding
+    const success = await awardCoinsToStudentProfile(studentId, amount);
+    
+    if (success) {
+      console.log(`Successfully awarded ${amount} coins to student ${studentId}`);
+    } else {
+      console.error(`Failed to award ${amount} coins to student ${studentId}`);
+    }
+    
+    return success;
+  } catch (error) {
+    console.error(`Error awarding coins to student ${studentId}:`, error);
+    return false;
+  }
 };
 
 // Deduct coins from student (for purchases, etc.)
