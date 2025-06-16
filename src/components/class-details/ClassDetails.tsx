@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
@@ -105,10 +106,8 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
           description: t("student-removed-successfully")
         });
 
-        // Refresh the class details to update the UI
         fetchClassDetails();
         
-        // Close the dialog
         setRemoveStudentDialog({
           open: false,
           studentId: "",
@@ -238,19 +237,28 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
               <div className="lg:col-span-3">
                 <StudentsGrid
-                  students={students}
+                  students={students.map(student => ({
+                    ...student,
+                    school_id: student.school_id || classData?.schoolId || classData?.school_id
+                  }))}
                   isClassCreator={isClassCreator()}
-                  onAwardCoins={(studentId, studentName) => setGiveCoinsDialog({
-                    open: true,
-                    studentId,
-                    studentName
-                  })}
-                  onManagePokemon={(studentId, studentName, schoolId) => setManagePokemonDialog({
-                    open: true,
-                    studentId,
-                    studentName,
-                    schoolId
-                  })}
+                  onAwardCoins={(studentId, studentName) => {
+                    console.log("Award coins clicked:", { studentId, studentName });
+                    setGiveCoinsDialog({
+                      open: true,
+                      studentId,
+                      studentName
+                    });
+                  }}
+                  onManagePokemon={(studentId, studentName, schoolId) => {
+                    console.log("Manage pokemon clicked:", { studentId, studentName, schoolId });
+                    setManagePokemonDialog({
+                      open: true,
+                      studentId,
+                      studentName,
+                      schoolId: schoolId || classData?.schoolId || classData?.school_id || ""
+                    });
+                  }}
                   onRemoveStudent={(studentId, studentName) => setRemoveStudentDialog({
                     open: true,
                     studentId,
@@ -327,7 +335,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         onRemoveCoins={handleRemoveCoins}
         schoolPoolDialogOpen={schoolPoolDialogOpen}
         onSchoolPoolDialogChange={setSchoolPoolDialogOpen}
-        schoolId={classData.schoolId || ""}
+        schoolId={classData?.schoolId || classData?.school_id || ""}
         studentId={giveCoinsDialog.studentId || removeCoinsDialog.studentId}
         teacherId={teacherId}
         students={students}
@@ -337,7 +345,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         isOpen={isAddAssistantOpen}
         onOpenChange={setIsAddAssistantOpen}
         classId={classId || ""}
-        currentAssistants={classData.assistants || []}
+        currentAssistants={classData?.assistants || []}
         onAssistantAdded={handleAssistantAdded}
       />
 
@@ -345,7 +353,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         isOpen={isManagePokemonOpen}
         onOpenChange={setIsManagePokemonOpen}
         students={students}
-        schoolId={classData.schoolId || ""}
+        schoolId={classData?.schoolId || classData?.school_id || ""}
         isClassCreator={isClassCreator()}
         onRefresh={fetchClassDetails}
       />
