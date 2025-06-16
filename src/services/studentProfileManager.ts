@@ -13,40 +13,66 @@ export interface StudentProfileData {
 // Ensure student profile exists independently of teacher/school data
 export const ensureStudentProfile = async (profileData: StudentProfileData): Promise<string | null> => {
   try {
+    console.log(`Ensuring profile exists for user: ${profileData.user_id}`);
+    
     // Check if profile already exists
-    const { data: existingProfile } = await supabase
+    const { data: existingProfile, error: fetchError } = await supabase
       .from('student_profiles')
       .select('id')
       .eq('user_id', profileData.user_id)
       .maybeSingle();
+
+    if (fetchError) {
+      console.error('Error fetching existing profile:', fetchError);
+      // Continue to try creating profile even if fetch fails
+    }
 
     if (existingProfile) {
       console.log(`Student profile already exists: ${existingProfile.id}`);
       return existingProfile.id;
     }
 
-    // Create new profile
-    const { data: newProfile, error } = await supabase
+    console.log(`Creating new profile for user: ${profileData.user_id}`);
+    
+    // Create new profile with all required fields
+    const newProfileData = {
+      user_id: profileData.user_id,
+      username: profileData.username || `student_${profileData.user_id.slice(0, 8)}`,
+      display_name: profileData.display_name || profileData.username || `Student ${profileData.user_id.slice(0, 8)}`,
+      school_id: profileData.school_id || null,
+      teacher_id: profileData.teacher_id || null,
+      class_id: profileData.class_id || null,
+      coins: 0,
+      spent_coins: 0
+    };
+
+    const { data: newProfile, error: createError } = await supabase
       .from('student_profiles')
-      .insert({
-        user_id: profileData.user_id,
-        username: profileData.username,
-        display_name: profileData.display_name || profileData.username,
-        school_id: profileData.school_id || null,
-        teacher_id: profileData.teacher_id || null,
-        class_id: profileData.class_id || null,
-        coins: 0,
-        spent_coins: 0
-      })
+      .insert(newProfileData)
       .select('id')
       .single();
 
-    if (error) {
-      console.error('Error creating student profile:', error);
+    if (createError) {
+      console.error('Error creating student profile:', createError);
+      
+      // If creation fails due to duplicate, try to fetch again
+      if (createError.code === '23505') { // Unique violation
+        const { data: retryProfile } = await supabase
+          .from('student_profiles')
+          .select('id')
+          .eq('user_id', profileData.user_id)
+          .maybeSingle();
+        
+        if (retryProfile) {
+          console.log(`Found existing profile after conflict: ${retryProfile.id}`);
+          return retryProfile.id;
+        }
+      }
+      
       return null;
     }
 
-    console.log(`Created new student profile: ${newProfile.id}`);
+    console.log(`Successfully created student profile: ${newProfile.id}`);
     return newProfile.id;
   } catch (error) {
     console.error('Error in ensureStudentProfile:', error);
@@ -54,55 +80,30 @@ export const ensureStudentProfile = async (profileData: StudentProfileData): Pro
   }
 };
 
-// Migrate student from legacy students table to student_profiles
-export const migrateStudentToProfile = async (studentId: string): Promise<string | null> => {
+// Create student profile with basic info when we only have student ID
+export const createBasicStudentProfile = async (userId: string): Promise<string | null> => {
   try {
-    // Get student data from students table
+    // Try to get student data from students table first
     const { data: studentData } = await supabase
       .from('students')
-      .select('id, username, display_name, school_id, teacher_id, class_id')
-      .eq('id', studentId)
+      .select('username, display_name, school_id, teacher_id, class_id')
+      .eq('id', userId)
       .maybeSingle();
 
-    if (!studentData) {
-      console.error(`Student not found in students table: ${studentId}`);
-      return null;
-    }
+    const profileData: StudentProfileData = {
+      user_id: userId,
+      username: studentData?.username || `student_${userId.slice(0, 8)}`,
+      display_name: studentData?.display_name || studentData?.username || `Student ${userId.slice(0, 8)}`,
+      school_id: studentData?.school_id,
+      teacher_id: studentData?.teacher_id,
+      class_id: studentData?.class_id
+    };
 
-    // Ensure profile exists
-    const profileId = await ensureStudentProfile({
-      user_id: studentData.id,
-      username: studentData.username,
-      display_name: studentData.display_name,
-      school_id: studentData.school_id,
-      teacher_id: studentData.teacher_id,
-      class_id: studentData.class_id
-    });
-
-    return profileId;
+    return await ensureStudentProfile(profileData);
   } catch (error) {
-    console.error('Error migrating student to profile:', error);
+    console.error('Error creating basic student profile:', error);
     return null;
   }
-};
-
-// Create student profile when student is added to class
-export const createStudentProfileFromClassAssignment = async (
-  studentId: string,
-  username: string,
-  displayName: string,
-  classId: string,
-  schoolId: string,
-  teacherId: string
-): Promise<string | null> => {
-  return await ensureStudentProfile({
-    user_id: studentId,
-    username,
-    display_name: displayName,
-    class_id: classId,
-    school_id: schoolId,
-    teacher_id: teacherId
-  });
 };
 
 // Update student profile while preserving independent data
@@ -129,6 +130,102 @@ export const updateStudentProfile = async (
     return true;
   } catch (error) {
     console.error('Error in updateStudentProfile:', error);
+    return false;
+  }
+};
+
+// Award coins to student (independent of class/school)
+export const awardCoinsToStudentProfile = async (studentId: string, amount: number): Promise<boolean> => {
+  try {
+    console.log(`Awarding ${amount} coins to student: ${studentId}`);
+    
+    // Ensure profile exists first
+    const profileId = await createBasicStudentProfile(studentId);
+    if (!profileId) {
+      console.error('Failed to ensure student profile exists for coins');
+      return false;
+    }
+
+    // Get current coins
+    const { data: profile, error: fetchError } = await supabase
+      .from('student_profiles')
+      .select('coins')
+      .eq('user_id', studentId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching current coins:', fetchError);
+      return false;
+    }
+
+    const currentCoins = profile?.coins || 0;
+    const newCoins = currentCoins + amount;
+
+    // Update coins
+    const { error: updateError } = await supabase
+      .from('student_profiles')
+      .update({ coins: newCoins })
+      .eq('user_id', studentId);
+
+    if (updateError) {
+      console.error('Error updating coins:', updateError);
+      return false;
+    }
+
+    console.log(`Successfully awarded ${amount} coins. New balance: ${newCoins}`);
+    return true;
+  } catch (error) {
+    console.error('Error awarding coins:', error);
+    return false;
+  }
+};
+
+// Remove coins from student (for purchases, etc.)
+export const deductCoinsFromStudentProfile = async (studentId: string, amount: number): Promise<boolean> => {
+  try {
+    console.log(`Deducting ${amount} coins from student: ${studentId}`);
+    
+    // Get current coins
+    const { data: profile, error: fetchError } = await supabase
+      .from('student_profiles')
+      .select('coins, spent_coins')
+      .eq('user_id', studentId)
+      .single();
+
+    if (fetchError) {
+      console.error('Error fetching current coins:', fetchError);
+      return false;
+    }
+
+    const currentCoins = profile?.coins || 0;
+    const currentSpentCoins = profile?.spent_coins || 0;
+    
+    if (currentCoins < amount) {
+      console.error('Insufficient coins for deduction');
+      return false;
+    }
+
+    const newCoins = currentCoins - amount;
+    const newSpentCoins = currentSpentCoins + amount;
+
+    // Update coins and spent coins
+    const { error: updateError } = await supabase
+      .from('student_profiles')
+      .update({ 
+        coins: newCoins,
+        spent_coins: newSpentCoins
+      })
+      .eq('user_id', studentId);
+
+    if (updateError) {
+      console.error('Error deducting coins:', updateError);
+      return false;
+    }
+
+    console.log(`Successfully deducted ${amount} coins. New balance: ${newCoins}`);
+    return true;
+  } catch (error) {
+    console.error('Error deducting coins:', error);
     return false;
   }
 };

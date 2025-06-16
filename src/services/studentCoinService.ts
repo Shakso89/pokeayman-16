@@ -1,178 +1,59 @@
 
+import { awardCoinsToStudentProfile, deductCoinsFromStudentProfile, createBasicStudentProfile } from "@/services/studentProfileManager";
 import { supabase } from "@/integrations/supabase/client";
 
-export interface StudentCoinData {
-  coins: number;
-  spentCoins: number;
-  totalEarned: number;
-  pokemonCount: number;
-}
+// Award coins to a student (creates profile if needed)
+export const awardCoinsToStudent = async (studentId: string, amount: number): Promise<boolean> => {
+  console.log(`Service: Awarding ${amount} coins to student ${studentId}`);
+  return await awardCoinsToStudentProfile(studentId, amount);
+};
 
-// Get student coin data from database
-export const getStudentCoins = async (studentId: string): Promise<StudentCoinData> => {
+// Deduct coins from student (for purchases, etc.)
+export const deductCoinsFromStudent = async (studentId: string, amount: number): Promise<boolean> => {
+  console.log(`Service: Deducting ${amount} coins from student ${studentId}`);
+  return await deductCoinsFromStudentProfile(studentId, amount);
+};
+
+// Get student's current coin balance
+export const getStudentCoins = async (studentId: string): Promise<{ coins: number; spentCoins: number } | null> => {
   try {
-    console.log("Fetching coins for student:", studentId);
-    
+    // Ensure profile exists
+    const profileId = await createBasicStudentProfile(studentId);
+    if (!profileId) {
+      console.error("Could not get or create student profile for coin balance");
+      return null;
+    }
+
     const { data: profile, error } = await supabase
       .from('student_profiles')
       .select('coins, spent_coins')
       .eq('user_id', studentId)
-      .maybeSingle();
+      .single();
 
     if (error) {
-      console.error("Error fetching student coins:", error);
-      return { coins: 0, spentCoins: 0, totalEarned: 0, pokemonCount: 0 };
+      console.error("Error fetching student coin balance:", error);
+      return null;
     }
 
-    if (!profile) {
-      console.log("No profile found for student:", studentId);
-      return { coins: 0, spentCoins: 0, totalEarned: 0, pokemonCount: 0 };
-    }
-
-    const coins = profile.coins || 0;
-    const spentCoins = profile.spent_coins || 0;
-    const totalEarned = coins + spentCoins;
-
-    // Get Pokemon count
-    const { data: pokemonData } = await supabase
-      .from('pokemon_collections')
-      .select('id')
-      .eq('student_id', studentId);
-    
-    const pokemonCount = pokemonData?.length || 0;
-
-    console.log("Student coin data:", { coins, spentCoins, totalEarned, pokemonCount });
-    
     return {
-      coins,
-      spentCoins,
-      totalEarned,
-      pokemonCount
+      coins: profile?.coins || 0,
+      spentCoins: profile?.spent_coins || 0
     };
   } catch (error) {
     console.error("Error in getStudentCoins:", error);
-    return { coins: 0, spentCoins: 0, totalEarned: 0, pokemonCount: 0 };
+    return null;
   }
 };
 
-// Export alias for backward compatibility
-export const getStudentCoinData = getStudentCoins;
-
-// Update student coins in database
-export const updateStudentCoins = async (
-  studentId: string, 
-  amount: number, 
-  spentAmount: number = 0
-): Promise<boolean> => {
+// Check if student has enough coins for a purchase
+export const hasEnoughCoins = async (studentId: string, requiredAmount: number): Promise<boolean> => {
   try {
-    console.log(`Updating coins for student ${studentId}: amount=${amount}, spent=${spentAmount}`);
+    const coinData = await getStudentCoins(studentId);
+    if (!coinData) return false;
     
-    // Get current values
-    const { data: currentProfile } = await supabase
-      .from('student_profiles')
-      .select('coins, spent_coins')
-      .eq('user_id', studentId)
-      .single();
-
-    const currentCoins = currentProfile?.coins || 0;
-    const currentSpentCoins = currentProfile?.spent_coins || 0;
-
-    // Calculate new values
-    const newCoins = Math.max(0, currentCoins + amount);
-    const newSpentCoins = currentSpentCoins + Math.max(0, spentAmount);
-
-    const { error } = await supabase
-      .from('student_profiles')
-      .update({ 
-        coins: newCoins,
-        spent_coins: newSpentCoins
-      })
-      .eq('user_id', studentId);
-
-    if (error) {
-      console.error("Error updating student coins:", error);
-      return false;
-    }
-
-    console.log(`Successfully updated coins for student ${studentId}`);
-    return true;
+    return coinData.coins >= requiredAmount;
   } catch (error) {
-    console.error("Error in updateStudentCoins:", error);
+    console.error("Error checking coin balance:", error);
     return false;
-  }
-};
-
-// Award coins to student (positive amount)
-export const awardCoins = async (studentId: string, amount: number): Promise<boolean> => {
-  return await updateStudentCoins(studentId, amount, 0);
-};
-
-// Export alias for backward compatibility
-export const awardCoinsToStudent = awardCoins;
-
-// Spend coins (negative amount for coins, positive for spent_coins tracking)
-export const spendCoins = async (studentId: string, amount: number): Promise<boolean> => {
-  return await updateStudentCoins(studentId, -amount, amount);
-};
-
-// Remove coins from student
-export const removeCoins = async (studentId: string, amount: number): Promise<boolean> => {
-  try {
-    console.log(`Removing ${amount} coins from student ${studentId}`);
-    
-    // Get current coins first
-    const { data: profile } = await supabase
-      .from('student_profiles')
-      .select('coins')
-      .eq('user_id', studentId)
-      .single();
-
-    const currentCoins = profile?.coins || 0;
-    
-    if (currentCoins < amount) {
-      console.error("Student doesn't have enough coins");
-      return false;
-    }
-
-    const newCoins = currentCoins - amount;
-
-    const { error } = await supabase
-      .from('student_profiles')
-      .update({ coins: newCoins })
-      .eq('user_id', studentId);
-
-    if (error) {
-      console.error("Error removing coins:", error);
-      return false;
-    }
-
-    console.log(`Successfully removed ${amount} coins from student ${studentId}`);
-    return true;
-  } catch (error) {
-    console.error("Error in removeCoins:", error);
-    return false;
-  }
-};
-
-// Export alias for backward compatibility
-export const removeCoinsFromStudent = removeCoins;
-
-// Get student ranking data
-export const getStudentRanking = async (): Promise<any[]> => {
-  try {
-    const { data, error } = await supabase
-      .from('student_profiles')
-      .select('user_id, username, display_name, coins, spent_coins, avatar_url')
-      .order('coins', { ascending: false });
-
-    if (error) {
-      console.error("Error fetching student ranking:", error);
-      return [];
-    }
-
-    return data || [];
-  } catch (error) {
-    console.error("Error in getStudentRanking:", error);
-    return [];
   }
 };

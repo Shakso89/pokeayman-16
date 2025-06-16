@@ -1,37 +1,60 @@
 
 import { useState, useEffect } from 'react';
-import { getStudentCoinData, type StudentCoinData } from '@/services/studentCoinService';
+import { getStudentCoins } from '@/services/studentCoinService';
 
 export const useStudentCoinData = (studentId: string) => {
-  const [coinData, setCoinData] = useState<StudentCoinData>({
-    coins: 0,
-    spentCoins: 0,
-    totalEarned: 0,
-    pokemonCount: 0
-  });
+  const [coins, setCoins] = useState(0);
+  const [spentCoins, setSpentCoins] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
-  const refreshData = async () => {
+  useEffect(() => {
+    const fetchCoinData = async () => {
+      if (!studentId) {
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        setIsLoading(true);
+        const coinData = await getStudentCoins(studentId);
+        
+        if (coinData) {
+          setCoins(coinData.coins);
+          setSpentCoins(coinData.spentCoins);
+        } else {
+          setCoins(0);
+          setSpentCoins(0);
+        }
+      } catch (error) {
+        console.error('Error fetching coin data:', error);
+        setCoins(0);
+        setSpentCoins(0);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchCoinData();
+  }, [studentId]);
+
+  const refreshCoinData = async () => {
     if (!studentId) return;
     
-    setIsLoading(true);
     try {
-      const data = await getStudentCoinData(studentId);
-      setCoinData(data);
+      const coinData = await getStudentCoins(studentId);
+      if (coinData) {
+        setCoins(coinData.coins);
+        setSpentCoins(coinData.spentCoins);
+      }
     } catch (error) {
-      console.error('Error loading student coin data:', error);
-    } finally {
-      setIsLoading(false);
+      console.error('Error refreshing coin data:', error);
     }
   };
 
-  useEffect(() => {
-    refreshData();
-  }, [studentId]);
-
   return {
-    ...coinData,
+    coins,
+    spentCoins,
     isLoading,
-    refreshData
+    refreshCoinData
   };
 };
