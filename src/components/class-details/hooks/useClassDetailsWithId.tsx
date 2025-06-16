@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getClassById } from "@/utils/classSync/classOperations";
+import { createAllStudentProfiles } from "@/services/studentProfileManager";
 
 export const useClassDetailsWithId = (classId?: string) => {
   const { t } = useTranslation();
@@ -162,6 +163,10 @@ export const useClassDetailsWithId = (classId?: string) => {
   const fetchStudentsWithCoins = async (studentIds: string[]) => {
     try {
       console.log("Fetching students with coins for IDs:", studentIds);
+      
+      // Ensure all students have profiles created first
+      console.log("Creating missing student profiles...");
+      await createAllStudentProfiles();
       
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')

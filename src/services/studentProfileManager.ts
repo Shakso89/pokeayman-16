@@ -10,10 +10,10 @@ export interface StudentProfileData {
   class_id?: string;
 }
 
-// Ensure student profile exists independently of teacher/school data
+// Create a student profile that references the students table instead of auth.users
 export const ensureStudentProfile = async (profileData: StudentProfileData): Promise<string | null> => {
   try {
-    console.log(`Ensuring profile exists for user: ${profileData.user_id}`);
+    console.log(`Ensuring profile exists for student: ${profileData.user_id}`);
     
     // Check if profile already exists
     const { data: existingProfile, error: fetchError } = await supabase
@@ -22,9 +22,8 @@ export const ensureStudentProfile = async (profileData: StudentProfileData): Pro
       .eq('user_id', profileData.user_id)
       .maybeSingle();
 
-    if (fetchError) {
+    if (fetchError && fetchError.code !== 'PGRST116') {
       console.error('Error fetching existing profile:', fetchError);
-      // Continue to try creating profile even if fetch fails
     }
 
     if (existingProfile) {
@@ -32,7 +31,7 @@ export const ensureStudentProfile = async (profileData: StudentProfileData): Pro
       return existingProfile.id;
     }
 
-    console.log(`Creating new profile for user: ${profileData.user_id}`);
+    console.log(`Creating new profile for student: ${profileData.user_id}`);
     
     // Create new profile with all required fields
     const newProfileData = {
@@ -83,6 +82,18 @@ export const ensureStudentProfile = async (profileData: StudentProfileData): Pro
 // Create student profile with basic info when we only have student ID
 export const createBasicStudentProfile = async (userId: string): Promise<string | null> => {
   try {
+    // First check if profile already exists
+    const { data: existingProfile } = await supabase
+      .from('student_profiles')
+      .select('id')
+      .eq('user_id', userId)
+      .maybeSingle();
+
+    if (existingProfile) {
+      console.log(`Profile already exists for student: ${userId}`);
+      return existingProfile.id;
+    }
+
     // Try to get student data from students table first
     const { data: studentData } = await supabase
       .from('students')
@@ -90,13 +101,36 @@ export const createBasicStudentProfile = async (userId: string): Promise<string 
       .eq('id', userId)
       .maybeSingle();
 
+    if (!studentData) {
+      console.log(`No student found with ID: ${userId}, creating basic profile`);
+      // Create a minimal profile if student doesn't exist in students table
+      const { data: newProfile, error: createError } = await supabase
+        .from('student_profiles')
+        .insert({
+          user_id: userId,
+          username: `student_${userId.slice(0, 8)}`,
+          display_name: `Student ${userId.slice(0, 8)}`,
+          coins: 0,
+          spent_coins: 0
+        })
+        .select('id')
+        .single();
+
+      if (createError) {
+        console.error('Error creating basic profile:', createError);
+        return null;
+      }
+
+      return newProfile.id;
+    }
+
     const profileData: StudentProfileData = {
       user_id: userId,
-      username: studentData?.username || `student_${userId.slice(0, 8)}`,
-      display_name: studentData?.display_name || studentData?.username || `Student ${userId.slice(0, 8)}`,
-      school_id: studentData?.school_id,
-      teacher_id: studentData?.teacher_id,
-      class_id: studentData?.class_id
+      username: studentData.username || `student_${userId.slice(0, 8)}`,
+      display_name: studentData.display_name || studentData.username || `Student ${userId.slice(0, 8)}`,
+      school_id: studentData.school_id,
+      teacher_id: studentData.teacher_id,
+      class_id: studentData.class_id
     };
 
     return await ensureStudentProfile(profileData);
@@ -227,5 +261,58 @@ export const deductCoinsFromStudentProfile = async (studentId: string, amount: n
   } catch (error) {
     console.error('Error deducting coins:', error);
     return false;
+  }
+};
+
+// Bulk create student profiles for all students in the database
+export const createAllStudentProfiles = async (): Promise<{ success: number; failed: number }> => {
+  try {
+    console.log('Starting bulk creation of student profiles...');
+    
+    // Get all students from the students table
+    const { data: allStudents, error: studentsError } = await supabase
+      .from('students')
+      .select('id, username, display_name, school_id, teacher_id, class_id');
+
+    if (studentsError) {
+      console.error('Error fetching students:', studentsError);
+      return { success: 0, failed: 0 };
+    }
+
+    if (!allStudents || allStudents.length === 0) {
+      console.log('No students found in database');
+      return { success: 0, failed: 0 };
+    }
+
+    console.log(`Found ${allStudents.length} students, creating profiles...`);
+
+    let successCount = 0;
+    let failedCount = 0;
+
+    // Create profiles one by one to handle individual failures
+    for (const student of allStudents) {
+      const profileData: StudentProfileData = {
+        user_id: student.id,
+        username: student.username || `student_${student.id.slice(0, 8)}`,
+        display_name: student.display_name || student.username || `Student ${student.id.slice(0, 8)}`,
+        school_id: student.school_id,
+        teacher_id: student.teacher_id,
+        class_id: student.class_id
+      };
+
+      const profileId = await ensureStudentProfile(profileData);
+      if (profileId) {
+        successCount++;
+      } else {
+        failedCount++;
+        console.error(`Failed to create profile for student: ${student.id}`);
+      }
+    }
+
+    console.log(`Bulk profile creation completed: ${successCount} success, ${failedCount} failed`);
+    return { success: successCount, failed: failedCount };
+  } catch (error) {
+    console.error('Error in bulk profile creation:', error);
+    return { success: 0, failed: 0 };
   }
 };
