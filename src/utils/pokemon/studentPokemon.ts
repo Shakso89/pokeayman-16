@@ -1,7 +1,8 @@
 
+
 import { Pokemon, StudentCollectionPokemon } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
-import { createBasicStudentProfile } from "@/services/studentProfileManager";
+import { ensureStudentProfile } from "@/services/studentProfileManager";
 
 // Helper function to get or create student profile with better error handling
 const getOrCreateStudentProfileId = async (userId: string): Promise<string | null> => {
@@ -24,9 +25,27 @@ const getOrCreateStudentProfileId = async (userId: string): Promise<string | nul
       console.error(`Error fetching student profile for user_id: ${userId}`, profileError);
     }
 
-    // Profile doesn't exist, create it
+    // Profile doesn't exist, create it using the improved profile manager
     console.log(`Creating new student profile for user_id: ${userId}`);
-    const profileId = await createBasicStudentProfile(userId);
+    
+    // Try to get student data from students table first
+    const { data: studentData } = await supabase
+      .from('students')
+      .select('username, display_name, school_id, teacher_id, class_id')
+      .eq('id', userId)
+      .maybeSingle();
+
+    // Prepare profile data with fallbacks
+    const profileData = {
+      user_id: userId,
+      username: studentData?.username || `student_${userId.slice(0, 8)}`,
+      display_name: studentData?.display_name || studentData?.username || `Student ${userId.slice(0, 8)}`,
+      school_id: studentData?.school_id,
+      teacher_id: studentData?.teacher_id,
+      class_id: studentData?.class_id
+    };
+
+    const profileId = await ensureStudentProfile(profileData);
     
     if (!profileId) {
       console.error(`Failed to create profile for user: ${userId}`);
@@ -53,7 +72,7 @@ export const assignSpecificPokemonToStudent = async (
     const studentProfileId = await getOrCreateStudentProfileId(studentId);
     if (!studentProfileId) {
       console.error(`Failed to get or create profile for student: ${studentId}`);
-      return { success: false, error: "profile_creation_failed" };
+      return { success: false, error: "Could not create or find student profile" };
     }
 
     // Lookup pokemon data from catalog
@@ -101,7 +120,7 @@ export const assignRandomPokemonToStudent = async (
     const studentProfileId = await getOrCreateStudentProfileId(studentId);
     if (!studentProfileId) {
       console.error(`Failed to get or create profile for student: ${studentId}`);
-      return { success: false, error: "profile_creation_failed" };
+      return { success: false, error: "Could not create or find student profile" };
     }
 
     // Get all pokémon in the school's pool
@@ -252,3 +271,4 @@ export const awardCoinsToStudent = async (studentId: string, amount: number): Pr
     return false;
   }
 };
+
