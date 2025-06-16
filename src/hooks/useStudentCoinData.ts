@@ -1,10 +1,12 @@
 
 import { useState, useEffect } from 'react';
 import { getStudentCoins } from '@/services/studentCoinService';
+import { getStudentPokemonCollection } from '@/utils/pokemon/studentPokemon';
 
 export const useStudentCoinData = (studentId: string) => {
   const [coins, setCoins] = useState(0);
   const [spentCoins, setSpentCoins] = useState(0);
+  const [pokemonCount, setPokemonCount] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -25,10 +27,15 @@ export const useStudentCoinData = (studentId: string) => {
           setCoins(0);
           setSpentCoins(0);
         }
+
+        // Get Pokemon count
+        const pokemonCollection = await getStudentPokemonCollection(studentId);
+        setPokemonCount(pokemonCollection.length);
       } catch (error) {
         console.error('Error fetching coin data:', error);
         setCoins(0);
         setSpentCoins(0);
+        setPokemonCount(0);
       } finally {
         setIsLoading(false);
       }
@@ -46,15 +53,24 @@ export const useStudentCoinData = (studentId: string) => {
         setCoins(coinData.coins);
         setSpentCoins(coinData.spentCoins);
       }
+
+      // Refresh Pokemon count
+      const pokemonCollection = await getStudentPokemonCollection(studentId);
+      setPokemonCount(pokemonCollection.length);
     } catch (error) {
       console.error('Error refreshing coin data:', error);
     }
   };
 
+  // Alias for backwards compatibility
+  const refreshData = refreshCoinData;
+
   return {
     coins,
     spentCoins,
+    pokemonCount,
     isLoading,
-    refreshCoinData
+    refreshCoinData,
+    refreshData
   };
 };

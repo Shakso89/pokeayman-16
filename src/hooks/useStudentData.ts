@@ -7,7 +7,7 @@ import {
 } from '@/services/studentDatabase';
 import { getStudentPokemonCollection } from '@/utils/pokemon/studentPokemon';
 import { supabase } from '@/integrations/supabase/client';
-import { getStudentCoinData } from '@/services/studentCoinService';
+import { getStudentCoins } from '@/services/studentCoinService';
 
 export const useStudentData = (studentId: string, userId?: string, username?: string, schoolId?: string) => {
   const [profile, setProfile] = useState<StudentProfile | null>(null);
@@ -100,7 +100,7 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
       }
 
       // Load coin data using centralized service
-      const coinData = await getStudentCoinData(studentId);
+      const coinData = await getStudentCoins(studentId);
       setCoins(coinData.coins);
       setSpentCoins(coinData.spentCoins);
 

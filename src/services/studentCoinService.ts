@@ -14,6 +14,12 @@ export const deductCoinsFromStudent = async (studentId: string, amount: number):
   return await deductCoinsFromStudentProfile(studentId, amount);
 };
 
+// Remove coins from student (alias for deductCoinsFromStudent for backwards compatibility)
+export const removeCoinsFromStudent = async (studentId: string, amount: number): Promise<boolean> => {
+  console.log(`Service: Removing ${amount} coins from student ${studentId}`);
+  return await deductCoinsFromStudentProfile(studentId, amount);
+};
+
 // Get student's current coin balance
 export const getStudentCoins = async (studentId: string): Promise<{ coins: number; spentCoins: number } | null> => {
   try {
