@@ -1,5 +1,4 @@
-
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
@@ -63,6 +62,13 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
     studentId: "",
     studentName: ""
   });
+
+  // Add effect to log student data changes
+  useEffect(() => {
+    console.log("ClassDetails - Students updated:", students);
+    console.log("ClassDetails - Student count:", students.length);
+    console.log("ClassDetails - Class data:", classData);
+  }, [students, classData]);
 
   const handleDeleteClass = async () => {
     if (!classId) return;
@@ -212,6 +218,9 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
     );
   }
 
+  console.log("ClassDetails - Rendering with students:", students);
+  console.log("ClassDetails - Can create class:", isClassCreator());
+
   return (
     <div className="min-h-screen bg-transparent">
       <ClassManagementHeader
@@ -231,7 +240,9 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         {activeTab === "students" ? (
           <div className="space-y-6">
             <div className="flex items-center justify-between">
-              <h2 className="text-2xl font-bold text-gray-900">Class Students</h2>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Class Students ({students.length})
+              </h2>
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">

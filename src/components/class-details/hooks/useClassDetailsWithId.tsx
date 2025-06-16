@@ -1,9 +1,9 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getClassById } from "@/utils/classSync/classOperations";
-import { getStudentPokemonCollection } from "@/utils/pokemon/studentPokemon";
 
 export const useClassDetailsWithId = (classId?: string) => {
   const { t } = useTranslation();
@@ -14,12 +14,9 @@ export const useClassDetailsWithId = (classId?: string) => {
   const [teacherId, setTeacherId] = useState<string>("");
   const [userPermissionLevel, setUserPermissionLevel] = useState<"owner" | "teacher" | "viewer">("viewer");
 
-  // Add debugging
   console.log("useClassDetailsWithId - Class ID:", classId);
   console.log("useClassDetailsWithId - Loading state:", loading);
-  console.log("useClassDetailsWithId - ClassData:", classData);
 
-  // Check if user is admin or teacher
   useEffect(() => {
     const username = localStorage.getItem("teacherUsername") || "";
     setIsAdmin(username === "Admin" || username === "Ayman");
@@ -46,6 +43,7 @@ export const useClassDetailsWithId = (classId?: string) => {
     console.log("useClassDetailsWithId - fetchClassDetails called for ID:", classId);
     setLoading(true);
     try {
+      // First fetch the class data
       let fetchedClass = await getClassById(classId);
       console.log("useClassDetailsWithId - getClassById result:", fetchedClass);
 
@@ -78,20 +76,9 @@ export const useClassDetailsWithId = (classId?: string) => {
         setUserPermissionLevel("viewer");
       }
       
-      // Fetch students from student_classes table
-      const { data: studentLinks, error: linksError } = await supabase
-          .from('student_classes')
-          .select('student_id')
-          .eq('class_id', classId);
-
-      if (linksError) throw linksError;
-
-      if (studentLinks && studentLinks.length > 0) {
-          const studentIds = studentLinks.map(link => link.student_id);
-          await fetchStudentsWithCoins(studentIds);
-      } else {
-          setStudents([]);
-      }
+      // Always fetch students from student_classes table for consistency
+      await fetchStudentsForClass(classId);
+      
     } catch (error) {
       console.error("Error fetching class details:", error);
       toast({
@@ -102,6 +89,37 @@ export const useClassDetailsWithId = (classId?: string) => {
       checkLocalStorageFallback();
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchStudentsForClass = async (classId: string) => {
+    try {
+      console.log(`Fetching students for class: ${classId}`);
+      
+      // Fetch student IDs from the student_classes join table
+      const { data: studentLinks, error: linksError } = await supabase
+        .from('student_classes')
+        .select('student_id')
+        .eq('class_id', classId);
+
+      if (linksError) {
+        console.error("Error fetching student links:", linksError);
+        throw linksError;
+      }
+
+      console.log(`Found ${studentLinks?.length || 0} student links for class ${classId}`);
+
+      if (studentLinks && studentLinks.length > 0) {
+        const studentIds = studentLinks.map(link => link.student_id);
+        console.log("Student IDs:", studentIds);
+        await fetchStudentsWithCoins(studentIds);
+      } else {
+        console.log(`No students found in student_classes for class ${classId}`);
+        setStudents([]);
+      }
+    } catch (error) {
+      console.error("Error in fetchStudentsForClass:", error);
+      setStudents([]);
     }
   };
 
@@ -128,6 +146,8 @@ export const useClassDetailsWithId = (classId?: string) => {
         
         if (foundClass.students && foundClass.students.length > 0) {
           fetchStudentsWithCoins(foundClass.students);
+        } else {
+          setStudents([]);
         }
       } else {
         console.log("useClassDetailsWithId - No class found in localStorage");
@@ -141,12 +161,16 @@ export const useClassDetailsWithId = (classId?: string) => {
 
   const fetchStudentsWithCoins = async (studentIds: string[]) => {
     try {
+      console.log("Fetching students with coins for IDs:", studentIds);
+      
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
         .select('*')
         .in('id', studentIds);
         
       if (studentsError) throw studentsError;
+      
+      console.log("Raw students data:", studentsData);
       
       // Add coin information to each student by fetching from student_profiles
       const studentsWithCoins = await Promise.all((studentsData || []).map(async (student) => {
@@ -162,6 +186,7 @@ export const useClassDetailsWithId = (classId?: string) => {
         };
       }));
       
+      console.log("Students with coins:", studentsWithCoins);
       setStudents(studentsWithCoins);
     } catch (error) {
       console.error("Error fetching students from Supabase:", error);
@@ -180,6 +205,7 @@ export const useClassDetailsWithId = (classId?: string) => {
           ...student,
           coins: 0 // Default to 0 coins for localStorage fallback
         }));
+        console.log("Fallback students from localStorage:", classStudents);
         setStudents(classStudents);
       } else {
         setStudents([]);
