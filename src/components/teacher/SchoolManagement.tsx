@@ -222,10 +222,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
       <ManageClassDialog
         open={isCreateClassOpen}
         onOpenChange={setIsCreateClassOpen}
-        onClassCreated={handleClassCreated}
         teacherId={teacherId}
-        schoolId={selectedSchoolId}
-        isOpen={undefined}
         classId=""
         className=""
         students={[]}
