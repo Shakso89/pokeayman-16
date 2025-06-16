@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -205,8 +204,8 @@ const ClassList: React.FC<ClassListProps> = ({ schoolId, teacherId, onRefresh })
       <DeleteClassDialog
         isOpen={deleteDialog.open}
         onOpenChange={(open) => setDeleteDialog(prev => ({ ...prev, open }))}
-        onConfirm={() => handleDeleteClass(deleteDialog.classId)}
-        className={deleteDialog.className}
+        onConfirmDelete={() => handleDeleteClass(deleteDialog.classId)}
+        classId={deleteDialog.classId}
       />
     </div>
   );

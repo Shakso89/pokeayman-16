@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -221,11 +220,15 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
       )}
 
       <ManageClassDialog
-        isOpen={isCreateClassOpen}
+        open={isCreateClassOpen}
         onOpenChange={setIsCreateClassOpen}
         onClassCreated={handleClassCreated}
         teacherId={teacherId}
         schoolId={selectedSchoolId}
+        isOpen={undefined}
+        classId=""
+        className=""
+        students={[]}
       />
 
       <SchoolPokemonPoolDialog

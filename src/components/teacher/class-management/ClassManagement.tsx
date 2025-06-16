@@ -158,12 +158,9 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       </h3>
       
       <ClassList 
-        classes={classes}
+        schoolId={schoolId}
         teacherId={teacherId}
-        isAdmin={isAdmin}
-        loading={loading}
-        onOpenAddStudentDialog={handleOpenAddStudentDialog}
-        onDeleteClass={openDeleteDialog}
+        onRefresh={handleRefresh}
       />
       
       {/* Add Student Dialog */}
