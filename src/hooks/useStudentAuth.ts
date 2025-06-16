@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
+import { ensureStudentProfile } from "@/services/studentProfileManager";
 import bcrypt from "bcryptjs";
 
 // Define StudentData interface for the return type that differs from database Student type
@@ -80,6 +81,7 @@ export const useStudentAuth = () => {
         display_name,
         class_id,
         teacher_id,
+        school_id,
         is_active,
         created_at
       `)
@@ -121,6 +123,22 @@ export const useStudentAuth = () => {
       throw new Error("Your account has been deactivated. Please contact your teacher.");
     }
     
+    // Ensure student profile exists in student_profiles table
+    console.log("Ensuring student profile exists...");
+    const profileId = await ensureStudentProfile({
+      user_id: student.id,
+      username: student.username,
+      display_name: student.display_name,
+      school_id: student.school_id,
+      teacher_id: student.teacher_id,
+      class_id: student.class_id
+    });
+    
+    if (!profileId) {
+      console.error("Failed to create or get student profile");
+      throw new Error("Failed to create student profile. Please try again.");
+    }
+    
     // Get teacher name if teacher_id is available
     const teacherName = await getTeacherName(student.teacher_id);
     
@@ -156,8 +174,22 @@ export const useStudentAuth = () => {
       
       console.log("Student found in localStorage, migrating to database");
       
-      // Try to migrate student to database
+      // Try to migrate student to database and create profile
       await migrateStudentToDatabase(student, password);
+      
+      // Ensure student profile exists
+      const profileId = await ensureStudentProfile({
+        user_id: student.id,
+        username: student.username,
+        display_name: student.display_name || student.username,
+        school_id: student.schoolId || student.school_id,
+        teacher_id: student.teacherId || student.teacher_id,
+        class_id: student.classId || student.class_id
+      });
+      
+      if (!profileId) {
+        console.error("Failed to create student profile during legacy migration");
+      }
       
       // Set session data in localStorage
       localStorage.setItem("isLoggedIn", "true");
@@ -220,7 +252,7 @@ export const useStudentAuth = () => {
       class_id: student.class_id,
       teacher_id: student.teacher_id,
       teacher_name: teacherName,
-      school_name: "Unknown" // This was hardcoded in the original code
+      school_name: "Unknown"
     };
   };
   
@@ -249,6 +281,7 @@ export const useStudentAuth = () => {
         display_name: student.display_name || student.username,
         teacher_id: student.teacherId || student.teacher_id,
         class_id: student.classId || student.class_id,
+        school_id: student.schoolId || student.school_id,
         is_active: true,
         created_at: new Date().toISOString(),
         last_login: new Date().toISOString()
@@ -286,6 +319,7 @@ export const useStudentAuth = () => {
             display_name: newStudent.display_name,
             teacher_id: newStudent.teacher_id,
             class_id: newStudent.class_id,
+            school_id: newStudent.school_id,
             last_login: newStudent.last_login
           })
           .eq('id', existingStudent.id);
