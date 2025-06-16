@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
-import { removeCoinsFromStudent, getStudentCoinData } from "@/services/studentCoinService";
+import { removeCoinsFromStudent, getStudentCoins } from "@/services/studentCoinService";
 
 interface RemoveCoinsDialogProps {
   isOpen: boolean;
@@ -38,9 +39,9 @@ const RemoveCoinsDialog: React.FC<RemoveCoinsDialogProps> = ({
       setIsLoading(true);
       try {
         // Check current coins first
-        const currentData = await getStudentCoinData(studentId);
+        const currentData = await getStudentCoins(studentId);
         
-        if (currentData.coins >= coinAmount) {
+        if (currentData && currentData.coins >= coinAmount) {
           const success = await removeCoinsFromStudent(studentId, coinAmount);
           
           if (success) {
