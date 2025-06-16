@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -69,9 +68,17 @@ export const useClassDetailsWithId = (classId?: string) => {
       setClassData(fetchedClass);
         
       const currentTeacherId = localStorage.getItem("teacherId") || "";
+      
+      // Check if user is the class creator
       if ((fetchedClass.teacherId === currentTeacherId) || ((fetchedClass as any).teacher_id === currentTeacherId)) {
         setUserPermissionLevel("owner");
-      } else if (isAdmin) {
+      } 
+      // Check if user is an assistant in the class
+      else if (fetchedClass.assistants && fetchedClass.assistants.includes(currentTeacherId)) {
+        setUserPermissionLevel("teacher"); // Assistants get teacher-level permissions
+      } 
+      // Check if user is admin
+      else if (isAdmin) {
         setUserPermissionLevel("owner");
       } else {
         setUserPermissionLevel("viewer");
@@ -139,6 +146,8 @@ export const useClassDetailsWithId = (classId?: string) => {
         const currentTeacherId = localStorage.getItem("teacherId") || "";
         if (foundClass.teacherId === currentTeacherId) {
           setUserPermissionLevel("owner");
+        } else if (foundClass.assistants && foundClass.assistants.includes(currentTeacherId)) {
+          setUserPermissionLevel("teacher"); // Assistants get teacher-level permissions
         } else if (isAdmin) {
           setUserPermissionLevel("owner");
         } else {
@@ -229,6 +238,23 @@ export const useClassDetailsWithId = (classId?: string) => {
     ) || isAdmin;
   };
 
+  // New function to check if user can manage class (creator or assistant)
+  const canManageClass = () => {
+    const currentTeacherId = localStorage.getItem("teacherId") || "";
+    
+    // Class creator can manage
+    if (isClassCreator()) {
+      return true;
+    }
+    
+    // Assistant can manage (but not delete)
+    if (classData && classData.assistants && classData.assistants.includes(currentTeacherId)) {
+      return true;
+    }
+    
+    return false;
+  };
+
   return {
     classData,
     students,
@@ -237,6 +263,7 @@ export const useClassDetailsWithId = (classId?: string) => {
     teacherId,
     userPermissionLevel,
     isClassCreator,
+    canManageClass,
     fetchClassDetails,
     t
   };

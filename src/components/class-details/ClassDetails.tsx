@@ -29,6 +29,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
     isAdmin,
     teacherId,
     isClassCreator,
+    canManageClass,
     fetchClassDetails,
     t
   } = useClassDetailsWithId(classId);
@@ -219,14 +220,14 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
   }
 
   console.log("ClassDetails - Rendering with students:", students);
-  console.log("ClassDetails - Can create class:", isClassCreator());
+  console.log("ClassDetails - Can manage class:", canManageClass());
 
   return (
     <div className="min-h-screen bg-transparent">
       <ClassManagementHeader
         classData={classData}
         studentsCount={students.length}
-        isClassCreator={isClassCreator()}
+        isClassCreator={canManageClass()} // Use canManageClass for all management permissions
         onAddStudent={() => setIsStudentListOpen(true)}
         onSwitchToHomework={handleSwitchToHomework}
         pendingSubmissions={pendingSubmissions}
@@ -252,7 +253,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
                     ...student,
                     school_id: student.school_id || classData?.schoolId || classData?.school_id
                   }))}
-                  isClassCreator={isClassCreator()}
+                  isClassCreator={canManageClass()} // Use canManageClass for student management
                   onAwardCoins={(studentId, studentName) => {
                     console.log("Award coins clicked:", { studentId, studentName });
                     setGiveCoinsDialog({
@@ -288,7 +289,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
               <div className="lg:col-span-1">
                 <ClassTeachers 
                   classData={classData} 
-                  canRemoveAssistants={isClassCreator()}
+                  canRemoveAssistants={isClassCreator()} // Only class creator can remove assistants
                   onAssistantRemoved={handleAssistantRemoved}
                 />
               </div>
@@ -299,7 +300,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             students={students}
-            isClassCreator={isClassCreator()}
+            isClassCreator={canManageClass()} // Use canManageClass for homework management
             classData={classData}
             teacherId={teacherId}
             onAwardCoins={(studentId, studentName) => setGiveCoinsDialog({
@@ -334,7 +335,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         removeStudentDialog={removeStudentDialog}
         onRemoveStudentDialogChange={setRemoveStudentDialog}
         onRemoveStudent={handleRemoveStudent}
-        isClassCreator={isClassCreator()}
+        isClassCreator={canManageClass()} // Use canManageClass for most dialogs
         managePokemonDialog={managePokemonDialog}
         onManagePokemonDialogChange={setManagePokemonDialog}
         onPokemonRemoved={handlePokemonRemoved}
@@ -365,7 +366,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         onOpenChange={setIsManagePokemonOpen}
         students={students}
         schoolId={classData?.schoolId || classData?.school_id || ""}
-        isClassCreator={isClassCreator()}
+        isClassCreator={canManageClass()} // Use canManageClass for Pokemon management
         onRefresh={fetchClassDetails}
       />
     </div>
