@@ -1,24 +1,17 @@
-import React, { useState, useEffect } from "react";
+
+import React from "react";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft, School, Users, BookOpen, Eye, RefreshCw } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { ChevronLeft, RefreshCw } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
-import { toast } from "@/hooks/use-toast";
 import ManageClassDialog from "@/components/dialogs/ManageClassDialog";
 import SchoolPokemonPoolDialog from "@/components/dialogs/SchoolPokemonPoolDialog";
+import SchoolsGrid from "./school-management/SchoolsGrid";
+import { useSchoolManagement } from "./school-management/useSchoolManagement";
 
 interface SchoolManagementProps {
   onBack: () => void;
   onSelectSchool: (schoolId: string) => void;
   teacherId: string;
-}
-
-interface SchoolWithCounts {
-  id: string;
-  name: string;
-  student_count: number;
-  class_count: number;
 }
 
 const SchoolManagement: React.FC<SchoolManagementProps> = ({
@@ -27,178 +20,19 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
   teacherId
 }) => {
   const { t } = useTranslation();
-  const [schools, setSchools] = useState<SchoolWithCounts[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [isManageClassOpen, setIsManageClassOpen] = useState(false);
-  const [selectedSchoolId, setSelectedSchoolId] = useState<string>("");
-  const [selectedClassData, setSelectedClassData] = useState<{
-    id: string;
-    name: string;
-    students: any[];
-  } | null>(null);
-  const [schoolPoolDialogOpen, setSchoolPoolDialogOpen] = useState(false);
-
-  useEffect(() => {
-    fetchSchoolsWithCounts();
-  }, [teacherId]);
-
-  const fetchSchoolsWithCounts = async () => {
-    setLoading(true);
-    try {
-      console.log("Fetching schools with accurate counts...");
-      
-      // Get all schools
-      const { data: schoolsData, error: schoolsError } = await supabase
-        .from('schools')
-        .select('id, name')
-        .order('name');
-
-      if (schoolsError) throw schoolsError;
-
-      if (!schoolsData) {
-        setSchools([]);
-        return;
-      }
-
-      // For each school, get accurate counts using proper joins
-      const schoolsWithCounts = await Promise.all(
-        schoolsData.map(async (school) => {
-          console.log(`Counting for school: ${school.name} (${school.id})`);
-          
-          // Count classes in this school
-          const { count: classCount } = await supabase
-            .from('classes')
-            .select('*', { count: 'exact', head: true })
-            .eq('school_id', school.id);
-
-          // Count students in this school through the student_classes join table
-          const { data: studentClassData, error: studentClassError } = await supabase
-            .from('student_classes')
-            .select(`
-              student_id,
-              classes!inner(school_id)
-            `)
-            .eq('classes.school_id', school.id);
-
-          if (studentClassError) {
-            console.error(`Error counting students for school ${school.id}:`, studentClassError);
-          }
-
-          // Get unique student count
-          const uniqueStudentIds = new Set(studentClassData?.map(sc => sc.student_id) || []);
-          const studentCount = uniqueStudentIds.size;
-
-          console.log(`School ${school.name}: ${classCount || 0} classes, ${studentCount} students`);
-
-          return {
-            id: school.id,
-            name: school.name,
-            student_count: studentCount,
-            class_count: classCount || 0
-          };
-        })
-      );
-
-      console.log("Final schools with counts:", schoolsWithCounts);
-      setSchools(schoolsWithCounts);
-    } catch (error) {
-      console.error("Error fetching schools:", error);
-      toast({
-        title: t("error"),
-        description: "Failed to load schools",
-        variant: "destructive"
-      });
-      setSchools([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleManageClasses = async (schoolId: string) => {
-    console.log("Managing classes for school:", schoolId);
-    
-    try {
-      // Fetch a representative class from this school to manage
-      const { data: classData, error: classError } = await supabase
-        .from('classes')
-        .select(`
-          id,
-          name,
-          teacher_id
-        `)
-        .eq('school_id', schoolId)
-        .eq('teacher_id', teacherId)
-        .limit(1)
-        .single();
-
-      if (classError || !classData) {
-        console.log("No classes found for this teacher in this school");
-        toast({
-          title: t("info"),
-          description: "No classes found in this school. Create a class first.",
-          variant: "default"
-        });
-        return;
-      }
-
-      // Fetch students for this class using the student_classes join table
-      const { data: studentClassData, error: studentError } = await supabase
-        .from('student_classes')
-        .select(`
-          student_id,
-          student_profiles!inner(
-            id,
-            user_id,
-            username,
-            display_name
-          )
-        `)
-        .eq('class_id', classData.id);
-
-      if (studentError) {
-        console.error("Error fetching students:", studentError);
-      }
-
-      const students = studentClassData?.map((sc: any) => ({
-        id: sc.student_profiles.user_id || sc.student_profiles.id,
-        displayName: sc.student_profiles.display_name || sc.student_profiles.username,
-        username: sc.student_profiles.username,
-        schoolId: schoolId
-      })) || [];
-
-      console.log("Students found for class:", students);
-
-      setSelectedClassData({
-        id: classData.id,
-        name: classData.name,
-        students: students
-      });
-      setSelectedSchoolId(schoolId);
-      setIsManageClassOpen(true);
-    } catch (error) {
-      console.error("Error managing classes:", error);
-      toast({
-        title: t("error"),
-        description: "Failed to load class data",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleViewSchoolPool = (schoolId: string) => {
-    setSelectedSchoolId(schoolId);
-    setSchoolPoolDialogOpen(true);
-  };
-
-  const handleManageClassDialogClose = (open: boolean) => {
-    setIsManageClassOpen(open);
-    if (!open) {
-      setSelectedSchoolId("");
-      setSelectedClassData(null);
-      // Refresh counts when dialog closes
-      fetchSchoolsWithCounts();
-    }
-  };
+  const {
+    schools,
+    loading,
+    isManageClassOpen,
+    selectedSchoolId,
+    selectedClassData,
+    schoolPoolDialogOpen,
+    fetchSchoolsWithCounts,
+    handleManageClasses,
+    handleViewSchoolPool,
+    handleManageClassDialogClose,
+    setSchoolPoolDialogOpen
+  } = useSchoolManagement(teacherId);
 
   if (loading) {
     return (
@@ -231,80 +65,13 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
         </Button>
       </div>
 
-      {schools.length === 0 ? (
-        <Card>
-          <CardContent className="py-8 text-center">
-            <School className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-            <p className="text-gray-500">No schools found</p>
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {schools.map((school) => (
-            <Card key={school.id} className="hover:shadow-lg transition-shadow">
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <School className="h-5 w-5" />
-                  {school.name}
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="text-center p-3 bg-blue-50 rounded-lg">
-                    <Users className="h-5 w-5 mx-auto text-blue-600 mb-1" />
-                    <p className="text-sm text-gray-600">Students</p>
-                    <p className="font-bold text-blue-600">{school.student_count}</p>
-                  </div>
-                  <div className="text-center p-3 bg-green-50 rounded-lg">
-                    <BookOpen className="h-5 w-5 mx-auto text-green-600 mb-1" />
-                    <p className="text-sm text-gray-600">Classes</p>
-                    <p className="font-bold text-green-600">{school.class_count}</p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleViewSchoolPool(school.id)}
-                    className="flex items-center gap-1"
-                  >
-                    <Eye className="h-4 w-4" />
-                    View Pool
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => fetchSchoolsWithCounts()}
-                    className="flex items-center gap-1"
-                  >
-                    <RefreshCw className="h-4 w-4" />
-                    Refresh
-                  </Button>
-                </div>
-
-                <div className="space-y-2">
-                  <Button
-                    onClick={() => onSelectSchool(school.id)}
-                    className="w-full"
-                    size="sm"
-                  >
-                    Create Class in {school.name}
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    onClick={() => handleManageClasses(school.id)}
-                    className="w-full"
-                    size="sm"
-                  >
-                    Manage Classes
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      <SchoolsGrid
+        schools={schools}
+        onViewSchoolPool={handleViewSchoolPool}
+        onRefresh={fetchSchoolsWithCounts}
+        onSelectSchool={onSelectSchool}
+        onManageClasses={handleManageClasses}
+      />
 
       {/* Manage Class Dialog */}
       {selectedClassData && (
