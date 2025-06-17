@@ -38,7 +38,14 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
     if (coinAmount > 0) {
       setIsLoading(true);
       try {
-        console.log("Awarding coins:", { studentId, studentName, coinAmount });
+        console.log("Awarding coins:", { 
+          studentId, 
+          studentName, 
+          coinAmount, 
+          teacherId, 
+          classId, 
+          schoolId 
+        });
         
         const success = await awardCoinsToStudent(studentId, coinAmount);
         
@@ -52,13 +59,13 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
           setAmount("");
           onOpenChange(false);
         } else {
-          throw new Error("Failed to award coins");
+          throw new Error("Failed to award coins - check student ID and database connection");
         }
       } catch (error) {
         console.error("Error awarding coins:", error);
         toast({
           title: t("error"),
-          description: "Failed to award coins",
+          description: `Failed to award coins: ${error instanceof Error ? error.message : 'Unknown error'}`,
           variant: "destructive"
         });
       } finally {
@@ -75,6 +82,12 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
         </DialogHeader>
         
         <div className="space-y-4">
+          <div className="text-sm text-gray-600">
+            <p>Student ID: {studentId}</p>
+            <p>Class ID: {classId}</p>
+            {schoolId && <p>School ID: {schoolId}</p>}
+          </div>
+          
           <div>
             <Label htmlFor="amount">{t("amount")}</Label>
             <Input

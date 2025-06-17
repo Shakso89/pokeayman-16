@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -40,6 +41,8 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
   const fetchSchoolsWithCounts = async () => {
     setLoading(true);
     try {
+      console.log("Fetching schools with accurate counts...");
+      
       // Get all schools
       const { data: schoolsData, error: schoolsError } = await supabase
         .from('schools')
@@ -53,17 +56,19 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
         return;
       }
 
-      // For each school, get accurate counts
+      // For each school, get accurate counts using proper joins
       const schoolsWithCounts = await Promise.all(
         schoolsData.map(async (school) => {
+          console.log(`Counting for school: ${school.name} (${school.id})`);
+          
           // Count classes in this school
           const { count: classCount } = await supabase
             .from('classes')
             .select('*', { count: 'exact', head: true })
             .eq('school_id', school.id);
 
-          // Count students in this school through student_classes join table
-          const { data: studentClassData } = await supabase
+          // Count students in this school through the student_classes join table
+          const { data: studentClassData, error: studentClassError } = await supabase
             .from('student_classes')
             .select(`
               student_id,
@@ -71,9 +76,15 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
             `)
             .eq('classes.school_id', school.id);
 
+          if (studentClassError) {
+            console.error(`Error counting students for school ${school.id}:`, studentClassError);
+          }
+
           // Get unique student count
           const uniqueStudentIds = new Set(studentClassData?.map(sc => sc.student_id) || []);
           const studentCount = uniqueStudentIds.size;
+
+          console.log(`School ${school.name}: ${classCount || 0} classes, ${studentCount} students`);
 
           return {
             id: school.id,
@@ -84,6 +95,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
         })
       );
 
+      console.log("Final schools with counts:", schoolsWithCounts);
       setSchools(schoolsWithCounts);
     } catch (error) {
       console.error("Error fetching schools:", error);
@@ -99,18 +111,32 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
   };
 
   const handleCreateClass = (schoolId: string) => {
+    console.log("Opening create class dialog for school:", schoolId);
     setSelectedSchoolId(schoolId);
     setIsCreateClassOpen(true);
   };
 
   const handleClassCreated = () => {
+    console.log("Class created successfully, refreshing counts");
     fetchSchoolsWithCounts(); // Refresh counts after creating a class
     setIsCreateClassOpen(false);
+    toast({
+      title: t("success"),
+      description: "Class created successfully"
+    });
   };
 
   const handleViewSchoolPool = (schoolId: string) => {
     setSelectedSchoolId(schoolId);
     setSchoolPoolDialogOpen(true);
+  };
+
+  const handleDialogOpenChange = (open: boolean) => {
+    setIsCreateClassOpen(open);
+    if (!open) {
+      // Reset selected school when dialog closes
+      setSelectedSchoolId("");
+    }
   };
 
   if (loading) {
@@ -219,14 +245,19 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
         </div>
       )}
 
-      <ManageClassDialog
-        open={isCreateClassOpen}
-        onOpenChange={setIsCreateClassOpen}
-        teacherId={teacherId}
-        classId=""
-        className=""
-        students={[]}
-      />
+      {/* Enhanced ManageClassDialog with proper callback handling */}
+      {selectedSchoolId && (
+        <ManageClassDialog
+          open={isCreateClassOpen}
+          onOpenChange={handleDialogOpenChange}
+          teacherId={teacherId}
+          classId=""
+          className=""
+          students={[]}
+          onClassCreated={handleClassCreated}
+          schoolId={selectedSchoolId}
+        />
+      )}
 
       <SchoolPokemonPoolDialog
         isOpen={schoolPoolDialogOpen}

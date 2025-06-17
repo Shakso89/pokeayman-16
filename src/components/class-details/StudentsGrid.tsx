@@ -13,6 +13,7 @@ interface Student {
   avatar?: string;
   coins?: number;
   school_id?: string;
+  user_id?: string; // Add user_id for proper student identification
 }
 
 interface StudentsGridProps {
@@ -44,24 +45,31 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
 
   const handleGiveCoins = (student: Student) => {
     const studentName = student.display_name || student.username || "Student";
-    onAwardCoins(student.id, studentName);
+    // Use user_id if available, otherwise fall back to id
+    const studentId = student.user_id || student.id;
+    console.log("Awarding coins to student:", { studentId, studentName, originalId: student.id });
+    onAwardCoins(studentId, studentName);
   };
 
   const handleManagePokemon = (student: Student) => {
     const studentName = student.display_name || student.username || "Student";
     const schoolId = student.school_id || classData?.schoolId || classData?.school_id || "";
-    console.log("Managing Pokemon for:", { studentId: student.id, studentName, schoolId });
-    onManagePokemon(student.id, studentName, schoolId);
+    // Use user_id if available, otherwise fall back to id
+    const studentId = student.user_id || student.id;
+    console.log("Managing Pokemon for:", { studentId, studentName, schoolId, originalId: student.id });
+    onManagePokemon(studentId, studentName, schoolId);
   };
 
   const handleRemoveCoins = (student: Student) => {
     const studentName = student.display_name || student.username || "Student";
-    onRemoveCoins(student.id, studentName);
+    // Use user_id if available, otherwise fall back to id
+    const studentId = student.user_id || student.id;
+    onRemoveCoins(studentId, studentName);
   };
 
   const handleRemoveStudent = (student: Student) => {
     const studentName = student.display_name || student.username || "Student";
-    onRemoveStudent(student.id, studentName);
+    onRemoveStudent(student.id, studentName); // Always use the database ID for removal
   };
 
   if (!students || students.length === 0) {
@@ -91,6 +99,9 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
                   {student.display_name || student.username}
                 </h3>
                 <p className="text-sm text-gray-500">@{student.username}</p>
+                {student.user_id && (
+                  <p className="text-xs text-gray-400">ID: {student.user_id}</p>
+                )}
               </div>
 
               <div className="flex gap-4 w-full">

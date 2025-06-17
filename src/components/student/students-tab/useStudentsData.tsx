@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 interface StudentWithPokemon extends Student {
   pokemonCount: number;
   coins: number;
+  user_id?: string; // Add user_id for proper identification
 }
 
 export const useStudentsData = (classId: string) => {
@@ -46,69 +47,121 @@ export const useStudentsData = (classId: string) => {
     
     setIsLoading(true);
     try {
-      // Fetch student IDs from the student_classes join table
-      const { data: studentLinks, error: linksError } = await supabase
+      console.log("Loading students for class:", classId);
+      
+      // Fetch students through the student_classes join table with proper data
+      const { data: studentClassData, error: studentClassError } = await supabase
         .from('student_classes')
-        .select('student_id')
+        .select(`
+          student_id,
+          students!inner(
+            id,
+            username,
+            display_name,
+            school_id,
+            created_at
+          )
+        `)
         .eq('class_id', classId);
 
-      if (linksError) throw linksError;
+      if (studentClassError) {
+        console.error("Error fetching student-class relationships:", studentClassError);
+        throw studentClassError;
+      }
 
-      const studentIds = studentLinks ? studentLinks.map(link => link.student_id) : [];
-
-      if (studentIds.length === 0) {
+      if (!studentClassData || studentClassData.length === 0) {
+        console.log("No students found for class:", classId);
         setStudents([]);
         setIsLoading(false);
         return;
       }
-      
-      // Fetch student details
-      const { data: studentsData, error: studentsError } = await supabase
-        .from('students')
-        .select('*')
-        .in('id', studentIds);
-      
-      if (studentsError) {
-        throw studentsError;
-      }
-      
-      // Add Pokemon count information to each student using localStorage
-      // In a real app, we would fetch this from the database too
-      const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
 
-      // Add Pokemon count information to each student
-      const studentsWithPokemon = studentsData.map((student: any) => {
-        const pokemonData = studentPokemons.find((p: any) => p.studentId === student.id);
-        const pokemonCount = pokemonData ? (pokemonData.pokemons || []).length : 0;
-        const coins = pokemonData ? pokemonData.coins : 0;
+      console.log("Found student-class relationships:", studentClassData);
+
+      // Extract student IDs and get their profiles
+      const studentIds = studentClassData.map(sc => sc.student_id);
+      
+      // Get student profiles to find user_ids for coin operations
+      const { data: studentProfiles, error: profileError } = await supabase
+        .from('student_profiles')
+        .select('id, user_id, username, display_name, coins')
+        .in('id', studentIds);
+
+      if (profileError) {
+        console.error("Error fetching student profiles:", profileError);
+      }
+
+      // Create a map of student profile data
+      const profileMap = new Map();
+      if (studentProfiles) {
+        studentProfiles.forEach(profile => {
+          profileMap.set(profile.id, profile);
+        });
+      }
+
+      // Also try to map by username if direct ID mapping fails
+      const usernameProfileMap = new Map();
+      if (studentProfiles) {
+        studentProfiles.forEach(profile => {
+          usernameProfileMap.set(profile.username, profile);
+        });
+      }
+
+      // Combine student data with profile data
+      const enrichedStudents = studentClassData.map((sc: any) => {
+        const student = sc.students;
+        const profile = profileMap.get(sc.student_id) || usernameProfileMap.get(student.username);
+        
+        console.log(`Processing student: ${student.username}, Profile found:`, !!profile);
+        
         return {
-          ...student,
+          id: student.id,
+          username: student.username,
           displayName: student.display_name || student.username,
-          pokemonCount,
-          coins,
+          display_name: student.display_name,
+          school_id: student.school_id,
+          classId: classId,
+          user_id: profile?.user_id, // Include user_id for coin operations
+          coins: profile?.coins || 0,
+          pokemonCount: 0, // Will be updated below
+          created_at: student.created_at
         };
       });
+
+      // Add Pokemon count information (keeping existing localStorage logic for now)
+      const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
+      
+      const studentsWithPokemon = enrichedStudents.map((student: any) => {
+        const pokemonData = studentPokemons.find((p: any) => 
+          p.studentId === student.id || p.studentId === student.user_id
+        );
+        const pokemonCount = pokemonData ? (pokemonData.pokemons || []).length : 0;
+        
+        return {
+          ...student,
+          pokemonCount
+        };
+      });
+
+      console.log("Final enriched students:", studentsWithPokemon);
 
       // Sort students by Pokemon count
       sortStudents(studentsWithPokemon);
     } catch (error) {
       console.error("Error loading students:", error);
       
-      // Fallback to localStorage
+      // Fallback to localStorage (keeping existing logic)
       try {
-        // Try to get student IDs for this class first
         const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
         const currentClass = allClasses.find((cls: any) => cls.id === classId);
         const studentIds = currentClass && currentClass.students ? currentClass.students : [];
         
-        // If we have student IDs, get their details
         if (studentIds.length > 0) {
           const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
           const classStudents = allStudents.filter((student: Student) => 
             studentIds.includes(student.id)
           );
           
-          // Add Pokemon count information
           const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
           
           const studentsWithPokemon = classStudents.map((student: Student) => {
@@ -122,15 +175,11 @@ export const useStudentsData = (classId: string) => {
             };
           });
           
-          // Sort students
           sortStudents(studentsWithPokemon);
         } else {
-          // Fallback to class ID matching (older approach)
           const allStudents = JSON.parse(localStorage.getItem("students") || "[]");
           const classStudents = allStudents.filter((student: Student) => student.classId === classId);
-          console.log(`Found ${classStudents.length} students for class ${classId}`);
           
-          // Add Pokemon count information
           const studentPokemons = JSON.parse(localStorage.getItem("studentPokemons") || "[]");
           
           const studentsWithPokemon = classStudents.map((student: Student) => {
@@ -144,7 +193,6 @@ export const useStudentsData = (classId: string) => {
             };
           });
           
-          // Sort students
           sortStudents(studentsWithPokemon);
         }
       } catch (localError) {
@@ -178,7 +226,6 @@ export const useStudentsData = (classId: string) => {
     sortStudents(students);
   };
 
-  // Export the refreshStudents function (which is just an alias for loadStudents)
   const refreshStudents = loadStudents;
 
   return { students, isLoading, sortOrder, toggleSortOrder, refreshStudents };
