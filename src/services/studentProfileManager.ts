@@ -1,16 +1,15 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface StudentProfileData {
   user_id: string;
   username: string;
   display_name?: string;
-  school_id?: string;
+  school_name?: string;
   teacher_id?: string;
   class_id?: string;
 }
 
-// Create a student profile that references the students table instead of auth.users
+// Create a student profile that works with the new authentication system
 export const ensureStudentProfile = async (profileData: StudentProfileData): Promise<string | null> => {
   try {
     console.log(`Ensuring profile exists for student: ${profileData.user_id}`);
@@ -38,7 +37,7 @@ export const ensureStudentProfile = async (profileData: StudentProfileData): Pro
       user_id: profileData.user_id,
       username: profileData.username || `student_${profileData.user_id.slice(0, 8)}`,
       display_name: profileData.display_name || profileData.username || `Student ${profileData.user_id.slice(0, 8)}`,
-      school_id: profileData.school_id || null,
+      school_name: profileData.school_name || null,
       teacher_id: profileData.teacher_id || null,
       class_id: profileData.class_id || null,
       coins: 0,
@@ -97,38 +96,20 @@ export const createBasicStudentProfile = async (userId: string): Promise<string 
     // Try to get student data from students table first
     const { data: studentData } = await supabase
       .from('students')
-      .select('username, display_name, school_id, teacher_id, class_id')
+      .select('username, display_name, school_name, teacher_id, class_id')
       .eq('id', userId)
       .maybeSingle();
 
     if (!studentData) {
       console.log(`No student found with ID: ${userId}, creating basic profile`);
-      // Create a minimal profile if student doesn't exist in students table
-      const { data: newProfile, error: createError } = await supabase
-        .from('student_profiles')
-        .insert({
-          user_id: userId,
-          username: `student_${userId.slice(0, 8)}`,
-          display_name: `Student ${userId.slice(0, 8)}`,
-          coins: 0,
-          spent_coins: 0
-        })
-        .select('id')
-        .single();
-
-      if (createError) {
-        console.error('Error creating basic profile:', createError);
-        return null;
-      }
-
-      return newProfile.id;
+      return null;
     }
 
     const profileData: StudentProfileData = {
       user_id: userId,
       username: studentData.username || `student_${userId.slice(0, 8)}`,
       display_name: studentData.display_name || studentData.username || `Student ${userId.slice(0, 8)}`,
-      school_id: studentData.school_id,
+      school_name: studentData.school_name,
       teacher_id: studentData.teacher_id,
       class_id: studentData.class_id
     };
@@ -272,7 +253,7 @@ export const createAllStudentProfiles = async (): Promise<{ success: number; fai
     // Get all students from the students table
     const { data: allStudents, error: studentsError } = await supabase
       .from('students')
-      .select('id, username, display_name, school_id, teacher_id, class_id');
+      .select('id, username, display_name, school_name, teacher_id, class_id');
 
     if (studentsError) {
       console.error('Error fetching students:', studentsError);
@@ -295,7 +276,7 @@ export const createAllStudentProfiles = async (): Promise<{ success: number; fai
         user_id: student.id,
         username: student.username || `student_${student.id.slice(0, 8)}`,
         display_name: student.display_name || student.username || `Student ${student.id.slice(0, 8)}`,
-        school_id: student.school_id,
+        school_name: student.school_name,
         teacher_id: student.teacher_id,
         class_id: student.class_id
       };
