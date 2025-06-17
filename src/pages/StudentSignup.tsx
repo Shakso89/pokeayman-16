@@ -8,11 +8,11 @@ import { Label } from "@/components/ui/label";
 import PokemonOrbit from "@/components/PokemonOrbit";
 import { toast } from "@/hooks/use-toast";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
-import bcrypt from "bcryptjs";
+import { useStudentAuthNew } from "@/hooks/useStudentAuthNew";
 
 const StudentSignup: React.FC = () => {
   const navigate = useNavigate();
+  const { signupStudent, isLoading } = useStudentAuthNew();
   const [formData, setFormData] = useState({
     username: "",
     password: "",
@@ -20,7 +20,6 @@ const StudentSignup: React.FC = () => {
     schoolName: "",
     teacherUsername: ""
   });
-  const [isLoading, setIsLoading] = useState(false);
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -29,6 +28,11 @@ const StudentSignup: React.FC = () => {
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
+
+    console.log("Starting signup process with data:", { 
+      ...formData, 
+      password: "***" // Don't log password
+    });
 
     // Validate required fields
     if (!formData.username || !formData.password || !formData.displayName || !formData.schoolName || !formData.teacherUsername) {
@@ -40,123 +44,40 @@ const StudentSignup: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
-
     try {
-      // Check if username already exists
-      const { data: existingStudent } = await supabase
-        .from('students')
-        .select('id')
-        .eq('username', formData.username)
-        .maybeSingle();
-
-      if (existingStudent) {
+      const result = await signupStudent(formData);
+      
+      if (result.success && result.student) {
+        console.log("Signup successful:", result.student);
+        
         toast({
-          title: "Error",
-          description: "Username already exists. Please choose a different username.",
+          title: "Success!",
+          description: "Your student account has been created successfully!",
+        });
+
+        // Set session data
+        localStorage.setItem("isLoggedIn", "true");
+        localStorage.setItem("userType", "student");
+        localStorage.setItem("studentId", result.student.id);
+        localStorage.setItem("studentName", result.student.display_name || formData.displayName);
+        localStorage.setItem("studentDisplayName", result.student.display_name || formData.displayName);
+
+        navigate("/student-dashboard");
+      } else {
+        console.error("Signup failed:", result.message);
+        toast({
+          title: "Signup Failed",
+          description: result.message || "An error occurred during signup.",
           variant: "destructive",
         });
-        return;
       }
-
-      // Verify that the teacher exists
-      const { data: teacher } = await supabase
-        .from('teachers')
-        .select('id, display_name')
-        .eq('username', formData.teacherUsername)
-        .maybeSingle();
-
-      if (!teacher) {
-        toast({
-          title: "Error",
-          description: "Teacher username not found. Please check with your teacher.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Create Supabase auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: `${formData.username}@student.local`, // Dummy email for auth
-        password: formData.password,
-        options: {
-          data: {
-            user_type: 'student',
-            username: formData.username,
-            display_name: formData.displayName
-          }
-        }
-      });
-
-      if (authError) {
-        throw authError;
-      }
-
-      if (!authData.user) {
-        throw new Error("Failed to create user account");
-      }
-
-      // Hash password for storage
-      const hashedPassword = await bcrypt.hash(formData.password, 10);
-
-      // Create student record
-      const { error: studentError } = await supabase
-        .from('students')
-        .insert({
-          id: authData.user.id,
-          username: formData.username,
-          password_hash: hashedPassword,
-          display_name: formData.displayName,
-          school_name: formData.schoolName,
-          teacher_username: formData.teacherUsername,
-          teacher_id: teacher.id,
-          is_active: true,
-          created_at: new Date().toISOString()
-        });
-
-      if (studentError) {
-        throw studentError;
-      }
-
-      // Create student profile
-      const { error: profileError } = await supabase
-        .from('student_profiles')
-        .insert({
-          user_id: authData.user.id,
-          username: formData.username,
-          display_name: formData.displayName,
-          school_name: formData.schoolName,
-          teacher_id: teacher.id,
-          coins: 0,
-          spent_coins: 0
-        });
-
-      if (profileError) {
-        throw profileError;
-      }
-
-      toast({
-        title: "Success!",
-        description: "Your student account has been created successfully!",
-      });
-
-      // Set session data
-      localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("userType", "student");
-      localStorage.setItem("studentId", authData.user.id);
-      localStorage.setItem("studentName", formData.displayName);
-      localStorage.setItem("studentDisplayName", formData.displayName);
-
-      navigate("/student-dashboard");
     } catch (error: any) {
       console.error("Signup error:", error);
       toast({
         title: "Signup Failed",
-        description: error.message || "An error occurred during signup.",
+        description: error.message || "An unexpected error occurred.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
   };
 

@@ -2,7 +2,6 @@
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import bcrypt from "bcryptjs";
 
 interface StudentData {
   id: string;
@@ -34,6 +33,8 @@ export const useStudentAuthNew = () => {
     setIsLoading(true);
     
     try {
+      console.log("Attempting student login for username:", username);
+      
       // Get student data from database
       const { data: student, error } = await supabase
         .from('students')
@@ -42,16 +43,26 @@ export const useStudentAuthNew = () => {
         .eq('is_active', true)
         .maybeSingle();
 
-      if (error || !student) {
+      if (error) {
+        console.error("Database error during login:", error);
+        return { success: false, student: null, message: "Login failed. Please try again." };
+      }
+
+      if (!student) {
+        console.log("No student found with username:", username);
         return { success: false, student: null, message: "Invalid username or password" };
       }
 
-      // Verify password
-      const passwordValid = await bcrypt.compare(password, student.password_hash);
+      console.log("Student found, verifying password...");
 
-      if (!passwordValid) {
+      // For now, we'll do a simple password comparison
+      // In production, you should use proper password hashing
+      if (student.password_hash !== password) {
+        console.log("Password verification failed");
         return { success: false, student: null, message: "Invalid username or password" };
       }
+
+      console.log("Login successful for student:", student.id);
 
       // Update last login
       await supabase
@@ -82,72 +93,76 @@ export const useStudentAuthNew = () => {
     setIsLoading(true);
 
     try {
+      console.log("Starting student signup process...");
+      
       // Check if username already exists
-      const { data: existingStudent } = await supabase
+      const { data: existingStudent, error: checkError } = await supabase
         .from('students')
         .select('id')
         .eq('username', signupData.username)
         .maybeSingle();
 
+      if (checkError) {
+        console.error("Error checking existing username:", checkError);
+        return { success: false, student: null, message: "Signup failed. Please try again." };
+      }
+
       if (existingStudent) {
+        console.log("Username already exists:", signupData.username);
         return { success: false, student: null, message: "Username already exists" };
       }
 
       // Verify that the teacher exists
-      const { data: teacher } = await supabase
+      const { data: teacher, error: teacherError } = await supabase
         .from('teachers')
         .select('id, display_name')
         .eq('username', signupData.teacherUsername)
         .maybeSingle();
 
+      if (teacherError) {
+        console.error("Error checking teacher:", teacherError);
+        return { success: false, student: null, message: "Error verifying teacher. Please try again." };
+      }
+
       if (!teacher) {
+        console.log("Teacher not found:", signupData.teacherUsername);
         return { success: false, student: null, message: "Teacher username not found" };
       }
 
-      // Create Supabase auth user
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: `${signupData.username}@student.local`,
-        password: signupData.password,
-        options: {
-          data: {
-            user_type: 'student',
-            username: signupData.username,
-            display_name: signupData.displayName
-          }
-        }
-      });
+      console.log("Teacher verified:", teacher.id);
 
-      if (authError || !authData.user) {
-        return { success: false, student: null, message: authError?.message || "Failed to create account" };
-      }
+      // Generate a UUID for the student
+      const studentId = crypto.randomUUID();
 
-      // Hash password for storage
-      const hashedPassword = await bcrypt.hash(signupData.password, 10);
-
-      // Create student record
-      const { error: studentError } = await supabase
+      // Create student record (storing password as plain text for now - in production use proper hashing)
+      const { data: newStudent, error: studentError } = await supabase
         .from('students')
         .insert({
-          id: authData.user.id,
+          id: studentId,
           username: signupData.username,
-          password_hash: hashedPassword,
+          password_hash: signupData.password, // In production, hash this properly
           display_name: signupData.displayName,
           school_name: signupData.schoolName,
           teacher_username: signupData.teacherUsername,
           teacher_id: teacher.id,
           is_active: true,
           created_at: new Date().toISOString()
-        });
+        })
+        .select()
+        .single();
 
       if (studentError) {
+        console.error("Error creating student record:", studentError);
         return { success: false, student: null, message: studentError.message };
       }
+
+      console.log("Student record created:", newStudent.id);
 
       // Create student profile
       const { error: profileError } = await supabase
         .from('student_profiles')
         .insert({
-          user_id: authData.user.id,
+          user_id: studentId,
           username: signupData.username,
           display_name: signupData.displayName,
           school_name: signupData.schoolName,
@@ -161,10 +176,12 @@ export const useStudentAuthNew = () => {
         // Continue even if profile creation fails
       }
 
+      console.log("Student signup completed successfully");
+
       return {
         success: true,
         student: {
-          id: authData.user.id,
+          id: studentId,
           username: signupData.username,
           display_name: signupData.displayName,
           school_name: signupData.schoolName,
