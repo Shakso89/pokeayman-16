@@ -30,8 +30,13 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
   const { t } = useTranslation();
   const [schools, setSchools] = useState<SchoolWithCounts[]>([]);
   const [loading, setLoading] = useState(true);
-  const [isCreateClassOpen, setIsCreateClassOpen] = useState(false);
+  const [isManageClassOpen, setIsManageClassOpen] = useState(false);
   const [selectedSchoolId, setSelectedSchoolId] = useState<string>("");
+  const [selectedClassData, setSelectedClassData] = useState<{
+    id: string;
+    name: string;
+    students: any[];
+  } | null>(null);
   const [schoolPoolDialogOpen, setSchoolPoolDialogOpen] = useState(false);
 
   useEffect(() => {
@@ -110,20 +115,72 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
     }
   };
 
-  const handleCreateClass = (schoolId: string) => {
-    console.log("Opening create class dialog for school:", schoolId);
-    setSelectedSchoolId(schoolId);
-    setIsCreateClassOpen(true);
-  };
+  const handleManageClasses = async (schoolId: string) => {
+    console.log("Managing classes for school:", schoolId);
+    
+    try {
+      // Fetch a representative class from this school to manage
+      const { data: classData, error: classError } = await supabase
+        .from('classes')
+        .select(`
+          id,
+          name,
+          teacher_id
+        `)
+        .eq('school_id', schoolId)
+        .eq('teacher_id', teacherId)
+        .limit(1)
+        .single();
 
-  const handleClassCreated = () => {
-    console.log("Class created successfully, refreshing counts");
-    fetchSchoolsWithCounts(); // Refresh counts after creating a class
-    setIsCreateClassOpen(false);
-    toast({
-      title: t("success"),
-      description: "Class created successfully"
-    });
+      if (classError || !classData) {
+        console.log("No classes found for this teacher in this school");
+        toast({
+          title: t("info"),
+          description: "No classes found in this school. Create a class first.",
+          variant: "default"
+        });
+        return;
+      }
+
+      // Fetch students for this class
+      const { data: studentClassData, error: studentError } = await supabase
+        .from('student_classes')
+        .select(`
+          student_id,
+          students!inner(
+            id,
+            username,
+            display_name
+          )
+        `)
+        .eq('class_id', classData.id);
+
+      if (studentError) {
+        console.error("Error fetching students:", studentError);
+      }
+
+      const students = studentClassData?.map((sc: any) => ({
+        id: sc.students.id,
+        displayName: sc.students.display_name || sc.students.username,
+        username: sc.students.username,
+        schoolId: schoolId
+      })) || [];
+
+      setSelectedClassData({
+        id: classData.id,
+        name: classData.name,
+        students: students
+      });
+      setSelectedSchoolId(schoolId);
+      setIsManageClassOpen(true);
+    } catch (error) {
+      console.error("Error managing classes:", error);
+      toast({
+        title: t("error"),
+        description: "Failed to load class data",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleViewSchoolPool = (schoolId: string) => {
@@ -131,11 +188,11 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
     setSchoolPoolDialogOpen(true);
   };
 
-  const handleDialogOpenChange = (open: boolean) => {
-    setIsCreateClassOpen(open);
+  const handleManageClassDialogClose = (open: boolean) => {
+    setIsManageClassOpen(open);
     if (!open) {
-      // Reset selected school when dialog closes
       setSelectedSchoolId("");
+      setSelectedClassData(null);
     }
   };
 
@@ -224,7 +281,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
 
                 <div className="space-y-2">
                   <Button
-                    onClick={() => handleCreateClass(school.id)}
+                    onClick={() => onSelectSchool(school.id)}
                     className="w-full"
                     size="sm"
                   >
@@ -232,7 +289,7 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
                   </Button>
                   <Button
                     variant="secondary"
-                    onClick={() => onSelectSchool(school.id)}
+                    onClick={() => handleManageClasses(school.id)}
                     className="w-full"
                     size="sm"
                   >
@@ -245,17 +302,15 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
         </div>
       )}
 
-      {/* Enhanced ManageClassDialog with proper callback handling */}
-      {selectedSchoolId && (
+      {/* Manage Class Dialog */}
+      {selectedClassData && (
         <ManageClassDialog
-          open={isCreateClassOpen}
-          onOpenChange={handleDialogOpenChange}
+          open={isManageClassOpen}
+          onOpenChange={handleManageClassDialogClose}
           teacherId={teacherId}
-          classId=""
-          className=""
-          students={[]}
-          onClassCreated={handleClassCreated}
-          schoolId={selectedSchoolId}
+          classId={selectedClassData.id}
+          className={selectedClassData.name}
+          students={selectedClassData.students}
         />
       )}
 
