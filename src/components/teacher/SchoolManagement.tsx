@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -142,13 +141,14 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
         return;
       }
 
-      // Fetch students for this class
+      // Fetch students for this class using the student_classes join table
       const { data: studentClassData, error: studentError } = await supabase
         .from('student_classes')
         .select(`
           student_id,
-          students!inner(
+          student_profiles!inner(
             id,
+            user_id,
             username,
             display_name
           )
@@ -160,11 +160,13 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
       }
 
       const students = studentClassData?.map((sc: any) => ({
-        id: sc.students.id,
-        displayName: sc.students.display_name || sc.students.username,
-        username: sc.students.username,
+        id: sc.student_profiles.user_id || sc.student_profiles.id,
+        displayName: sc.student_profiles.display_name || sc.student_profiles.username,
+        username: sc.student_profiles.username,
         schoolId: schoolId
       })) || [];
+
+      console.log("Students found for class:", students);
 
       setSelectedClassData({
         id: classData.id,
@@ -193,6 +195,8 @@ const SchoolManagement: React.FC<SchoolManagementProps> = ({
     if (!open) {
       setSelectedSchoolId("");
       setSelectedClassData(null);
+      // Refresh counts when dialog closes
+      fetchSchoolsWithCounts();
     }
   };
 
