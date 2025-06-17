@@ -1,21 +1,22 @@
+
 import React, { useEffect, useState } from "react";
 import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { Toaster } from "@/components/ui/toaster";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { Index } from "@/pages/Index";
-import { TeacherLogin } from "@/pages/TeacherLogin";
-import { TeacherSignup } from "@/pages/TeacherSignup";
-import { StudentLogin } from "@/pages/StudentLogin";
-import { StudentDashboard } from "@/pages/StudentDashboard";
-import { TeacherDashboard } from "@/pages/TeacherDashboard";
-import { ClassManagement } from "@/pages/teacher/ClassManagement";
-import { SchoolManagement } from "@/pages/teacher/SchoolManagement";
-import { StudentManagement } from "@/pages/teacher/StudentManagement";
-import { StudentProfilePage } from "@/pages/StudentProfilePage";
-import { TeacherProfilePage } from "@/pages/TeacherProfilePage";
-import { StudentRankings } from "@/pages/StudentRankings";
-import { StudentSignup } from "@/pages/StudentSignup";
+import Index from "@/pages/Index";
+import TeacherLogin from "@/pages/TeacherLogin";
+import TeacherSignUp from "@/pages/TeacherSignUp";
+import StudentLogin from "@/pages/StudentLogin";
+import StudentDashboard from "@/pages/StudentDashboard";
+import TeacherDashboard from "@/pages/TeacherDashboard";
+import ClassManagement from "@/pages/teacher/ClassManagement";
+import SchoolManagement from "@/pages/teacher/SchoolManagement";
+import StudentManagement from "@/pages/teacher/StudentManagement";
+import StudentProfilePage from "@/pages/StudentProfilePage";
+import TeacherProfilePage from "@/pages/TeacherProfilePage";
+import StudentRankings from "@/pages/StudentRankings";
+import StudentSignup from "@/pages/StudentSignup";
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -54,7 +55,7 @@ function App() {
         
         {/* Authentication Routes */}
         <Route path="/teacher-login" element={<TeacherLogin />} />
-        <Route path="/teacher-signup" element={<TeacherSignup />} />
+        <Route path="/teacher-signup" element={<TeacherSignUp />} />
         <Route path="/student-login" element={<StudentLogin />} />
         <Route path="/student-signup" element={<StudentSignup />} />
         
