@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import Footer from "@/components/Footer";
 import Header from "@/components/Header";
-import { User, GraduationCap, UserPlus } from "@heroicons/react/24/outline";
+import { UserIcon, AcademicCapIcon, UserPlusIcon } from "@heroicons/react/24/outline";
 
 const Index: React.FC = () => {
   const navigate = useNavigate();
@@ -39,7 +39,7 @@ const Index: React.FC = () => {
                     className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
                     onClick={() => navigate("/teacher-login")}
                   >
-                    <User className="mr-2 h-5 w-5" />
+                    <UserIcon className="mr-2 h-5 w-5" />
                     Teacher Login
                   </Button>
                   
@@ -49,7 +49,7 @@ const Index: React.FC = () => {
                     className="border-2 border-purple-600 text-purple-600 hover:bg-purple-600 hover:text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
                     onClick={() => navigate("/student-login")}
                   >
-                    <GraduationCap className="mr-2 h-5 w-5" />
+                    <AcademicCapIcon className="mr-2 h-5 w-5" />
                     Student Login
                   </Button>
                   
@@ -59,7 +59,7 @@ const Index: React.FC = () => {
                     className="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-full shadow-lg transition-all duration-300 transform hover:scale-105"
                     onClick={() => navigate("/student-signup")}
                   >
-                    <UserPlus className="mr-2 h-5 w-5" />
+                    <UserPlusIcon className="mr-2 h-5 w-5" />
                     Student Signup
                   </Button>
                 </div>
