@@ -7,7 +7,6 @@ import { Plus, Users, BookOpen, MessageSquare, TrendingUp } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useNavigate } from "react-router-dom";
 import DashboardCards from "./DashboardCards";
-import AccessRequestsTab from "./AccessRequestsTab";
 
 interface MainDashboardProps {
   activeTab: string;
@@ -41,11 +40,10 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
   return (
     <div className="space-y-6">
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="dashboard">{t("dashboard")}</TabsTrigger>
           <TabsTrigger value="classes">{t("classes")}</TabsTrigger>
           <TabsTrigger value="homework">{t("homework")}</TabsTrigger>
-          {isAdmin && <TabsTrigger value="requests">{t("access-requests")}</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
@@ -105,12 +103,6 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
           </div>
           {/* Homework content will be loaded by parent component */}
         </TabsContent>
-
-        {isAdmin && (
-          <TabsContent value="requests" className="space-y-4">
-            <AccessRequestsTab teacherId={teacherId} />
-          </TabsContent>
-        )}
       </Tabs>
     </div>
   );
