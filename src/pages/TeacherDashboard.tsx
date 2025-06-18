@@ -88,7 +88,8 @@ const TeacherDashboard: React.FC = () => {
   };
 
   const handleNavigateToClass = (classId: string) => {
-    navigate(`/class/${classId}`);
+    console.log("Navigating to class details:", classId);
+    navigate(`/class-details/${classId}`);
   };
 
   if (!isLoggedIn || userType !== "teacher") {
