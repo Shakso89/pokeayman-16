@@ -1,8 +1,6 @@
 
-
 import { Pokemon, StudentCollectionPokemon } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
-import { ensureStudentProfile } from "@/services/studentProfileManager";
 
 // Helper function to get or create student profile with better error handling
 const getOrCreateStudentProfileId = async (userId: string): Promise<string | null> => {
@@ -25,7 +23,7 @@ const getOrCreateStudentProfileId = async (userId: string): Promise<string | nul
       console.error(`Error fetching student profile for user_id: ${userId}`, profileError);
     }
 
-    // Profile doesn't exist, create it using the improved profile manager
+    // Profile doesn't exist, create it
     console.log(`Creating new student profile for user_id: ${userId}`);
     
     // Try to get student data from students table first
@@ -42,18 +40,31 @@ const getOrCreateStudentProfileId = async (userId: string): Promise<string | nul
       display_name: studentData?.display_name || studentData?.username || `Student ${userId.slice(0, 8)}`,
       school_id: studentData?.school_id,
       teacher_id: studentData?.teacher_id,
-      class_id: studentData?.class_id
+      class_id: studentData?.class_id,
+      coins: 0,
+      spent_coins: 0
     };
 
-    const profileId = await ensureStudentProfile(profileData);
-    
-    if (!profileId) {
-      console.error(`Failed to create profile for user: ${userId}`);
+    console.log('Creating profile with data:', profileData);
+
+    const { data: newProfile, error: createError } = await supabase
+      .from('student_profiles')
+      .insert(profileData)
+      .select('id')
+      .single();
+
+    if (createError) {
+      console.error(`Error creating student profile:`, createError);
       return null;
     }
 
-    console.log(`Successfully created profile: ${profileId} for user: ${userId}`);
-    return profileId;
+    if (!newProfile) {
+      console.error(`Profile creation returned no data for user: ${userId}`);
+      return null;
+    }
+
+    console.log(`Successfully created profile: ${newProfile.id} for user: ${userId}`);
+    return newProfile.id;
   } catch (error) {
     console.error(`Error in getOrCreateStudentProfileId for user ${userId}:`, error);
     return null;
@@ -228,7 +239,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
   }
 };
 
-// Award coins to a student using the improved profile manager
+// Award coins to a student with proper error handling
 export const awardCoinsToStudent = async (studentId: string, amount: number): Promise<boolean> => {
   try {
     console.log(`Awarding ${amount} coins to student ${studentId}`);
@@ -271,4 +282,3 @@ export const awardCoinsToStudent = async (studentId: string, amount: number): Pr
     return false;
   }
 };
-

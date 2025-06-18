@@ -49,7 +49,13 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
         </TabsList>
 
         <TabsContent value="dashboard" className="space-y-6">
-          <DashboardCards teacherId={teacherId} isAdmin={isAdmin} />
+          <DashboardCards 
+            teacherId={teacherId} 
+            isAdmin={isAdmin}
+            onManageClasses={onManageClasses}
+            onAddStudent={onAddStudent}
+            onNavigateToClass={onNavigateToClass}
+          />
           
           {/* Quick Actions */}
           <Card>
@@ -102,7 +108,7 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
 
         {isAdmin && (
           <TabsContent value="requests" className="space-y-4">
-            <AccessRequestsTab />
+            <AccessRequestsTab teacherId={teacherId} />
           </TabsContent>
         )}
       </Tabs>
