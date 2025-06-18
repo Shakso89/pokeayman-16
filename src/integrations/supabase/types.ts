@@ -573,7 +573,6 @@ export type Database = {
           display_name: string | null
           id: string
           school_id: string | null
-          school_name: string | null
           spent_coins: number
           teacher_id: string | null
           updated_at: string
@@ -588,7 +587,6 @@ export type Database = {
           display_name?: string | null
           id?: string
           school_id?: string | null
-          school_name?: string | null
           spent_coins?: number
           teacher_id?: string | null
           updated_at?: string
@@ -603,7 +601,6 @@ export type Database = {
           display_name?: string | null
           id?: string
           school_id?: string | null
-          school_name?: string | null
           spent_coins?: number
           teacher_id?: string | null
           updated_at?: string
@@ -622,9 +619,7 @@ export type Database = {
           last_login: string | null
           password_hash: string
           school_id: string | null
-          school_name: string | null
           teacher_id: string | null
-          teacher_username: string | null
           username: string
         }
         Insert: {
@@ -636,9 +631,7 @@ export type Database = {
           last_login?: string | null
           password_hash: string
           school_id?: string | null
-          school_name?: string | null
           teacher_id?: string | null
-          teacher_username?: string | null
           username?: string
         }
         Update: {
@@ -650,9 +643,7 @@ export type Database = {
           last_login?: string | null
           password_hash?: string
           school_id?: string | null
-          school_name?: string | null
           teacher_id?: string | null
-          teacher_username?: string | null
           username?: string
         }
         Relationships: [

@@ -6,15 +6,17 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import PokemonOrbit from "@/components/PokemonOrbit";
 import { toast } from "@/hooks/use-toast";
+import { useStudentAuth } from "@/hooks/useStudentAuth";
 import { Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import bcrypt from "bcryptjs";
 
 const StudentLogin: React.FC = () => {
   const navigate = useNavigate();
-  const [username, setUsername] = useState("");
+  const { isLoading: studentAuthLoading, loginStudent } = useStudentAuth();
+
+  const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [isLoading, setIsLoading] = useState(false);
+  const [isProcessing, setIsProcessing] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
@@ -28,25 +30,24 @@ const StudentLogin: React.FC = () => {
           return;
         }
 
-        const { data: { session } } = await supabase.auth.getSession();
+        // Quick session check with short timeout
+        const timeoutPromise = new Promise((_, reject) => 
+          setTimeout(() => reject(new Error("timeout")), 2000)
+        );
         
-        if (session && session.user) {
-          // Check if this is a student
-          const { data: studentData } = await supabase
-            .from('students')
-            .select('*')
-            .eq('id', session.user.id)
-            .maybeSingle();
-
-          if (studentData) {
+        const sessionPromise = supabase.auth.getSession();
+        
+        try {
+          const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+          
+          if (session && session.user) {
             localStorage.setItem("isLoggedIn", "true");
             localStorage.setItem("userType", "student");
-            localStorage.setItem("studentId", studentData.id);
-            localStorage.setItem("studentName", studentData.display_name || studentData.username);
-            localStorage.setItem("studentDisplayName", studentData.display_name || studentData.username);
             navigate("/student-dashboard", { replace: true });
             return;
           }
+        } catch (timeoutError) {
+          console.log("Session check timed out, proceeding to login");
         }
       } catch (err) {
         console.log("Session check completed with error:", err);
@@ -60,9 +61,9 @@ const StudentLogin: React.FC = () => {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return;
+    if (isProcessing) return;
 
-    if (!username || !password) {
+    if (!usernameOrEmail || !password) {
       toast({
         title: "Error",
         description: "Please enter your username and password.",
@@ -71,68 +72,22 @@ const StudentLogin: React.FC = () => {
       return;
     }
 
-    setIsLoading(true);
+    setIsProcessing(true);
 
     try {
-      // Get student data from database
-      const { data: student, error } = await supabase
-        .from('students')
-        .select('*')
-        .eq('username', username)
-        .eq('is_active', true)
-        .maybeSingle();
+      console.log("Attempting student login with username:", usernameOrEmail);
+      const result = await loginStudent(usernameOrEmail, password);
 
-      if (error || !student) {
+      if (result.success) {
+        console.log("Login successful, redirecting to dashboard");
+        navigate("/student-dashboard", { replace: true });
+      } else {
         toast({
           title: "Login Error",
-          description: "Invalid username or password",
+          description: result.message || "Invalid username or password",
           variant: "destructive",
         });
-        return;
       }
-
-      // Verify password
-      const passwordValid = await bcrypt.compare(password, student.password_hash);
-
-      if (!passwordValid) {
-        toast({
-          title: "Login Error",
-          description: "Invalid username or password",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      // Sign in with Supabase auth using dummy email
-      const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
-        email: `${username}@student.local`,
-        password: password,
-      });
-
-      if (authError) {
-        console.error("Auth error:", authError);
-        // Continue with login even if auth fails, as we've verified credentials
-      }
-
-      // Update last login
-      await supabase
-        .from('students')
-        .update({ last_login: new Date().toISOString() })
-        .eq('id', student.id);
-
-      // Set session data
-      localStorage.setItem("isLoggedIn", "true");
-      localStorage.setItem("userType", "student");
-      localStorage.setItem("studentId", student.id);
-      localStorage.setItem("studentName", student.display_name || student.username);
-      localStorage.setItem("studentDisplayName", student.display_name || student.username);
-
-      toast({
-        title: "Success!",
-        description: `Welcome back, ${student.display_name || student.username}!`,
-      });
-
-      navigate("/student-dashboard", { replace: true });
     } catch (error: any) {
       console.error("Login error:", error);
       toast({
@@ -141,7 +96,7 @@ const StudentLogin: React.FC = () => {
         variant: "destructive",
       });
     } finally {
-      setIsLoading(false);
+      setIsProcessing(false);
     }
   };
 
@@ -185,15 +140,15 @@ const StudentLogin: React.FC = () => {
         <CardContent>
           <form onSubmit={handleLogin} className="space-y-4">
             <div className="space-y-2">
-              <label htmlFor="username" className="text-sm font-medium">
+              <label htmlFor="usernameOrEmail" className="text-sm font-medium">
                 Username
               </label>
               <Input
-                id="username"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
+                id="usernameOrEmail"
+                value={usernameOrEmail}
+                onChange={(e) => setUsernameOrEmail(e.target.value)}
                 placeholder="Enter your username"
-                disabled={isLoading}
+                disabled={isProcessing || studentAuthLoading}
               />
             </div>
 
@@ -207,16 +162,16 @@ const StudentLogin: React.FC = () => {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
-                disabled={isLoading}
+                disabled={isProcessing || studentAuthLoading}
               />
             </div>
 
             <Button
               type="submit"
               className="w-full bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-              disabled={isLoading}
+              disabled={isProcessing || studentAuthLoading}
             >
-              {isLoading ? (
+              {isProcessing || studentAuthLoading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Logging in...
@@ -227,14 +182,7 @@ const StudentLogin: React.FC = () => {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex justify-center space-x-4">
-          <Button
-            variant="link"
-            className="px-0 text-blue-600"
-            onClick={() => navigate("/student-signup")}
-          >
-            Don't have an account? Sign up
-          </Button>
+        <CardFooter className="flex justify-center">
           <Button
             variant="link"
             className="px-0 text-blue-600"

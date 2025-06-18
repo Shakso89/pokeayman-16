@@ -1,111 +1,91 @@
 
 import React, { useEffect, useState } from "react";
-import { BrowserRouter, Routes, Route, Navigate, useLocation, useNavigate } from "react-router-dom";
+import { Routes, Route, useLocation } from "react-router-dom";
+import Index from "./pages/Index";
+import StudentLogin from "./pages/StudentLogin";
+import TeacherLogin from "./pages/TeacherLogin";
+import TeacherSignUp from "./pages/TeacherSignUp";
+import StudentDashboard from "./pages/StudentDashboard";
+import TeacherDashboard from "./pages/TeacherDashboard";
+import ReportsPage from "./pages/ReportsPage";
+import Messages from "./pages/Messages";
+import RankingPage from "./pages/RankingPage";
+import AdminDashboard from "./pages/AdminDashboard";
+import Contact from "./pages/Contact";
+import LogoutPage from "./pages/LogoutPage";
+import NotFound from "./pages/NotFound";
+import TeacherProfilePage from "./pages/TeacherProfilePage";
+import StudentProfilePage from "./pages/StudentProfilePage";
+import StudentDetailPage from "./pages/StudentDetailPage";
+import ClassDetailsPage from "./pages/ClassDetailsPage";
+import { useTranslation } from "./hooks/useTranslation";
 import { Toaster } from "@/components/ui/toaster";
-import { useToast } from "@/hooks/use-toast";
-import { useAuth } from "@/contexts/AuthContext";
-import Index from "@/pages/Index";
-import TeacherLogin from "@/pages/TeacherLogin";
-import TeacherSignUp from "@/pages/TeacherSignUp";
-import StudentLogin from "@/pages/StudentLogin";
-import StudentDashboard from "@/pages/StudentDashboard";
-import TeacherDashboard from "@/pages/TeacherDashboard";
-import ClassManagement from "@/pages/ClassManagement";
-import SchoolManagement from "@/pages/SchoolManagement";
-import StudentManagement from "@/pages/StudentManagement";
-import StudentProfilePage from "@/pages/StudentProfilePage";
-import TeacherProfilePage from "@/pages/TeacherProfilePage";
-import StudentRankings from "@/pages/StudentRankings";
-import StudentSignup from "@/pages/StudentSignup";
+import { Analytics } from '@vercel/analytics/react';
+import { ThemeProvider } from "@/components/theme-provider";
+import CreateClassPage from "./pages/CreateClassPage";
+import StudentClassDetailsPage from "./pages/StudentClassDetailsPage";
+import SchoolClassesPage from "./pages/SchoolClassesPage";
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-  userType: 'teacher' | 'student';
-}
-
-const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children, userType }) => {
-  const { isLoggedIn, loading, refreshAuthState } = useAuth();
-  const location = useLocation();
-
+function ScrollToTop() {
+  const {
+    pathname
+  } = useLocation();
   useEffect(() => {
-    if (loading) {
-      refreshAuthState();
-    }
-  }, [loading, refreshAuthState]);
-
-  if (loading) {
-    return <div>Loading...</div>;
-  }
-
-  const expectedUserType = localStorage.getItem("userType");
-
-  if (!isLoggedIn || expectedUserType !== userType) {
-    const redirectPath = userType === 'teacher' ? '/teacher-login' : '/student-login';
-    return <Navigate to={redirectPath} state={{ from: location }} replace />;
-  }
-
-  return <>{children}</>;
-};
-
-function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Index />} />
-        
-        {/* Authentication Routes */}
-        <Route path="/teacher-login" element={<TeacherLogin />} />
-        <Route path="/teacher-signup" element={<TeacherSignUp />} />
-        <Route path="/student-login" element={<StudentLogin />} />
-        <Route path="/student-signup" element={<StudentSignup />} />
-        
-        {/* Teacher Routes */}
-        <Route path="/teacher-dashboard" element={
-          <ProtectedRoute userType="teacher">
-            <TeacherDashboard />
-          </ProtectedRoute>
-        } />
-        
-        {/* Student Routes */}
-        <Route path="/student-dashboard" element={
-          <ProtectedRoute userType="student">
-            <StudentDashboard />
-          </ProtectedRoute>
-        } />
-        
-        <Route path="/teacher/class-management/:teacherId" element={
-          <ProtectedRoute userType="teacher">
-            <ClassManagement />
-          </ProtectedRoute>
-        } />
-        <Route path="/teacher/school-management/:teacherId" element={
-          <ProtectedRoute userType="teacher">
-            <SchoolManagement />
-          </ProtectedRoute>
-        } />
-        <Route path="/teacher/student-management/:teacherId" element={
-          <ProtectedRoute userType="teacher">
-            <StudentManagement />
-          </ProtectedRoute>
-        } />
-        <Route path="/student/:studentId" element={
-          <ProtectedRoute userType="student">
-            <StudentProfilePage />
-          </ProtectedRoute>
-        } />
-        <Route path="/teacher/:teacherId" element={
-          <ProtectedRoute userType="teacher">
-            <TeacherProfilePage />
-          </ProtectedRoute>
-        } />
-        <Route path="/student/rankings" element={
-          <ProtectedRoute userType="student">
-            <StudentRankings />
-          </ProtectedRoute>
-        } />
-      </Routes>
-    </BrowserRouter>
-  );
+    window.scrollTo(0, 0);
+  }, [pathname]);
+  return null;
 }
-
+function Router() {
+  return <Routes>
+      <Route path="/" element={<Index />} />
+      <Route path="/student-login" element={<StudentLogin />} />
+      <Route path="/teacher-login" element={<TeacherLogin />} />
+      <Route path="/teacher-signup" element={<TeacherSignUp />} />
+      <Route path="/student-dashboard" element={<StudentDashboard />} />
+      <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
+      <Route path="/reports" element={<ReportsPage />} />
+      <Route path="/messages" element={<Messages />} />
+      <Route path="/teacher/messages" element={<Messages userType="teacher" />} />
+      <Route path="/student/messages" element={<Messages userType="student" />} />
+      <Route path="/rankings" element={<RankingPage />} />
+      <Route path="/student/rankings" element={<RankingPage />} />
+      <Route path="/admin-dashboard" element={<AdminDashboard />} />
+      <Route path="/contact" element={<Contact />} />
+      <Route path="/logout" element={<LogoutPage />} />
+      <Route path="/teacher-profile/:teacherId" element={<TeacherProfilePage />} />
+      <Route path="/student/profile/:studentId" element={<StudentProfilePage />} />
+      {/* NEW: Ensure /student-profile/:studentId shows the profile page */}
+      <Route path="/student-profile/:studentId" element={<StudentDetailPage />} />
+      <Route path="/student-detail/:studentId" element={<StudentDetailPage />} />
+      <Route path="/class-details/:classId" element={<ClassDetailsPage />} />
+      <Route path="/student/class/:classId" element={<StudentClassDetailsPage />} />
+      {/* New route for creating classes in any school */}
+      <Route path="/create-class/:schoolId" element={<CreateClassPage />} />
+      {/* Add missing teacher routes for student profiles */}
+      <Route path="/teacher/student/:studentId" element={<StudentDetailPage />} />
+      <Route path="/teacher/profile/:teacherId" element={<TeacherProfilePage />} />
+      <Route path="/school/:schoolId/classes" element={<SchoolClassesPage />} />
+      <Route path="*" element={<NotFound />} />
+    </Routes>;
+}
+function App() {
+  const {
+    t
+  } = useTranslation();
+  const [isMounted, setIsMounted] = useState(false);
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+  if (!isMounted) {
+    return null;
+  }
+  return <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <div dir="ltr" className="min-h-screen bg-transparent flex flex-col items-center\n">
+        <ScrollToTop />
+        <Router />
+        <Toaster />
+        <Analytics />
+      </div>
+    </ThemeProvider>;
+}
 export default App;

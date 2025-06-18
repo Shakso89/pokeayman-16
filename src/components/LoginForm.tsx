@@ -94,8 +94,96 @@ export const LoginForm: React.FC<LoginFormProps> = ({
             throw new Error(result.message || "Teacher login failed");
         }
       } else {
-        // For students, redirect to student login page with proper authentication
-        navigate("/student-login");
+        // Student login logic - keeping existing implementation
+        let isAuthenticated = false;
+        
+        if (usernameOrEmail.includes('@')) {
+          const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+            email: usernameOrEmail,
+            password,
+          });
+          
+          if (!authError && authData.user) {
+            if (authData.user.email_confirmed_at === null) {
+              setEmailUnverified(true);
+              throw new Error("Please verify your email address before logging in.");
+            }
+            
+            isAuthenticated = true;
+            
+            const { data: studentData, error: studentError } = await supabase
+              .from('students')
+              .select('*')
+              .eq('id', authData.user.id)
+              .single();
+            
+            if (!studentError && studentData) {
+              localStorage.setItem("studentId", studentData.id);
+              localStorage.setItem("studentName", studentData.display_name || studentData.username);
+              localStorage.setItem("studentClassId", studentData.class_id || "");
+              
+              await supabase
+                .from('students')
+                .update({ last_login: new Date().toISOString() })
+                .eq('id', studentData.id);
+            }
+          }
+        }
+        
+        if (!isAuthenticated) {
+          const students = JSON.parse(localStorage.getItem("students") || "[]");
+          const student = students.find((s: any) => s.username === usernameOrEmail && s.password === password);
+          
+          if (student) {
+            isAuthenticated = true;
+            localStorage.setItem("studentId", student.id);
+            localStorage.setItem("studentName", student.displayName || student.username);
+            localStorage.setItem("studentClassId", student.classId || "");
+            
+            try {
+              const newStudent: Omit<Student, 'last_login'> & { last_login: string } = {
+                id: student.id,
+                username: student.username,
+                password_hash: student.password,
+                display_name: student.displayName || student.username,
+                teacher_id: student.teacherId,
+                class_id: student.classId,
+                is_active: true,
+                created_at: new Date().toISOString(),
+                last_login: new Date().toISOString()
+              };
+              
+              const { data, error } = await supabase
+                .from('students')
+                .insert(newStudent)
+                .select();
+              
+              if (!error) {
+                console.log("Migrated student to database:", data);
+              }
+            } catch (err) {
+              console.error("Error migrating student to database:", err);
+            }
+          }
+        }
+        
+        if (isAuthenticated) {
+          toast({
+            title: "Success!",
+            description: "Welcome back, Student!",
+          });
+          
+          localStorage.setItem("userType", "student");
+          localStorage.setItem("isLoggedIn", "true");
+          
+          if (onLoginSuccess) {
+            onLoginSuccess(usernameOrEmail, password);
+          }
+          
+          navigate("/student-dashboard");
+        } else {
+          throw new Error("Invalid username or password. If you don't have an account, ask your teacher to create one for you.");
+        }
       }
     } catch (error: any) {
       if (error.message?.includes("Email not confirmed")) {
