@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -42,11 +43,13 @@ export const useClassDetailsWithId = (classId?: string) => {
     
     console.log("useClassDetailsWithId - fetchClassDetails called for ID:", classId);
     setLoading(true);
+    
     try {
-      // First fetch the class data
+      // First try to fetch the class using our class operations
       let fetchedClass = await getClassById(classId);
       console.log("useClassDetailsWithId - getClassById result:", fetchedClass);
 
+      // If that fails, try direct Supabase query
       if (!fetchedClass) {
         console.log("useClassDetailsWithId - Trying Supabase direct query");
         const { data: classFromSupabase, error: classError } = await supabase
@@ -54,14 +57,18 @@ export const useClassDetailsWithId = (classId?: string) => {
           .select('*')
           .eq('id', classId)
           .maybeSingle();
-        if (classError) throw classError;
+          
+        if (classError) {
+          console.error("Error fetching class from Supabase:", classError);
+          throw classError;
+        }
+        
         fetchedClass = classFromSupabase;
       }
       
       if (!fetchedClass) {
         console.log("useClassDetailsWithId - No class found, checking localStorage");
         checkLocalStorageFallback();
-        setLoading(false);
         return;
       }
 
@@ -69,29 +76,26 @@ export const useClassDetailsWithId = (classId?: string) => {
         
       const currentTeacherId = localStorage.getItem("teacherId") || "";
       
-      // Check if user is the class creator
-      if ((fetchedClass.teacherId === currentTeacherId) || ((fetchedClass as any).teacher_id === currentTeacherId)) {
+      // Check permissions
+      if ((fetchedClass.teacherId === currentTeacherId) || 
+          ((fetchedClass as any).teacher_id === currentTeacherId)) {
         setUserPermissionLevel("owner");
-      } 
-      // Check if user is an assistant in the class
-      else if (fetchedClass.assistants && fetchedClass.assistants.includes(currentTeacherId)) {
-        setUserPermissionLevel("teacher"); // Assistants get teacher-level permissions
-      } 
-      // Check if user is admin
-      else if (isAdmin) {
+      } else if (fetchedClass.assistants && fetchedClass.assistants.includes(currentTeacherId)) {
+        setUserPermissionLevel("teacher");
+      } else if (isAdmin) {
         setUserPermissionLevel("owner");
       } else {
         setUserPermissionLevel("viewer");
       }
       
-      // Always fetch students from student_classes table for consistency
+      // Fetch students for this class
       await fetchStudentsForClass(classId);
       
     } catch (error) {
       console.error("Error fetching class details:", error);
       toast({
         title: t("error"),
-        description: t("failed-to-load-class-details"),
+        description: t("failed-to-load-class-details") || "Failed to load class details",
         variant: "destructive"
       });
       checkLocalStorageFallback();
@@ -147,7 +151,7 @@ export const useClassDetailsWithId = (classId?: string) => {
         if (foundClass.teacherId === currentTeacherId) {
           setUserPermissionLevel("owner");
         } else if (foundClass.assistants && foundClass.assistants.includes(currentTeacherId)) {
-          setUserPermissionLevel("teacher"); // Assistants get teacher-level permissions
+          setUserPermissionLevel("teacher");
         } else if (isAdmin) {
           setUserPermissionLevel("owner");
         } else {
@@ -238,7 +242,6 @@ export const useClassDetailsWithId = (classId?: string) => {
     ) || isAdmin;
   };
 
-  // New function to check if user can manage class (creator or assistant)
   const canManageClass = () => {
     const currentTeacherId = localStorage.getItem("teacherId") || "";
     

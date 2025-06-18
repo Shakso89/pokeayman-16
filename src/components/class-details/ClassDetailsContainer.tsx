@@ -5,20 +5,15 @@ import { Loader2 } from "lucide-react";
 import ClassDetails from "./ClassDetails";
 
 const ClassDetailsContainer: React.FC = () => {
-  const { id } = useParams<{ id: string }>();
+  const { classId, id } = useParams<{ classId?: string; id?: string }>();
 
-  // Add debugging to see what's happening
-  console.log("ClassDetailsContainer - Route params:", useParams());
-  console.log("ClassDetailsContainer - Route ID:", id);
+  // Handle both possible parameter names for backward compatibility
+  const actualClassId = classId || id;
+  
+  console.log("ClassDetailsContainer - Route params:", { classId, id, actualClassId });
   console.log("ClassDetailsContainer - Current URL:", window.location.pathname);
 
-  // Check if we have an ID in a different format
-  const pathSegments = window.location.pathname.split('/');
-  const classId = id || pathSegments[pathSegments.length - 1];
-  
-  console.log("ClassDetailsContainer - Extracted Class ID:", classId);
-
-  if (!classId || classId === 'class-details') {
+  if (!actualClassId) {
     return (
       <div className="flex justify-center items-center h-64">
         <div className="text-center">
@@ -29,7 +24,7 @@ const ClassDetailsContainer: React.FC = () => {
     );
   }
 
-  return <ClassDetails classId={classId} />;
+  return <ClassDetails classId={actualClassId} />;
 };
 
 export default ClassDetailsContainer;

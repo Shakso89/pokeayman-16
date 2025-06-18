@@ -27,16 +27,16 @@ import StudentClassDetailsPage from "./pages/StudentClassDetailsPage";
 import SchoolClassesPage from "./pages/SchoolClassesPage";
 
 function ScrollToTop() {
-  const {
-    pathname
-  } = useLocation();
+  const { pathname } = useLocation();
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [pathname]);
   return null;
 }
+
 function Router() {
-  return <Routes>
+  return (
+    <Routes>
       <Route path="/" element={<Index />} />
       <Route path="/student-login" element={<StudentLogin />} />
       <Route path="/teacher-login" element={<TeacherLogin />} />
@@ -52,40 +52,51 @@ function Router() {
       <Route path="/admin-dashboard" element={<AdminDashboard />} />
       <Route path="/contact" element={<Contact />} />
       <Route path="/logout" element={<LogoutPage />} />
+      
+      {/* Profile routes */}
       <Route path="/teacher-profile/:teacherId" element={<TeacherProfilePage />} />
       <Route path="/student/profile/:studentId" element={<StudentProfilePage />} />
-      {/* NEW: Ensure /student-profile/:studentId shows the profile page */}
       <Route path="/student-profile/:studentId" element={<StudentDetailPage />} />
       <Route path="/student-detail/:studentId" element={<StudentDetailPage />} />
-      <Route path="/class-details/:classId" element={<ClassDetailsPage />} />
-      <Route path="/student/class/:classId" element={<StudentClassDetailsPage />} />
-      {/* New route for creating classes in any school */}
-      <Route path="/create-class/:schoolId" element={<CreateClassPage />} />
-      {/* Add missing teacher routes for student profiles */}
       <Route path="/teacher/student/:studentId" element={<StudentDetailPage />} />
       <Route path="/teacher/profile/:teacherId" element={<TeacherProfilePage />} />
+      
+      {/* Class routes - standardized parameter names */}
+      <Route path="/class-details/:classId" element={<ClassDetailsPage />} />
+      <Route path="/student/class/:classId" element={<StudentClassDetailsPage />} />
+      <Route path="/create-class/:schoolId" element={<CreateClassPage />} />
+      
+      {/* School routes */}
       <Route path="/school/:schoolId/classes" element={<SchoolClassesPage />} />
+      
+      {/* Catch all */}
       <Route path="*" element={<NotFound />} />
-    </Routes>;
+    </Routes>
+  );
 }
+
 function App() {
-  const {
-    t
-  } = useTranslation();
+  const { t } = useTranslation();
   const [isMounted, setIsMounted] = useState(false);
+
   useEffect(() => {
     setIsMounted(true);
   }, []);
+
   if (!isMounted) {
     return null;
   }
-  return <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <div dir="ltr" className="min-h-screen bg-transparent flex flex-col items-center\n">
+
+  return (
+    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+      <div dir="ltr" className="min-h-screen bg-transparent flex flex-col items-center">
         <ScrollToTop />
         <Router />
         <Toaster />
         <Analytics />
       </div>
-    </ThemeProvider>;
+    </ThemeProvider>
+  );
 }
+
 export default App;
