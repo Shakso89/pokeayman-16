@@ -1,241 +1,148 @@
-
-import { supabase } from "@/integrations/supabase/client";
 import { debugService } from "./debugService";
-import { createBasicStudentProfile } from "./studentProfileManager";
-import { addCoinHistoryEntry } from "./coinHistoryService";
+import { createCoinAwardNotification } from "@/utils/notificationService";
+import { createAdminNotification } from "./adminNotificationService";
+import { supabase } from "@/integrations/supabase/client";
 
-export interface CoinAwardResult {
+interface AwardCoinsResult {
   success: boolean;
   error?: string;
   newBalance?: number;
-  profileCreated?: boolean;
 }
 
-// Enhanced coin awarding with comprehensive error handling and debugging
+const validateInputs = (studentId: string, amount: number): boolean => {
+  if (!debugService.validateStudentId(studentId)) {
+    return false;
+  }
+  if (!debugService.validateAmount(amount)) {
+    return false;
+  }
+  return true;
+};
+
 export const awardCoinsToStudentEnhanced = async (
   studentId: string,
   amount: number,
-  reason: string = "Manual award",
-  relatedEntityType?: string,
-  relatedEntityId?: string
-): Promise<CoinAwardResult> => {
-  debugService.log("Starting coin award process", { studentId, amount, reason });
+  reason: string = "reward",
+  type: string = "teacher_award",
+  classId?: string
+): Promise<{ success: boolean; error?: string; newBalance?: number }> => {
+  console.log("🚀 Starting enhanced coin award process");
+  
+  if (!validateInputs(studentId, amount)) {
+    return { success: false, error: "Invalid input parameters" };
+  }
 
   try {
-    // Step 1: Validate inputs
-    if (!debugService.validateStudentId(studentId)) {
-      return { success: false, error: "Invalid student ID" };
-    }
-
-    if (!debugService.validateAmount(amount)) {
-      return { success: false, error: "Invalid amount" };
-    }
-
-    // Step 2: Check if student exists in students table
-    debugService.log("Checking if student exists", { studentId });
-    const { data: studentExists, error: studentCheckError } = await supabase
-      .from('students')
-      .select('id, username, display_name')
-      .eq('id', studentId)
-      .maybeSingle();
-
-    if (studentCheckError) {
-      debugService.logError("Student existence check failed", studentCheckError, { studentId });
-      return { success: false, error: "Failed to verify student existence" };
-    }
-
-    if (!studentExists) {
-      debugService.logError("Student not found in students table", null, { studentId });
-      return { success: false, error: "Student not found" };
-    }
-
-    debugService.log("Student found", studentExists);
-
-    // Step 3: Ensure student profile exists
-    debugService.log("Ensuring student profile exists", { studentId });
-    const profileId = await createBasicStudentProfile(studentId);
-    
-    if (!profileId) {
-      debugService.logError("Failed to create/ensure student profile", null, { studentId });
-      return { success: false, error: "Failed to create student profile" };
-    }
-
-    debugService.log("Student profile ensured", { profileId });
-
-    // Step 4: Get current coins
-    debugService.log("Fetching current coins", { studentId });
-    const { data: currentProfile, error: fetchError } = await supabase
-      .from('student_profiles')
-      .select('coins, username, display_name')
-      .eq('user_id', studentId)
-      .single();
-
-    if (fetchError) {
-      debugService.logError("Failed to fetch current coins", fetchError, { studentId });
-      return { success: false, error: "Failed to fetch current coins" };
-    }
-
-    const currentCoins = currentProfile?.coins || 0;
-    const newCoins = currentCoins + amount;
-
-    debugService.log("Current coin balance", { currentCoins, amount, newCoins });
-
-    // Step 5: Update coins
-    debugService.log("Updating coins in database", { studentId, newCoins });
-    const { error: updateError } = await supabase
-      .from('student_profiles')
-      .update({ coins: newCoins })
-      .eq('user_id', studentId);
-
-    if (updateError) {
-      debugService.logError("Failed to update coins", updateError, { studentId, newCoins });
-      return { success: false, error: "Failed to update coins" };
-    }
-
-    debugService.log("Coins updated successfully", { studentId, newCoins });
-
-    // Step 6: Add coin history entry
-    debugService.log("Adding coin history entry", { studentId, amount, reason });
-    const historySuccess = await addCoinHistoryEntry(
+    debugService.log("Awarding coins to student", {
       studentId,
       amount,
       reason,
-      relatedEntityType,
-      relatedEntityId
-    );
-
-    if (!historySuccess) {
-      debugService.logError("Failed to add coin history", null, { studentId, amount, reason });
-      // Don't fail the entire operation for history logging failure
-    }
-
-    debugService.log("Coin award completed successfully", { 
-      studentId, 
-      amount, 
-      newBalance: newCoins 
+      type,
+      classId
     });
 
-    return {
-      success: true,
-      newBalance: newCoins,
-      profileCreated: false
-    };
-
-  } catch (error) {
-    debugService.logError("Unexpected error in coin award process", error, { studentId, amount, reason });
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : "Unknown error occurred" 
-    };
-  }
-};
-
-// Enhanced coin deduction with debugging
-export const deductCoinsFromStudentEnhanced = async (
-  studentId: string,
-  amount: number,
-  reason: string = "Manual deduction"
-): Promise<CoinAwardResult> => {
-  debugService.log("Starting coin deduction process", { studentId, amount, reason });
-
-  try {
-    // Validate inputs
-    if (!debugService.validateStudentId(studentId)) {
-      return { success: false, error: "Invalid student ID" };
-    }
-
-    if (!debugService.validateAmount(amount)) {
-      return { success: false, error: "Invalid amount" };
-    }
-
-    // Get current coins
-    const { data: profile, error: fetchError } = await supabase
+    // Get current teacher and student data
+    const { data: studentData, error: studentError } = await supabase
       .from('student_profiles')
-      .select('coins, spent_coins')
+      .select('username, display_name')
       .eq('user_id', studentId)
       .single();
 
-    if (fetchError) {
-      debugService.logError("Failed to fetch profile for deduction", fetchError, { studentId });
-      return { success: false, error: "Failed to fetch student profile" };
+    if (studentError) {
+      debugService.logError("Failed to fetch student data", studentError);
+      return { success: false, error: `Failed to fetch student data: ${studentError.message}` };
     }
 
-    const currentCoins = profile?.coins || 0;
-    const currentSpentCoins = profile?.spent_coins || 0;
-
-    if (currentCoins < amount) {
-      debugService.logError("Insufficient coins for deduction", null, { 
-        studentId, 
-        currentCoins, 
-        requestedAmount: amount 
-      });
-      return { success: false, error: "Insufficient coins" };
+    if (!studentData) {
+      return { success: false, error: "Student not found" };
     }
 
-    const newCoins = currentCoins - amount;
-    const newSpentCoins = currentSpentCoins + amount;
+    // Get teacher info for notifications
+    const teacherId = localStorage.getItem("teacherId");
+    const teacherName = localStorage.getItem("teacherUsername") || "Unknown Teacher";
+    
+    let teacherDisplayName = teacherName;
+    if (teacherId) {
+      const { data: teacherData } = await supabase
+        .from('teachers')
+        .select('display_name')
+        .eq('id', teacherId)
+        .single();
+      
+      if (teacherData?.display_name) {
+        teacherDisplayName = teacherData.display_name;
+      }
+    }
 
-    // Update coins
-    const { error: updateError } = await supabase
+    // Update student_profiles table
+    const { data: updateData, error: updateError } = await supabase
       .from('student_profiles')
-      .update({ 
-        coins: newCoins,
-        spent_coins: newSpentCoins
-      })
-      .eq('user_id', studentId);
+      .update({ coins: () => `coins + ${amount}` })
+      .eq('user_id', studentId)
+      .select('coins');
 
     if (updateError) {
-      debugService.logError("Failed to deduct coins", updateError, { studentId, newCoins });
-      return { success: false, error: "Failed to deduct coins" };
+      debugService.logError("Failed to update student profile", updateError);
+      return { success: false, error: `Failed to update student profile: ${updateError.message}` };
     }
 
-    // Add negative history entry
-    await addCoinHistoryEntry(studentId, -amount, reason);
+    if (!updateData || updateData.length === 0) {
+      return { success: false, error: "No student profile was updated - student may not exist" };
+    }
 
-    debugService.log("Coin deduction completed successfully", { 
-      studentId, 
-      amount, 
-      newBalance: newCoins 
+    const newBalance = updateData[0].coins;
+    debugService.log("Student profile updated successfully", { studentId, newBalance });
+
+    // Insert into coin_history table
+    const { error: historyError } = await supabase
+      .from('coin_history')
+      .insert({
+        user_id: studentId,
+        change_amount: amount,
+        reason: reason,
+        related_entity_type: type,
+        related_entity_id: classId
+      });
+
+    if (historyError) {
+      debugService.logError("Failed to insert coin history", historyError);
+      console.warn("Failed to insert coin history:", historyError);
+    }
+
+    // Send notification to student
+    try {
+      await createCoinAwardNotification(studentId, amount, reason);
+    } catch (notificationError) {
+      console.warn("Failed to send student notification:", notificationError);
+    }
+
+    // Send notification to owners
+    try {
+      await createAdminNotification({
+        teacherName: teacherDisplayName,
+        studentName: studentData.username || studentData.display_name || "Unknown Student",
+        type: 'coin_award',
+        amount,
+        reason
+      });
+    } catch (adminNotificationError) {
+      console.warn("Failed to send admin notification:", adminNotificationError);
+    }
+
+    debugService.log("Coin award completed successfully", {
+      studentId,
+      amount,
+      newBalance,
+      reason
     });
 
-    return {
-      success: true,
-      newBalance: newCoins
-    };
+    return { success: true, newBalance };
 
   } catch (error) {
-    debugService.logError("Unexpected error in coin deduction process", error, { studentId, amount, reason });
+    debugService.logError("Unexpected error in coin award process", error);
     return { 
       success: false, 
-      error: error instanceof Error ? error.message : "Unknown error occurred" 
+      error: `Unexpected error: ${error instanceof Error ? error.message : String(error)}` 
     };
-  }
-};
-
-// Get student coin balance with validation
-export const getStudentCoinBalance = async (studentId: string): Promise<{ balance: number; error?: string }> => {
-  try {
-    if (!debugService.validateStudentId(studentId)) {
-      return { balance: 0, error: "Invalid student ID" };
-    }
-
-    const { data: profile, error } = await supabase
-      .from('student_profiles')
-      .select('coins')
-      .eq('user_id', studentId)
-      .single();
-
-    if (error) {
-      debugService.logError("Failed to fetch coin balance", error, { studentId });
-      return { balance: 0, error: "Failed to fetch balance" };
-    }
-
-    const balance = profile?.coins || 0;
-    debugService.log("Fetched coin balance", { studentId, balance });
-    return { balance };
-
-  } catch (error) {
-    debugService.logError("Unexpected error fetching coin balance", error, { studentId });
-    return { balance: 0, error: "Unknown error occurred" };
   }
 };

@@ -1,11 +1,11 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Shield } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useUserRole } from "@/hooks/useUserRole";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   BarChart,
@@ -28,16 +28,23 @@ const ReportsPage: React.FC = () => {
   const username = localStorage.getItem("teacherUsername") || "";
   
   const { t } = useTranslation();
+  const { userRole, isLoading: roleLoading } = useUserRole();
   
   const [participationData, setParticipationData] = useState<any[]>([]);
   const [pokemonDistribution, setPokemonDistribution] = useState<any[]>([]);
   const [engagementData, setEngagementData] = useState<any[]>([]);
   
+  // Check if user is owner
+  const isOwner = userRole === 'owner' || 
+                  username === 'Ayman' || 
+                  username === 'Admin' ||
+                  localStorage.getItem("isAdmin") === "true";
+
   useEffect(() => {
-    if (isLoggedIn && userType === "teacher") {
+    if (isLoggedIn && userType === "teacher" && isOwner) {
       generateReports();
     }
-  }, [isLoggedIn, userType]);
+  }, [isLoggedIn, userType, isOwner]);
   
   const generateReports = () => {
     // Get all necessary data
@@ -127,8 +134,54 @@ const ReportsPage: React.FC = () => {
     setEngagementData(engagementMockData);
   };
   
+  // Show loading while checking role
+  if (roleLoading) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p>Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Redirect if not logged in or not a teacher
   if (!isLoggedIn || userType !== "teacher") {
     return <Navigate to="/teacher-login" />;
+  }
+
+  // Show access denied if not owner
+  if (!isOwner) {
+    return (
+      <div className="min-h-screen bg-gray-100">
+        <NavBar userType="teacher" userName={username} />
+        
+        <div className="container mx-auto py-8 px-4">
+          <div className="flex items-center mb-6">
+            <Button 
+              variant="outline" 
+              onClick={() => window.history.back()}
+              className="mr-4"
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              {t("back")}
+            </Button>
+            <h1 className="text-3xl font-bold">Access Denied</h1>
+          </div>
+          
+          <Card className="max-w-md mx-auto">
+            <CardContent className="text-center py-8">
+              <Shield className="h-16 w-16 mx-auto mb-4 text-red-500" />
+              <h2 className="text-xl font-semibold mb-2">Owner Access Required</h2>
+              <p className="text-gray-600">
+                This reports page is only accessible to system owners.
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
   
   const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884d8', '#82ca9d'];
@@ -147,7 +200,10 @@ const ReportsPage: React.FC = () => {
             <ChevronLeft className="h-4 w-4 mr-1" />
             {t("back")}
           </Button>
-          <h1 className="text-3xl font-bold">{t("reports-analytics")}</h1>
+          <h1 className="text-3xl font-bold flex items-center gap-2">
+            <Shield className="h-8 w-8 text-blue-600" />
+            {t("reports-analytics")} (Owner Only)
+          </h1>
         </div>
         
         <Tabs defaultValue="participation">
