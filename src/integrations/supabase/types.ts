@@ -70,6 +70,38 @@ export type Database = {
           },
         ]
       }
+      class_membership: {
+        Row: {
+          class_id: string
+          id: string
+          joined_at: string | null
+          role_in_class: string
+          user_id: string
+        }
+        Insert: {
+          class_id: string
+          id?: string
+          joined_at?: string | null
+          role_in_class: string
+          user_id: string
+        }
+        Update: {
+          class_id?: string
+          id?: string
+          joined_at?: string | null
+          role_in_class?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "class_membership_class_id_fkey"
+            columns: ["class_id"]
+            isOneToOne: false
+            referencedRelation: "classes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       classes: {
         Row: {
           assistants: string[] | null
@@ -123,6 +155,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      coin_history: {
+        Row: {
+          change_amount: number
+          created_at: string | null
+          id: string
+          reason: string
+          related_entity_id: string | null
+          related_entity_type: string | null
+          user_id: string
+        }
+        Insert: {
+          change_amount: number
+          created_at?: string | null
+          id?: string
+          reason: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          user_id: string
+        }
+        Update: {
+          change_amount?: number
+          created_at?: string | null
+          id?: string
+          reason?: string
+          related_entity_id?: string | null
+          related_entity_type?: string | null
+          user_id?: string
+        }
+        Relationships: []
       }
       credit_transactions: {
         Row: {
@@ -199,6 +261,7 @@ export type Database = {
           option_c: string | null
           option_d: string | null
           question: string | null
+          reward_coins: number | null
           teacher_id: string
           title: string
           type: string
@@ -216,6 +279,7 @@ export type Database = {
           option_c?: string | null
           option_d?: string | null
           question?: string | null
+          reward_coins?: number | null
           teacher_id: string
           title: string
           type: string
@@ -233,6 +297,7 @@ export type Database = {
           option_c?: string | null
           option_d?: string | null
           question?: string | null
+          reward_coins?: number | null
           teacher_id?: string
           title?: string
           type?: string
@@ -241,6 +306,9 @@ export type Database = {
       }
       homework_submissions: {
         Row: {
+          approved_at: string | null
+          approved_by: string | null
+          attachment_url: string | null
           content: string
           feedback: string | null
           homework_id: string
@@ -252,6 +320,9 @@ export type Database = {
           submitted_at: string
         }
         Insert: {
+          approved_at?: string | null
+          approved_by?: string | null
+          attachment_url?: string | null
           content: string
           feedback?: string | null
           homework_id: string
@@ -263,6 +334,9 @@ export type Database = {
           submitted_at?: string
         }
         Update: {
+          approved_at?: string | null
+          approved_by?: string | null
+          attachment_url?: string | null
           content?: string
           feedback?: string | null
           homework_id?: string
@@ -465,17 +539,26 @@ export type Database = {
       }
       pokemon_pools: {
         Row: {
+          assigned_at: string | null
+          assigned_to: string | null
           id: string
+          is_assigned: boolean | null
           pokemon_id: number
           school_id: string
         }
         Insert: {
+          assigned_at?: string | null
+          assigned_to?: string | null
           id?: string
+          is_assigned?: boolean | null
           pokemon_id: number
           school_id: string
         }
         Update: {
+          assigned_at?: string | null
+          assigned_to?: string | null
           id?: string
+          is_assigned?: boolean | null
           pokemon_id?: number
           school_id?: string
         }
@@ -619,8 +702,10 @@ export type Database = {
           display_name: string | null
           id: string
           is_active: boolean | null
+          is_frozen: boolean | null
           last_login: string | null
           password_hash: string
+          profile_photo: string | null
           school_id: string | null
           school_name: string | null
           teacher_id: string | null
@@ -633,8 +718,10 @@ export type Database = {
           display_name?: string | null
           id?: string
           is_active?: boolean | null
+          is_frozen?: boolean | null
           last_login?: string | null
           password_hash: string
+          profile_photo?: string | null
           school_id?: string | null
           school_name?: string | null
           teacher_id?: string | null
@@ -647,8 +734,10 @@ export type Database = {
           display_name?: string | null
           id?: string
           is_active?: boolean | null
+          is_frozen?: boolean | null
           last_login?: string | null
           password_hash?: string
+          profile_photo?: string | null
           school_id?: string | null
           school_name?: string | null
           teacher_id?: string | null
@@ -721,15 +810,18 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          credits: number | null
           display_name: string
           email: string | null
           expiry_date: string | null
           id: string
           is_active: boolean | null
+          is_frozen: boolean | null
           last_login: string | null
           password: string
           photos: Json | null
-          role: Database["public"]["Enums"]["app_role"] | null
+          profile_photo: string | null
+          school_id: string | null
           social_links: Json | null
           subscription_type: string | null
           username: string
@@ -737,15 +829,18 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          credits?: number | null
           display_name: string
           email?: string | null
           expiry_date?: string | null
           id?: string
           is_active?: boolean | null
+          is_frozen?: boolean | null
           last_login?: string | null
           password: string
           photos?: Json | null
-          role?: Database["public"]["Enums"]["app_role"] | null
+          profile_photo?: string | null
+          school_id?: string | null
           social_links?: Json | null
           subscription_type?: string | null
           username: string
@@ -753,20 +848,31 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          credits?: number | null
           display_name?: string
           email?: string | null
           expiry_date?: string | null
           id?: string
           is_active?: boolean | null
+          is_frozen?: boolean | null
           last_login?: string | null
           password?: string
           photos?: Json | null
-          role?: Database["public"]["Enums"]["app_role"] | null
+          profile_photo?: string | null
+          school_id?: string | null
           social_links?: Json | null
           subscription_type?: string | null
           username?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "teachers_school_id_fkey"
+            columns: ["school_id"]
+            isOneToOne: false
+            referencedRelation: "schools"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       user_roles: {
         Row: {
@@ -774,7 +880,6 @@ export type Database = {
           assigned_by: string | null
           id: string
           manager_school_id: string | null
-          role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
@@ -782,7 +887,6 @@ export type Database = {
           assigned_by?: string | null
           id?: string
           manager_school_id?: string | null
-          role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
@@ -790,7 +894,6 @@ export type Database = {
           assigned_by?: string | null
           id?: string
           manager_school_id?: string | null
-          role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: [
@@ -808,14 +911,6 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      assign_user_role: {
-        Args: {
-          target_user_id: string
-          new_role: Database["public"]["Enums"]["app_role"]
-          assigned_school_id?: string
-        }
-        Returns: boolean
-      }
       award_star_of_class: {
         Args: { p_student_id: string; p_class_id: string; p_awarded_by: string }
         Returns: boolean
@@ -828,31 +923,8 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: undefined
       }
-      get_teacher_by_login: {
-        Args: { login_input: string }
-        Returns: {
-          id: string
-          username: string
-          email: string
-          display_name: string
-          password: string
-          role: Database["public"]["Enums"]["app_role"]
-          is_active: boolean
-        }[]
-      }
-      get_user_role: {
-        Args: { _user_id: string }
-        Returns: Database["public"]["Enums"]["app_role"]
-      }
       gift_credits_in_school: {
         Args: { target_user_id: string; credit_amount: number; reason?: string }
-        Returns: boolean
-      }
-      has_role: {
-        Args: {
-          _user_id: string
-          _role: Database["public"]["Enums"]["app_role"]
-        }
         Returns: boolean
       }
       manage_user_credits: {
@@ -861,7 +933,7 @@ export type Database = {
       }
     }
     Enums: {
-      app_role: "teacher" | "senior_teacher" | "manager" | "owner"
+      app_role: "student" | "teacher" | "senior_teacher" | "manager" | "owner"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -977,7 +1049,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
-      app_role: ["teacher", "senior_teacher", "manager", "owner"],
+      app_role: ["student", "teacher", "senior_teacher", "manager", "owner"],
     },
   },
 } as const
