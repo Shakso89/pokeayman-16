@@ -1,7 +1,9 @@
+
 import { Pokemon } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
 import { createPokemonAwardNotification } from "@/utils/notificationService";
 import { createAdminNotification } from "@/services/adminNotificationService";
+import { awardCoinsToStudentEnhanced } from "@/services/enhancedCoinService";
 
 export interface StudentPokemon {
   studentId: string;
@@ -27,6 +29,9 @@ export const getStudentPokemons = async (studentId: string): Promise<Pokemon[]> 
     return [];
   }
 };
+
+// Alias for backward compatibility
+export const getStudentPokemonCollection = getStudentPokemons;
 
 export const saveStudentPokemons = async (studentId: string, pokemons: Pokemon[]): Promise<boolean> => {
   try {
@@ -160,46 +165,103 @@ export const awardPokemonToStudent = async (
   }
 };
 
-export const removePokemonFromStudent = async (
-  studentId: string,
-  pokemonId: number,
-  reason: string = "Teacher removal"
-): Promise<{ success: boolean; error?: string }> => {
+// Random Pokemon assignment function
+export const assignRandomPokemonToStudent = async (
+  schoolId: string, 
+  studentId: string
+): Promise<{ success: boolean; error?: string; pokemon?: any }> => {
   try {
-    console.log(`Removing Pokemon ${pokemonId} from student ${studentId}`);
+    // Get available Pokemon from school pool
+    const { data: poolPokemons, error: poolError } = await supabase
+      .from('pokemon_pools')
+      .select('pokemon_id, pokemon_catalog(*)')
+      .eq('school_id', schoolId)
+      .eq('is_assigned', false)
+      .limit(1);
 
-    // Get student's current Pokemon
-    const { data, error } = await supabase
-      .from('student_pokemons')
-      .select('pokemons')
-      .eq('student_id', studentId)
-      .single();
-
-    if (error) {
-      console.error("Error fetching student's Pokémon:", error);
-      return { success: false, error: "Failed to fetch student's Pokémon" };
+    if (poolError || !poolPokemons || poolPokemons.length === 0) {
+      return { success: false, error: "No Pokemon available in school pool" };
     }
 
-    let currentPokemons: Pokemon[] = data?.pokemons || [];
+    const randomPokemon = poolPokemons[0];
+    const pokemonId = randomPokemon.pokemon_id;
 
-    // Filter out the Pokemon to be removed
-    const updatedPokemons = currentPokemons.filter(pokemon => pokemon.id !== pokemonId);
+    return await awardPokemonToStudent(studentId, pokemonId, "Random award");
+  } catch (error) {
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error occurred" 
+    };
+  }
+};
 
-    // Save the updated Pokemon list
-    const { error: updateError } = await supabase
-      .from('student_pokemons')
-      .upsert({ student_id: studentId, pokemons: updatedPokemons }, { onConflict: 'student_id' });
+// Specific Pokemon assignment function
+export const assignSpecificPokemonToStudent = async (
+  pokemonId: number,
+  schoolId: string,
+  studentId: string
+): Promise<{ success: boolean; error?: string; pokemon?: any }> => {
+  return await awardPokemonToStudent(studentId, pokemonId, "Specific award");
+};
 
-    if (updateError) {
-      console.error("Error removing Pokemon from student:", updateError);
-      return { success: false, error: "Failed to remove Pokemon from student" };
+// Coin awarding function (using the enhanced service)
+export const awardCoinsToStudent = async (
+  studentId: string,
+  amount: number,
+  reason: string = "Teacher award"
+): Promise<{ success: boolean; error?: string; newBalance?: number }> => {
+  return await awardCoinsToStudentEnhanced(studentId, amount, reason);
+};
+
+export const removePokemonFromStudent = async (
+  collectionIdOrStudentId: string,
+  pokemonId?: number,
+  reason: string = "Teacher removal"
+): Promise<boolean> => {
+  try {
+    // Handle both old signature (collectionId) and new signature (studentId, pokemonId)
+    if (pokemonId !== undefined) {
+      // New signature: removePokemonFromStudent(studentId, pokemonId, reason)
+      const studentId = collectionIdOrStudentId;
+      console.log(`Removing Pokemon ${pokemonId} from student ${studentId}`);
+
+      // Get student's current Pokemon
+      const { data, error } = await supabase
+        .from('student_pokemons')
+        .select('pokemons')
+        .eq('student_id', studentId)
+        .single();
+
+      if (error) {
+        console.error("Error fetching student's Pokémon:", error);
+        return false;
+      }
+
+      let currentPokemons: Pokemon[] = data?.pokemons || [];
+
+      // Filter out the Pokemon to be removed
+      const updatedPokemons = currentPokemons.filter(pokemon => pokemon.id !== pokemonId);
+
+      // Save the updated Pokemon list
+      const { error: updateError } = await supabase
+        .from('student_pokemons')
+        .upsert({ student_id: studentId, pokemons: updatedPokemons }, { onConflict: 'student_id' });
+
+      if (updateError) {
+        console.error("Error removing Pokemon from student:", updateError);
+        return false;
+      }
+
+      console.log(`✅ Pokemon ${pokemonId} removed successfully from student ${studentId}`);
+      return true;
+    } else {
+      // Old signature: removePokemonFromStudent(collectionId)
+      // This would need to be handled differently, but for now we'll return false
+      console.warn("Old signature for removePokemonFromStudent is deprecated");
+      return false;
     }
-
-    console.log(`✅ Pokemon ${pokemonId} removed successfully from student ${studentId}`);
-    return { success: true };
-
   } catch (error) {
     console.error("❌ Error removing Pokemon:", error);
-    return { success: false, error: error instanceof Error ? error.message : "Unknown error occurred" };
+    return false;
   }
 };

@@ -1,10 +1,11 @@
 
 import {
+  awardPokemonToStudent,
   assignRandomPokemonToStudent,
+  assignSpecificPokemonToStudent,
   removePokemonFromStudent,
   getStudentPokemonCollection,
   awardCoinsToStudent,
-  assignSpecificPokemonToStudent,
 } from './studentPokemon';
 
 import {
@@ -20,6 +21,7 @@ export {
   removePokemonFromStudent,
   getStudentPokemonCollection,
   awardCoinsToStudent,
+  awardPokemonToStudent,
   
   // School Pokemon operations
   initializeSchoolPokemonPool,

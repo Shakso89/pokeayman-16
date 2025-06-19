@@ -17,7 +17,7 @@ export const handlePokemonDuplicate = async (studentId: string, pokemon: Pokemon
   
   if (hasDuplicate) {
     // Award 3 coins instead of giving duplicate Pokémon
-    await awardCoinsToStudent(studentId, 3);
+    await awardCoinsToStudent(studentId, 3, "Duplicate Pokemon compensation");
     console.log(`Student ${studentId} already owns ${pokemon.name}, awarded 3 coins instead`);
     return true; // Indicates duplicate was handled
   }
