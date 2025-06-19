@@ -37,7 +37,7 @@ export const getStudentPokemons = async (studentId: string): Promise<any[]> => {
 
     // Transform the data to match StudentCollectionPokemon interface
     const transformedData = (data || []).map(collection => {
-      const pokemonData = collection.pokemon_catalog;
+      const pokemonData = collection.pokemon_catalog as any;
       return {
         id: pokemonData?.id || collection.pokemon_id,
         name: pokemonData?.name || `Pokemon #${collection.pokemon_id}`,
