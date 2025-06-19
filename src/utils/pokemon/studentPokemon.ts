@@ -36,15 +36,18 @@ export const getStudentPokemons = async (studentId: string): Promise<any[]> => {
     }
 
     // Transform the data to match StudentCollectionPokemon interface
-    const transformedData = (data || []).map(collection => ({
-      id: collection.pokemon_catalog?.id || collection.pokemon_id,
-      name: collection.pokemon_catalog?.name || `Pokemon #${collection.pokemon_id}`,
-      image: collection.pokemon_catalog?.image || '',
-      type: collection.pokemon_catalog?.type || 'unknown',
-      rarity: collection.pokemon_catalog?.rarity || 'common',
-      powerStats: collection.pokemon_catalog?.power_stats || {},
-      collectionId: collection.id
-    }));
+    const transformedData = (data || []).map(collection => {
+      const pokemonData = collection.pokemon_catalog;
+      return {
+        id: pokemonData?.id || collection.pokemon_id,
+        name: pokemonData?.name || `Pokemon #${collection.pokemon_id}`,
+        image: pokemonData?.image || '',
+        type: pokemonData?.type || 'unknown',
+        rarity: pokemonData?.rarity || 'common',
+        powerStats: pokemonData?.power_stats || {},
+        collectionId: collection.id
+      };
+    });
 
     return transformedData;
   } catch (error) {
