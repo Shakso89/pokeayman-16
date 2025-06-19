@@ -36,53 +36,72 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({
   const [loading, setLoading] = useState(true);
   const [removing, setRemoving] = useState<string | null>(null);
 
+  // Debug logging
   useEffect(() => {
-    const loadTeachers = async () => {
-      try {
-        const teacherIds = [
-          ...(classData.teacherId ? [classData.teacherId] : []),
-          ...(classData.assistants || [])
-        ].filter(Boolean);
+    console.log("ClassTeachers - classData:", classData);
+    console.log("ClassTeachers - teacherId:", classData.teacherId);
+    console.log("ClassTeachers - assistants:", classData.assistants);
+  }, [classData]);
 
-        if (teacherIds.length === 0) {
-          setTeachers([]);
-          setLoading(false);
-          return;
-        }
+  useEffect(() => {
+    loadTeachers();
+  }, [classData.teacherId, classData.assistants]);
 
-        const { data: supabaseTeachers, error } = await supabase
-          .from('teachers')
-          .select('id, username, display_name, email, role')
-          .in('id', teacherIds);
+  const loadTeachers = async () => {
+    try {
+      setLoading(true);
+      
+      // Get all teacher IDs (main teacher + assistants)
+      const teacherIds = [
+        ...(classData.teacherId ? [classData.teacherId] : []),
+        ...(classData.assistants || [])
+      ].filter(Boolean);
 
-        if (error) {
-          console.error("Error fetching teachers from Supabase:", error);
-          const localTeachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-          const filteredTeachers = localTeachers.filter((teacher: any) =>
-            teacherIds.includes(teacher.id)
-          );
-          setTeachers(filteredTeachers);
-        } else {
-          setTeachers(supabaseTeachers || []);
-        }
-      } catch (error) {
-        console.error("Error loading teachers:", error);
+      console.log("ClassTeachers - Fetching teachers for IDs:", teacherIds);
+
+      if (teacherIds.length === 0) {
+        console.log("ClassTeachers - No teacher IDs found");
+        setTeachers([]);
+        setLoading(false);
+        return;
+      }
+
+      // Try to fetch from Supabase first
+      const { data: supabaseTeachers, error } = await supabase
+        .from('teachers')
+        .select('id, username, display_name, email, role')
+        .in('id', teacherIds);
+
+      if (error) {
+        console.error("ClassTeachers - Error fetching from Supabase:", error);
+        // Fallback to localStorage
         const localTeachers = JSON.parse(localStorage.getItem("teachers") || "[]");
-        const teacherIds = [
-          ...(classData.teacherId ? [classData.teacherId] : []),
-          ...(classData.assistants || [])
-        ].filter(Boolean);
         const filteredTeachers = localTeachers.filter((teacher: any) =>
           teacherIds.includes(teacher.id)
         );
+        console.log("ClassTeachers - Using localStorage teachers:", filteredTeachers);
         setTeachers(filteredTeachers);
-      } finally {
-        setLoading(false);
+      } else {
+        console.log("ClassTeachers - Loaded teachers from Supabase:", supabaseTeachers);
+        setTeachers(supabaseTeachers || []);
       }
-    };
-
-    loadTeachers();
-  }, [classData.teacherId, classData.assistants]);
+    } catch (error) {
+      console.error("ClassTeachers - Error loading teachers:", error);
+      // Final fallback to localStorage
+      const localTeachers = JSON.parse(localStorage.getItem("teachers") || "[]");
+      const teacherIds = [
+        ...(classData.teacherId ? [classData.teacherId] : []),
+        ...(classData.assistants || [])
+      ].filter(Boolean);
+      const filteredTeachers = localTeachers.filter((teacher: any) =>
+        teacherIds.includes(teacher.id)
+      );
+      console.log("ClassTeachers - Final fallback to localStorage:", filteredTeachers);
+      setTeachers(filteredTeachers);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const handleRemoveAssistant = async (assistantId: string) => {
     if (!classData.id) {
@@ -139,7 +158,10 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({
           </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-500">Loading teachers...</p>
+          <div className="flex items-center justify-center py-4">
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />
+            <p className="text-sm text-gray-500">Loading teachers...</p>
+          </div>
         </CardContent>
       </Card>
     );
@@ -149,6 +171,11 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({
   const assistantTeachers = teachers.filter(t =>
     classData.assistants && classData.assistants.includes(t.id)
   );
+
+  console.log("ClassTeachers - Rendering with:");
+  console.log("  - mainTeacher:", mainTeacher);
+  console.log("  - assistantTeachers:", assistantTeachers);
+  console.log("  - total teachers:", teachers.length);
 
   return (
     <Card className="glass-card">
