@@ -19,8 +19,9 @@ interface Teacher {
 
 interface ClassTeachersProps {
   classData: {
-    teacherId: string | null;
-    assistants: string[];
+    teacherId?: string | null;
+    teacher_id?: string | null;
+    assistants?: string[];
     id?: string;
   };
   canRemoveAssistants?: boolean;
@@ -36,16 +37,19 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({
   const [loading, setLoading] = useState(true);
   const [removing, setRemoving] = useState<string | null>(null);
 
+  // Get the actual teacher ID (handle both possible field names)
+  const actualTeacherId = classData.teacherId || classData.teacher_id;
+
   // Debug logging
   useEffect(() => {
     console.log("ClassTeachers - classData:", classData);
-    console.log("ClassTeachers - teacherId:", classData.teacherId);
+    console.log("ClassTeachers - actualTeacherId:", actualTeacherId);
     console.log("ClassTeachers - assistants:", classData.assistants);
-  }, [classData]);
+  }, [classData, actualTeacherId]);
 
   useEffect(() => {
     loadTeachers();
-  }, [classData.teacherId, classData.assistants]);
+  }, [actualTeacherId, classData.assistants]);
 
   const loadTeachers = async () => {
     try {
@@ -53,7 +57,7 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({
       
       // Get all teacher IDs (main teacher + assistants)
       const teacherIds = [
-        ...(classData.teacherId ? [classData.teacherId] : []),
+        ...(actualTeacherId ? [actualTeacherId] : []),
         ...(classData.assistants || [])
       ].filter(Boolean);
 
@@ -90,7 +94,7 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({
       // Final fallback to localStorage
       const localTeachers = JSON.parse(localStorage.getItem("teachers") || "[]");
       const teacherIds = [
-        ...(classData.teacherId ? [classData.teacherId] : []),
+        ...(actualTeacherId ? [actualTeacherId] : []),
         ...(classData.assistants || [])
       ].filter(Boolean);
       const filteredTeachers = localTeachers.filter((teacher: any) =>
@@ -167,7 +171,7 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({
     );
   }
 
-  const mainTeacher = teachers.find(t => t.id === classData.teacherId);
+  const mainTeacher = teachers.find(t => t.id === actualTeacherId);
   const assistantTeachers = teachers.filter(t =>
     classData.assistants && classData.assistants.includes(t.id)
   );
@@ -176,6 +180,7 @@ const ClassTeachers: React.FC<ClassTeachersProps> = ({
   console.log("  - mainTeacher:", mainTeacher);
   console.log("  - assistantTeachers:", assistantTeachers);
   console.log("  - total teachers:", teachers.length);
+  console.log("  - assistants array:", classData.assistants);
 
   return (
     <Card className="glass-card">
