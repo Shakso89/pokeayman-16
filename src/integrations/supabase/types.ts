@@ -854,6 +854,7 @@ export type Database = {
           password: string
           photos: Json | null
           profile_photo: string | null
+          role: Database["public"]["Enums"]["app_role"]
           school_id: string | null
           social_links: Json | null
           subscription_type: string | null
@@ -873,6 +874,7 @@ export type Database = {
           password: string
           photos?: Json | null
           profile_photo?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
           school_id?: string | null
           social_links?: Json | null
           subscription_type?: string | null
@@ -892,6 +894,7 @@ export type Database = {
           password?: string
           photos?: Json | null
           profile_photo?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
           school_id?: string | null
           social_links?: Json | null
           subscription_type?: string | null
@@ -913,6 +916,7 @@ export type Database = {
           assigned_by: string | null
           id: string
           manager_school_id: string | null
+          role: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Insert: {
@@ -920,6 +924,7 @@ export type Database = {
           assigned_by?: string | null
           id?: string
           manager_school_id?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
           user_id: string
         }
         Update: {
@@ -927,6 +932,7 @@ export type Database = {
           assigned_by?: string | null
           id?: string
           manager_school_id?: string | null
+          role?: Database["public"]["Enums"]["app_role"]
           user_id?: string
         }
         Relationships: [
@@ -944,6 +950,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      assign_user_role: {
+        Args: {
+          target_user_id: string
+          new_role: string
+          assigned_school_id?: string
+        }
+        Returns: boolean
+      }
       award_star_of_class: {
         Args: { p_student_id: string; p_class_id: string; p_awarded_by: string }
         Returns: boolean
@@ -958,6 +972,10 @@ export type Database = {
       }
       gift_credits_in_school: {
         Args: { target_user_id: string; credit_amount: number; reason?: string }
+        Returns: boolean
+      }
+      has_role: {
+        Args: { _user_id: string; _role: string }
         Returns: boolean
       }
       manage_user_credits: {
