@@ -21,7 +21,6 @@ interface ClassWithStudentCount {
   name: string;
   description?: string;
   createdAt: string;
-  created_at: string;
   isPublic: boolean;
   studentCount: number;
 }
@@ -52,7 +51,11 @@ const ClassList: React.FC<ClassListProps> = ({ schoolId, teacherId, onRefresh })
             .eq('class_id', classItem.id);
 
           return {
-            ...classItem,
+            id: classItem.id,
+            name: classItem.name,
+            description: classItem.description,
+            createdAt: classItem.createdAt,
+            isPublic: classItem.isPublic || false,
             studentCount: studentCount || 0
           };
         })
@@ -120,7 +123,7 @@ const ClassList: React.FC<ClassListProps> = ({ schoolId, teacherId, onRefresh })
           <CardContent>
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-500">
-                <p>{t("created")}: {new Date(classItem.createdAt || classItem.created_at).toLocaleDateString()}</p>
+                <p>{t("created")}: {new Date(classItem.createdAt).toLocaleDateString()}</p>
                 {classItem.isPublic ? (
                   <Badge variant="outline" className="mt-1">
                     {t("public")}
