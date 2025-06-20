@@ -37,16 +37,16 @@ const AdminOverviewTab: React.FC = () => {
   useEffect(() => {
     const loadStats = async () => {
       try {
-        // Load basic counts
-        const [teachersData, studentsData, schoolsData, homeworkData, creditsData] = await Promise.all([
+        // Load basic counts with proper error handling
+        const [teachersResult, studentsResult, schoolsResult, homeworkResult, creditsResult] = await Promise.allSettled([
           supabase.from('teachers').select('id, role', { count: 'exact' }),
-          supabase.from('students').select('id', { count: 'exact' }),
+          supabase.from('student_profiles').select('id', { count: 'exact' }), // Use student_profiles instead of students
           supabase.from('schools').select('id', { count: 'exact' }),
           supabase.from('homework').select('id', { count: 'exact' }),
           supabase.from('teacher_credits').select('credits, unlimited_credits')
         ]);
 
-        // Calculate role breakdown
+        // Initialize role breakdown
         const roleBreakdown = {
           teachers: 0,
           seniorTeachers: 0,
@@ -54,33 +54,64 @@ const AdminOverviewTab: React.FC = () => {
           admins: 0
         };
 
-        teachersData.data?.forEach(teacher => {
-          switch (teacher.role) {
-            case 'teacher':
-              roleBreakdown.teachers++;
-              break;
-            case 'senior_teacher':
-              roleBreakdown.seniorTeachers++;
-              break;
-            case 'supervisor':
-              roleBreakdown.supervisors++;
-              break;
-            case 'admin':
-              roleBreakdown.admins++;
-              break;
-          }
-        });
+        let totalTeachers = 0;
+        let totalStudents = 0;
+        let totalSchools = 0;
+        let totalHomework = 0;
+        let totalCredits = 0;
 
-        // Calculate total credits
-        const totalCredits = creditsData.data?.reduce((sum, credit) => {
-          return sum + (credit.unlimited_credits ? 0 : credit.credits);
-        }, 0) || 0;
+        // Process teachers data
+        if (teachersResult.status === 'fulfilled' && teachersResult.value.data) {
+          totalTeachers = teachersResult.value.count || 0;
+          
+          teachersResult.value.data.forEach(teacher => {
+            switch (teacher.role) {
+              case 'teacher':
+                roleBreakdown.teachers++;
+                break;
+              case 'senior_teacher':
+                roleBreakdown.seniorTeachers++;
+                break;
+              case 'supervisor':
+                roleBreakdown.supervisors++;
+                break;
+              case 'admin':
+                roleBreakdown.admins++;
+                break;
+              default:
+                roleBreakdown.teachers++; // Default to teacher if role is not set
+                break;
+            }
+          });
+        }
+
+        // Process students data
+        if (studentsResult.status === 'fulfilled') {
+          totalStudents = studentsResult.value.count || 0;
+        }
+
+        // Process schools data
+        if (schoolsResult.status === 'fulfilled') {
+          totalSchools = schoolsResult.value.count || 0;
+        }
+
+        // Process homework data
+        if (homeworkResult.status === 'fulfilled') {
+          totalHomework = homeworkResult.value.count || 0;
+        }
+
+        // Process credits data
+        if (creditsResult.status === 'fulfilled' && creditsResult.value.data) {
+          totalCredits = creditsResult.value.data.reduce((sum, credit) => {
+            return sum + (credit.unlimited_credits ? 0 : credit.credits || 0);
+          }, 0);
+        }
 
         setStats({
-          totalTeachers: teachersData.count || 0,
-          totalStudents: studentsData.count || 0,
-          totalSchools: schoolsData.count || 0,
-          totalHomework: homeworkData.count || 0,
+          totalTeachers,
+          totalStudents,
+          totalSchools,
+          totalHomework,
           totalCreditsInSystem: totalCredits,
           roleBreakdown
         });

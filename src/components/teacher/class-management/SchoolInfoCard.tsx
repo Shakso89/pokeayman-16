@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { School, Users, Eye, RefreshCw } from "lucide-react";
@@ -7,6 +7,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import SchoolPokemonPoolDialog from "@/components/dialogs/SchoolPokemonPoolDialog";
 import { forceUpdateAllSchoolPools } from "@/utils/pokemon/schoolPokemon";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface SchoolInfoCardProps {
   schoolId: string;
@@ -15,16 +16,82 @@ interface SchoolInfoCardProps {
   classId?: string;
 }
 
+interface SchoolData {
+  name: string;
+  studentCount: number;
+  classCount: number;
+}
+
 const SchoolInfoCard: React.FC<SchoolInfoCardProps> = ({ schoolId, teacherId, isAdmin, classId }) => {
   const { t } = useTranslation();
   const [schoolPoolOpen, setSchoolPoolOpen] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  
-  // Mock school data - in a real app, this would come from props or a hook
-  const schoolData = {
-    name: "School Name",
+  const [schoolData, setSchoolData] = useState<SchoolData>({
+    name: "Loading...",
     studentCount: 0,
     classCount: 0
+  });
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchSchoolData();
+  }, [schoolId]);
+
+  const fetchSchoolData = async () => {
+    if (!schoolId) return;
+    
+    setLoading(true);
+    try {
+      // Get school basic info
+      const { data: school, error: schoolError } = await supabase
+        .from('schools')
+        .select('name')
+        .eq('id', schoolId)
+        .single();
+
+      if (schoolError) {
+        console.error('Error fetching school:', schoolError);
+        return;
+      }
+
+      // Count classes in this school
+      const { count: classCount } = await supabase
+        .from('classes')
+        .select('*', { count: 'exact', head: true })
+        .eq('school_id', schoolId);
+
+      // Count students in this school through the student_classes join table
+      const { data: studentClassData, error: studentClassError } = await supabase
+        .from('student_classes')
+        .select(`
+          student_id,
+          classes!inner(school_id)
+        `)
+        .eq('classes.school_id', schoolId);
+
+      if (studentClassError) {
+        console.error('Error counting students:', studentClassError);
+      }
+
+      // Get unique student count
+      const uniqueStudentIds = new Set(studentClassData?.map(sc => sc.student_id) || []);
+      const studentCount = uniqueStudentIds.size;
+
+      setSchoolData({
+        name: school?.name || "Unknown School",
+        studentCount,
+        classCount: classCount || 0
+      });
+    } catch (error) {
+      console.error('Error fetching school data:', error);
+      toast({
+        title: t("error"),
+        description: "Failed to load school information",
+        variant: "destructive"
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleRefreshPool = async () => {
@@ -59,6 +126,16 @@ const SchoolInfoCard: React.FC<SchoolInfoCardProps> = ({ schoolId, teacherId, is
       setRefreshing(false);
     }
   };
+
+  if (loading) {
+    return (
+      <Card className="pokemon-card">
+        <CardContent className="text-center py-8">
+          <p className="text-gray-500">Loading school information...</p>
+        </CardContent>
+      </Card>
+    );
+  }
 
   return (
     <>

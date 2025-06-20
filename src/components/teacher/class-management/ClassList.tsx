@@ -8,6 +8,7 @@ import { Users, Settings, Trash2, Eye } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getClassesBySchool } from "@/utils/classSync/classOperations";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ClassListProps {
   schoolId: string;
@@ -15,10 +16,20 @@ interface ClassListProps {
   onRefresh: () => void;
 }
 
+interface ClassWithStudentCount {
+  id: string;
+  name: string;
+  description?: string;
+  createdAt: string;
+  created_at: string;
+  isPublic: boolean;
+  studentCount: number;
+}
+
 const ClassList: React.FC<ClassListProps> = ({ schoolId, teacherId, onRefresh }) => {
   const navigate = useNavigate();
   const { t } = useTranslation();
-  const [classes, setClasses] = useState<any[]>([]);
+  const [classes, setClasses] = useState<ClassWithStudentCount[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -31,7 +42,23 @@ const ClassList: React.FC<ClassListProps> = ({ schoolId, teacherId, onRefresh })
       console.log("Fetching classes for school:", schoolId);
       const schoolClasses = await getClassesBySchool(schoolId);
       console.log("Fetched classes:", schoolClasses);
-      setClasses(schoolClasses);
+      
+      // For each class, get the accurate student count from student_classes
+      const classesWithCounts = await Promise.all(
+        schoolClasses.map(async (classItem) => {
+          const { count: studentCount } = await supabase
+            .from('student_classes')
+            .select('*', { count: 'exact', head: true })
+            .eq('class_id', classItem.id);
+
+          return {
+            ...classItem,
+            studentCount: studentCount || 0
+          };
+        })
+      );
+
+      setClasses(classesWithCounts);
     } catch (error) {
       console.error("Error fetching classes:", error);
       toast({
@@ -83,7 +110,7 @@ const ClassList: React.FC<ClassListProps> = ({ schoolId, teacherId, onRefresh })
               <CardTitle className="text-lg">{classItem.name}</CardTitle>
               <Badge variant="secondary">
                 <Users className="h-3 w-3 mr-1" />
-                {classItem.students?.length || 0} {t("students")}
+                {classItem.studentCount} {t("students")}
               </Badge>
             </div>
             {classItem.description && (
