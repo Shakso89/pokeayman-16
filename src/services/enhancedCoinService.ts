@@ -55,7 +55,7 @@ export const awardCoinsToStudentEnhanced = async (
     // Get current teacher and student data
     const { data: studentData, error: studentError } = await supabase
       .from('student_profiles')
-      .select('username, display_name')
+      .select('username, display_name, coins')
       .eq('user_id', studentId)
       .single();
 
@@ -85,10 +85,11 @@ export const awardCoinsToStudentEnhanced = async (
       }
     }
 
-    // Update student_profiles table using SQL increment
+    // Calculate new balance and update student_profiles table
+    const newBalance = (studentData.coins || 0) + amount;
     const { data: updateData, error: updateError } = await supabase
       .from('student_profiles')
-      .update({ coins: supabase.raw(`coins + ${amount}`) })
+      .update({ coins: newBalance })
       .eq('user_id', studentId)
       .select('coins')
       .single();
@@ -102,8 +103,8 @@ export const awardCoinsToStudentEnhanced = async (
       return { success: false, error: "No student profile was updated - student may not exist" };
     }
 
-    const newBalance = updateData.coins;
-    debugService.log("Student profile updated successfully", { studentId, newBalance });
+    const finalBalance = updateData.coins;
+    debugService.log("Student profile updated successfully", { studentId, newBalance: finalBalance });
 
     // Insert into coin_history table
     const { error: historyError } = await supabase
@@ -144,11 +145,11 @@ export const awardCoinsToStudentEnhanced = async (
     debugService.log("Coin award completed successfully", {
       studentId,
       amount,
-      newBalance,
+      newBalance: finalBalance,
       reason
     });
 
-    return { success: true, newBalance };
+    return { success: true, newBalance: finalBalance };
 
   } catch (error) {
     debugService.logError("Unexpected error in coin award process", error);
