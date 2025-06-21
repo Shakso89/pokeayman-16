@@ -1,17 +1,14 @@
-
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { School, Users, BookOpen, Eye, RefreshCw, Trophy } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-
 interface SchoolWithCounts {
   id: string;
   name: string;
   student_count: number;
   class_count: number;
 }
-
 interface SchoolCardProps {
   school: SchoolWithCounts;
   onViewSchoolPool: (schoolId: string) => void;
@@ -19,7 +16,6 @@ interface SchoolCardProps {
   onSelectSchool: (schoolId: string) => void;
   onManageClasses: (schoolId: string) => void;
 }
-
 const SchoolCard: React.FC<SchoolCardProps> = ({
   school,
   onViewSchoolPool,
@@ -28,13 +24,10 @@ const SchoolCard: React.FC<SchoolCardProps> = ({
   onManageClasses
 }) => {
   const navigate = useNavigate();
-
   const handleViewRankings = () => {
     navigate(`/school-rankings/${school.id}`);
   };
-
-  return (
-    <Card className="hover:shadow-lg transition-shadow duration-200 h-full flex flex-col">
+  return <Card className="hover:shadow-lg transition-shadow duration-200 h-full flex flex-col">
       <CardHeader className="pb-3">
         <CardTitle className="flex items-center gap-2 text-lg">
           <School className="h-5 w-5 text-blue-600" />
@@ -56,57 +49,29 @@ const SchoolCard: React.FC<SchoolCardProps> = ({
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => onViewSchoolPool(school.id)}
-            className="flex items-center gap-1 text-xs"
-          >
+          <Button variant="outline" size="sm" onClick={() => onViewSchoolPool(school.id)} className="flex items-center gap-1 text-xs">
             <Eye className="h-3 w-3" />
             Pool
           </Button>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRefresh}
-            className="flex items-center gap-1 text-xs"
-          >
+          <Button variant="outline" size="sm" onClick={onRefresh} className="flex items-center gap-1 text-xs">
             <RefreshCw className="h-3 w-3" />
             Refresh
           </Button>
         </div>
 
         <div className="space-y-2 mt-auto">
-          <Button
-            variant="ranking"
-            onClick={handleViewRankings}
-            className="w-full flex items-center gap-2 text-sm"
-            size="sm"
-          >
+          <Button variant="ranking" onClick={handleViewRankings} className="w-full flex items-center gap-2 text-sm" size="sm">
             <Trophy className="h-4 w-4" />
             View Rankings
           </Button>
           
-          <Button
-            onClick={() => onSelectSchool(school.id)}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-            size="sm"
-          >
+          <Button onClick={() => onSelectSchool(school.id)} className="w-full bg-blue-600 hover:bg-blue-700 text-white" size="sm">
             Create Class
           </Button>
           
-          <Button
-            variant="secondary"
-            onClick={() => onManageClasses(school.id)}
-            className="w-full"
-            size="sm"
-          >
-            Manage Classes
-          </Button>
+          
         </div>
       </CardContent>
-    </Card>
-  );
+    </Card>;
 };
-
 export default SchoolCard;
