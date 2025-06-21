@@ -1,7 +1,9 @@
+
 import { debugService } from "./debugService";
 import { createCoinAwardNotification } from "@/utils/notificationService";
 import { createAdminNotification } from "./adminNotificationService";
 import { supabase } from "@/integrations/supabase/client";
+import { createBasicStudentProfile } from "./studentProfileManager";
 
 interface AwardCoinsResult {
   success: boolean;
@@ -26,13 +28,22 @@ export const awardCoinsToStudentEnhanced = async (
   type: string = "teacher_award",
   classId?: string
 ): Promise<{ success: boolean; error?: string; newBalance?: number }> => {
-  console.log("🚀 Starting enhanced coin award process");
+  console.log("🚀 Starting enhanced coin award process", { studentId, amount, reason });
   
   if (!validateInputs(studentId, amount)) {
     return { success: false, error: "Invalid input parameters" };
   }
 
   try {
+    // First, ensure the student profile exists
+    console.log("🔍 Ensuring student profile exists for coin award:", studentId);
+    const profileId = await createBasicStudentProfile(studentId);
+    if (!profileId) {
+      console.error("❌ Failed to create/find student profile for coins");
+      return { success: false, error: "Failed to create student profile" };
+    }
+    console.log("✅ Student profile ensured for coins:", profileId);
+
     debugService.log("Awarding coins to student", {
       studentId,
       amount,
@@ -74,23 +85,24 @@ export const awardCoinsToStudentEnhanced = async (
       }
     }
 
-    // Update student_profiles table
+    // Update student_profiles table using SQL increment
     const { data: updateData, error: updateError } = await supabase
       .from('student_profiles')
-      .update({ coins: () => `coins + ${amount}` })
+      .update({ coins: supabase.raw(`coins + ${amount}`) })
       .eq('user_id', studentId)
-      .select('coins');
+      .select('coins')
+      .single();
 
     if (updateError) {
       debugService.logError("Failed to update student profile", updateError);
       return { success: false, error: `Failed to update student profile: ${updateError.message}` };
     }
 
-    if (!updateData || updateData.length === 0) {
+    if (!updateData) {
       return { success: false, error: "No student profile was updated - student may not exist" };
     }
 
-    const newBalance = updateData[0].coins;
+    const newBalance = updateData.coins;
     debugService.log("Student profile updated successfully", { studentId, newBalance });
 
     // Insert into coin_history table

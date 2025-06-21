@@ -50,7 +50,7 @@ const SchoolRankingsPage: React.FC = () => {
       
       setLoading(true);
       try {
-        console.log("Fetching data for school:", schoolId);
+        console.log("📊 Fetching rankings data for school:", schoolId);
 
         // Fetch school details
         const { data: schoolData, error: schoolError } = await supabase
@@ -61,8 +61,10 @@ const SchoolRankingsPage: React.FC = () => {
 
         if (schoolError) throw schoolError;
         setSchool(schoolData);
+        console.log("🏫 School data:", schoolData);
 
         // Fetch student rankings from student_profiles table
+        console.log("👥 Fetching student profiles for school:", schoolId);
         const { data: studentsData, error: studentsError } = await supabase
           .from('student_profiles')
           .select(`
@@ -77,42 +79,98 @@ const SchoolRankingsPage: React.FC = () => {
           .order('coins', { ascending: false });
 
         if (studentsError) {
-          console.error("Error fetching students:", studentsError);
+          console.error("❌ Error fetching students:", studentsError);
           throw studentsError;
         }
 
-        console.log("Students data:", studentsData);
+        console.log("📋 Students data found:", studentsData?.length || 0);
 
         if (!studentsData || studentsData.length === 0) {
-          console.log("No students found for school:", schoolId);
+          console.log("⚠️ No students found for school:", schoolId);
+          
+          // Try to fetch from students table as fallback
+          const { data: fallbackStudents, error: fallbackError } = await supabase
+            .from('students')
+            .select('id, username, display_name, school_id')
+            .eq('school_id', schoolId);
+            
+          if (!fallbackError && fallbackStudents && fallbackStudents.length > 0) {
+            console.log("🔄 Found students in students table, creating profiles...");
+            
+            // Create profiles for these students
+            for (const student of fallbackStudents) {
+              try {
+                await supabase
+                  .from('student_profiles')
+                  .upsert({
+                    user_id: student.id,
+                    username: student.username,
+                    display_name: student.display_name || student.username,
+                    school_id: student.school_id,
+                    coins: 0,
+                    spent_coins: 0
+                  });
+              } catch (profileError) {
+                console.warn("Failed to create profile for:", student.id, profileError);
+              }
+            }
+            
+            // Retry fetching student profiles
+            const { data: retryStudentsData } = await supabase
+              .from('student_profiles')
+              .select(`
+                id,
+                user_id,
+                username,
+                display_name,
+                coins,
+                class_id
+              `)
+              .eq('school_id', schoolId)
+              .order('coins', { ascending: false });
+              
+            if (retryStudentsData) {
+              console.log("✅ Successfully fetched students after profile creation:", retryStudentsData.length);
+            }
+          }
+          
           setStudentRankings([]);
         } else {
           // Get class names and pokemon counts for each student
           const studentIds = studentsData.map(s => s.user_id);
           const classIds = [...new Set(studentsData.map(s => s.class_id).filter(Boolean))];
 
-          // Fetch class names
-          const { data: classesData } = await supabase
-            .from('classes')
-            .select('id, name')
-            .in('id', classIds);
+          console.log("🎯 Student IDs for Pokemon count:", studentIds.length);
+          console.log("📚 Class IDs for names:", classIds.length);
 
-          const classNamesMap = new Map();
-          if (classesData) {
-            classesData.forEach(cls => classNamesMap.set(cls.id, cls.name));
+          // Fetch class names
+          let classNamesMap = new Map();
+          if (classIds.length > 0) {
+            const { data: classesData } = await supabase
+              .from('classes')
+              .select('id, name')
+              .in('id', classIds);
+
+            if (classesData) {
+              classesData.forEach(cls => classNamesMap.set(cls.id, cls.name));
+              console.log("📝 Class names loaded:", classesData.length);
+            }
           }
 
           // Fetch pokemon counts
-          const { data: pokemonCounts } = await supabase
-            .from('pokemon_collections')
-            .select('student_id')
-            .in('student_id', studentIds);
+          let pokemonCountMap = new Map();
+          if (studentIds.length > 0) {
+            const { data: pokemonCounts } = await supabase
+              .from('pokemon_collections')
+              .select('student_id')
+              .in('student_id', studentIds);
 
-          const pokemonCountMap = new Map();
-          if (pokemonCounts) {
-            pokemonCounts.forEach(p => {
-              pokemonCountMap.set(p.student_id, (pokemonCountMap.get(p.student_id) || 0) + 1);
-            });
+            if (pokemonCounts) {
+              pokemonCounts.forEach(p => {
+                pokemonCountMap.set(p.student_id, (pokemonCountMap.get(p.student_id) || 0) + 1);
+              });
+              console.log("🎮 Pokemon counts loaded for students");
+            }
           }
 
           const studentsWithRank = studentsData.map((student, index) => ({
@@ -122,14 +180,16 @@ const SchoolRankingsPage: React.FC = () => {
             display_name: student.display_name || student.username,
             coins: student.coins || 0,
             rank: index + 1,
-            class_name: student.class_id ? classNamesMap.get(student.class_id) : 'No Class',
+            class_name: student.class_id ? classNamesMap.get(student.class_id) || 'No Class' : 'No Class',
             pokemon_count: pokemonCountMap.get(student.user_id) || 0
           }));
 
+          console.log("🏆 Student rankings prepared:", studentsWithRank.length);
           setStudentRankings(studentsWithRank);
         }
 
         // Fetch class rankings
+        console.log("📊 Fetching class rankings for school:", schoolId);
         const { data: classesData, error: classesError } = await supabase
           .from('classes')
           .select(`
@@ -141,6 +201,8 @@ const SchoolRankingsPage: React.FC = () => {
         if (classesError) throw classesError;
 
         if (classesData && classesData.length > 0) {
+          console.log("📚 Found classes for ranking:", classesData.length);
+          
           const classesWithStats = await Promise.all(classesData.map(async (classItem) => {
             const { data: classStudents } = await supabase
               .from('student_profiles')
@@ -166,11 +228,15 @@ const SchoolRankingsPage: React.FC = () => {
             .sort((a, b) => b.average_coins - a.average_coins)
             .map((classItem, index) => ({ ...classItem, rank: index + 1 }));
 
+          console.log("🏆 Class rankings prepared:", sortedClasses.length);
           setClassRankings(sortedClasses);
+        } else {
+          console.log("⚠️ No classes found for school:", schoolId);
+          setClassRankings([]);
         }
 
       } catch (error) {
-        console.error('Error fetching rankings:', error);
+        console.error('❌ Error fetching rankings:', error);
       } finally {
         setLoading(false);
       }
@@ -234,11 +300,11 @@ const SchoolRankingsPage: React.FC = () => {
           <TabsList className="grid w-full grid-cols-2 mb-6">
             <TabsTrigger value="students" className="text-base">
               <Users className="mr-2 h-4 w-4" />
-              Student Rankings
+              Student Rankings ({studentRankings.length})
             </TabsTrigger>
             <TabsTrigger value="classes" className="text-base">
               <Star className="mr-2 h-4 w-4" />
-              Class Rankings
+              Class Rankings ({classRankings.length})
             </TabsTrigger>
           </TabsList>
 
@@ -273,7 +339,11 @@ const SchoolRankingsPage: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-center text-gray-500 py-8">No students found in this school.</p>
+                  <div className="text-center text-gray-500 py-8">
+                    <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p className="text-lg font-medium">No students found in this school</p>
+                    <p className="text-sm">Students will appear here once they join classes in this school.</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
@@ -309,7 +379,11 @@ const SchoolRankingsPage: React.FC = () => {
                     ))}
                   </div>
                 ) : (
-                  <p className="text-center text-gray-500 py-8">No classes found in this school.</p>
+                  <div className="text-center text-gray-500 py-8">
+                    <Star className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                    <p className="text-lg font-medium">No classes found in this school</p>
+                    <p className="text-sm">Classes will appear here once they are created in this school.</p>
+                  </div>
                 )}
               </CardContent>
             </Card>
