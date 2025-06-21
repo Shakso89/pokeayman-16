@@ -2,18 +2,19 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Coins, Users, Trash, User } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Coins, Award, Trash2, Minus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import StudentBadges from "@/components/student/StudentBadges";
 
 interface Student {
   id: string;
+  user_id: string;
   username: string;
   display_name?: string;
-  avatar?: string;
-  coins?: number;
+  coins: number;
   school_id?: string;
-  user_id?: string; // Add user_id for proper student identification
+  pokemon_count?: number;
 }
 
 interface StudentsGridProps {
@@ -24,7 +25,17 @@ interface StudentsGridProps {
   onRemoveStudent: (studentId: string, studentName: string) => void;
   onRemoveCoins: (studentId: string, studentName: string) => void;
   onRemovePokemon: (studentId: string, studentName: string) => void;
-  classData: any;
+  classData?: {
+    id: string;
+    star_student_id?: string;
+    top_student_id?: string;
+    school_id?: string;
+    schools?: {
+      id: string;
+      name: string;
+      top_student_id?: string;
+    };
+  };
 }
 
 const StudentsGrid: React.FC<StudentsGridProps> = ({
@@ -35,151 +46,144 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
   onRemoveStudent,
   onRemoveCoins,
   onRemovePokemon,
-  classData,
+  classData
 }) => {
   const navigate = useNavigate();
 
   const handleViewProfile = (studentId: string) => {
-    navigate(`/student-profile/${studentId}`);
+    navigate(`/teacher/student/${studentId}`);
   };
 
-  const handleGiveCoins = (student: Student) => {
-    const studentName = student.display_name || student.username || "Student";
-    // Use user_id if available, otherwise fall back to id
-    const studentId = student.user_id || student.id;
-    console.log("Awarding coins to student:", { studentId, studentName, originalId: student.id });
-    onAwardCoins(studentId, studentName);
-  };
-
-  const handleManagePokemon = (student: Student) => {
-    const studentName = student.display_name || student.username || "Student";
-    const schoolId = student.school_id || classData?.schoolId || classData?.school_id || "";
-    // Use user_id if available, otherwise fall back to id
-    const studentId = student.user_id || student.id;
-    console.log("Managing Pokemon for:", { studentId, studentName, schoolId, originalId: student.id });
-    onManagePokemon(studentId, studentName, schoolId);
-  };
-
-  const handleRemoveCoins = (student: Student) => {
-    const studentName = student.display_name || student.username || "Student";
-    // Use user_id if available, otherwise fall back to id
-    const studentId = student.user_id || student.id;
-    onRemoveCoins(studentId, studentName);
-  };
-
-  const handleRemoveStudent = (student: Student) => {
-    const studentName = student.display_name || student.username || "Student";
-    onRemoveStudent(student.id, studentName); // Always use the database ID for removal
-  };
-
-  if (!students || students.length === 0) {
+  if (students.length === 0) {
     return (
-      <div className="text-center py-8">
-        <Users className="h-12 w-12 mx-auto text-gray-400 mb-4" />
-        <p className="text-gray-500">No students in this class yet.</p>
-      </div>
+      <Card>
+        <CardContent className="text-center py-12">
+          <p className="text-gray-500">No students in this class yet.</p>
+        </CardContent>
+      </Card>
     );
   }
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-      {students.map((student) => (
-        <Card key={student.id} className="hover:shadow-lg transition-shadow">
-          <CardContent className="p-4">
-            <div className="flex flex-col items-center space-y-3">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={student.avatar} alt={student.display_name || student.username} />
-                <AvatarFallback>
-                  {(student.display_name || student.username || "S")[0].toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
-              
-              <div className="text-center">
-                <h3 className="font-semibold text-lg">
-                  {student.display_name || student.username}
-                </h3>
-                <p className="text-sm text-gray-500">@{student.username}</p>
-                {student.user_id && (
-                  <p className="text-xs text-gray-400">ID: {student.user_id}</p>
-                )}
+      {students.map((student) => {
+        const studentName = student.display_name || student.username;
+        const schoolData = classData?.schools ? {
+          top_student_id: classData.schools.top_student_id
+        } : undefined;
+
+        return (
+          <Card key={student.id} className="hover:shadow-md transition-shadow">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1 relative">
+                  {/* Student Avatar with Badges */}
+                  <div className="relative inline-block">
+                    <div className="w-12 h-12 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center font-medium text-lg">
+                      {studentName[0]?.toUpperCase()}
+                    </div>
+                    <StudentBadges
+                      studentId={student.user_id}
+                      classData={{
+                        star_student_id: classData?.star_student_id,
+                        top_student_id: classData?.top_student_id
+                      }}
+                      schoolData={schoolData}
+                      size="sm"
+                      position="absolute"
+                    />
+                  </div>
+                  
+                  <div className="ml-14 -mt-12">
+                    <h3 className="font-semibold text-gray-900">{studentName}</h3>
+                    <p className="text-sm text-gray-500">@{student.username}</p>
+                    
+                    {/* Achievement badges as inline text */}
+                    <div className="flex items-center gap-2 mt-1">
+                      <StudentBadges
+                        studentId={student.user_id}
+                        classData={{
+                          star_student_id: classData?.star_student_id,
+                          top_student_id: classData?.top_student_id
+                        }}
+                        schoolData={schoolData}
+                        size="sm"
+                        position="relative"
+                      />
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div className="flex gap-4 w-full">
-                <div className="flex-1 bg-yellow-50 rounded-lg p-2 text-center">
-                  <div className="flex items-center justify-center gap-1">
+              {/* Stats */}
+              <div className="flex justify-between items-center mb-3">
+                <div className="flex gap-4 text-sm">
+                  <span className="flex items-center gap-1">
                     <Coins className="h-4 w-4 text-yellow-600" />
-                    <span className="text-sm font-medium text-yellow-800">Coins</span>
-                  </div>
-                  <p className="text-lg font-bold text-yellow-700">{student.coins || 0}</p>
-                </div>
-                
-                <div className="flex-1 bg-purple-50 rounded-lg p-2 text-center">
-                  <div className="flex items-center justify-center gap-1">
-                    <span className="text-sm font-medium text-purple-800">Pokémon</span>
-                  </div>
-                  <p className="text-lg font-bold text-purple-700">0</p>
+                    {student.coins || 0}
+                  </span>
+                  <span className="flex items-center gap-1">
+                    <Award className="h-4 w-4 text-purple-600" />
+                    {student.pokemon_count || 0}
+                  </span>
                 </div>
               </div>
 
-              <div className="w-full space-y-2">
+              {/* Action Buttons */}
+              <div className="flex flex-wrap gap-2">
                 <Button
-                  variant="outline"
                   size="sm"
-                  className="w-full"
-                  onClick={() => handleViewProfile(student.id)}
+                  variant="outline"
+                  onClick={() => handleViewProfile(student.user_id)}
+                  className="flex-1 min-w-0"
                 >
-                  <User className="h-4 w-4 mr-2" />
                   View Profile
                 </Button>
-
+                
                 {isClassCreator && (
                   <>
                     <Button
-                      variant="default"
                       size="sm"
-                      className="w-full bg-green-600 hover:bg-green-700"
-                      onClick={() => handleGiveCoins(student)}
+                      variant="outline"
+                      onClick={() => onAwardCoins(student.user_id, studentName)}
                     >
-                      <Coins className="h-4 w-4 mr-2" />
-                      Give Coins
+                      <Coins className="h-4 w-4" />
                     </Button>
                     
                     <Button
-                      variant="default"
                       size="sm"
-                      className="w-full bg-blue-600 hover:bg-blue-700"
-                      onClick={() => handleManagePokemon(student)}
+                      variant="outline"
+                      onClick={() => onManagePokemon(
+                        student.user_id, 
+                        studentName, 
+                        student.school_id || classData?.school_id || ""
+                      )}
                     >
-                      Manage Pokémon
+                      <Award className="h-4 w-4" />
                     </Button>
-
-                    <div className="flex gap-2">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => handleRemoveCoins(student)}
-                      >
-                        Remove Coins
-                      </Button>
-                      
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        className="flex-1"
-                        onClick={() => handleRemoveStudent(student)}
-                      >
-                        <Trash className="h-4 w-4 mr-1" />
-                        Remove
-                      </Button>
-                    </div>
+                    
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => onRemoveCoins(student.user_id, studentName)}
+                    >
+                      <Minus className="h-4 w-4" />
+                    </Button>
+                    
+                    <Button
+                      size="sm"
+                      variant="destructive"
+                      onClick={() => onRemoveStudent(student.user_id, studentName)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </>
                 )}
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        );
+      })}
     </div>
   );
 };

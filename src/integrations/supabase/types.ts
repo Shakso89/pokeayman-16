@@ -145,8 +145,10 @@ export type Database = {
           likes: string[] | null
           name: string
           school_id: string | null
+          star_student_id: string | null
           students: string[] | null
           teacher_id: string | null
+          top_student_id: string | null
         }
         Insert: {
           assistants?: string[] | null
@@ -157,8 +159,10 @@ export type Database = {
           likes?: string[] | null
           name: string
           school_id?: string | null
+          star_student_id?: string | null
           students?: string[] | null
           teacher_id?: string | null
+          top_student_id?: string | null
         }
         Update: {
           assistants?: string[] | null
@@ -169,8 +173,10 @@ export type Database = {
           likes?: string[] | null
           name?: string
           school_id?: string | null
+          star_student_id?: string | null
           students?: string[] | null
           teacher_id?: string | null
+          top_student_id?: string | null
         }
         Relationships: [
           {
@@ -618,6 +624,7 @@ export type Database = {
           created_by: string | null
           id: string
           name: string
+          top_student_id: string | null
           updated_at: string
         }
         Insert: {
@@ -625,6 +632,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           name: string
+          top_student_id?: string | null
           updated_at?: string
         }
         Update: {
@@ -632,6 +640,7 @@ export type Database = {
           created_by?: string | null
           id?: string
           name?: string
+          top_student_id?: string | null
           updated_at?: string
         }
         Relationships: [
@@ -962,9 +971,17 @@ export type Database = {
         Args: { p_student_id: string; p_class_id: string; p_awarded_by: string }
         Returns: boolean
       }
+      calculate_class_top_student: {
+        Args: { p_class_id: string }
+        Returns: string
+      }
       calculate_homework_streak: {
         Args: { p_student_id: string }
         Returns: number
+      }
+      calculate_school_top_student: {
+        Args: { p_school_id: string }
+        Returns: string
       }
       delete_expired_homework: {
         Args: Record<PropertyKey, never>
@@ -981,6 +998,10 @@ export type Database = {
       manage_user_credits: {
         Args: { target_user_id: string; credit_amount: number; reason?: string }
         Returns: boolean
+      }
+      update_top_students: {
+        Args: Record<PropertyKey, never>
+        Returns: undefined
       }
     }
     Enums: {

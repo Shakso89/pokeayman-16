@@ -68,7 +68,7 @@ const StudentProfilePokemonList: React.FC<StudentProfilePokemonListProps> = ({ p
     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
       {pokemons.map((pokemon) => (
         <div
-          key={`${pokemon.id}-${Math.random()}`} // Ensure unique keys
+          key={`${pokemon.id}-${Math.random()}`}
           className="rounded-lg border bg-white p-3 shadow-sm hover:shadow-md transition-shadow flex flex-col items-center text-center"
         >
           <div className="w-20 h-20 mb-2 flex items-center justify-center bg-gray-50 rounded-lg">

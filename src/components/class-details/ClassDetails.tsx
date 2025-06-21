@@ -195,6 +195,10 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
     fetchClassDetails();
   };
 
+  const handleStarAssigned = () => {
+    fetchClassDetails(); // Refresh class data to get updated badge info
+  };
+
   if (loading) {
     return (
       <div className="flex justify-center items-center h-64">
@@ -227,7 +231,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
       <ClassManagementHeader
         classData={classData}
         studentsCount={students.length}
-        isClassCreator={canManageClass()} // Use canManageClass for all management permissions
+        isClassCreator={canManageClass()}
         onAddStudent={() => setIsStudentListOpen(true)}
         onSwitchToHomework={handleSwitchToHomework}
         pendingSubmissions={pendingSubmissions}
@@ -235,6 +239,8 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         onViewSchoolPool={() => setSchoolPoolDialogOpen(true)}
         onAddAssistant={() => setIsAddAssistantOpen(true)}
         onManagePokemon={() => setIsManagePokemonOpen(true)}
+        students={students}
+        onStarAssigned={handleStarAssigned}
       />
 
       <div className="max-w-7xl mx-auto px-6 py-8">
@@ -253,7 +259,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
                     ...student,
                     school_id: student.school_id || classData?.schoolId || classData?.school_id
                   }))}
-                  isClassCreator={canManageClass()} // Use canManageClass for student management
+                  isClassCreator={canManageClass()}
                   onAwardCoins={(studentId, studentName) => {
                     console.log("Award coins clicked:", { studentId, studentName });
                     setGiveCoinsDialog({
@@ -289,7 +295,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
               <div className="lg:col-span-1">
                 <ClassTeachers 
                   classData={classData} 
-                  canRemoveAssistants={isClassCreator()} // Only class creator can remove assistants
+                  canRemoveAssistants={isClassCreator()}
                   onAssistantRemoved={handleAssistantRemoved}
                 />
               </div>
@@ -300,7 +306,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
             activeTab={activeTab}
             onTabChange={setActiveTab}
             students={students}
-            isClassCreator={canManageClass()} // Use canManageClass for homework management
+            isClassCreator={canManageClass()}
             classData={classData}
             teacherId={teacherId}
             onAwardCoins={(studentId, studentName) => setGiveCoinsDialog({
@@ -335,7 +341,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         removeStudentDialog={removeStudentDialog}
         onRemoveStudentDialogChange={setRemoveStudentDialog}
         onRemoveStudent={handleRemoveStudent}
-        isClassCreator={canManageClass()} // Use canManageClass for most dialogs
+        isClassCreator={canManageClass()}
         managePokemonDialog={managePokemonDialog}
         onManagePokemonDialogChange={setManagePokemonDialog}
         onPokemonRemoved={handlePokemonRemoved}
@@ -366,7 +372,7 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         onOpenChange={setIsManagePokemonOpen}
         students={students}
         schoolId={classData?.schoolId || classData?.school_id || ""}
-        isClassCreator={canManageClass()} // Use canManageClass for Pokemon management
+        isClassCreator={canManageClass()}
         onRefresh={fetchClassDetails}
       />
     </div>
