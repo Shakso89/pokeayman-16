@@ -11,11 +11,13 @@ import { useTranslation } from '@/hooks/useTranslation';
 
 interface StudentRanking {
   id: string;
+  user_id: string;
   username: string;
   display_name: string;
   coins: number;
   rank: number;
   class_name?: string;
+  pokemon_count: number;
 }
 
 interface ClassRanking {
@@ -25,12 +27,6 @@ interface ClassRanking {
   average_coins: number;
   total_coins: number;
   rank: number;
-}
-
-interface ClassData {
-  id: string;
-  name: string;
-  student_profiles: Array<{ coins: number }>;
 }
 
 const SchoolRankingsPage: React.FC = () => {
@@ -54,6 +50,8 @@ const SchoolRankingsPage: React.FC = () => {
       
       setLoading(true);
       try {
+        console.log("Fetching data for school:", schoolId);
+
         // Fetch school details
         const { data: schoolData, error: schoolError } = await supabase
           .from('schools')
@@ -64,63 +62,112 @@ const SchoolRankingsPage: React.FC = () => {
         if (schoolError) throw schoolError;
         setSchool(schoolData);
 
-        // Fetch student rankings
+        // Fetch student rankings from student_profiles table
         const { data: studentsData, error: studentsError } = await supabase
           .from('student_profiles')
           .select(`
             id,
+            user_id,
             username,
             display_name,
             coins,
-            class_id,
-            classes(name)
+            class_id
           `)
           .eq('school_id', schoolId)
           .order('coins', { ascending: false });
 
-        if (studentsError) throw studentsError;
+        if (studentsError) {
+          console.error("Error fetching students:", studentsError);
+          throw studentsError;
+        }
 
-        const studentsWithRank = (studentsData || []).map((student, index) => ({
-          id: student.id,
-          username: student.username,
-          display_name: student.display_name || student.username,
-          coins: student.coins,
-          rank: index + 1,
-          class_name: (student.classes as any)?.name || 'No Class'
-        }));
+        console.log("Students data:", studentsData);
 
-        setStudentRankings(studentsWithRank);
+        if (!studentsData || studentsData.length === 0) {
+          console.log("No students found for school:", schoolId);
+          setStudentRankings([]);
+        } else {
+          // Get class names and pokemon counts for each student
+          const studentIds = studentsData.map(s => s.user_id);
+          const classIds = [...new Set(studentsData.map(s => s.class_id).filter(Boolean))];
+
+          // Fetch class names
+          const { data: classesData } = await supabase
+            .from('classes')
+            .select('id, name')
+            .in('id', classIds);
+
+          const classNamesMap = new Map();
+          if (classesData) {
+            classesData.forEach(cls => classNamesMap.set(cls.id, cls.name));
+          }
+
+          // Fetch pokemon counts
+          const { data: pokemonCounts } = await supabase
+            .from('pokemon_collections')
+            .select('student_id')
+            .in('student_id', studentIds);
+
+          const pokemonCountMap = new Map();
+          if (pokemonCounts) {
+            pokemonCounts.forEach(p => {
+              pokemonCountMap.set(p.student_id, (pokemonCountMap.get(p.student_id) || 0) + 1);
+            });
+          }
+
+          const studentsWithRank = studentsData.map((student, index) => ({
+            id: student.id,
+            user_id: student.user_id,
+            username: student.username,
+            display_name: student.display_name || student.username,
+            coins: student.coins || 0,
+            rank: index + 1,
+            class_name: student.class_id ? classNamesMap.get(student.class_id) : 'No Class',
+            pokemon_count: pokemonCountMap.get(student.user_id) || 0
+          }));
+
+          setStudentRankings(studentsWithRank);
+        }
 
         // Fetch class rankings
         const { data: classesData, error: classesError } = await supabase
           .from('classes')
           .select(`
             id,
-            name,
-            student_profiles(coins)
+            name
           `)
           .eq('school_id', schoolId);
 
         if (classesError) throw classesError;
 
-        const classesWithStats = (classesData as ClassData[] || []).map((classItem) => {
-          const students = classItem.student_profiles || [];
-          const totalStudents = students.length;
-          const totalCoins = students.reduce((sum, student) => sum + (student.coins || 0), 0);
-          const averageCoins = totalStudents > 0 ? Math.round(totalCoins / totalStudents) : 0;
+        if (classesData && classesData.length > 0) {
+          const classesWithStats = await Promise.all(classesData.map(async (classItem) => {
+            const { data: classStudents } = await supabase
+              .from('student_profiles')
+              .select('coins')
+              .eq('class_id', classItem.id);
 
-          return {
-            id: classItem.id,
-            name: classItem.name,
-            total_students: totalStudents,
-            total_coins: totalCoins,
-            average_coins: averageCoins,
-            rank: 0
-          };
-        }).sort((a, b) => b.average_coins - a.average_coins)
-          .map((classItem, index) => ({ ...classItem, rank: index + 1 }));
+            const students = classStudents || [];
+            const totalStudents = students.length;
+            const totalCoins = students.reduce((sum, student) => sum + (student.coins || 0), 0);
+            const averageCoins = totalStudents > 0 ? Math.round(totalCoins / totalStudents) : 0;
 
-        setClassRankings(classesWithStats);
+            return {
+              id: classItem.id,
+              name: classItem.name,
+              total_students: totalStudents,
+              total_coins: totalCoins,
+              average_coins: averageCoins,
+              rank: 0
+            };
+          }));
+
+          const sortedClasses = classesWithStats
+            .sort((a, b) => b.average_coins - a.average_coins)
+            .map((classItem, index) => ({ ...classItem, rank: index + 1 }));
+
+          setClassRankings(sortedClasses);
+        }
 
       } catch (error) {
         console.error('Error fetching rankings:', error);
@@ -215,6 +262,7 @@ const SchoolRankingsPage: React.FC = () => {
                             <p className="font-semibold text-lg">{student.display_name}</p>
                             <p className="text-sm text-gray-600">@{student.username}</p>
                             <p className="text-xs text-gray-500">{student.class_name}</p>
+                            <p className="text-xs text-purple-600">{student.pokemon_count} Pokémon</p>
                           </div>
                         </div>
                         <div className="text-right">

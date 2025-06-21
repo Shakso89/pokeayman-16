@@ -118,22 +118,41 @@ export const awardPokemonToStudent = async (
       return { success: false, error: "Pokemon not found in catalog" };
     }
 
-    // Get student's school_id for the collection
-    const { data: studentData } = await supabase
+    // First try to get student profile by user_id, then by id
+    let studentData;
+    const { data: profileData, error: profileError } = await supabase
       .from('student_profiles')
-      .select('school_id, username, display_name')
+      .select('id, user_id, school_id, username, display_name')
       .eq('user_id', studentId)
-      .single();
+      .maybeSingle();
 
-    if (!studentData) {
-      return { success: false, error: "Student profile not found" };
+    if (profileError) {
+      console.error("Error fetching student profile:", profileError);
+      return { success: false, error: "Failed to fetch student profile" };
+    }
+
+    if (profileData) {
+      studentData = profileData;
+    } else {
+      // Try with id field
+      const { data: altProfileData, error: altError } = await supabase
+        .from('student_profiles')
+        .select('id, user_id, school_id, username, display_name')
+        .eq('id', studentId)
+        .maybeSingle();
+
+      if (altError || !altProfileData) {
+        console.error("Student profile not found for:", studentId);
+        return { success: false, error: "Student profile not found" };
+      }
+      studentData = altProfileData;
     }
 
     // Add the Pokemon to the student's collection in pokemon_collections table
     const { data: result, error: insertError } = await supabase
       .from('pokemon_collections')
       .insert({
-        student_id: studentId,
+        student_id: studentData.user_id, // Use user_id for consistency
         pokemon_id: pokemonId,
         school_id: studentData.school_id
       })
@@ -149,7 +168,7 @@ export const awardPokemonToStudent = async (
 
     // Send notification to student
     try {
-      await createPokemonAwardNotification(studentId, pokemon.name, reason);
+      await createPokemonAwardNotification(studentData.user_id, pokemon.name, reason);
     } catch (notificationError) {
       console.warn("Failed to send student notification:", notificationError);
     }
