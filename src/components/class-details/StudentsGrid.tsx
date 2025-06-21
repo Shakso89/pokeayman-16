@@ -73,79 +73,78 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
         } : undefined;
 
         return (
-          <Card key={student.id} className="hover:shadow-md transition-shadow">
+          <Card key={student.id} className="hover:shadow-md transition-shadow relative">
             <CardContent className="p-4">
-              <div className="flex items-start justify-between mb-3">
-                <div className="flex-1 relative">
-                  {/* Student Avatar with Badges */}
-                  <div className="relative inline-block">
-                    <div className="w-12 h-12 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center font-medium text-lg">
-                      {studentName[0]?.toUpperCase()}
-                    </div>
-                    <StudentBadges
-                      studentId={student.user_id}
-                      classData={{
-                        star_student_id: classData?.star_student_id,
-                        top_student_id: classData?.top_student_id
-                      }}
-                      schoolData={schoolData}
-                      size="sm"
-                      position="absolute"
-                    />
-                  </div>
-                  
-                  <div className="ml-14 -mt-12">
-                    <h3 className="font-semibold text-gray-900">{studentName}</h3>
-                    <p className="text-sm text-gray-500">@{student.username}</p>
-                    
-                    {/* Achievement badges as inline text */}
-                    <div className="flex items-center gap-2 mt-1">
-                      <StudentBadges
-                        studentId={student.user_id}
-                        classData={{
-                          star_student_id: classData?.star_student_id,
-                          top_student_id: classData?.top_student_id
-                        }}
-                        schoolData={schoolData}
-                        size="sm"
-                        position="relative"
-                      />
-                    </div>
-                  </div>
+              {/* Badges positioned at top-right of card */}
+              <div className="absolute -top-2 -right-2 z-10">
+                <StudentBadges
+                  studentId={student.user_id}
+                  classData={{
+                    star_student_id: classData?.star_student_id,
+                    top_student_id: classData?.top_student_id
+                  }}
+                  schoolData={schoolData}
+                  size="md"
+                  position="relative"
+                />
+              </div>
+
+              <div className="flex flex-col items-center text-center mb-4">
+                {/* Student Avatar */}
+                <div className="w-16 h-16 bg-blue-100 text-blue-800 rounded-full flex items-center justify-center font-bold text-xl mb-2">
+                  {studentName[0]?.toUpperCase()}
+                </div>
+                
+                {/* Student Name and Username */}
+                <h3 className="font-semibold text-gray-900 mb-1">{studentName}</h3>
+                <p className="text-sm text-gray-500 mb-2">@{student.username}</p>
+                
+                {/* Context badges below name */}
+                <div className="mb-3">
+                  <StudentBadges
+                    studentId={student.user_id}
+                    classData={{
+                      star_student_id: classData?.star_student_id,
+                      top_student_id: classData?.top_student_id
+                    }}
+                    schoolData={schoolData}
+                    size="sm"
+                    position="relative"
+                    showContext={true}
+                  />
                 </div>
               </div>
 
               {/* Stats */}
-              <div className="flex justify-between items-center mb-3">
-                <div className="flex gap-4 text-sm">
-                  <span className="flex items-center gap-1">
-                    <Coins className="h-4 w-4 text-yellow-600" />
-                    {student.coins || 0}
-                  </span>
-                  <span className="flex items-center gap-1">
-                    <Award className="h-4 w-4 text-purple-600" />
-                    {student.pokemon_count || 0}
-                  </span>
+              <div className="flex justify-center gap-6 mb-4">
+                <div className="flex items-center gap-1 text-sm">
+                  <Coins className="h-4 w-4 text-yellow-600" />
+                  <span>{student.coins || 0}</span>
+                </div>
+                <div className="flex items-center gap-1 text-sm">
+                  <Award className="h-4 w-4 text-purple-600" />
+                  <span>{student.pokemon_count || 0}</span>
                 </div>
               </div>
 
               {/* Action Buttons */}
-              <div className="flex flex-wrap gap-2">
+              <div className="space-y-2">
                 <Button
                   size="sm"
                   variant="outline"
                   onClick={() => handleViewProfile(student.user_id)}
-                  className="flex-1 min-w-0"
+                  className="w-full"
                 >
                   View Profile
                 </Button>
                 
                 {isClassCreator && (
-                  <>
+                  <div className="grid grid-cols-4 gap-1">
                     <Button
                       size="sm"
                       variant="outline"
                       onClick={() => onAwardCoins(student.user_id, studentName)}
+                      title="Award Coins"
                     >
                       <Coins className="h-4 w-4" />
                     </Button>
@@ -158,6 +157,7 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
                         studentName, 
                         student.school_id || classData?.school_id || ""
                       )}
+                      title="Manage Pokémon"
                     >
                       <Award className="h-4 w-4" />
                     </Button>
@@ -166,6 +166,7 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
                       size="sm"
                       variant="outline"
                       onClick={() => onRemoveCoins(student.user_id, studentName)}
+                      title="Remove Coins"
                     >
                       <Minus className="h-4 w-4" />
                     </Button>
@@ -174,10 +175,11 @@ const StudentsGrid: React.FC<StudentsGridProps> = ({
                       size="sm"
                       variant="destructive"
                       onClick={() => onRemoveStudent(student.user_id, studentName)}
+                      title="Remove Student"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
-                  </>
+                  </div>
                 )}
               </div>
             </CardContent>
