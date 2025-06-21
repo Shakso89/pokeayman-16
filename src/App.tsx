@@ -1,101 +1,69 @@
 
-import React, { useEffect, useState } from "react";
-import { Routes, Route, useLocation } from "react-router-dom";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as Sonner } from "@/components/ui/sonner";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { AuthProvider } from "@/contexts/AuthContext";
 import Index from "./pages/Index";
-import StudentLogin from "./pages/StudentLogin";
 import TeacherLogin from "./pages/TeacherLogin";
+import StudentLogin from "./pages/StudentLogin";
 import TeacherSignUp from "./pages/TeacherSignUp";
-import StudentDashboard from "./pages/StudentDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
-import ReportsPage from "./pages/ReportsPage";
-import Messages from "./pages/Messages";
-import RankingPage from "./pages/RankingPage";
+import StudentDashboard from "./pages/StudentDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import CreateClassPage from "./pages/CreateClassPage";
+import ClassDetailsPage from "./pages/ClassDetailsPage";
+import StudentClassDetailsPage from "./pages/StudentClassDetailsPage";
+import StudentDetailPage from "./pages/StudentDetailPage";
+import StudentProfilePage from "./pages/StudentProfilePage";
+import TeacherProfilePage from "./pages/TeacherProfilePage";
+import RankingPage from "./pages/RankingPage";
+import SchoolClassesPage from "./pages/SchoolClassesPage";
+import SchoolRankingsPage from "./pages/SchoolRankingsPage";
 import Contact from "./pages/Contact";
+import Messages from "./pages/Messages";
+import ReportsPage from "./pages/ReportsPage";
 import LogoutPage from "./pages/LogoutPage";
 import NotFound from "./pages/NotFound";
-import TeacherProfilePage from "./pages/TeacherProfilePage";
-import StudentProfilePage from "./pages/StudentProfilePage";
-import StudentDetailPage from "./pages/StudentDetailPage";
-import ClassDetailsPage from "./pages/ClassDetailsPage";
-import { useTranslation } from "./hooks/useTranslation";
-import { Toaster } from "@/components/ui/toaster";
-import { Analytics } from '@vercel/analytics/react';
-import { ThemeProvider } from "@/components/theme-provider";
-import CreateClassPage from "./pages/CreateClassPage";
-import StudentClassDetailsPage from "./pages/StudentClassDetailsPage";
-import SchoolClassesPage from "./pages/SchoolClassesPage";
 
-function ScrollToTop() {
-  const { pathname } = useLocation();
-  useEffect(() => {
-    window.scrollTo(0, 0);
-  }, [pathname]);
-  return null;
-}
-
-function Router() {
-  return (
-    <Routes>
-      <Route path="/" element={<Index />} />
-      <Route path="/student-login" element={<StudentLogin />} />
-      <Route path="/teacher-login" element={<TeacherLogin />} />
-      <Route path="/teacher-signup" element={<TeacherSignUp />} />
-      <Route path="/student-dashboard" element={<StudentDashboard />} />
-      <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
-      <Route path="/reports" element={<ReportsPage />} />
-      <Route path="/messages" element={<Messages />} />
-      <Route path="/teacher/messages" element={<Messages userType="teacher" />} />
-      <Route path="/student/messages" element={<Messages userType="student" />} />
-      <Route path="/rankings" element={<RankingPage />} />
-      <Route path="/student/rankings" element={<RankingPage />} />
-      <Route path="/admin-dashboard" element={<AdminDashboard />} />
-      <Route path="/contact" element={<Contact />} />
-      <Route path="/logout" element={<LogoutPage />} />
-      
-      {/* Profile routes */}
-      <Route path="/teacher-profile/:teacherId" element={<TeacherProfilePage />} />
-      <Route path="/student/profile/:studentId" element={<StudentProfilePage />} />
-      <Route path="/student-profile/:studentId" element={<StudentDetailPage />} />
-      <Route path="/student-detail/:studentId" element={<StudentDetailPage />} />
-      <Route path="/teacher/student/:studentId" element={<StudentDetailPage />} />
-      <Route path="/teacher/profile/:teacherId" element={<TeacherProfilePage />} />
-      
-      {/* Class routes - standardized parameter names */}
-      <Route path="/class-details/:classId" element={<ClassDetailsPage />} />
-      <Route path="/student/class/:classId" element={<StudentClassDetailsPage />} />
-      <Route path="/create-class/:schoolId" element={<CreateClassPage />} />
-      
-      {/* School routes */}
-      <Route path="/school/:schoolId/classes" element={<SchoolClassesPage />} />
-      
-      {/* Catch all */}
-      <Route path="*" element={<NotFound />} />
-    </Routes>
-  );
-}
+const queryClient = new QueryClient();
 
 function App() {
-  const { t } = useTranslation();
-  const [isMounted, setIsMounted] = useState(false);
-
-  useEffect(() => {
-    setIsMounted(true);
-  }, []);
-
-  if (!isMounted) {
-    return null;
-  }
-
   return (
-    <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-      <div dir="ltr" className="min-h-screen bg-transparent flex flex-col items-center">
-        <ScrollToTop />
-        <Router />
-        <Toaster />
-        <Analytics />
-      </div>
-    </ThemeProvider>
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
+            <Routes>
+              <Route path="/" element={<Index />} />
+              <Route path="/teacher-login" element={<TeacherLogin />} />
+              <Route path="/student-login" element={<StudentLogin />} />
+              <Route path="/teacher-signup" element={<TeacherSignUp />} />
+              <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
+              <Route path="/student-dashboard" element={<StudentDashboard />} />
+              <Route path="/admin-dashboard" element={<AdminDashboard />} />
+              <Route path="/create-class" element={<CreateClassPage />} />
+              <Route path="/class-details/:classId" element={<ClassDetailsPage />} />
+              <Route path="/student/class/:classId" element={<StudentClassDetailsPage />} />
+              <Route path="/student-detail/:studentId" element={<StudentDetailPage />} />
+              <Route path="/student-profile/:studentId" element={<StudentProfilePage />} />
+              <Route path="/teacher-profile/:teacherId" element={<TeacherProfilePage />} />
+              <Route path="/student/rankings" element={<RankingPage />} />
+              <Route path="/school/:schoolId/classes" element={<SchoolClassesPage />} />
+              <Route path="/school-rankings/:schoolId" element={<SchoolRankingsPage />} />
+              <Route path="/contact" element={<Contact />} />
+              <Route path="/messages" element={<Messages />} />
+              <Route path="/reports" element={<ReportsPage />} />
+              <Route path="/logout" element={<LogoutPage />} />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </BrowserRouter>
+        </AuthProvider>
+      </TooltipProvider>
+    </QueryClientProvider>
   );
 }
 

@@ -30,15 +30,21 @@ const StudentLogin: React.FC = () => {
           return;
         }
 
-        // Quick session check with short timeout
+        // Quick session check with timeout
         const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("timeout")), 2000)
+          setTimeout(() => reject(new Error("Session check timeout")), 3000)
         );
         
         const sessionPromise = supabase.auth.getSession();
         
         try {
-          const { data: { session } } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+          const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]) as any;
+          
+          if (error) {
+            console.error("Session check error:", error);
+            setCheckingSession(false);
+            return;
+          }
           
           if (session && session.user) {
             localStorage.setItem("isLoggedIn", "true");
@@ -50,7 +56,7 @@ const StudentLogin: React.FC = () => {
           console.log("Session check timed out, proceeding to login");
         }
       } catch (err) {
-        console.log("Session check completed with error:", err);
+        console.log("Session check error:", err);
       }
       
       setCheckingSession(false);
@@ -102,7 +108,7 @@ const StudentLogin: React.FC = () => {
 
   if (checkingSession) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center bg-transparent p-4">
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 p-4">
         <img
           src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png"
           alt="PokéAyman Logo"
@@ -118,7 +124,7 @@ const StudentLogin: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-transparent p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 p-4 relative overflow-hidden">
       <div className="absolute inset-0 pointer-events-none z-0">
         <PokemonOrbit count={8} />
       </div>
@@ -132,7 +138,7 @@ const StudentLogin: React.FC = () => {
         />
       </div>
 
-      <Card className="w-full max-w-md z-10 mt-20 backdrop-blur-sm bg-white/80 border-white/20 shadow-xl">
+      <Card className="w-full max-w-md z-10 mt-20 backdrop-blur-sm bg-white/90 border-white/20 shadow-xl">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold">Student Login</CardTitle>
           <CardDescription>Enter your login details to continue</CardDescription>
@@ -149,6 +155,7 @@ const StudentLogin: React.FC = () => {
                 onChange={(e) => setUsernameOrEmail(e.target.value)}
                 placeholder="Enter your username"
                 disabled={isProcessing || studentAuthLoading}
+                className="w-full"
               />
             </div>
 
@@ -163,6 +170,7 @@ const StudentLogin: React.FC = () => {
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="Enter your password"
                 disabled={isProcessing || studentAuthLoading}
+                className="w-full"
               />
             </div>
 
@@ -182,10 +190,17 @@ const StudentLogin: React.FC = () => {
             </Button>
           </form>
         </CardContent>
-        <CardFooter className="flex justify-center">
+        <CardFooter className="flex flex-col space-y-2">
           <Button
             variant="link"
-            className="px-0 text-blue-600"
+            className="px-0 text-blue-600 hover:text-blue-800"
+            onClick={() => navigate("/teacher-login")}
+          >
+            Are you a teacher? Login here
+          </Button>
+          <Button
+            variant="link"
+            className="px-0 text-gray-600 hover:text-gray-800"
             onClick={() => navigate("/")}
           >
             Back to Home
