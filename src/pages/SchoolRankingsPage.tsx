@@ -27,6 +27,12 @@ interface ClassRanking {
   rank: number;
 }
 
+interface ClassData {
+  id: string;
+  name: string;
+  student_profiles: Array<{ coins: number }>;
+}
+
 const SchoolRankingsPage: React.FC = () => {
   const { schoolId } = useParams<{ schoolId: string }>();
   const navigate = useNavigate();
@@ -80,7 +86,7 @@ const SchoolRankingsPage: React.FC = () => {
           display_name: student.display_name || student.username,
           coins: student.coins,
           rank: index + 1,
-          class_name: student.classes?.name || 'No Class'
+          class_name: (student.classes as any)?.name || 'No Class'
         }));
 
         setStudentRankings(studentsWithRank);
@@ -97,7 +103,7 @@ const SchoolRankingsPage: React.FC = () => {
 
         if (classesError) throw classesError;
 
-        const classesWithStats = (classesData || []).map((classItem) => {
+        const classesWithStats = (classesData as ClassData[] || []).map((classItem) => {
           const students = classItem.student_profiles || [];
           const totalStudents = students.length;
           const totalCoins = students.reduce((sum, student) => sum + (student.coins || 0), 0);
