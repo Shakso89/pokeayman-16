@@ -25,17 +25,24 @@ interface StudentPokemon extends Pokemon {
 interface ManagePokemonDialogProps {
   isOpen: boolean;
   onClose: () => void;
+  onOpenChange: (open: boolean) => void;
   studentId: string;
   studentName: string;
   schoolId: string;
+  onPokemonRemoved?: () => void;
+  isClassCreator?: boolean;
+  teacherId?: string;
+  classId?: string;
 }
 
 const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
   isOpen,
   onClose,
+  onOpenChange,
   studentId,
   studentName,
-  schoolId
+  schoolId,
+  onPokemonRemoved
 }) => {
   const [studentPokemon, setStudentPokemon] = useState<StudentPokemon[]>([]);
   const [availablePokemon, setAvailablePokemon] = useState<Pokemon[]>([]);
@@ -108,7 +115,6 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
   const loadAvailablePokemon = async () => {
     try {
-      // Load all Pokemon from catalog that could be awarded
       const { data, error } = await supabase
         .from('pokemon_catalog')
         .select('id, name, image, type, rarity')
@@ -170,6 +176,9 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
       });
 
       await loadStudentPokemon();
+      if (onPokemonRemoved) {
+        onPokemonRemoved();
+      }
     } catch (error) {
       console.error("Error removing Pokemon:", error);
       toast({
@@ -268,8 +277,15 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     </Card>
   );
 
+  const handleDialogChange = (open: boolean) => {
+    onOpenChange(open);
+    if (!open) {
+      onClose();
+    }
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={handleDialogChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Manage Pokémon - {studentName}</DialogTitle>
@@ -317,7 +333,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
               </div>
             ) : (
               <div className="text-center py-8">
-                <Award className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                <Award className="w-12 w-12 mx-auto mb-4 text-gray-300" />
                 <p className="text-gray-500">No Pokémon available to award</p>
               </div>
             )}
@@ -325,7 +341,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
         </Tabs>
 
         <div className="flex justify-end mt-6">
-          <Button variant="outline" onClick={onClose}>
+          <Button variant="outline" onClick={() => handleDialogChange(false)}>
             Close
           </Button>
         </div>
