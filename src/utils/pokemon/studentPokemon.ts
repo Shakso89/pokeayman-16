@@ -1,4 +1,3 @@
-
 import { Pokemon } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
 import { createPokemonAwardNotification } from "@/utils/notificationService";
@@ -41,10 +40,31 @@ const ensureStudentProfileExists = async (
       .eq('id', studentId)
       .maybeSingle();
 
+    // Generate a unique username to avoid conflicts
+    const baseUsername = studentInfo?.username || `student_${studentId.slice(0, 8)}`;
+    let uniqueUsername = baseUsername;
+    let counter = 1;
+
+    // Check if username exists and generate a unique one
+    while (true) {
+      const { data: existingUser } = await supabase
+        .from('student_profiles')
+        .select('id')
+        .eq('username', uniqueUsername)
+        .maybeSingle();
+      
+      if (!existingUser) {
+        break; // Username is unique
+      }
+      
+      uniqueUsername = `${baseUsername}_${counter}`;
+      counter++;
+    }
+
     // Use provided or existing info, with fallbacks
     const profileData = {
       user_id: studentId,
-      username: studentInfo?.username || `student_${studentId.slice(0, 8)}`,
+      username: uniqueUsername,
       display_name: studentInfo?.display_name || studentInfo?.username || `Student ${studentId.slice(0, 8)}`,
       school_id: schoolId || studentInfo?.school_id || null,
       class_id: classId || studentInfo?.class_id || null,
@@ -60,6 +80,21 @@ const ensureStudentProfileExists = async (
 
     if (createError) {
       console.error('❌ Error creating student profile:', createError);
+      
+      // If it still fails due to duplicate, try to fetch existing profile again
+      if (createError.code === '23505') {
+        const { data: retryProfile } = await supabase
+          .from('student_profiles')
+          .select('id')
+          .eq('user_id', studentId)
+          .maybeSingle();
+        
+        if (retryProfile) {
+          console.log("✅ Found existing profile after conflict:", retryProfile.id);
+          return { success: true, profileId: retryProfile.id };
+        }
+      }
+      
       return { success: false, error: `Failed to create student profile: ${createError.message}` };
     }
 
