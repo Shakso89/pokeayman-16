@@ -17,7 +17,7 @@ interface StudentData {
   avatar?: string;
   photos?: string[];
   classId?: string;
-  pokemonCollection?: { id: string; name: string; image: string; type?: string; rarity?: string }[];
+  pokemonCollection?: { id: number; name: string; image: string; type?: string; rarity?: string }[];
   contactInfo?: string;
 }
 
@@ -41,12 +41,18 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
     // This is just a placeholder since we're only viewing students in this context
   };
 
+  // Transform the pokemon collection to ensure proper types
+  const transformedPokemonCollection = (student.pokemonCollection || []).map(pokemon => ({
+    ...pokemon,
+    id: typeof pokemon.id === 'string' ? parseInt(pokemon.id) || 0 : pokemon.id
+  }));
+
   return (
     <>
       <Tabs defaultValue="photos">
         <TabsList>
           <TabsTrigger value="photos">Photos</TabsTrigger>
-          <TabsTrigger value="pokemon">Pokémon ({student.pokemonCollection?.length || 0})</TabsTrigger>
+          <TabsTrigger value="pokemon">Pokémon ({transformedPokemonCollection.length})</TabsTrigger>
           <TabsTrigger value="contact">Contact Info</TabsTrigger>
           {student.classId && <TabsTrigger value="classmates">Classmates</TabsTrigger>}
         </TabsList>
@@ -75,11 +81,11 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
             <CardHeader>
               <CardTitle>Pokémon Collection</CardTitle>
               <p className="text-sm text-gray-500">
-                {student.pokemonCollection?.length || 0} Pokémon collected
+                {transformedPokemonCollection.length} Pokémon collected
               </p>
             </CardHeader>
             <CardContent>
-              <StudentProfilePokemonList pokemons={student.pokemonCollection || []} />
+              <StudentProfilePokemonList pokemons={transformedPokemonCollection} />
             </CardContent>
           </Card>
         </TabsContent>
