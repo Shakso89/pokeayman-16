@@ -108,7 +108,7 @@ export const getSchoolAvailablePokemon = async (schoolId: string): Promise<Schoo
           image: item.pokemon_catalog.image,
           type: item.pokemon_catalog.type,
           rarity: item.pokemon_catalog.rarity,
-          powerStats: item.pokemon_catalog.power_stats
+          powerStats: item.pokemon_catalog.power_stats || {}
         };
       })
       .filter((p): p is SchoolPoolPokemon => p !== null);

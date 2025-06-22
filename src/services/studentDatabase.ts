@@ -13,6 +13,29 @@ export interface StudentProfile {
   avatar_url?: string;
 }
 
+export interface Achievement {
+  id: string;
+  student_id: string;
+  type: string;
+  value: number;
+  is_active: boolean;
+  awarded_at: string;
+  awarded_by?: string;
+  class_id?: string;
+  school_id?: string;
+  metadata?: any;
+}
+
+export interface MysteryBallHistoryRecord {
+  id: string;
+  student_id: string;
+  result_type: string;
+  pokemon_name?: string;
+  pokemon_id?: string;
+  coins_amount?: number;
+  created_at: string;
+}
+
 // Get or create student profile
 export const getOrCreateStudentProfile = async (
   userId: string,
@@ -63,6 +86,27 @@ export const getOrCreateStudentProfile = async (
     
   } catch (error) {
     console.error("❌ Error in getOrCreateStudentProfile:", error);
+    return null;
+  }
+};
+
+// Get student profile by ID
+export const getStudentProfileById = async (studentId: string): Promise<StudentProfile | null> => {
+  try {
+    const { data: student, error } = await supabase
+      .from("students")
+      .select("*")
+      .eq("id", studentId)
+      .single();
+
+    if (error) {
+      console.error("❌ Error fetching student profile:", error);
+      return null;
+    }
+
+    return student;
+  } catch (error) {
+    console.error("❌ Error in getStudentProfileById:", error);
     return null;
   }
 };
@@ -167,6 +211,55 @@ export const addMysteryBallHistory = async (
     });
   } catch (error) {
     console.error("Error saving mystery ball history:", error);
+  }
+};
+
+// Get mystery ball history
+export const getMysteryBallHistory = async (studentId: string): Promise<MysteryBallHistoryRecord[]> => {
+  try {
+    const { data, error } = await supabase
+      .from('mystery_ball_history')
+      .select('*')
+      .eq('student_id', studentId)
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error("Error fetching mystery ball history:", error);
+      return [];
+    }
+
+    return data || [];
+  } catch (error) {
+    console.error("Error in getMysteryBallHistory:", error);
+    return [];
+  }
+};
+
+// Add Pokemon to collection
+export const addPokemonToCollection = async (
+  studentId: string,
+  pokemonId: number,
+  schoolId: string
+): Promise<boolean> => {
+  try {
+    const { error } = await supabase
+      .from('pokemon_collections')
+      .insert({
+        student_id: studentId,
+        pokemon_id: pokemonId,
+        school_id: schoolId
+      });
+
+    if (error) {
+      console.error("❌ Error adding Pokemon to collection:", error);
+      return false;
+    }
+
+    console.log("✅ Pokemon added to collection successfully");
+    return true;
+  } catch (error) {
+    console.error("❌ Error in addPokemonToCollection:", error);
+    return false;
   }
 };
 

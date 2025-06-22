@@ -24,9 +24,9 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
     try {
       let studentProfile: StudentProfile | null = null;
 
-      // If we have userId and username, try to get or create profile
-      if (userId && username) {
-        studentProfile = await getOrCreateStudentProfile(userId, username, undefined, schoolId);
+      // If we have userId, try to get or create profile
+      if (userId) {
+        studentProfile = await getOrCreateStudentProfile(userId, undefined, schoolId);
       } else {
         // Otherwise get existing profile by student ID
         studentProfile = await getStudentProfileById(studentId);
