@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Loader2 } from "lucide-react";
@@ -357,6 +358,9 @@ const ClassDetails: React.FC<ClassDetailsProps> = ({ classId }) => {
         studentId={giveCoinsDialog.studentId || removeCoinsDialog.studentId}
         teacherId={teacherId}
         students={students}
+        teacherManagePokemonDialogOpen={isManagePokemonOpen}
+        onTeacherManagePokemonDialogChange={setIsManagePokemonOpen}
+        onRefresh={fetchClassDetails}
       />
 
       <AddAssistantDialog
