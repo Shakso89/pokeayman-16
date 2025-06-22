@@ -21,6 +21,21 @@ interface HomeworkTabProps {
   teacherId: string;
 }
 
+// Define the raw data type from Supabase
+interface HomeworkQueryResult {
+  id: string;
+  title: string;
+  description: string;
+  due_date: string;
+  class_id: string;
+  created_at: string;
+  classes: {
+    name: string;
+  } | {
+    name: string;
+  }[] | null;
+}
+
 const HomeworkTab: React.FC<HomeworkTabProps> = ({ teacherId }) => {
   const [homework, setHomework] = useState<Homework[]>([]);
   const [loading, setLoading] = useState(true);
@@ -50,7 +65,7 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ teacherId }) => {
       if (error) throw error;
       
       // Transform the data to match our interface
-      const transformedData: Homework[] = (data || []).map(item => {
+      const transformedData: Homework[] = (data as HomeworkQueryResult[] || []).map(item => {
         // Handle the classes property more explicitly
         let className = 'Unknown Class';
         if (item.classes) {
