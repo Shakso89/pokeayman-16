@@ -41,6 +41,14 @@ const SchoolRankingsPage: React.FC = () => {
   const userType = localStorage.getItem("userType") || "teacher";
   const userName = localStorage.getItem(userType === 'teacher' ? 'teacherDisplayName' : 'studentDisplayName') || 'User';
 
+  const handleStudentClick = (studentId: string) => {
+    navigate(`/teacher/student/${studentId}`);
+  };
+
+  const handleBackClick = () => {
+    navigate(-1);
+  };
+
   useEffect(() => {
     const fetchData = async () => {
       if (!schoolId) {
@@ -272,7 +280,7 @@ const SchoolRankingsPage: React.FC = () => {
         <Card>
           <CardContent className="p-8 text-center">
             <p className="text-xl font-semibold mb-4">School not found</p>
-            <Button onClick={() => navigate(-1)}>
+            <Button onClick={handleBackClick}>
               <ArrowLeft className="mr-2 h-4 w-4" />
               Go Back
             </Button>
@@ -287,7 +295,7 @@ const SchoolRankingsPage: React.FC = () => {
       <AppHeader userType={userType as "student" | "teacher"} userName={userName} />
       <div className="container mx-auto py-8 max-w-6xl px-4">
         <div className="flex items-center mb-6">
-          <Button variant="ghost" size="icon" onClick={() => navigate(-1)} className="mr-4">
+          <Button variant="ghost" size="icon" onClick={handleBackClick} className="mr-4">
             <ArrowLeft />
           </Button>
           <div className="flex items-center gap-2">
@@ -325,7 +333,12 @@ const SchoolRankingsPage: React.FC = () => {
                             {getRankIcon(student.rank)}
                           </div>
                           <div>
-                            <p className="font-semibold text-lg">{student.display_name}</p>
+                            <button
+                              onClick={() => handleStudentClick(student.user_id)}
+                              className="font-semibold text-lg text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                            >
+                              {student.display_name}
+                            </button>
                             <p className="text-sm text-gray-600">@{student.username}</p>
                             <p className="text-xs text-gray-500">{student.class_name}</p>
                             <p className="text-xs text-purple-600">{student.pokemon_count} Pokémon</p>

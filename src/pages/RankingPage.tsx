@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +50,14 @@ const RankingPage: React.FC = () => {
   const userId = userType === "teacher" ? localStorage.getItem("teacherId") : localStorage.getItem("studentId");
   const userClassId = localStorage.getItem("studentClassId") || "";
   const userSchoolId = localStorage.getItem("studentSchoolId") || localStorage.getItem("teacherSchoolId") || "";
+
+  const handleBackClick = () => {
+    navigate(-1);
+  };
+
+  const handleStudentNameClick = (studentId: string) => {
+    navigate(`/teacher/student/${studentId}`);
+  };
 
   // Get all available schools
   useEffect(() => {
@@ -321,7 +330,15 @@ const RankingPage: React.FC = () => {
                 </Avatar>
                 
                 <div>
-                  <p className="font-medium">{student.displayName}</p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStudentNameClick(student.id);
+                    }}
+                    className="font-medium text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                  >
+                    {student.displayName}
+                  </button>
                   <p className="text-sm text-gray-500">@{student.username}</p>
                   {studentClass && (
                     <Badge variant="outline" className="mt-1 font-normal text-xs flex items-center w-fit">
@@ -351,7 +368,7 @@ const RankingPage: React.FC = () => {
         
         <div className="container mx-auto py-8 px-4">
           <div className="flex items-center mb-6">
-            <Button variant="outline" onClick={() => navigate(-1)} className="mr-4">
+            <Button variant="outline" onClick={handleBackClick} className="mr-4">
               <ChevronLeft className="h-4 w-4 mr-1" />
               {t("back")}
             </Button>
@@ -369,7 +386,7 @@ const RankingPage: React.FC = () => {
       
       <div className="container mx-auto py-8 px-4">
         <div className="flex items-center mb-6">
-          <Button variant="outline" onClick={() => navigate(-1)} className="mr-4">
+          <Button variant="outline" onClick={handleBackClick} className="mr-4">
             <ChevronLeft className="h-4 w-4 mr-1" />
             {t("back")}
           </Button>

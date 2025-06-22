@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import PokemonList from "@/components/student/PokemonList";
 import { Card, CardContent } from "@/components/ui/card";
 import { supabase } from "@/integrations/supabase/client";
+import { useNavigate } from "react-router-dom";
 
 interface StudentWithScore {
   id: string;
@@ -26,9 +27,14 @@ interface ClassRankingTabProps {
 
 const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [students, setStudents] = useState<StudentWithScore[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentWithScore | null>(null);
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
+  
+  const handleStudentNameClick = (studentId: string) => {
+    navigate(`/teacher/student/${studentId}`);
+  };
   
   useEffect(() => {
     if (classId) {
@@ -173,7 +179,15 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
                 </Avatar>
                 
                 <div>
-                  <p className="font-medium text-sm">{student.displayName}</p>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleStudentNameClick(student.id);
+                    }}
+                    className="font-medium text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                  >
+                    {student.displayName}
+                  </button>
                   <p className="text-xs text-gray-500">@{student.username}</p>
                 </div>
               </div>
