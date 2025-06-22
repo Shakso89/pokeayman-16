@@ -207,7 +207,7 @@ const StudentDashboard: React.FC = () => {
                   <div className="text-gray-500">{t("loading-collection")}</div>
                 </div>
               ) : (
-                <StudentCollection pokemons={pokemons} />
+                <StudentCollection studentId={studentId} />
               )}
             </TabsContent>
             
