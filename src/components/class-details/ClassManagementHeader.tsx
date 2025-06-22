@@ -79,7 +79,7 @@ const ClassManagementHeader: React.FC<ClassManagementHeaderProps> = ({
       setIsRefreshing(false);
     }
   };
-  return <div className="border-transparent bg-transparent">
+  return <div className="transparent ">
       <div className="max-w-7xl mx-auto px-6 py-6">
         <div className="flex items-center justify-between mb-4">
           <Button variant="ghost" onClick={() => navigate("/teacher-dashboard")} className="text-gray-600 hover:text-gray-900">
