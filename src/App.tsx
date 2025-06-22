@@ -15,6 +15,7 @@ import ClassDetailsPage from "./pages/ClassDetailsPage";
 import RankingPage from "./pages/RankingPage";
 import SchoolRankingsPage from "./pages/SchoolRankingsPage";
 import StudentProfilePage from "./pages/StudentProfilePage";
+import StudentDetailPage from "./pages/StudentDetailPage";
 import LogoutPage from "./pages/LogoutPage";
 import NotFound from "./pages/NotFound";
 import "./App.css";
@@ -50,7 +51,8 @@ function App() {
             <Route path="/class-details/:classId" element={<ClassDetailsPage />} />
             <Route path="/ranking" element={<RankingPage />} />
             <Route path="/school-rankings/:schoolId" element={<SchoolRankingsPage />} />
-            <Route path="/teacher/student/:studentId" element={<StudentProfilePage />} />
+            <Route path="/teacher/student/:studentId" element={<StudentDetailPage />} />
+            <Route path="/student-profile/:studentId" element={<StudentDetailPage />} />
             <Route path="/logout" element={<LogoutPage />} />
             <Route path="*" element={<NotFound />} />
           </Routes>

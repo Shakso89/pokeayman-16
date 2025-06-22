@@ -26,9 +26,12 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
   const navigate = useNavigate();
 
   const handleViewProfile = () => {
-    if (studentId) {
-      // Always navigate to the modern student profile route
-      navigate(`/student-profile/${studentId}`);
+    if (studentId && studentId !== 'undefined') {
+      console.log("ProfileActions - Navigating to student profile with ID:", studentId);
+      // Use the correct route format that matches App.tsx
+      navigate(`/teacher/student/${studentId}`);
+    } else {
+      console.error("ProfileActions - Invalid student ID:", studentId);
     }
   };
 
@@ -55,6 +58,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
             variant="outline" 
             className="w-full flex items-center"
             onClick={handleViewProfile}
+            disabled={!studentId || studentId === 'undefined'}
           >
             <UserPlus className="h-4 w-4 mr-2" />
             {t("view-profile")}
@@ -77,4 +81,3 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
 };
 
 export default ProfileActions;
-

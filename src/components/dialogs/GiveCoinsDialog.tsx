@@ -48,6 +48,15 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
       return;
     }
 
+    if (!studentId || studentId === 'undefined') {
+      toast({
+        title: "Error",
+        description: "Invalid student ID",
+        variant: "destructive"
+      });
+      return;
+    }
+
     setIsLoading(true);
 
     try {
@@ -65,32 +74,34 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
         coinAmount,
         reason,
         "teacher_award",
-        classId
+        classId,
+        schoolId
       );
 
       if (result.success) {
         toast({
           title: "Success!",
-          description: `${coinAmount} coins awarded to ${studentName}`,
+          description: `Awarded ${coinAmount} coins to ${studentName}`,
         });
         
         onGiveCoins(coinAmount);
         onOpenChange(false);
+        
+        // Reset form
         setAmount("10");
         setReason("Teacher reward");
       } else {
-        console.error("Failed to award coins:", result.error);
         toast({
-          title: "Failed to Award Coins",
-          description: result.error || "Please check the console for details",
+          title: "Error",
+          description: result.error || "Failed to award coins",
           variant: "destructive"
         });
       }
     } catch (error) {
-      console.error("Unexpected error awarding coins:", error);
+      console.error("Error awarding coins:", error);
       toast({
         title: "Error",
-        description: "An unexpected error occurred. Check console for details.",
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
     } finally {
@@ -104,7 +115,7 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Coins className="h-5 w-5 text-yellow-500" />
-            Award Coins to {studentName}
+            Give Coins to {studentName}
           </DialogTitle>
         </DialogHeader>
 
@@ -114,27 +125,28 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
             <Input
               id="amount"
               type="number"
-              value={amount}
-              onChange={(e) => setAmount(e.target.value)}
               min="1"
               max="1000"
-              required
-              className="text-center text-lg font-semibold"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              placeholder="Enter coin amount"
+              disabled={isLoading}
             />
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="reason">Reason (Optional)</Label>
+            <Label htmlFor="reason">Reason</Label>
             <Textarea
               id="reason"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Why are you awarding these coins?"
-              rows={2}
+              placeholder="Enter reason for awarding coins"
+              rows={3}
+              disabled={isLoading}
             />
           </div>
 
-          <DialogFooter className="gap-2">
+          <DialogFooter className="flex gap-2 sm:gap-0">
             <Button
               type="button"
               variant="outline"
@@ -143,16 +155,20 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
             >
               Cancel
             </Button>
-            <Button type="submit" disabled={isLoading}>
+            <Button
+              type="submit"
+              disabled={isLoading || !amount || parseInt(amount) <= 0}
+              className="bg-yellow-500 hover:bg-yellow-600"
+            >
               {isLoading ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Awarding...
                 </>
               ) : (
                 <>
-                  <Coins className="h-4 w-4 mr-2" />
-                  Award {amount} Coins
+                  <Coins className="mr-2 h-4 w-4" />
+                  Give {amount} Coins
                 </>
               )}
             </Button>

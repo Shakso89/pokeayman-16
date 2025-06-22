@@ -15,7 +15,11 @@ import { Pokemon } from "@/types/pokemon";
 
 const StudentDetailPage: React.FC = () => {
   const { id, studentId } = useParams<{ id?: string; studentId?: string }>();
-  const sid = studentId || id;
+  
+  // Fix the student ID resolution
+  const resolvedStudentId = studentId || id;
+  console.log("StudentDetailPage - Route params:", { id, studentId, resolvedStudentId });
+  
   const navigate = useNavigate();
   const loggedInUserType = localStorage.getItem("userType") || "student";
 
@@ -28,90 +32,132 @@ const StudentDetailPage: React.FC = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (!sid) {
+    console.log("StudentDetailPage - Effect triggered with resolvedStudentId:", resolvedStudentId);
+    
+    if (!resolvedStudentId || resolvedStudentId === 'undefined') {
+      console.error("StudentDetailPage - Invalid student ID:", resolvedStudentId);
       setLoading(false);
       return;
     }
+    
     setLoading(true);
 
     const loadStudentData = async () => {
-      // Fetch student data first
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select(`*, school:school_id (id, name)`)
-        .eq('id', sid)
-        .maybeSingle();
-
-      if (studentError) console.error("Error fetching student:", studentError.message);
-      
-      if (!studentData) {
-        setLoading(false);
-        setStudent(null);
-        return;
-      }
-      setStudent(studentData);
-      setSchool(studentData.school);
-      
-      const [profile, pokemonCollection] = await Promise.all([
-        getStudentProfileById(sid),
-        supabase.from('pokemon_collections').select('*, pokemon_catalog!inner(*)').eq('student_id', sid)
-      ]);
-      
-      if (profile) {
-        // Once we have the profile, use profile.id to fetch related data
-        const [achievements, streak] = await Promise.all([
-          supabase.from('achievements').select('*').eq('student_id', profile.id).eq('type', 'star_of_class').eq('is_active', true),
-          supabase.rpc('calculate_homework_streak', { p_student_id: profile.id })
-        ]);
+      try {
+        console.log("StudentDetailPage - Loading student data for ID:", resolvedStudentId);
         
-        if (achievements.data && achievements.data.length > 0) {
-          setIsStarOfClass(true);
+        // Fetch student data first
+        const { data: studentData, error: studentError } = await supabase
+          .from('students')
+          .select(`*, school:school_id (id, name)`)
+          .eq('id', resolvedStudentId)
+          .maybeSingle();
+
+        if (studentError) {
+          console.error("Error fetching student:", studentError.message);
+        }
+        
+        if (!studentData) {
+          console.log("StudentDetailPage - No student found in students table, checking student_profiles");
+          
+          // Try student_profiles table as fallback
+          const { data: profileData, error: profileError } = await supabase
+            .from('student_profiles')
+            .select(`*, school:school_id (id, name)`)
+            .eq('user_id', resolvedStudentId)
+            .maybeSingle();
+            
+          if (profileError) {
+            console.error("Error fetching student profile:", profileError.message);
+          }
+          
+          if (!profileData) {
+            console.log("StudentDetailPage - Student not found in either table");
+            setLoading(false);
+            setStudent(null);
+            return;
+          }
+          
+          // Use profile data
+          setStudent(profileData);
+          setSchool(profileData.school);
         } else {
-          setIsStarOfClass(false);
+          // Use students table data
+          setStudent(studentData);
+          setSchool(studentData.school);
         }
         
-        if (streak.data) {
-          setHomeworkStreak(streak.data);
+        // Get student profile for additional data
+        const profile = await getStudentProfileById(resolvedStudentId);
+        
+        if (profile) {
+          // Fetch Pokemon collection
+          const { data: pokemonCollection } = await supabase
+            .from('pokemon_collections')
+            .select('*, pokemon_catalog!inner(*)')
+            .eq('student_id', profile.id);
+
+          if (pokemonCollection) {
+            const formattedPokemons: Pokemon[] = pokemonCollection.map((item: any) => ({
+              id: item.pokemon_catalog.id,
+              name: item.pokemon_catalog.name,
+              image: item.pokemon_catalog.image,
+              type: item.pokemon_catalog.type,
+              rarity: item.pokemon_catalog.rarity,
+              powerStats: item.pokemon_catalog.power_stats
+            }));
+            setPokemons(formattedPokemons);
+          }
+
+          // Get achievements and homework streak
+          const [achievements, streak] = await Promise.all([
+            supabase.from('achievements').select('*').eq('student_id', profile.id).eq('type', 'star_of_class').eq('is_active', true),
+            supabase.rpc('calculate_homework_streak', { p_student_id: profile.id })
+          ]);
+          
+          if (achievements.data && achievements.data.length > 0) {
+            setIsStarOfClass(true);
+          }
+          
+          if (streak.data) {
+            setHomeworkStreak(streak.data);
+          }
         }
-      } else {
-        // if no profile, reset related states
-        setIsStarOfClass(false);
-        setHomeworkStreak(0);
-      }
 
-      if (pokemonCollection.data) {
-        const formattedPokemons: Pokemon[] = pokemonCollection.data.map((item: any) => ({
-          id: item.pokemon_catalog.id,
-          name: item.pokemon_catalog.name,
-          image: item.pokemon_catalog.image,
-          type: item.pokemon_catalog.type,
-          rarity: item.pokemon_catalog.rarity,
-          powerStats: item.pokemon_catalog.power_stats
-        }));
-        setPokemons(formattedPokemons);
-      } else {
-        setPokemons([]);
-      }
-
-      // Fetch classes from the join table first as the source of truth
-      const { data: classAssignments } = await supabase.from('student_classes').select('class_id').eq('student_id', sid);
-      let classIds: string[] = [];
-      if (classAssignments && classAssignments.length > 0) {
+        // Fetch classes - try student_classes join table first
+        const { data: classAssignments } = await supabase
+          .from('student_classes')
+          .select('class_id')
+          .eq('student_id', resolvedStudentId);
+          
+        let classIds: string[] = [];
+        if (classAssignments && classAssignments.length > 0) {
           classIds = classAssignments.map(c => c.class_id);
-      } else if (studentData.class_id) {
-          // Fallback to the deprecated class_id field on students table
-          const studentClassId = studentData.class_id;
-          classIds = Array.isArray(studentClassId) ? studentClassId : String(studentClassId).split(',').map((id: string) => id.trim()).filter(Boolean);
-      }
+        } else if (student?.class_id) {
+          // Fallback to class_id field
+          const studentClassId = student.class_id;
+          classIds = Array.isArray(studentClassId) 
+            ? studentClassId 
+            : String(studentClassId).split(',').map((id: string) => id.trim()).filter(Boolean);
+        }
 
-      if (classIds.length > 0) {
-        const { data: fetchedClasses } = await supabase.from('classes').select('*').in('id', classIds);
-        if (fetchedClasses) setClasses(fetchedClasses);
+        if (classIds.length > 0) {
+          const { data: fetchedClasses } = await supabase
+            .from('classes')
+            .select('*')
+            .in('id', classIds);
+          if (fetchedClasses) setClasses(fetchedClasses);
+        }
+        
+      } catch (error) {
+        console.error("Error loading student data:", error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    loadStudentData().finally(() => setLoading(false));
-  }, [sid]);
+    loadStudentData();
+  }, [resolvedStudentId]);
 
   function handleBack() {
     if (classes && classes.length > 0) {
@@ -132,7 +178,36 @@ const StudentDetailPage: React.FC = () => {
     }
   }
 
-  if (!sid) return <Navigate to="/" />;
+  if (!resolvedStudentId || resolvedStudentId === 'undefined') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-xl p-6">
+          <CardContent>
+            <div className="flex flex-col items-center gap-3">
+              <p className="text-2xl font-bold text-gray-700">Invalid student ID</p>
+              <button className="text-blue-600 underline mt-2" onClick={() => navigate(-1)}>
+                Go back
+              </button>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-xl p-6">
+          <CardContent>
+            <div className="flex flex-col items-center gap-3">
+              <p className="text-lg">Loading student profile...</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (!student) {
     return (
@@ -182,12 +257,10 @@ const StudentDetailPage: React.FC = () => {
     <>
       <AppHeader userType="student" userName={username} userAvatar={userAvatar} />
       <div className="container max-w-3xl py-8 mx-auto">
-        {/* Keep old ProfileHeader for now (you may want to visually replace/remove it later) */}
         <ProfileHeader title="Student Profile" onBack={handleBack} />
 
         <Card>
           <CardContent className="pt-6">
-            {/* Student profile basic info, avatar, name */}
             <StudentProfileBasicInfo
               displayName={displayName}
               avatar={student.avatar}
@@ -198,7 +271,7 @@ const StudentDetailPage: React.FC = () => {
             />
 
             <div className="mt-6">
-              <CoinsDisplay studentId={sid} />
+              <CoinsDisplay studentId={resolvedStudentId} />
             </div>
 
             <div className="mt-6">
@@ -214,8 +287,7 @@ const StudentDetailPage: React.FC = () => {
               />
             </div>
 
-            {/* School & Classes section at the bottom */}
-            <div className="mt-6 border-t pt-6" data-debug="school-and-classes">
+            <div className="mt-6 border-t pt-6">
               <SchoolClassInfo
                 school={school ? { id: school.id, name: school.name } : undefined}
                 classes={classes.map((c: any) => ({
