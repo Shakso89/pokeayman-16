@@ -1,5 +1,6 @@
 
 import { supabase } from "@/integrations/supabase/client";
+import { getOrCreateStudentProfile, updateStudentCoins } from "./studentDatabase";
 
 export const awardCoinsToStudentEnhanced = async (
   userId: string,
@@ -12,61 +13,28 @@ export const awardCoinsToStudentEnhanced = async (
   try {
     console.log("🪙 Enhanced coin awarding", { userId, amount, reason, type, classId, schoolId });
 
-    // Step 1: Get or create student profile in students table
-    let { data: student, error } = await supabase
-      .from("students")
-      .select("*")
-      .eq("user_id", userId)
-      .maybeSingle();
-
+    // Get or create student profile
+    const student = await getOrCreateStudentProfile(userId, classId, schoolId);
     if (!student) {
-      console.log("📝 Creating new student profile for enhanced coins:", userId);
-      
-      // Generate a unique username
-      const timestamp = Date.now();
-      const randomSuffix = Math.floor(Math.random() * 1000);
-      const uniqueUsername = `student_${timestamp}_${randomSuffix}`;
-      
-      const { data: created, error: createError } = await supabase
-        .from("students")
-        .insert({
-          user_id: userId,
-          username: uniqueUsername,
-          display_name: `Student ${userId.slice(0, 8)}`,
-          class_id: classId || null,
-          school_id: schoolId || null,
-          password_hash: 'temp_hash', // Required field
-          coins: 0
-        })
-        .select()
-        .single();
-
-      if (createError) {
-        console.error("❌ Could not create student profile:", createError);
-        return { success: false, error: `Could not create student profile: ${createError.message}` };
-      }
-
-      student = created;
-      console.log("✅ Created student profile for enhanced coins:", student.id);
+      return { success: false, error: "Could not create or find student profile" };
     }
 
-    // Step 2: Update student's coin balance
-    const currentCoins = student.coins || 0;
-    const newBalance = currentCoins + amount;
+    // Update student's coin balance
+    const success = await updateStudentCoins(student.id, amount, reason);
+    if (!success) {
+      return { success: false, error: "Failed to update coins" };
+    }
 
-    const { error: updateError } = await supabase
+    // Get new balance
+    const { data: updatedStudent } = await supabase
       .from("students")
-      .update({
-        coins: newBalance,
-      })
-      .eq("id", student.id);
+      .select("coins")
+      .eq("id", student.id)
+      .single();
 
-    if (updateError) {
-      console.error("❌ Failed to update coins:", updateError);
-      return { success: false, error: `Failed to update coins: ${updateError.message}` };
-    }
+    const newBalance = updatedStudent?.coins || 0;
 
-    // Step 3: Log the transaction in coin_history
+    // Log the transaction
     try {
       await supabase.from("coin_history").insert({
         user_id: student.user_id,
