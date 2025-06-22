@@ -571,8 +571,8 @@ export type Database = {
             foreignKeyName: "pokemon_collections_student_id_fkey"
             columns: ["student_id"]
             isOneToOne: false
-            referencedRelation: "student_profiles"
-            referencedColumns: ["id"]
+            referencedRelation: "students"
+            referencedColumns: ["user_id"]
           },
         ]
       }
@@ -740,6 +740,7 @@ export type Database = {
       students: {
         Row: {
           class_id: string | null
+          coins: number | null
           created_at: string
           display_name: string | null
           id: string
@@ -757,6 +758,7 @@ export type Database = {
         }
         Insert: {
           class_id?: string | null
+          coins?: number | null
           created_at?: string
           display_name?: string | null
           id?: string
@@ -774,6 +776,7 @@ export type Database = {
         }
         Update: {
           class_id?: string | null
+          coins?: number | null
           created_at?: string
           display_name?: string | null
           id?: string

@@ -149,7 +149,7 @@ const ensureStudentProfileExists = async (student: any): Promise<void> => {
           display_name: student.display_name || student.username,
           school_id: student.school_id,
           class_id: student.class_id,
-          coins: 0,
+          coins: student.coins || 0,
           spent_coins: 0
         });
 
