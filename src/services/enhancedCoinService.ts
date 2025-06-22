@@ -21,11 +21,17 @@ export const awardCoinsToStudentEnhanced = async (
 
     if (!student) {
       console.log("📝 Creating new student profile for enhanced coins:", userId);
+      
+      // Generate a unique username
+      const timestamp = Date.now();
+      const randomSuffix = Math.floor(Math.random() * 1000);
+      const uniqueUsername = `student_${timestamp}_${randomSuffix}`;
+      
       const { data: created, error: createError } = await supabase
         .from("students")
         .insert({
           user_id: userId,
-          username: `student_${userId.slice(0, 8)}`,
+          username: uniqueUsername,
           display_name: `Student ${userId.slice(0, 8)}`,
           class_id: classId || null,
           school_id: schoolId || null,
@@ -37,7 +43,7 @@ export const awardCoinsToStudentEnhanced = async (
 
       if (createError) {
         console.error("❌ Could not create student profile:", createError);
-        return { success: false, error: "Could not create student profile" };
+        return { success: false, error: `Could not create student profile: ${createError.message}` };
       }
 
       student = created;
@@ -57,7 +63,7 @@ export const awardCoinsToStudentEnhanced = async (
 
     if (updateError) {
       console.error("❌ Failed to update coins:", updateError);
-      return { success: false, error: "Failed to update coins" };
+      return { success: false, error: `Failed to update coins: ${updateError.message}` };
     }
 
     // Step 3: Log the transaction in coin_history

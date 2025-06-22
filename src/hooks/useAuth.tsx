@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from './use-toast';
@@ -62,7 +61,7 @@ export const useAuth = () => {
     }
   };
 
-  // Enhanced logout function with timeout safety
+  // Enhanced logout function with better error handling
   const logout = async (): Promise<boolean> => {
     try {
       console.log("Starting logout process...");
@@ -71,15 +70,14 @@ export const useAuth = () => {
       // Clear auth state immediately for instant UI feedback
       clearAuthStateWrapper();
 
-      // Set a timeout to ensure logout completes even if Supabase fails
-      const logoutTimeout = setTimeout(() => {
-        console.log("Logout timeout reached, forcing completion");
-        setLoading(false);
-        toast({
-          title: "Logged out successfully",
-          description: "You have been logged out of your account.",
-        });
-      }, 3000);
+      // Clear all localStorage items
+      localStorage.removeItem('isLoggedIn');
+      localStorage.removeItem('userType');
+      localStorage.removeItem('teacherId');
+      localStorage.removeItem('studentId');
+      localStorage.removeItem('teacherUsername');
+      localStorage.removeItem('studentUsername');
+      localStorage.removeItem('userEmail');
 
       try {
         // Sign out from Supabase
@@ -90,7 +88,6 @@ export const useAuth = () => {
           // Don't throw error, just log it - logout should always succeed
         }
 
-        clearTimeout(logoutTimeout);
         console.log("Logout completed successfully");
         
         toast({
@@ -101,10 +98,6 @@ export const useAuth = () => {
         return true;
       } catch (supabaseError) {
         console.error("Supabase logout error:", supabaseError);
-        clearTimeout(logoutTimeout);
-        
-        // Force clear state even on error to ensure logout always works
-        clearAuthStateWrapper();
         
         toast({
           title: "Logout completed",
@@ -115,9 +108,6 @@ export const useAuth = () => {
       }
     } catch (error: any) {
       console.error("General logout error:", error);
-      
-      // Force clear state even on error to ensure logout always works
-      clearAuthStateWrapper();
       
       toast({
         title: "Logout completed",
