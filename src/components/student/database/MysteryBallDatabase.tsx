@@ -81,7 +81,7 @@ const MysteryBallDatabase: React.FC<MysteryBallDatabaseProps> = ({
       await useDailyAttempt(studentId);
       setDailyAttemptAvailable(false);
     } else {
-      await updateStudentCoins(studentId, -requiredCoins, requiredCoins);
+      await updateStudentCoins(studentId, -requiredCoins, `Mystery ball purchase`);
     }
 
     // Determine result (60% chance for Pokémon, 30% for coins, 10% for nothing)
@@ -124,7 +124,7 @@ const MysteryBallDatabase: React.FC<MysteryBallDatabaseProps> = ({
     const coinAmount = Math.floor(Math.random() * 5) + 1;
     setResult("coins");
     setWonCoins(coinAmount);
-    await updateStudentCoins(studentId, coinAmount);
+    await updateStudentCoins(studentId, coinAmount, "Mystery ball reward");
     await addMysteryBallHistory(studentId, "coins", undefined, coinAmount);
     onCoinsWon(coinAmount);
   };

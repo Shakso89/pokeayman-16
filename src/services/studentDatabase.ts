@@ -30,8 +30,10 @@ export interface MysteryBallHistoryRecord {
   id: string;
   student_id: string;
   result_type: string;
+  type: string; // Added for compatibility
   pokemon_name?: string;
   pokemon_id?: string;
+  pokemon_data?: any; // Added for compatibility
   coins_amount?: number;
   created_at: string;
 }
@@ -228,7 +230,12 @@ export const getMysteryBallHistory = async (studentId: string): Promise<MysteryB
       return [];
     }
 
-    return data || [];
+    // Transform data to match expected interface
+    return (data || []).map(record => ({
+      ...record,
+      type: record.result_type,
+      pokemon_data: record.pokemon_name ? { name: record.pokemon_name, id: record.pokemon_id } : undefined
+    }));
   } catch (error) {
     console.error("Error in getMysteryBallHistory:", error);
     return [];
