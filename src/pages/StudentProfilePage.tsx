@@ -9,6 +9,7 @@ import { Loader2, ArrowLeft, Award, Coins, User } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import PokemonList from '@/components/student/PokemonList';
+import StudentBadges from '@/components/student/StudentBadges';
 import { Pokemon } from '@/types/pokemon';
 
 interface StudentProfile {
@@ -20,6 +21,8 @@ interface StudentProfile {
   avatar_url?: string;
   class_name?: string;
   school_name?: string;
+  class_id?: string;
+  school_id?: string;
 }
 
 const StudentProfilePage: React.FC = () => {
@@ -27,6 +30,8 @@ const StudentProfilePage: React.FC = () => {
   const navigate = useNavigate();
   const [student, setStudent] = useState<StudentProfile | null>(null);
   const [pokemons, setPokemons] = useState<Pokemon[]>([]);
+  const [classData, setClassData] = useState<any>(null);
+  const [schoolData, setSchoolData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   const userType = localStorage.getItem("userType") || "teacher";
@@ -45,93 +50,153 @@ const StudentProfilePage: React.FC = () => {
       
       setLoading(true);
       try {
-        // Fetch student profile
-        const { data: profileData, error: profileError } = await supabase
-          .from('student_profiles')
-          .select(`
-            id,
-            user_id,
-            username,
-            display_name,
-            coins,
-            avatar_url,
-            class_id,
-            school_id
-          `)
+        console.log("🔍 Fetching student data for ID:", studentId);
+
+        // First try to get student by user_id, then by id
+        let { data: studentData, error: studentError } = await supabase
+          .from('students')
+          .select('*')
           .eq('user_id', studentId)
-          .single();
+          .maybeSingle();
 
-        if (profileError) throw profileError;
+        if (!studentData) {
+          const { data: studentById, error } = await supabase
+            .from('students')
+            .select('*')
+            .eq('id', studentId)
+            .maybeSingle();
+          studentData = studentById;
+          studentError = error;
+        }
 
-        if (!profileData) {
-          console.log("No student profile found for ID:", studentId);
+        if (studentError && studentError.code !== 'PGRST116') {
+          console.error('Error fetching student:', studentError);
+        }
+
+        if (!studentData) {
+          // Try student_profiles as fallback
+          const { data: profileData, error: profileError } = await supabase
+            .from('student_profiles')
+            .select('*')
+            .eq('user_id', studentId)
+            .maybeSingle();
+
+          if (profileError) {
+            console.error('Error fetching student profile:', profileError);
+          }
+
+          if (profileData) {
+            studentData = {
+              ...profileData,
+              id: profileData.user_id,
+              user_id: profileData.user_id
+            };
+          }
+        }
+
+        if (!studentData) {
+          console.log("No student found for ID:", studentId);
           setStudent(null);
           setLoading(false);
           return;
         }
 
+        console.log("✅ Found student data:", studentData);
+
         // Fetch class and school names
         let className = '';
+        let classId = studentData.class_id;
         let schoolName = '';
+        let schoolId = studentData.school_id;
         
-        if (profileData.class_id) {
+        if (classId) {
           const { data: classData } = await supabase
             .from('classes')
-            .select('name, school_id')
-            .eq('id', profileData.class_id)
-            .single();
+            .select('name, school_id, star_student_id, top_student_id')
+            .eq('id', classId)
+            .maybeSingle();
           
           if (classData) {
             className = classData.name;
+            schoolId = classData.school_id;
+            setClassData(classData);
             
             const { data: schoolData } = await supabase
               .from('schools')
-              .select('name')
+              .select('name, top_student_id')
               .eq('id', classData.school_id)
-              .single();
+              .maybeSingle();
             
             if (schoolData) {
               schoolName = schoolData.name;
+              setSchoolData(schoolData);
             }
           }
-        } else if (profileData.school_id) {
+        } else if (schoolId) {
           const { data: schoolData } = await supabase
             .from('schools')
-            .select('name')
-            .eq('id', profileData.school_id)
-            .single();
+            .select('name, top_student_id')
+            .eq('id', schoolId)
+            .maybeSingle();
           
           if (schoolData) {
             schoolName = schoolData.name;
+            setSchoolData(schoolData);
           }
         }
 
         setStudent({
-          ...profileData,
+          ...studentData,
           class_name: className,
-          school_name: schoolName
+          school_name: schoolName,
+          class_id: classId,
+          school_id: schoolId
         });
 
-        // Fetch student's Pokemon
+        // Fetch student's Pokemon using the correct user_id
+        const lookupId = studentData.user_id || studentData.id;
+        console.log("🔍 Fetching Pokemon for user_id:", lookupId);
+        
         const { data: pokemonData, error: pokemonError } = await supabase
           .from('pokemon_collections')
-          .select('pokemon_id, pokemon_name, pokemon_image, pokemon_type, pokemon_rarity')
-          .eq('student_id', studentId);
+          .select(`
+            id,
+            pokemon_id,
+            obtained_at,
+            pokemon_catalog (
+              id,
+              name,
+              image,
+              type,
+              rarity,
+              power_stats
+            )
+          `)
+          .eq('student_id', lookupId);
 
-        if (pokemonError) throw pokemonError;
+        if (pokemonError) {
+          console.error('Error fetching Pokemon:', pokemonError);
+        } else {
+          console.log("📦 Found Pokemon collections:", pokemonData?.length || 0);
+          
+          const pokemonList: Pokemon[] = (pokemonData || []).map(collection => {
+            const pokemonCatalog = collection.pokemon_catalog as any;
+            return {
+              id: pokemonCatalog?.id || collection.pokemon_id,
+              name: pokemonCatalog?.name || `Pokemon #${collection.pokemon_id}`,
+              image: pokemonCatalog?.image || '',
+              type: pokemonCatalog?.type || 'normal',
+              rarity: pokemonCatalog?.rarity || 'common',
+              powerStats: pokemonCatalog?.power_stats || {}
+            };
+          });
 
-        const pokemonList: Pokemon[] = (pokemonData || []).map(p => ({
-          id: p.pokemon_id!,
-          name: p.pokemon_name,
-          image: p.pokemon_image || undefined,
-          type: p.pokemon_type || 'normal',
-          rarity: p.pokemon_rarity || 'common'
-        }));
-
-        setPokemons(pokemonList);
+          console.log("✅ Transformed Pokemon list:", pokemonList);
+          setPokemons(pokemonList);
+        }
 
       } catch (error) {
-        console.error('Error fetching student data:', error);
+        console.error('Error loading student data:', error);
       } finally {
         setLoading(false);
       }
@@ -179,12 +244,20 @@ const StudentProfilePage: React.FC = () => {
         <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-4">
-              <Avatar className="h-16 w-16">
-                <AvatarImage src={student.avatar_url} />
-                <AvatarFallback>
-                  <User className="h-8 w-8" />
-                </AvatarFallback>
-              </Avatar>
+              <div className="relative">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={student.avatar_url} />
+                  <AvatarFallback>
+                    <User className="h-8 w-8" />
+                  </AvatarFallback>
+                </Avatar>
+                <StudentBadges 
+                  studentId={student.user_id || student.id}
+                  classData={classData}
+                  schoolData={schoolData}
+                  position="absolute"
+                />
+              </div>
               <div>
                 <h2 className="text-2xl font-bold">{student.display_name}</h2>
                 <p className="text-gray-600">@{student.username}</p>
@@ -195,7 +268,7 @@ const StudentProfilePage: React.FC = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="flex items-center gap-2">
                 <Coins className="h-5 w-5 text-yellow-500" />
-                <span className="font-semibold">{student.coins} Coins</span>
+                <span className="font-semibold">{student.coins || 0} Coins</span>
               </div>
               <div className="flex items-center gap-2">
                 <Award className="h-5 w-5 text-purple-500" />
@@ -213,6 +286,22 @@ const StudentProfilePage: React.FC = () => {
                   </Badge>
                 )}
               </div>
+            </div>
+
+            {/* Student Badges Section */}
+            <div className="mt-4 pt-4 border-t">
+              <div className="flex items-center gap-2 mb-2">
+                <Award className="h-4 w-4 text-purple-500" />
+                <span className="text-sm font-medium text-gray-700">Achievements</span>
+              </div>
+              <StudentBadges 
+                studentId={student.user_id || student.id}
+                classData={classData}
+                schoolData={schoolData}
+                position="relative"
+                showContext={true}
+                size="lg"
+              />
             </div>
           </CardContent>
         </Card>

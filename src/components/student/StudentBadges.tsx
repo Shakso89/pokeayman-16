@@ -29,42 +29,61 @@ const StudentBadges: React.FC<StudentBadgesProps> = ({
   const isTopOfSchool = schoolData?.top_student_id === studentId;
 
   const sizeClasses = {
-    sm: "text-sm",
-    md: "text-lg",
-    lg: "text-xl"
+    sm: "w-4 h-4",
+    md: "w-5 h-5",
+    lg: "w-6 h-6"
+  };
+
+  const textSizeClasses = {
+    sm: "text-xs",
+    md: "text-sm", 
+    lg: "text-base"
   };
 
   const positionClasses = position === "absolute" 
     ? "absolute -top-1 -right-1 z-10" 
-    : "inline-flex gap-1";
+    : "inline-flex gap-2";
 
   if (!isStarOfClass && !isTopOfClass && !isTopOfSchool) {
+    if (showContext) {
+      return (
+        <div className="text-gray-500 text-sm">
+          No special achievements yet
+        </div>
+      );
+    }
     return null;
   }
 
   return (
-    <div className={`${positionClasses} ${sizeClasses[size]} flex gap-1`}>
+    <div className={`${positionClasses} flex gap-2 items-center`}>
       {isStarOfClass && (
-        <div className="flex flex-col items-center">
-          <Star className="w-5 h-5 text-yellow-500 fill-yellow-500" />
+        <div className={`flex ${showContext ? 'flex-col' : 'flex-row'} items-center gap-1`}>
+          <Star className={`${sizeClasses[size]} text-yellow-500 fill-yellow-500`} />
           {showContext && (
-            <span className="text-xs text-yellow-600 mt-1">Star of Class</span>
+            <span className={`${textSizeClasses[size]} text-yellow-600 font-medium`}>
+              Star of Class
+            </span>
           )}
         </div>
       )}
       {isTopOfClass && (
-        <div className="flex flex-col items-center">
-          <Award className="w-5 h-5 text-orange-500 fill-orange-500" />
+        <div className={`flex ${showContext ? 'flex-col' : 'flex-row'} items-center gap-1`}>
+          <Award className={`${sizeClasses[size]} text-orange-500 fill-orange-500`} />
           {showContext && (
-            <span className="text-xs text-orange-600 mt-1">Top in Class</span>
+            <span className={`${textSizeClasses[size]} text-orange-600 font-medium`}>
+              Top in Class
+            </span>
           )}
         </div>
       )}
       {isTopOfSchool && (
-        <div className="flex flex-col items-center">
-          <Trophy className="w-5 h-5 text-red-500 fill-red-500" />
+        <div className={`flex ${showContext ? 'flex-col' : 'flex-row'} items-center gap-1`}>
+          <Trophy className={`${sizeClasses[size]} text-red-500 fill-red-500`} />
           {showContext && (
-            <span className="text-xs text-red-600 mt-1">Top in School</span>
+            <span className={`${textSizeClasses[size]} text-red-600 font-medium`}>
+              Top in School
+            </span>
           )}
         </div>
       )}
