@@ -10,13 +10,13 @@ import MysteryBallResult from "./MysteryBallResult";
 import MysteryBallHistory from "./MysteryBallHistory";
 import { useTranslation } from "@/hooks/useTranslation";
 import { 
-  assignPokemonFromSchoolPool, 
   updateStudentCoins,
   addMysteryBallHistory,
   checkDailyAttempt,
   useDailyAttempt,
   getOrCreateStudentProfile
 } from "@/services/studentDatabase";
+import { assignPokemonFromPool, initializeSchoolPokemonPool, getSchoolAvailablePokemon } from "@/services/schoolPokemonService";
 
 interface MysteryBallTabProps {
   schoolPokemons: Pokemon[];
@@ -48,6 +48,8 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
   const [dailyAttemptAvailable, setDailyAttemptAvailable] = useState(false);
   const [sessionOpensCount, setSessionOpensCount] = useState(0);
   const [actualStudentId, setActualStudentId] = useState<string>("");
+  const [actualSchoolPokemons, setActualSchoolPokemons] = useState<Pokemon[]>([]);
+  const [poolLoading, setPoolLoading] = useState(false);
 
   const MYSTERY_BALL_COST = 5;
   const MAX_SESSION_OPENS = 10;
@@ -55,17 +57,43 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
   useEffect(() => {
     initializeStudent();
     checkDailyAttemptStatus();
-  }, [studentId]);
+    loadSchoolPokemonPool();
+  }, [studentId, schoolId]);
 
   const initializeStudent = async () => {
     try {
-      // Get or create student profile to get the actual student ID
       const student = await getOrCreateStudentProfile(studentId);
       if (student) {
         setActualStudentId(student.id);
       }
     } catch (error) {
       console.error("Error initializing student:", error);
+    }
+  };
+
+  const loadSchoolPokemonPool = async () => {
+    if (!schoolId) return;
+    
+    setPoolLoading(true);
+    try {
+      console.log("🏫 Loading school Pokemon pool for:", schoolId);
+      
+      // First ensure the pool is initialized
+      await initializeSchoolPokemonPool(schoolId);
+      
+      // Then get available Pokemon
+      const availablePokemons = await getSchoolAvailablePokemon(schoolId);
+      console.log("📦 Available Pokemon from pool:", availablePokemons.length);
+      
+      setActualSchoolPokemons(availablePokemons);
+      
+      // Also update the parent component's state
+      onRefreshPool();
+    } catch (error) {
+      console.error("❌ Error loading school Pokemon pool:", error);
+      setActualSchoolPokemons([]);
+    } finally {
+      setPoolLoading(false);
     }
   };
 
@@ -101,7 +129,16 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       return;
     }
     
-    const canWinPokemon = schoolPokemons.length > 0;
+    // Use the actual school Pokemon pool count
+    const availablePokemonCount = actualSchoolPokemons.length;
+    const canWinPokemon = availablePokemonCount > 0;
+    
+    console.log("🎰 Opening Mystery Ball:", {
+      canWinPokemon,
+      availablePokemonCount,
+      isFreeAttempt
+    });
+    
     setIsOpening(true);
 
     try {
@@ -130,7 +167,8 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       let resultOutcome;
 
       if (rand < 0.6 && canWinPokemon) {
-        const pokemonResult = await assignPokemonFromSchoolPool(schoolId, actualStudentId);
+        console.log("🎁 Attempting to assign Pokemon from school pool");
+        const pokemonResult = await assignPokemonFromPool(schoolId, actualStudentId);
         
         if (pokemonResult.success && pokemonResult.pokemon) {
           if (pokemonResult.isDuplicate) {
@@ -153,6 +191,7 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
             onPokemonWon(pokemonResult.pokemon);
           }
         } else {
+          console.log("⚠️ Failed to assign Pokemon, giving coins instead");
           const coinAmount = Math.floor(Math.random() * 5) + 1;
           await updateStudentCoins(actualStudentId, coinAmount, "Mystery ball coins");
           resultOutcome = {
@@ -185,9 +224,8 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       setShowResult(true);
       
       onDataRefresh(); 
-      if (resultOutcome.type === 'pokemon' || (rand < 0.6 && canWinPokemon)) {
-        onRefreshPool(); 
-      }
+      // Refresh the school pool after opening
+      loadSchoolPokemonPool();
 
     } catch (error) {
       console.error("Error opening mystery ball:", error);
@@ -209,6 +247,7 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
   const canOpenWithCoins = coins >= MYSTERY_BALL_COST;
   const canOpenFree = dailyAttemptAvailable;
   const atMaxSessionOpens = sessionOpensCount >= MAX_SESSION_OPENS;
+  const currentPokemonCount = actualSchoolPokemons.length;
 
   return (
     <div className="space-y-6">
@@ -230,7 +269,7 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
                 <span className="font-medium">Available Pokémon Pool</span>
               </div>
               <Badge variant="outline" className="text-purple-600 border-purple-200">
-                {isLoading ? "Loading..." : `${schoolPokemons.length} Pokémon`}
+                {poolLoading ? "Loading..." : `${currentPokemonCount} Pokémon`}
               </Badge>
             </div>
 
@@ -266,11 +305,19 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
               </div>
             )}
 
+            {currentPokemonCount === 0 && !poolLoading && (
+              <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
+                <p className="text-orange-700 text-sm">
+                  No Pokémon available in the school pool. Contact your teacher to add Pokémon to the school pool.
+                </p>
+              </div>
+            )}
+
             <div className="space-y-3 pt-2">
               {canOpenFree && !atMaxSessionOpens && (
                 <Button
                   onClick={() => handleOpenMysteryBall(true)}
-                  disabled={isOpening || isLoading}
+                  disabled={isOpening || poolLoading || currentPokemonCount === 0}
                   className="w-full bg-green-600 hover:bg-green-700 text-white shadow-md"
                   size="lg"
                 >
@@ -290,10 +337,10 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
 
               <Button
                 onClick={() => handleOpenMysteryBall(false)}
-                disabled={isOpening || isLoading || !canOpenWithCoins || atMaxSessionOpens}
+                disabled={isOpening || poolLoading || !canOpenWithCoins || atMaxSessionOpens || currentPokemonCount === 0}
                 className="w-full bg-purple-600 hover:bg-purple-700 text-white shadow-md"
                 size="lg"
-                variant={!canOpenWithCoins || atMaxSessionOpens ? "outline" : "default"}
+                variant={!canOpenWithCoins || atMaxSessionOpens || currentPokemonCount === 0 ? "outline" : "default"}
               >
                 {isOpening ? (
                   <div className="flex items-center gap-2">
@@ -309,7 +356,7 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
               </Button>
             </div>
 
-            {(!canOpenWithCoins && !canOpenFree && !atMaxSessionOpens) && (
+            {(!canOpenWithCoins && !canOpenFree && !atMaxSessionOpens && currentPokemonCount > 0) && (
               <p className="text-sm text-gray-500 text-center pt-2">
                 You need {MYSTERY_BALL_COST} coins or wait for daily free attempt
               </p>

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -9,7 +10,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Trophy, Users, Package, Sword, Book } from "lucide-react";
 import { useStudentData } from "@/hooks/useStudentData";
-import { getSchoolPokemonPool } from "@/services/studentDatabase";
+import { getSchoolAvailablePokemon, initializeSchoolPokemonPool } from "@/services/schoolPokemonService";
 
 // Import our components
 import StudentHeader from "@/components/student/StudentHeader";
@@ -68,7 +69,12 @@ const StudentDashboard: React.FC = () => {
     console.log("Loading school pokemon pool for:", currentSchoolId);
     setIsLoadingPool(true);
     try {
-      const pool = await getSchoolPokemonPool(currentSchoolId);
+      // First ensure the pool is initialized
+      await initializeSchoolPokemonPool(currentSchoolId);
+      
+      // Then get available Pokemon
+      const pool = await getSchoolAvailablePokemon(currentSchoolId);
+      console.log("✅ Loaded school Pokemon pool:", pool.length);
       setSchoolPokemons(pool);
     } catch (error) {
       console.error("Error loading school pokemon pool:", error);
