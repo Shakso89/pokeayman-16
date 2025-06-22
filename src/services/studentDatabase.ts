@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { assignPokemonFromPool } from "./schoolPokemonService";
 
@@ -45,7 +44,16 @@ export const getOrCreateStudentProfile = async (
   schoolId?: string
 ): Promise<StudentProfile | null> => {
   try {
+    console.log("🔍 Getting or creating student profile for user:", userId);
+
+    // Validate input
+    if (!userId || userId === 'undefined') {
+      console.error("❌ Invalid userId provided:", userId);
+      return null;
+    }
+
     // First try to get existing student
+    console.log("🔍 Checking for existing student profile...");
     let { data: student, error } = await supabase
       .from("students")
       .select("*")
@@ -53,8 +61,17 @@ export const getOrCreateStudentProfile = async (
       .single();
 
     if (student) {
-      console.log("✅ Found existing student profile:", student.username);
+      console.log("✅ Found existing student profile:", {
+        id: student.id,
+        username: student.username,
+        coins: student.coins
+      });
       return student;
+    }
+
+    if (error && error.code !== 'PGRST116') {
+      console.error("❌ Error fetching student:", error);
+      return null;
     }
 
     // Create new student if not found
@@ -64,17 +81,20 @@ export const getOrCreateStudentProfile = async (
     const randomSuffix = Math.floor(Math.random() * 10000);
     const uniqueUsername = `student_${timestamp}_${randomSuffix}`;
     
+    const newStudentData = {
+      user_id: userId,
+      username: uniqueUsername,
+      display_name: `Student ${userId.slice(0, 8)}`,
+      class_id: classId || null,
+      school_id: schoolId || null,
+      password_hash: 'temp_hash'
+    };
+
+    console.log("📝 Inserting new student with data:", newStudentData);
+
     const { data: created, error: createError } = await supabase
       .from("students")
-      .insert({
-        user_id: userId,
-        username: uniqueUsername,
-        display_name: `Student ${userId.slice(0, 8)}`,
-        class_id: classId || null,
-        school_id: schoolId || null,
-        password_hash: 'temp_hash',
-        coins: 0
-      })
+      .insert(newStudentData)
       .select()
       .single();
 
@@ -83,11 +103,14 @@ export const getOrCreateStudentProfile = async (
       return null;
     }
 
-    console.log("✅ Created new student profile:", created.username);
+    console.log("✅ Created new student profile:", {
+      id: created.id,
+      username: created.username
+    });
     return created;
     
   } catch (error) {
-    console.error("❌ Error in getOrCreateStudentProfile:", error);
+    console.error("❌ Unexpected error in getOrCreateStudentProfile:", error);
     return null;
   }
 };
@@ -95,6 +118,13 @@ export const getOrCreateStudentProfile = async (
 // Get student profile by ID
 export const getStudentProfileById = async (studentId: string): Promise<StudentProfile | null> => {
   try {
+    console.log("🔍 Fetching student profile by ID:", studentId);
+
+    if (!studentId || studentId === 'undefined') {
+      console.error("❌ Invalid studentId provided:", studentId);
+      return null;
+    }
+
     const { data: student, error } = await supabase
       .from("students")
       .select("*")
@@ -106,6 +136,10 @@ export const getStudentProfileById = async (studentId: string): Promise<StudentP
       return null;
     }
 
+    console.log("✅ Found student profile:", {
+      id: student.id,
+      username: student.username
+    });
     return student;
   } catch (error) {
     console.error("❌ Error in getStudentProfileById:", error);
@@ -120,18 +154,43 @@ export const updateStudentCoins = async (
   reason?: string
 ): Promise<boolean> => {
   try {
+    console.log("💰 Updating student coins:", { studentId, amount, reason });
+
+    if (!studentId || studentId === 'undefined') {
+      console.error("❌ Invalid studentId for coin update:", studentId);
+      return false;
+    }
+
+    if (amount === 0) {
+      console.log("⚠️ Zero amount coin update - skipping");
+      return true;
+    }
+
+    // Get current balance
     const { data: student, error: fetchError } = await supabase
       .from("students")
       .select("coins")
       .eq("id", studentId)
       .single();
 
-    if (fetchError || !student) {
-      console.error("❌ Student not found:", fetchError);
+    if (fetchError) {
+      console.error("❌ Error fetching student for coin update:", fetchError);
       return false;
     }
 
-    const newBalance = Math.max(0, (student.coins || 0) + amount);
+    if (!student) {
+      console.error("❌ Student not found for coin update:", studentId);
+      return false;
+    }
+
+    const currentCoins = student.coins || 0;
+    const newBalance = Math.max(0, currentCoins + amount);
+
+    console.log("💰 Coin update calculation:", {
+      currentCoins,
+      changeAmount: amount,
+      newBalance
+    });
 
     const { error: updateError } = await supabase
       .from("students")
@@ -143,11 +202,11 @@ export const updateStudentCoins = async (
       return false;
     }
 
-    console.log(`✅ Updated student coins: ${amount > 0 ? '+' : ''}${amount} (New balance: ${newBalance})`);
+    console.log(`✅ Updated student coins successfully: ${amount > 0 ? '+' : ''}${amount} (New balance: ${newBalance})`);
     return true;
     
   } catch (error) {
-    console.error("❌ Error updating student coins:", error);
+    console.error("❌ Unexpected error updating student coins:", error);
     return false;
   }
 };

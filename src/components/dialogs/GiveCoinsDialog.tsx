@@ -38,6 +38,17 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    console.log("🎯 Starting coin award process", {
+      studentId,
+      studentName,
+      amount,
+      reason,
+      teacherId,
+      classId,
+      schoolId
+    });
+
+    // Validate amount
     const coinAmount = parseInt(amount);
     if (!coinAmount || coinAmount <= 0) {
       toast({
@@ -48,13 +59,29 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
       return;
     }
 
-    if (!studentId || studentId === 'undefined') {
+    if (coinAmount > 1000) {
       toast({
-        title: "Error",
-        description: "Invalid student ID",
+        title: "Amount Too Large",
+        description: "Maximum 1000 coins can be awarded at once",
         variant: "destructive"
       });
       return;
+    }
+
+    // Validate student ID
+    if (!studentId || studentId === 'undefined' || studentId.trim() === '') {
+      console.error("❌ Invalid student ID:", studentId);
+      toast({
+        title: "Error",
+        description: "Invalid student ID - please try refreshing the page",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Validate reason
+    if (!reason || reason.trim() === '') {
+      setReason("Teacher reward");
     }
 
     setIsLoading(true);
@@ -64,24 +91,27 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
         studentId,
         studentName,
         amount: coinAmount,
-        reason,
+        reason: reason.trim(),
         teacherId,
-        classId
+        classId,
+        schoolId
       });
 
       const result = await awardCoinsToStudentEnhanced(
         studentId,
         coinAmount,
-        reason,
+        reason.trim(),
         "teacher_award",
         classId,
         schoolId
       );
 
+      console.log("🎯 Coin award result:", result);
+
       if (result.success) {
         toast({
           title: "Success!",
-          description: `Awarded ${coinAmount} coins to ${studentName}`,
+          description: `Awarded ${coinAmount} coins to ${studentName}. New balance: ${result.newBalance || 'Unknown'}`,
         });
         
         onGiveCoins(coinAmount);
@@ -91,17 +121,22 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
         setAmount("10");
         setReason("Teacher reward");
       } else {
+        const errorMessage = result.error || "Failed to award coins - unknown error";
+        console.error("❌ Coin award failed:", errorMessage);
+        
         toast({
           title: "Error",
-          description: result.error || "Failed to award coins",
+          description: errorMessage,
           variant: "destructive"
         });
       }
     } catch (error) {
-      console.error("Error awarding coins:", error);
+      console.error("❌ Unexpected error awarding coins:", error);
+      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
+      
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: `Failed to award coins: ${errorMessage}`,
         variant: "destructive"
       });
     } finally {
