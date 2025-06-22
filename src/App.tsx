@@ -10,6 +10,7 @@ import TeacherLogin from "./pages/TeacherLogin";
 import StudentLogin from "./pages/StudentLogin";
 import TeacherDashboard from "./pages/TeacherDashboard";
 import StudentDashboard from "./pages/StudentDashboard";
+import AdminDashboard from "./pages/AdminDashboard";
 import ClassDetailsPage from "./pages/ClassDetailsPage";
 import RankingPage from "./pages/RankingPage";
 import SchoolRankingsPage from "./pages/SchoolRankingsPage";
@@ -44,6 +45,7 @@ function App() {
             <Route path="/student-login" element={<StudentLogin />} />
             <Route path="/teacher-dashboard" element={<TeacherDashboard />} />
             <Route path="/student-dashboard" element={<StudentDashboard />} />
+            <Route path="/admin-dashboard" element={<AdminDashboard />} />
             <Route path="/class-details/:classId" element={<ClassDetailsPage />} />
             <Route path="/ranking" element={<RankingPage />} />
             <Route path="/school-rankings/:schoolId" element={<SchoolRankingsPage />} />
