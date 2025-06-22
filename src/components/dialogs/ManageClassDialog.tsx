@@ -236,6 +236,7 @@ const ManageClassDialog: React.FC<ManageClassDialogProps> = ({
       {/* Manage Pokemon Dialog */}
       <ManagePokemonDialog
         isOpen={managePokemonDialog.open}
+        onClose={() => setManagePokemonDialog({...managePokemonDialog, open: false})}
         onOpenChange={(open) => setManagePokemonDialog({...managePokemonDialog, open})}
         studentId={managePokemonDialog.studentId}
         studentName={managePokemonDialog.studentName}

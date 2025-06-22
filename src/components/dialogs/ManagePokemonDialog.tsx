@@ -24,7 +24,7 @@ interface StudentPokemon extends Pokemon {
 
 interface ManagePokemonDialogProps {
   isOpen: boolean;
-  onClose: () => void;
+  onClose?: () => void;
   onOpenChange: (open: boolean) => void;
   studentId: string;
   studentName: string;
@@ -122,7 +122,15 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
       if (error) throw error;
 
-      setAvailablePokemon(data || []);
+      const pokemonList = (data || []).map(item => ({
+        id: item.id,
+        name: item.name,
+        image: item.image,
+        type: item.type,
+        rarity: item.rarity
+      }));
+
+      setAvailablePokemon(pokemonList);
     } catch (error) {
       console.error("Error loading available Pokemon:", error);
       throw error;
@@ -279,7 +287,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
   const handleDialogChange = (open: boolean) => {
     onOpenChange(open);
-    if (!open) {
+    if (!open && onClose) {
       onClose();
     }
   };
@@ -333,7 +341,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
               </div>
             ) : (
               <div className="text-center py-8">
-                <Award className="w-12 w-12 mx-auto mb-4 text-gray-300" />
+                <Award className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                 <p className="text-gray-500">No Pokémon available to award</p>
               </div>
             )}
