@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -235,16 +234,11 @@ const ManageClassDialog: React.FC<ManageClassDialogProps> = ({
 
       {/* Manage Pokemon Dialog */}
       <ManagePokemonDialog
-        isOpen={managePokemonDialog.open}
-        onClose={() => setManagePokemonDialog({...managePokemonDialog, open: false})}
+        open={managePokemonDialog.open}
         onOpenChange={(open) => setManagePokemonDialog({...managePokemonDialog, open})}
         studentId={managePokemonDialog.studentId}
         studentName={managePokemonDialog.studentName}
-        schoolId={managePokemonDialog.schoolId}
-        onPokemonRemoved={handlePokemonRemoved}
-        isClassCreator={true}
-        teacherId={teacherId}
-        classId={classId}
+        onPokemonUpdated={handlePokemonRemoved}
       />
     </Dialog>
   );

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -114,7 +113,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
           description: `Pokémon awarded to ${studentName} successfully!`
         });
         
-        await loadStudentPokemon(); // Reload to show new Pokemon
+        await loadStudentPokemon();
         setSelectedPokemonId('');
         
         if (onPokemonUpdated) {
@@ -163,7 +162,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
           description: `${pokemon.name} removed from ${studentName}'s collection`
         });
         
-        await loadStudentPokemon(); // Reload to reflect removal
+        await loadStudentPokemon();
         
         if (onPokemonUpdated) {
           onPokemonUpdated();

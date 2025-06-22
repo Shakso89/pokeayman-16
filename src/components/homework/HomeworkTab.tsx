@@ -15,7 +15,7 @@ interface Homework {
   created_at: string;
   classes: {
     name: string;
-  };
+  } | null;
 }
 
 interface HomeworkTabProps {
@@ -58,9 +58,9 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ teacherId }) => {
         due_date: item.due_date,
         class_id: item.class_id,
         created_at: item.created_at,
-        classes: {
+        classes: item.classes ? {
           name: Array.isArray(item.classes) ? item.classes[0]?.name || 'Unknown Class' : item.classes?.name || 'Unknown Class'
-        }
+        } : null
       }));
 
       setHomework(transformedData);
@@ -151,7 +151,7 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ teacherId }) => {
                     </p>
                     <div className="flex items-center gap-2 mt-2">
                       <Badge variant="outline" className="text-xs">
-                        {hw.classes.name}
+                        {hw.classes?.name || 'Unknown Class'}
                       </Badge>
                       <Badge variant={dueDateInfo.variant} className="text-xs">
                         {dueDateInfo.text}
