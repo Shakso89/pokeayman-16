@@ -33,7 +33,7 @@ export const awardCoinsToStudentEnhanced = async (
       return { success: false, error };
     }
 
-    // Get or create student profile
+    // Get or create student profile using the corrected function
     console.log("🔍 Getting or creating student profile...");
     const student = await getOrCreateStudentProfile(userId, classId, schoolId);
     if (!student) {
@@ -44,11 +44,12 @@ export const awardCoinsToStudentEnhanced = async (
 
     console.log("✅ Student profile found/created:", {
       studentId: student.id,
+      userId: student.user_id,
       username: student.username,
       currentCoins: student.coins
     });
 
-    // Update student's coin balance
+    // Update student's coin balance using the student ID
     console.log("💰 Updating student coins...");
     const success = await updateStudentCoins(student.id, amount, reason);
     if (!success) {
@@ -57,7 +58,7 @@ export const awardCoinsToStudentEnhanced = async (
       return { success: false, error };
     }
 
-    // Get new balance
+    // Get new balance from students table
     console.log("🔍 Fetching updated balance...");
     const { data: updatedStudent, error: balanceError } = await supabase
       .from("students")
@@ -71,7 +72,7 @@ export const awardCoinsToStudentEnhanced = async (
 
     const newBalance = updatedStudent?.coins || (student.coins || 0) + amount;
 
-    // Log the transaction
+    // Log the transaction using the correct user_id
     try {
       console.log("📝 Logging coin transaction...");
       await supabase.from("coin_history").insert({

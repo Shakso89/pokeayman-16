@@ -1,3 +1,4 @@
+
 import { Pokemon } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
 import { createPokemonAwardNotification } from "@/utils/notificationService";
@@ -20,6 +21,15 @@ export const getStudentPokemons = async (studentId: string): Promise<any[]> => {
       return [];
     }
 
+    // Get student to find the correct user_id
+    const { data: student } = await supabase
+      .from("students")
+      .select("user_id")
+      .or(`id.eq.${studentId},user_id.eq.${studentId}`)
+      .single();
+
+    const lookupId = student?.user_id || studentId;
+
     const { data, error } = await supabase
       .from('pokemon_collections')
       .select(`
@@ -35,7 +45,7 @@ export const getStudentPokemons = async (studentId: string): Promise<any[]> => {
           power_stats
         )
       `)
-      .eq('student_id', studentId);
+      .eq('student_id', lookupId);
 
     if (error) {
       console.error("❌ Error fetching student's Pokémon:", error);
@@ -107,6 +117,7 @@ export const awardPokemonToStudent = async (
 
     console.log("✅ Student profile found/created:", {
       studentId: student.id,
+      userId: student.user_id,
       username: student.username
     });
 
@@ -126,12 +137,12 @@ export const awardPokemonToStudent = async (
 
     console.log("✅ Pokemon found in catalog:", pokemon.name);
 
-    // Check for duplicates
+    // Check for duplicates using the correct user_id
     console.log("🔍 Checking for duplicate Pokemon...");
     const { data: existingPokemon } = await supabase
       .from('pokemon_collections')
       .select('id')
-      .eq('student_id', student.id)
+      .eq('student_id', student.user_id)
       .eq('pokemon_id', pokemonId)
       .limit(1);
 
@@ -156,12 +167,12 @@ export const awardPokemonToStudent = async (
       }
     }
 
-    // Insert into Pokémon collection
+    // Insert into Pokémon collection using the correct user_id
     console.log("📝 Adding Pokemon to student collection...");
     const { data: result, error: insertError } = await supabase
       .from('pokemon_collections')
       .insert({
-        student_id: student.id,
+        student_id: student.user_id,
         pokemon_id: pokemonId,
         school_id: schoolId || student.school_id
       })
@@ -232,14 +243,12 @@ export const assignRandomPokemonToStudent = async (
   try {
     console.log("🎲 Assigning random Pokemon from school pool", { schoolId, userId, classId });
     
-    // Get or create student profile
     const student = await getOrCreateStudentProfile(userId, classId, schoolId);
     if (!student) {
       return { success: false, error: "Could not create or find student profile" };
     }
 
-    // Assign Pokemon from school pool
-    const result = await assignPokemonFromPool(schoolId, student.id);
+    const result = await assignPokemonFromPool(schoolId, student.user_id);
     
     if (!result.success) {
       return { success: false, error: "No Pokemon available in school pool" };

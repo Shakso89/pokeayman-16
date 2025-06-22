@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { assignPokemonFromPool } from "./schoolPokemonService";
 
@@ -29,15 +30,15 @@ export interface MysteryBallHistoryRecord {
   id: string;
   student_id: string;
   result_type: string;
-  type: string; // Added for compatibility
+  type: string;
   pokemon_name?: string;
   pokemon_id?: string;
-  pokemon_data?: any; // Added for compatibility
+  pokemon_data?: any;
   coins_amount?: number;
   created_at: string;
 }
 
-// Get or create student profile
+// Get or create student profile - now properly handles the user_id column
 export const getOrCreateStudentProfile = async (
   userId: string,
   classId?: string,
@@ -52,8 +53,8 @@ export const getOrCreateStudentProfile = async (
       return null;
     }
 
-    // First try to get existing student
-    console.log("🔍 Checking for existing student profile...");
+    // First try to get existing student by user_id
+    console.log("🔍 Checking for existing student by user_id...");
     let { data: student, error } = await supabase
       .from("students")
       .select("*")
@@ -63,55 +64,103 @@ export const getOrCreateStudentProfile = async (
     if (student) {
       console.log("✅ Found existing student profile:", {
         id: student.id,
+        user_id: student.user_id,
         username: student.username,
-        coins: student.coins
+        coins: student.coins || 0
       });
-      return student;
+      
+      // Ensure student profile exists in student_profiles table
+      await ensureStudentProfileExists(student);
+      
+      return {
+        id: student.id,
+        user_id: student.user_id,
+        username: student.username,
+        display_name: student.display_name,
+        coins: student.coins || 0,
+        school_id: student.school_id,
+        class_id: student.class_id,
+        avatar_url: student.profile_photo
+      };
     }
 
+    // If not found by user_id, try by id (for backward compatibility)
     if (error && error.code !== 'PGRST116') {
-      console.error("❌ Error fetching student:", error);
-      return null;
+      console.log("🔍 Trying to find student by id...");
+      const { data: studentById, error: idError } = await supabase
+        .from("students")
+        .select("*")
+        .eq("id", userId)
+        .single();
+
+      if (studentById) {
+        console.log("✅ Found existing student by id:", {
+          id: studentById.id,
+          user_id: studentById.user_id,
+          username: studentById.username
+        });
+        
+        await ensureStudentProfileExists(studentById);
+        
+        return {
+          id: studentById.id,
+          user_id: studentById.user_id || studentById.id,
+          username: studentById.username,
+          display_name: studentById.display_name,
+          coins: studentById.coins || 0,
+          school_id: studentById.school_id,
+          class_id: studentById.class_id,
+          avatar_url: studentById.profile_photo
+        };
+      }
     }
 
-    // Create new student if not found
-    console.log("📝 Creating new student profile for user:", userId);
-    
-    const timestamp = Date.now();
-    const randomSuffix = Math.floor(Math.random() * 10000);
-    const uniqueUsername = `student_${timestamp}_${randomSuffix}`;
-    
-    const newStudentData = {
-      user_id: userId,
-      username: uniqueUsername,
-      display_name: `Student ${userId.slice(0, 8)}`,
-      class_id: classId || null,
-      school_id: schoolId || null,
-      password_hash: 'temp_hash'
-    };
-
-    console.log("📝 Inserting new student with data:", newStudentData);
-
-    const { data: created, error: createError } = await supabase
-      .from("students")
-      .insert(newStudentData)
-      .select()
-      .single();
-
-    if (createError) {
-      console.error("❌ Error creating student profile:", createError);
-      return null;
-    }
-
-    console.log("✅ Created new student profile:", {
-      id: created.id,
-      username: created.username
-    });
-    return created;
+    // If no student found, this means we need to create one
+    console.log("📝 No existing student found, this should not happen in normal flow");
+    console.error("❌ Student not found for userId:", userId);
+    return null;
     
   } catch (error) {
     console.error("❌ Unexpected error in getOrCreateStudentProfile:", error);
     return null;
+  }
+};
+
+// Ensure student profile exists in student_profiles table
+const ensureStudentProfileExists = async (student: any): Promise<void> => {
+  try {
+    const userId = student.user_id || student.id;
+    
+    // Check if profile exists
+    const { data: existingProfile } = await supabase
+      .from("student_profiles")
+      .select("id")
+      .eq("user_id", userId)
+      .single();
+
+    if (!existingProfile) {
+      console.log("📝 Creating student profile entry for user:", userId);
+      
+      const { error: insertError } = await supabase
+        .from("student_profiles")
+        .insert({
+          user_id: userId,
+          username: student.username,
+          display_name: student.display_name || student.username,
+          school_id: student.school_id,
+          class_id: student.class_id,
+          coins: 0,
+          spent_coins: 0
+        });
+
+      if (insertError) {
+        console.error("❌ Error creating student profile:", insertError);
+      } else {
+        console.log("✅ Student profile created successfully");
+      }
+    }
+  } catch (error) {
+    console.error("❌ Error ensuring student profile exists:", error);
   }
 };
 
@@ -125,29 +174,54 @@ export const getStudentProfileById = async (studentId: string): Promise<StudentP
       return null;
     }
 
-    const { data: student, error } = await supabase
+    // Try to get by user_id first, then by id
+    let { data: student, error } = await supabase
       .from("students")
       .select("*")
-      .eq("id", studentId)
+      .eq("user_id", studentId)
       .single();
 
-    if (error) {
+    if (!student) {
+      const { data: studentById, error: idError } = await supabase
+        .from("students")
+        .select("*")
+        .eq("id", studentId)
+        .single();
+      
+      student = studentById;
+      error = idError;
+    }
+
+    if (error || !student) {
       console.error("❌ Error fetching student profile:", error);
       return null;
     }
 
+    await ensureStudentProfileExists(student);
+
     console.log("✅ Found student profile:", {
       id: student.id,
+      user_id: student.user_id,
       username: student.username
     });
-    return student;
+    
+    return {
+      id: student.id,
+      user_id: student.user_id || student.id,
+      username: student.username,
+      display_name: student.display_name,
+      coins: student.coins || 0,
+      school_id: student.school_id,
+      class_id: student.class_id,
+      avatar_url: student.profile_photo
+    };
   } catch (error) {
     console.error("❌ Error in getStudentProfileById:", error);
     return null;
   }
 };
 
-// Update student coins
+// Update student coins - now works with both students and student_profiles tables
 export const updateStudentCoins = async (
   studentId: string,
   amount: number,
@@ -166,40 +240,50 @@ export const updateStudentCoins = async (
       return true;
     }
 
-    // Get current balance
+    // Get student by ID to find the correct user_id
     const { data: student, error: fetchError } = await supabase
       .from("students")
-      .select("coins")
-      .eq("id", studentId)
+      .select("id, user_id, coins")
+      .or(`id.eq.${studentId},user_id.eq.${studentId}`)
       .single();
 
-    if (fetchError) {
+    if (fetchError || !student) {
       console.error("❌ Error fetching student for coin update:", fetchError);
       return false;
     }
 
-    if (!student) {
-      console.error("❌ Student not found for coin update:", studentId);
-      return false;
-    }
-
+    const userId = student.user_id || student.id;
     const currentCoins = student.coins || 0;
     const newBalance = Math.max(0, currentCoins + amount);
 
     console.log("💰 Coin update calculation:", {
+      studentId: student.id,
+      userId,
       currentCoins,
       changeAmount: amount,
       newBalance
     });
 
-    const { error: updateError } = await supabase
+    // Update coins in students table
+    const { error: updateStudentsError } = await supabase
       .from("students")
       .update({ coins: newBalance })
-      .eq("id", studentId);
+      .eq("id", student.id);
 
-    if (updateError) {
-      console.error("❌ Error updating coins:", updateError);
+    if (updateStudentsError) {
+      console.error("❌ Error updating coins in students table:", updateStudentsError);
       return false;
+    }
+
+    // Also update in student_profiles table
+    const { error: updateProfilesError } = await supabase
+      .from("student_profiles")
+      .update({ coins: newBalance })
+      .eq("user_id", userId);
+
+    if (updateProfilesError) {
+      console.warn("⚠️ Error updating coins in student_profiles table:", updateProfilesError);
+      // Don't fail completely if student_profiles update fails
     }
 
     console.log(`✅ Updated student coins successfully: ${amount > 0 ? '+' : ''}${amount} (New balance: ${newBalance})`);
@@ -235,7 +319,6 @@ export const checkDailyAttempt = async (studentId: string): Promise<boolean> => 
   }
 };
 
-// Use daily attempt
 export const useDailyAttempt = async (studentId: string): Promise<boolean> => {
   try {
     const today = new Date().toISOString().split('T')[0];
@@ -255,7 +338,6 @@ export const useDailyAttempt = async (studentId: string): Promise<boolean> => {
   }
 };
 
-// Add mystery ball history
 export const addMysteryBallHistory = async (
   studentId: string,
   resultType: string,
@@ -275,7 +357,6 @@ export const addMysteryBallHistory = async (
   }
 };
 
-// Get mystery ball history
 export const getMysteryBallHistory = async (studentId: string): Promise<MysteryBallHistoryRecord[]> => {
   try {
     const { data, error } = await supabase
@@ -289,7 +370,6 @@ export const getMysteryBallHistory = async (studentId: string): Promise<MysteryB
       return [];
     }
 
-    // Transform data to match expected interface
     return (data || []).map(record => ({
       ...record,
       type: record.result_type,
@@ -301,7 +381,6 @@ export const getMysteryBallHistory = async (studentId: string): Promise<MysteryB
   }
 };
 
-// Add Pokemon to collection
 export const addPokemonToCollection = async (
   studentId: string,
   pokemonId: number,
@@ -329,13 +408,11 @@ export const addPokemonToCollection = async (
   }
 };
 
-// Get school Pokemon pool
 export const getSchoolPokemonPool = async (schoolId: string) => {
   const { getSchoolAvailablePokemon } = await import("./schoolPokemonService");
   return getSchoolAvailablePokemon(schoolId);
 };
 
-// Assign Pokemon from school pool
 export const assignPokemonFromSchoolPool = async (
   schoolId: string,
   studentId: string
