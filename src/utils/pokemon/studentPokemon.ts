@@ -4,12 +4,72 @@ import { supabase } from "@/integrations/supabase/client";
 import { createPokemonAwardNotification } from "@/utils/notificationService";
 import { createAdminNotification } from "@/services/adminNotificationService";
 import { awardCoinsToStudentEnhanced } from "@/services/enhancedCoinService";
-import { ensureStudentProfile, createBasicStudentProfile } from "@/services/studentProfileManager";
 
 export interface StudentPokemon {
   studentId: string;
   pokemons: Pokemon[];
 }
+
+// Helper function to ensure student profile exists before Pokemon operations
+const ensureStudentProfileExists = async (
+  studentId: string,
+  classId?: string,
+  schoolId?: string
+): Promise<{ success: boolean; profileId?: string; error?: string }> => {
+  try {
+    console.log("🔍 Checking if student profile exists for:", studentId);
+    
+    // First try to find existing profile
+    const { data: existingProfile, error: fetchError } = await supabase
+      .from('student_profiles')
+      .select('id, user_id')
+      .eq('user_id', studentId)
+      .maybeSingle();
+
+    if (existingProfile) {
+      console.log("✅ Student profile already exists:", existingProfile.id);
+      return { success: true, profileId: existingProfile.id };
+    }
+
+    // If no profile exists, create one automatically
+    console.log("📝 Creating new student profile for:", studentId);
+    
+    // Try to get additional info from students table if it exists
+    const { data: studentInfo } = await supabase
+      .from('students')
+      .select('username, display_name, school_id, class_id')
+      .eq('id', studentId)
+      .maybeSingle();
+
+    // Use provided or existing info, with fallbacks
+    const profileData = {
+      user_id: studentId,
+      username: studentInfo?.username || `student_${studentId.slice(0, 8)}`,
+      display_name: studentInfo?.display_name || studentInfo?.username || `Student ${studentId.slice(0, 8)}`,
+      school_id: schoolId || studentInfo?.school_id || null,
+      class_id: classId || studentInfo?.class_id || null,
+      coins: 0,
+      spent_coins: 0
+    };
+
+    const { data: newProfile, error: createError } = await supabase
+      .from('student_profiles')
+      .insert(profileData)
+      .select('id')
+      .single();
+
+    if (createError) {
+      console.error('❌ Error creating student profile:', createError);
+      return { success: false, error: `Failed to create student profile: ${createError.message}` };
+    }
+
+    console.log("✅ Successfully created student profile:", newProfile.id);
+    return { success: true, profileId: newProfile.id };
+  } catch (error) {
+    console.error("❌ Error ensuring student profile exists:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+  }
+};
 
 export const getStudentPokemons = async (studentId: string): Promise<any[]> => {
   try {
@@ -86,19 +146,19 @@ export const saveStudentPokemons = async (studentId: string, pokemons: Pokemon[]
 export const awardPokemonToStudent = async (
   studentId: string,
   pokemonId: number,
-  reason: string = "Teacher award"
+  reason: string = "Teacher award",
+  classId?: string,
+  schoolId?: string
 ): Promise<{ success: boolean; error?: string; pokemon?: any }> => {
   try {
-    console.log("🎁 Awarding Pokemon to student", { studentId, pokemonId, reason });
+    console.log("🎁 Awarding Pokemon to student", { studentId, pokemonId, reason, classId, schoolId });
 
-    // First, ensure the student profile exists
-    console.log("🔍 Ensuring student profile exists for:", studentId);
-    const profileId = await createBasicStudentProfile(studentId);
-    if (!profileId) {
-      console.error("❌ Failed to create/find student profile");
-      return { success: false, error: "Failed to create student profile" };
+    // Ensure student profile exists (create if needed)
+    const profileResult = await ensureStudentProfileExists(studentId, classId, schoolId);
+    if (!profileResult.success) {
+      console.error("❌ Failed to ensure student profile exists:", profileResult.error);
+      return { success: false, error: profileResult.error };
     }
-    console.log("✅ Student profile ensured:", profileId);
 
     // Get teacher info for notifications
     const teacherId = localStorage.getItem("teacherId");
@@ -133,64 +193,16 @@ export const awardPokemonToStudent = async (
       return { success: false, error: "Pokemon not found in catalog" };
     }
 
-    // Get student profile data with multiple fallback strategies
-    let studentData;
-    
-    // Strategy 1: Try by user_id
-    const { data: profileData, error: profileError } = await supabase
+    // Get student profile data
+    const { data: studentData, error: profileError } = await supabase
       .from('student_profiles')
       .select('id, user_id, school_id, username, display_name')
       .eq('user_id', studentId)
-      .maybeSingle();
+      .single();
 
-    if (!profileError && profileData) {
-      studentData = profileData;
-      console.log("✅ Found student profile by user_id:", studentData);
-    } else {
-      // Strategy 2: Try by id field
-      const { data: altProfileData, error: altError } = await supabase
-        .from('student_profiles')
-        .select('id, user_id, school_id, username, display_name')
-        .eq('id', studentId)
-        .maybeSingle();
-
-      if (!altError && altProfileData) {
-        studentData = altProfileData;
-        console.log("✅ Found student profile by id:", studentData);
-      } else {
-        // Strategy 3: Get from students table and create profile
-        const { data: studentFromTable } = await supabase
-          .from('students')
-          .select('id, username, display_name, school_id')
-          .eq('id', studentId)
-          .maybeSingle();
-
-        if (studentFromTable) {
-          console.log("📝 Creating student profile from students table data");
-          const newProfileId = await ensureStudentProfile({
-            user_id: studentId,
-            username: studentFromTable.username,
-            display_name: studentFromTable.display_name,
-            school_id: studentFromTable.school_id
-          });
-
-          if (newProfileId) {
-            const { data: newProfileData } = await supabase
-              .from('student_profiles')
-              .select('id, user_id, school_id, username, display_name')
-              .eq('id', newProfileId)
-              .single();
-            
-            studentData = newProfileData;
-            console.log("✅ Created and retrieved new student profile:", studentData);
-          }
-        }
-      }
-    }
-
-    if (!studentData) {
-      console.error("❌ Could not find or create student profile for:", studentId);
-      return { success: false, error: "Student profile not found and could not be created" };
+    if (profileError || !studentData) {
+      console.error("❌ Could not find student profile:", profileError);
+      return { success: false, error: "Student profile not found after creation attempt" };
     }
 
     // Add the Pokemon to the student's collection in pokemon_collections table
@@ -198,9 +210,9 @@ export const awardPokemonToStudent = async (
     const { data: result, error: insertError } = await supabase
       .from('pokemon_collections')
       .insert({
-        student_id: studentData.user_id, // Use user_id for consistency
+        student_id: studentData.user_id,
         pokemon_id: pokemonId,
-        school_id: studentData.school_id
+        school_id: schoolId || studentData.school_id
       })
       .select()
       .single();
@@ -249,7 +261,8 @@ export const awardPokemonToStudent = async (
 // Random Pokemon assignment function using the new structure
 export const assignRandomPokemonToStudent = async (
   schoolId: string, 
-  studentId: string
+  studentId: string,
+  classId?: string
 ): Promise<{ success: boolean; error?: string; pokemon?: any }> => {
   try {
     // Get available Pokemon from school pool
@@ -267,7 +280,7 @@ export const assignRandomPokemonToStudent = async (
     const randomPokemon = poolPokemons[0];
     const pokemonId = randomPokemon.pokemon_id;
 
-    return await awardPokemonToStudent(studentId, pokemonId, "Random award");
+    return await awardPokemonToStudent(studentId, pokemonId, "Random award", classId, schoolId);
   } catch (error) {
     return { 
       success: false, 
@@ -279,9 +292,10 @@ export const assignRandomPokemonToStudent = async (
 export const assignSpecificPokemonToStudent = async (
   pokemonId: number,
   schoolId: string,
-  studentId: string
+  studentId: string,
+  classId?: string
 ): Promise<{ success: boolean; error?: string; pokemon?: any }> => {
-  return await awardPokemonToStudent(studentId, pokemonId, "Specific award");
+  return await awardPokemonToStudent(studentId, pokemonId, "Specific award", classId, schoolId);
 };
 
 export const awardCoinsToStudent = async (

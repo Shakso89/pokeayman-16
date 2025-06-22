@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -10,13 +11,13 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { getSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
 import { getStudentPokemonCollection, removePokemonFromStudent, assignRandomPokemonToStudent, assignSpecificPokemonToStudent } from "@/utils/pokemon/studentPokemon";
 import { SchoolPoolPokemon, StudentCollectionPokemon } from "@/types/pokemon";
-import { supabase } from "@/integrations/supabase/client";
 
 interface TeacherManagePokemonDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
   students: any[];
   schoolId: string;
+  classId?: string;
   isClassCreator: boolean;
   onRefresh: () => void;
 }
@@ -26,6 +27,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
   onOpenChange,
   students,
   schoolId,
+  classId,
   isClassCreator,
   onRefresh
 }) => {
@@ -35,7 +37,6 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
   const [schoolPool, setSchoolPool] = useState<SchoolPoolPokemon[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"award" | "remove">("award");
-  const [profileError, setProfileError] = useState<string|null>(null);
 
   useEffect(() => {
     if (isOpen && schoolId) {
@@ -62,32 +63,12 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
   const fetchStudentPokemons = async () => {
     if (!selectedStudent) return;
     setLoading(true);
-    setProfileError(null);
 
     try {
-      // Try fetch (RLS-safe!)
-      // Uses the updated getOrCreateStudentProfile (never creates, just checks)
       const collection = await getStudentPokemonCollection(selectedStudent.id);
-
-      if (collection === null || (Array.isArray(collection) && collection.length === 0)) {
-        // Need further check: does the student's profile exist at all?
-        // Try a direct profile fetch to see if it's missing
-        const { data: profile } = await supabase
-          .from("student_profiles")
-          .select("*")
-          .eq("user_id", selectedStudent.id)
-          .maybeSingle();
-        if (!profile) {
-          setProfileError("This student does not yet have a profile in the system. Ask them to log in at least once before Pokémon can be assigned!");
-          setStudentPokemons([]);
-          setLoading(false);
-          return;
-        }
-      }
-      // No error: show Pokémon as normal
-      setStudentPokemons(collection);
-    } catch (error:any) {
-      setProfileError("An error occurred loading this student's profile.");
+      setStudentPokemons(collection || []);
+    } catch (error: any) {
+      console.error("Error loading student Pokemon:", error);
       setStudentPokemons([]);
     } finally {
       setLoading(false);
@@ -96,14 +77,6 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
 
   const handleAwardRandomPokemon = async () => {
     if (!selectedStudent || !isClassCreator) return;
-    if (profileError) {
-      toast({
-        title: "No Profile",
-        description: profileError,
-        variant: "destructive"
-      });
-      return;
-    }
 
     if (schoolPool.length === 0) {
       toast({
@@ -116,15 +89,9 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
 
     setLoading(true);
     try {
-      const result = await assignRandomPokemonToStudent(schoolId, selectedStudent.id);
+      const result = await assignRandomPokemonToStudent(schoolId, selectedStudent.id, classId);
 
-      if (result && result.error === "profile_missing") {
-        toast({
-          title: t("error"),
-          description: "Student does not have a profile. Ask them to log in at least once before assigning Pokémon.",
-          variant: "destructive"
-        });
-      } else if (result && result.error) {
+      if (result && result.error) {
         toast({
           title: t("error"),
           description: `Failed to assign Pokémon: ${result.error}`,
@@ -157,14 +124,6 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
 
   const handleAwardSpecificPokemon = async (pokemon: SchoolPoolPokemon) => {
     if (!selectedStudent || !isClassCreator) return;
-    if (profileError) {
-      toast({
-        title: "No Profile",
-        description: profileError,
-        variant: "destructive"
-      });
-      return;
-    }
 
     if (!pokemon.poolEntryId) {
       toast({
@@ -180,16 +139,11 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
       const result = await assignSpecificPokemonToStudent(
         pokemon.id,
         schoolId,
-        selectedStudent.id
+        selectedStudent.id,
+        classId
       );
 
-      if (result && result.error === "profile_missing") {
-        toast({
-          title: t("error"),
-          description: "Student does not have a profile. Ask them to log in at least once before assigning Pokémon.",
-          variant: "destructive"
-        });
-      } else if (result && result.error) {
+      if (result && result.error) {
         toast({
           title: t("error"),
           description: `Failed to assign Pokémon: ${result.error}`,
@@ -224,14 +178,6 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
 
   const handleRemovePokemon = async (collectionId: string, pokemonName: string) => {
     if (!isClassCreator) return;
-    if (profileError) {
-      toast({
-        title: "No Profile",
-        description: profileError,
-        variant: "destructive"
-      });
-      return;
-    }
 
     setLoading(true);
     try {
@@ -448,7 +394,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
                 </div>
               ) : studentPokemons.length === 0 ? (
                 <div className="text-center py-8">
-                  <p className="text-gray-500">Student has no Pokémon</p>
+                  <p className="text-gray-500">Student has no Pokémon yet - award some first!</p>
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -490,12 +436,6 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
               )}
             </div>
           )}
-          
-          {profileError ? (
-            <div className="bg-yellow-50 border border-yellow-200 text-yellow-800 px-4 py-3 rounded-lg my-4">
-              <strong>Notice:</strong> {profileError}
-            </div>
-          ) : null}
           
           <div className="flex justify-end pt-4 border-t">
             <Button onClick={() => onOpenChange(false)}>

@@ -1,3 +1,4 @@
+
 import React from "react";
 import { StudentsList } from "@/components/student-profile/StudentsList";
 import DeleteClassDialog from "@/components/dialogs/DeleteClassDialog";
@@ -6,6 +7,7 @@ import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
 import RemoveCoinsDialog from "@/components/dialogs/RemoveCoinsDialog";
 import SchoolPokemonPoolDialog from "@/components/dialogs/SchoolPokemonPoolDialog";
+import TeacherManagePokemonDialog from "@/components/dialogs/TeacherManagePokemonDialog";
 import { StudentProfile } from "@/services/studentDatabase";
 
 interface ClassDialogsProps {
@@ -52,6 +54,10 @@ interface ClassDialogsProps {
   schoolId: string;
   studentId?: string;
   teacherId: string;
+  // Add new props for Teacher Pokemon Management
+  teacherManagePokemonDialogOpen: boolean;
+  onTeacherManagePokemonDialogChange: (open: boolean) => void;
+  onRefresh: () => void;
 }
 
 const ClassDialogs: React.FC<ClassDialogsProps> = ({
@@ -81,6 +87,9 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
   studentId,
   teacherId,
   students,
+  teacherManagePokemonDialogOpen,
+  onTeacherManagePokemonDialogChange,
+  onRefresh,
 }) => {
   return (
     <>
@@ -121,6 +130,17 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
         studentId={managePokemonDialog.studentId}
         studentName={managePokemonDialog.studentName}
         onPokemonUpdated={onPokemonRemoved}
+      />
+
+      {/* Teacher Manage Pokemon Dialog */}
+      <TeacherManagePokemonDialog
+        isOpen={teacherManagePokemonDialogOpen}
+        onOpenChange={onTeacherManagePokemonDialogChange}
+        students={students}
+        schoolId={schoolId}
+        classId={classId}
+        isClassCreator={isClassCreator}
+        onRefresh={onRefresh}
       />
 
       {/* Give Coins Dialog */}
