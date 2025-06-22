@@ -8,15 +8,16 @@ import { Button } from "@/components/ui/button";
 import { Users } from "lucide-react";
 import { PhotoGrid } from "@/components/profile/PhotoGrid";
 import { StudentsList } from "./StudentsList";
+import StudentProfilePokemonList from "./StudentProfilePokemonList";
 
 interface StudentData {
   id: string;
   displayName: string;
   username: string;
   avatar?: string;
-  photos?: string[]; // Changed photos to be optional
+  photos?: string[];
   classId?: string;
-  pokemonCollection?: { id: string; name: string; image: string }[];
+  pokemonCollection?: { id: string; name: string; image: string; type?: string; rarity?: string }[];
   contactInfo?: string;
 }
 
@@ -35,7 +36,6 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
 }) => {
   const [isStudentsListOpen, setIsStudentsListOpen] = useState(false);
   
-  // Add a dummy function for onStudentsAdded
   const handleStudentsAdded = (studentIds: string[]) => {
     console.log("Students added:", studentIds);
     // This is just a placeholder since we're only viewing students in this context
@@ -46,7 +46,7 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
       <Tabs defaultValue="photos">
         <TabsList>
           <TabsTrigger value="photos">Photos</TabsTrigger>
-          <TabsTrigger value="pokemon">Pokémon</TabsTrigger>
+          <TabsTrigger value="pokemon">Pokémon ({student.pokemonCollection?.length || 0})</TabsTrigger>
           <TabsTrigger value="contact">Contact Info</TabsTrigger>
           {student.classId && <TabsTrigger value="classmates">Classmates</TabsTrigger>}
         </TabsList>
@@ -79,31 +79,7 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
               </p>
             </CardHeader>
             <CardContent>
-              {student.pokemonCollection && student.pokemonCollection.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                  {student.pokemonCollection.map((pokemon) => (
-                    <div 
-                      key={pokemon.id} 
-                      className="bg-white rounded-lg shadow overflow-hidden border border-gray-200"
-                    >
-                      <div className="p-2 bg-gray-50">
-                        <img 
-                          src={pokemon.image} 
-                          alt={pokemon.name}
-                          className="w-full h-24 object-contain"
-                        />
-                      </div>
-                      <div className="p-2 text-center">
-                        <p className="text-sm font-medium">{pokemon.name}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <p className="text-center text-gray-500 py-8">
-                  No Pokémon collected yet
-                </p>
-              )}
+              <StudentProfilePokemonList pokemons={student.pokemonCollection || []} />
             </CardContent>
           </Card>
         </TabsContent>
@@ -171,8 +147,8 @@ export const ProfileTabs: React.FC<ProfileTabsProps> = ({
           classId={student.classId}
           open={isStudentsListOpen}
           onOpenChange={setIsStudentsListOpen}
-          onStudentsAdded={handleStudentsAdded} // Add the required prop
-          viewMode={true} // Set to true for viewing mode
+          onStudentsAdded={handleStudentsAdded}
+          viewMode={true}
         />
       )}
     </>

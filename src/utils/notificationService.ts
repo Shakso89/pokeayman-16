@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export const createNotification = async (
@@ -9,6 +8,24 @@ export const createNotification = async (
   link?: string
 ) => {
   try {
+    // Check for recent duplicate notifications (within last 5 minutes)
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    
+    const { data: existingNotifications } = await supabase
+      .from('notifications')
+      .select('id')
+      .eq('recipient_id', recipientId)
+      .eq('title', title)
+      .eq('message', message)
+      .eq('type', type)
+      .gte('created_at', fiveMinutesAgo)
+      .limit(1);
+
+    if (existingNotifications && existingNotifications.length > 0) {
+      console.log('🔕 Duplicate notification prevented:', { title, message });
+      return;
+    }
+
     const { error } = await supabase
       .from('notifications')
       .insert({
@@ -20,9 +37,9 @@ export const createNotification = async (
       });
 
     if (error) throw error;
-    console.log('Notification created successfully');
+    console.log('✅ Notification created successfully:', title);
   } catch (error) {
-    console.error('Error creating notification:', error);
+    console.error('❌ Error creating notification:', error);
   }
 };
 

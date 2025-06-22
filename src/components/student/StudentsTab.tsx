@@ -29,20 +29,29 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
   const fetchStudents = async () => {
     setLoading(true);
     try {
+      console.log("🔍 Fetching students for class:", classId);
+      
       // Fetch student IDs from the student_classes join table
       const { data: studentLinks, error: linksError } = await supabase
         .from('student_classes')
         .select('student_id')
         .eq('class_id', classId);
 
-      if (linksError) throw linksError;
+      if (linksError) {
+        console.error("❌ Error fetching student links:", linksError);
+        throw linksError;
+      }
+
+      console.log("📋 Found student links:", studentLinks?.length || 0);
 
       if (!studentLinks || studentLinks.length === 0) {
+        console.log("ℹ️ No students found in class");
         setStudents([]);
         return;
       }
       
       const studentIds = studentLinks.map(link => link.student_id);
+      console.log("🆔 Student IDs to fetch:", studentIds);
       
       // Fetch student details with school information and their profiles for coins/pokemon data
       const { data: studentsData, error: studentsError } = await supabase
@@ -61,7 +70,12 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
         `)
         .in('id', studentIds);
         
-      if (studentsError) throw studentsError;
+      if (studentsError) {
+        console.error("❌ Error fetching students data:", studentsError);
+        throw studentsError;
+      }
+      
+      console.log("✅ Students data fetched:", studentsData?.length || 0);
       
       // Add school name and profile data to each student
       const studentsWithData = (studentsData || []).map(student => ({
@@ -74,7 +88,7 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
       
       setStudents(studentsWithData);
     } catch (error) {
-      console.error("Error fetching students:", error);
+      console.error("❌ Error fetching students:", error);
       toast({
         title: t("error"),
         description: t("failed-to-load-students"),

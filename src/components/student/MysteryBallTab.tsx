@@ -55,6 +55,12 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
   const MAX_SESSION_OPENS = 10;
 
   useEffect(() => {
+    console.log("🎰 MysteryBallTab initialized with:", {
+      studentId,
+      schoolId,
+      schoolPokemonsCount: schoolPokemons.length
+    });
+    
     initializeStudent();
     checkDailyAttemptStatus();
     loadSchoolPokemonPool();
@@ -62,24 +68,34 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
 
   const initializeStudent = async () => {
     try {
+      console.log("👤 Initializing student profile...");
       const student = await getOrCreateStudentProfile(studentId);
       if (student) {
+        console.log("✅ Student profile initialized:", student.id);
         setActualStudentId(student.id);
       }
     } catch (error) {
-      console.error("Error initializing student:", error);
+      console.error("❌ Error initializing student:", error);
     }
   };
 
   const loadSchoolPokemonPool = async () => {
-    if (!schoolId) return;
+    if (!schoolId) {
+      console.warn("⚠️ No schoolId provided for loading Pokemon pool");
+      return;
+    }
     
     setPoolLoading(true);
     try {
       console.log("🏫 Loading school Pokemon pool for:", schoolId);
       
       // First ensure the pool is initialized
-      await initializeSchoolPokemonPool(schoolId);
+      const initSuccess = await initializeSchoolPokemonPool(schoolId);
+      if (!initSuccess) {
+        console.error("❌ Failed to initialize school Pokemon pool");
+        setActualSchoolPokemons([]);
+        return;
+      }
       
       // Then get available Pokemon
       const availablePokemons = await getSchoolAvailablePokemon(schoolId);
@@ -102,8 +118,9 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       if (!actualStudentId) return;
       const available = await checkDailyAttempt(actualStudentId);
       setDailyAttemptAvailable(available);
+      console.log("🗓️ Daily attempt available:", available);
     } catch (error) {
-      console.error("Error checking daily attempt:", error);
+      console.error("❌ Error checking daily attempt:", error);
       toast.error("Error checking daily attempt");
     }
   };
@@ -129,14 +146,17 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       return;
     }
     
-    // Use the actual school Pokemon pool count
+    // Use the actual school Pokemon pool count - refresh to get latest count
+    await loadSchoolPokemonPool();
     const availablePokemonCount = actualSchoolPokemons.length;
     const canWinPokemon = availablePokemonCount > 0;
     
     console.log("🎰 Opening Mystery Ball:", {
       canWinPokemon,
       availablePokemonCount,
-      isFreeAttempt
+      isFreeAttempt,
+      actualStudentId,
+      schoolId
     });
     
     setIsOpening(true);
@@ -161,6 +181,7 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       
       setSessionOpensCount(prev => prev + 1);
 
+      // Add suspense animation
       await new Promise(resolve => setTimeout(resolve, 1500 + Math.random() * 1000));
 
       const rand = Math.random();
@@ -225,10 +246,10 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       
       onDataRefresh(); 
       // Refresh the school pool after opening
-      loadSchoolPokemonPool();
+      await loadSchoolPokemonPool();
 
     } catch (error) {
-      console.error("Error opening mystery ball:", error);
+      console.error("❌ Error opening mystery ball:", error);
       toast.error("Error opening mystery ball!");
     } finally {
       setIsOpening(false);

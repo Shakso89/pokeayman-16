@@ -6,6 +6,9 @@ export function Toaster() {
   return (
     <SonnerToaster 
       position="top-right"
+      expand={false}
+      richColors
+      closeButton
       toastOptions={{
         className: "sonner-toast",
         style: {
