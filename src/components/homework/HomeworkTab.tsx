@@ -49,7 +49,21 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ teacherId }) => {
         .limit(10);
 
       if (error) throw error;
-      setHomework(data || []);
+      
+      // Transform the data to match our interface
+      const transformedData: Homework[] = (data || []).map(item => ({
+        id: item.id,
+        title: item.title,
+        description: item.description,
+        due_date: item.due_date,
+        class_id: item.class_id,
+        created_at: item.created_at,
+        classes: {
+          name: Array.isArray(item.classes) ? item.classes[0]?.name || 'Unknown Class' : item.classes?.name || 'Unknown Class'
+        }
+      }));
+
+      setHomework(transformedData);
     } catch (error) {
       console.error('Error loading homework:', error);
       setHomework([]);
