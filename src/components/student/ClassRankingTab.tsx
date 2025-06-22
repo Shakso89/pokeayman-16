@@ -32,8 +32,8 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
   const [selectedStudent, setSelectedStudent] = useState<StudentWithScore | null>(null);
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
   
-  const handleStudentNameClick = (studentId: string) => {
-    navigate(`/teacher/student/${studentId}`);
+  const handleStudentClick = (student: StudentWithScore) => {
+    navigate(`/teacher/student/${student.id}`);
   };
   
   useEffect(() => {
@@ -103,7 +103,7 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
     }
   };
   
-  const handleStudentClick = async (student: StudentWithScore) => {
+  const handleStudentRowClick = async (student: StudentWithScore) => {
     setSelectedStudent(student);
     try {
       const { data, error } = await supabase
@@ -163,8 +163,8 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
           {students.map(student => (
             <div 
               key={student.id}
-              className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer"
-              onClick={() => handleStudentClick(student)}
+              className="flex items-center p-3 border rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
+              onClick={() => handleStudentRowClick(student)}
             >
               <div className={`w-8 h-8 rounded-full flex items-center justify-center text-white font-bold ${getRankingColor(student.rank)}`}>
                 {student.rank <= 3 ? <Trophy size={16} /> : student.rank}
@@ -182,9 +182,9 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleStudentNameClick(student.id);
+                      handleStudentClick(student);
                     }}
-                    className="font-medium text-sm text-blue-600 hover:text-blue-800 hover:underline cursor-pointer"
+                    className="font-medium text-sm text-blue-600 hover:text-blue-800 hover: cursor-pointer"
                   >
                     {student.displayName}
                   </button>

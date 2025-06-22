@@ -96,7 +96,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
       if (error) throw error;
 
-      const pokemonList = data?.map(item => ({
+      const pokemonList = (data || []).map(item => ({
         id: item.pokemon_catalog.id,
         name: item.pokemon_catalog.name,
         image: item.pokemon_catalog.image,
@@ -104,7 +104,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
         rarity: item.pokemon_catalog.rarity,
         collection_id: item.id,
         obtained_at: item.obtained_at
-      })) || [];
+      }));
 
       setStudentPokemon(pokemonList);
     } catch (error) {

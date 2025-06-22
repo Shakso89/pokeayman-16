@@ -1,211 +1,243 @@
 
-import React, { useEffect, useState } from "react";
-import { useParams, useNavigate } from "react-router-dom";
-import { Card, CardContent } from "@/components/ui/card";
-import StudentProfileBasicInfo from "@/components/student-profile/StudentProfileBasicInfo";
-import StudentProfilePokemonList from "@/components/student-profile/StudentProfilePokemonList";
-import CoinsDisplay from "@/components/student/profile/CoinsDisplay";
-import StudentProfileAchievements from "@/components/student-profile/StudentProfileAchievements";
-import SchoolClassInfo from "@/components/student/profile/SchoolClassInfo";
-import { ProfileHeader } from "@/components/student-profile/ProfileHeader";
-import { supabase } from "@/integrations/supabase/client";
-import { useTranslation } from "@/hooks/useTranslation";
-import { Button } from "@/components/ui/button";
-import { getStudentProfileById, StudentProfile } from "@/services/studentDatabase";
-import { Pokemon } from "@/types/pokemon";
+import React, { useState, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import AppHeader from '@/components/AppHeader';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Loader2, ArrowLeft, Award, Coins, User } from 'lucide-react';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { Badge } from '@/components/ui/badge';
+import PokemonList from '@/components/student/PokemonList';
+import { Pokemon } from '@/types/pokemon';
 
-const getNiceDisplayName = (student: any): string => {
-  const candidates = [student?.display_name, student?.displayName, student?.username].filter(Boolean);
-  for (const name of candidates) {
-    if (typeof name === "string" && name.trim().length > 1 && !/^\d+$/g.test(name.trim()) && !/^[a-f0-9\-]{20,}$/.test(name.trim())) {
-      return name.trim();
-    }
-  }
-  return "Unnamed Student";
-};
+interface StudentProfile {
+  id: string;
+  user_id: string;
+  username: string;
+  display_name: string;
+  coins: number;
+  avatar_url?: string;
+  class_name?: string;
+  school_name?: string;
+}
 
 const StudentProfilePage: React.FC = () => {
-  const { studentId } = useParams<{ studentId?: string }>();
+  const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
-  const { t } = useTranslation();
-  const loggedInUserType = localStorage.getItem("userType") || "student";
-
-  const [student, setStudent] = useState<any | null>(null);
-  const [studentProfile, setStudentProfile] = useState<StudentProfile | null>(null);
-  const [school, setSchool] = useState<any | null>(null);
-  const [classes, setClasses] = useState<any[]>([]);
+  const [student, setStudent] = useState<StudentProfile | null>(null);
   const [pokemons, setPokemons] = useState<Pokemon[]>([]);
-  const [homeworkStreak, setHomeworkStreak] = useState(0);
-  const [isStarOfClass, setIsStarOfClass] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  const userType = localStorage.getItem("userType") || "teacher";
+  const userName = localStorage.getItem(userType === 'teacher' ? 'teacherDisplayName' : 'studentDisplayName') || 'User';
+
+  const handleBackClick = () => {
+    navigate(-1);
+  };
+
   useEffect(() => {
-    if (!studentId) {
-      setLoading(false);
-      return;
-    }
-    setLoading(true);
-
-    const loadStudentData = async () => {
-      // Fetch student data first
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select(`*, school:school_id (id, name)`)
-        .eq('id', studentId)
-        .maybeSingle();
-
-      if (studentError) console.error("Error fetching student:", studentError.message);
-      
-      if (!studentData) {
+    const fetchStudentData = async () => {
+      if (!studentId) {
         setLoading(false);
-        setStudent(null);
         return;
       }
-      setStudent(studentData);
-      setSchool(studentData.school);
       
-      const profilePromise = getStudentProfileById(studentId);
-      
-      const profile = await profilePromise;
-      if (profile) setStudentProfile(profile);
+      setLoading(true);
+      try {
+        // Fetch student profile
+        const { data: profileData, error: profileError } = await supabase
+          .from('student_profiles')
+          .select(`
+            id,
+            user_id,
+            username,
+            display_name,
+            coins,
+            avatar_url,
+            class_id,
+            school_id
+          `)
+          .eq('user_id', studentId)
+          .single();
 
-      // Fetch pokemons using both legacy and new user IDs
-      const orFilter = profile?.user_id ? `student_id.eq.${studentId},student_id.eq.${profile.user_id}` : `student_id.eq.${studentId}`;
-      const pokemonPromise = supabase.from('pokemon_collections').select('*, pokemon_catalog!inner(*)').or(orFilter);
+        if (profileError) throw profileError;
 
-      const [pokemonCollection] = await Promise.all([pokemonPromise]);
-      
-      if (profile) {
-        // Once we have the profile, use profile.id to fetch related data
-        const [achievements, streak] = await Promise.all([
-          supabase.from('achievements').select('*').eq('student_id', profile.id).eq('type', 'star_of_class').eq('is_active', true),
-          supabase.rpc('calculate_homework_streak', { p_student_id: profile.id })
-        ]);
-        
-        if (achievements.data && achievements.data.length > 0) {
-          setIsStarOfClass(true);
-        } else {
-          setIsStarOfClass(false);
+        if (!profileData) {
+          console.log("No student profile found for ID:", studentId);
+          setStudent(null);
+          setLoading(false);
+          return;
         }
-        
-        if (streak.data) {
-          setHomeworkStreak(streak.data);
-        }
-      } else {
-        // if no profile, reset related states
-        setIsStarOfClass(false);
-        setHomeworkStreak(0);
-      }
 
-      if (pokemonCollection.data) {
-        const formattedPokemons: Pokemon[] = pokemonCollection.data.map((item: any) => ({
-          id: item.pokemon_catalog.id,
-          name: item.pokemon_catalog.name,
-          image: item.pokemon_catalog.image,
-          type: item.pokemon_catalog.type,
-          rarity: item.pokemon_catalog.rarity,
-          powerStats: item.pokemon_catalog.power_stats
+        // Fetch class and school names
+        let className = '';
+        let schoolName = '';
+        
+        if (profileData.class_id) {
+          const { data: classData } = await supabase
+            .from('classes')
+            .select('name, school_id')
+            .eq('id', profileData.class_id)
+            .single();
+          
+          if (classData) {
+            className = classData.name;
+            
+            const { data: schoolData } = await supabase
+              .from('schools')
+              .select('name')
+              .eq('id', classData.school_id)
+              .single();
+            
+            if (schoolData) {
+              schoolName = schoolData.name;
+            }
+          }
+        } else if (profileData.school_id) {
+          const { data: schoolData } = await supabase
+            .from('schools')
+            .select('name')
+            .eq('id', profileData.school_id)
+            .single();
+          
+          if (schoolData) {
+            schoolName = schoolData.name;
+          }
+        }
+
+        setStudent({
+          ...profileData,
+          class_name: className,
+          school_name: schoolName
+        });
+
+        // Fetch student's Pokemon
+        const { data: pokemonData, error: pokemonError } = await supabase
+          .from('pokemon_collections')
+          .select('pokemon_id, pokemon_name, pokemon_image, pokemon_type, pokemon_rarity')
+          .eq('student_id', studentId);
+
+        if (pokemonError) throw pokemonError;
+
+        const pokemonList: Pokemon[] = (pokemonData || []).map(p => ({
+          id: p.pokemon_id!,
+          name: p.pokemon_name,
+          image: p.pokemon_image || undefined,
+          type: p.pokemon_type || 'normal',
+          rarity: p.pokemon_rarity || 'common'
         }));
-        setPokemons(formattedPokemons);
-      } else {
-        setPokemons([]);
-      }
 
-      // Fetch classes from the join table first as the source of truth
-      const { data: classAssignments } = await supabase.from('student_classes').select('class_id').eq('student_id', studentId);
-      let classIds: string[] = [];
-      if (classAssignments && classAssignments.length > 0) {
-          classIds = classAssignments.map(c => c.class_id);
-      } else if (studentData.class_id) {
-          // Fallback to the deprecated class_id field on students table
-          const studentClassId = studentData.class_id;
-          classIds = Array.isArray(studentClassId) ? studentClassId : String(studentClassId).split(',').map((id: string) => id.trim()).filter(Boolean);
-      }
+        setPokemons(pokemonList);
 
-      if (classIds.length > 0) {
-        const { data: fetchedClasses } = await supabase.from('classes').select('*').in('id', classIds);
-        if (fetchedClasses) setClasses(fetchedClasses);
+      } catch (error) {
+        console.error('Error fetching student data:', error);
+      } finally {
+        setLoading(false);
       }
     };
 
-    loadStudentData().finally(() => setLoading(false));
+    fetchStudentData();
   }, [studentId]);
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-transparent flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">{t("loading")}</p>
-        </div>
+      <div className="flex justify-center items-center min-h-screen">
+        <Loader2 className="h-8 w-8 animate-spin text-primary" />
       </div>
     );
   }
 
   if (!student) {
     return (
-      <div className="min-h-screen bg-transparent flex items-center justify-center">
-        <Card className="p-8 text-center shadow-xl rounded-lg">
-          <CardContent>
-            <h2 className="text-2xl font-bold text-gray-800 mb-4">{t("student-not-found")}</h2>
-            <Button onClick={() => navigate(-1)}>{t("go-back")}</Button>
+      <div className="flex justify-center items-center min-h-screen">
+        <Card>
+          <CardContent className="p-8 text-center">
+            <p className="text-xl font-semibold mb-4">Student not found</p>
+            <Button onClick={handleBackClick}>
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Go Back
+            </Button>
           </CardContent>
         </Card>
       </div>
     );
   }
 
-  const displayName = getNiceDisplayName(student);
-
   return (
-    <div className="min-h-screen bg-transparent">
-      <div className="container max-w-3xl py-8 mx-auto">
-        <ProfileHeader title={t("student-profile")} onBack={() => navigate(-1)} />
+    <>
+      <AppHeader userType={userType as "student" | "teacher"} userName={userName} />
+      <div className="container mx-auto py-8 max-w-6xl px-4">
+        <div className="flex items-center mb-6">
+          <Button variant="ghost" size="icon" onClick={handleBackClick} className="mr-4">
+            <ArrowLeft />
+          </Button>
+          <h1 className="text-3xl font-bold">Student Profile</h1>
+        </div>
 
-        <Card>
-          <CardContent className="pt-6">
-            <StudentProfileBasicInfo
-              displayName={displayName}
-              avatar={studentProfile?.avatar_url}
-              school={school ? { id: school.id, name: school.name } : undefined}
-              classes={classes.map((c: any) => ({ id: c.id, name: c.name }))}
-              isStarOfClass={isStarOfClass}
-              userType={loggedInUserType as 'student' | 'teacher'}
-            />
-
-            <div className="mt-6">
-              <CoinsDisplay studentId={studentId!} />
-            </div>
-
-            <div className="mt-6">
-              <h3 className="font-bold text-lg mb-2">Pokémon Collection</h3>
-              <StudentProfilePokemonList pokemons={pokemons} />
-            </div>
-
-            <div className="mt-6">
-              <h3 className="font-bold text-lg mb-2">Achievements</h3>
-              <StudentProfileAchievements 
-                homeworkStreak={homeworkStreak}
-                isStarOfClass={isStarOfClass}
-              />
-            </div>
-            
-            <div className="mt-6 border-t pt-6">
-              <SchoolClassInfo
-                school={school ? { id: school.id, name: school.name } : undefined}
-                classes={classes.map((c: any) => ({
-                  id: c.id,
-                  name: c.name,
-                  description: c.description,
-                }))}
-                userType={loggedInUserType as 'student' | 'teacher'}
-              />
+        {/* Student Info Card */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-4">
+              <Avatar className="h-16 w-16">
+                <AvatarImage src={student.avatar_url} />
+                <AvatarFallback>
+                  <User className="h-8 w-8" />
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h2 className="text-2xl font-bold">{student.display_name}</h2>
+                <p className="text-gray-600">@{student.username}</p>
+              </div>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="flex items-center gap-2">
+                <Coins className="h-5 w-5 text-yellow-500" />
+                <span className="font-semibold">{student.coins} Coins</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Award className="h-5 w-5 text-purple-500" />
+                <span className="font-semibold">{pokemons.length} Pokémon</span>
+              </div>
+              <div className="flex flex-col gap-1">
+                {student.class_name && (
+                  <Badge variant="outline" className="w-fit">
+                    Class: {student.class_name}
+                  </Badge>
+                )}
+                {student.school_name && (
+                  <Badge variant="secondary" className="w-fit">
+                    School: {student.school_name}
+                  </Badge>
+                )}
+              </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Pokemon Collection */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Award className="h-6 w-6 text-purple-500" />
+              Pokémon Collection ({pokemons.length})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {pokemons.length > 0 ? (
+              <PokemonList pokemons={pokemons} />
+            ) : (
+              <div className="text-center py-8">
+                <Award className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p className="text-gray-500">No Pokémon in collection yet</p>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
-    </div>
+    </>
   );
 };
 
