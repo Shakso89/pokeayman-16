@@ -101,7 +101,8 @@ export const getSchoolAvailablePokemon = async (schoolId: string): Promise<Schoo
     const pool: SchoolPoolPokemon[] = data
       .map((item: any) => {
         if (!item.pokemon_catalog) return null;
-        return {
+        
+        const pokemon: SchoolPoolPokemon = {
           poolEntryId: item.id,
           id: item.pokemon_catalog.id,
           name: item.pokemon_catalog.name,
@@ -110,6 +111,8 @@ export const getSchoolAvailablePokemon = async (schoolId: string): Promise<Schoo
           rarity: item.pokemon_catalog.rarity,
           powerStats: item.pokemon_catalog.power_stats || {}
         };
+        
+        return pokemon;
       })
       .filter((p): p is SchoolPoolPokemon => p !== null);
 
