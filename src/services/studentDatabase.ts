@@ -409,8 +409,8 @@ export const addPokemonToCollection = async (
 };
 
 export const getSchoolPokemonPool = async (schoolId: string) => {
-  const { getSchoolAvailablePokemon } = await import("./schoolPokemonService");
-  return getSchoolAvailablePokemon(schoolId);
+  const { fetchSchoolPokemonPool } = await import("./schoolPokemonService");
+  return fetchSchoolPokemonPool(schoolId);
 };
 
 export const assignPokemonFromSchoolPool = async (

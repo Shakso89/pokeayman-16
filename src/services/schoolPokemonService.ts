@@ -110,3 +110,51 @@ export const removePokemonFromSchoolPool = async (pokemonId: string): Promise<bo
     return false;
   }
 };
+
+// Add the missing exports that other files are trying to import
+export const getSchoolAvailablePokemon = async (schoolId: string): Promise<SchoolPoolPokemon[]> => {
+  return fetchSchoolPokemonPool(schoolId);
+};
+
+export const assignPokemonFromPool = async (schoolId: string, studentId: string): Promise<boolean> => {
+  try {
+    console.log('Assigning Pokemon from pool:', { schoolId, studentId });
+    
+    // Get available Pokemon from pool
+    const availablePokemon = await fetchSchoolPokemonPool(schoolId);
+    
+    if (availablePokemon.length === 0) {
+      console.log('No Pokemon available in pool');
+      return false;
+    }
+    
+    // Select a random Pokemon
+    const randomIndex = Math.floor(Math.random() * availablePokemon.length);
+    const selectedPokemon = availablePokemon[randomIndex];
+    
+    // Add to student's collection
+    const { error } = await supabase
+      .from('pokemon_collections')
+      .insert({
+        student_id: studentId,
+        pokemon_id: parseInt(selectedPokemon.id),
+        school_id: schoolId
+      });
+    
+    if (error) {
+      console.error('Error assigning Pokemon:', error);
+      return false;
+    }
+    
+    console.log('Pokemon assigned successfully');
+    return true;
+  } catch (error) {
+    console.error('Error in assignPokemonFromPool:', error);
+    return false;
+  }
+};
+
+export const initializeSchoolPokemonPool = async (schoolId: string): Promise<void> => {
+  console.log('Initializing Pokemon pool for school:', schoolId);
+  // This function can be implemented later if needed
+};

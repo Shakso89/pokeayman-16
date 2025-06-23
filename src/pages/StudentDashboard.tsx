@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Trophy, Users, Package, Sword, Book } from "lucide-react";
 import { useStudentData } from "@/hooks/useStudentData";
-import { getSchoolAvailablePokemon, initializeSchoolPokemonPool } from "@/services/schoolPokemonService";
 
 // Import our components
 import StudentHeader from "@/components/student/StudentHeader";
@@ -31,18 +30,24 @@ const StudentDashboard: React.FC = () => {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   
-  const { profile, pokemons, coins, spentCoins, isLoading: dataLoading, refreshData } = useStudentData(
-    studentId, 
-    undefined, 
-    localStorage.getItem("studentName") || undefined
-  );
+  const { studentInfo, pokemon: pokemons, loading: dataLoading, error } = useStudentData(studentId);
   
   const [activeTab, setActiveTab] = useState("home");
   const [activeBattles, setActiveBattles] = useState<any[]>([]);
   const [showSchoolPool, setShowSchoolPool] = useState(false);
   const [isLoadingPool, setIsLoadingPool] = useState(false);
 
+  // Extract profile data from studentInfo
+  const profile = studentInfo;
+  const coins = studentInfo?.coins || 0;
+  const spentCoins = 0; // This would need to be calculated if needed
+
   const studentClasses = profile?.class_id ? profile.class_id.split(',') : [];
+
+  const refreshData = () => {
+    // This would trigger a re-fetch of student data
+    window.location.reload();
+  };
 
   useEffect(() => {
     console.log("StudentDashboard loaded with:", {
