@@ -54,7 +54,9 @@ const PokemonSelectList: React.FC<PokemonSelectListProps> = ({
               <SelectItem key={pokemon.id} value={pokemon.id.toString()}>
                 <div className="flex items-center">
                   <span className="mr-2">{pokemon.name}</span>
-                  <span className="text-xs text-gray-500">({pokemon.type})</span>
+                  <span className="text-xs text-gray-500">
+                    ({pokemon.type_1}{pokemon.type_2 ? `/${pokemon.type_2}` : ''})
+                  </span>
                 </div>
               </SelectItem>
             ))}

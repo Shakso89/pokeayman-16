@@ -36,7 +36,7 @@ const PokemonDetailDialog: React.FC<PokemonDetailDialogProps> = ({
         <div className="flex flex-col items-center p-4">
           <div className="w-48 h-48 bg-gray-100 rounded-lg p-4 mb-4">
             <img 
-              src={pokemon.image} 
+              src={pokemon.image_url} 
               alt={pokemon.name}
               className="w-full h-full object-contain"
             />
@@ -53,11 +53,11 @@ const PokemonDetailDialog: React.FC<PokemonDetailDialogProps> = ({
                 {pokemon.rarity}
               </span>
               <span className="text-sm py-1 px-3 rounded-full font-medium bg-gray-100 text-gray-800">
-                {pokemon.type}
+                {pokemon.type_1}{pokemon.type_2 ? `/${pokemon.type_2}` : ''}
               </span>
             </div>
             
-            <p className="text-sm text-gray-600 mt-2">{t("no-description")}</p>
+            <p className="text-sm text-gray-600 mt-2">{pokemon.description || t("no-description")}</p>
           </div>
         </div>
         

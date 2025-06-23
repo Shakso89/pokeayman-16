@@ -10,7 +10,7 @@ import { toast } from "@/hooks/use-toast";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
 import { getStudentPokemonCollection, removePokemonFromStudent, assignRandomPokemonToStudent, assignSpecificPokemonToStudent } from "@/utils/pokemon/studentPokemon";
-import { SchoolPoolPokemon, StudentCollectionPokemon } from "@/types/pokemon";
+import { SchoolPoolPokemon, StudentPokemonCollection } from "@/types/pokemon";
 
 interface TeacherManagePokemonDialogProps {
   isOpen: boolean;
@@ -33,7 +33,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
 }) => {
   const { t } = useTranslation();
   const [selectedStudent, setSelectedStudent] = useState<any>(null);
-  const [studentPokemons, setStudentPokemons] = useState<StudentCollectionPokemon[]>([]);
+  const [studentPokemons, setStudentPokemons] = useState<StudentPokemonCollection[]>([]);
   const [schoolPool, setSchoolPool] = useState<SchoolPoolPokemon[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<"award" | "remove">("award");
@@ -214,7 +214,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
     if (!selectedStudent || !isClassCreator || studentPokemons.length === 0) return;
 
     const randomPokemon = studentPokemons[Math.floor(Math.random() * studentPokemons.length)];
-    await handleRemovePokemon(randomPokemon.collectionId, randomPokemon.name);
+    await handleRemovePokemon(randomPokemon.id, randomPokemon.pokemon?.name || 'Pokemon');
   };
 
   const getRarityColor = (rarity: string) => {
@@ -337,7 +337,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
                       <CardContent className="p-4">
                         <div className="flex flex-col items-center space-y-2">
                           <img 
-                            src={pokemon.image} 
+                            src={pokemon.image_url} 
                             alt={pokemon.name}
                             className="w-16 h-16 object-contain"
                             onError={(e) => {
@@ -346,7 +346,9 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
                           />
                           <h4 className="font-semibold text-center text-sm">{pokemon.name}</h4>
                           <div className="flex gap-1">
-                            <Badge variant="outline" className="text-xs">{pokemon.type}</Badge>
+                            <Badge variant="outline" className="text-xs">
+                              {pokemon.type_1}{pokemon.type_2 ? `/${pokemon.type_2}` : ''}
+                            </Badge>
                             <Badge className={`text-white text-xs ${getRarityColor(pokemon.rarity)}`}>
                               {pokemon.rarity}
                             </Badge>
@@ -398,30 +400,32 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
                 </div>
               ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {studentPokemons.map((pokemon) => (
-                    <Card key={pokemon.collectionId}>
+                  {studentPokemons.map((collection) => (
+                    <Card key={collection.id}>
                       <CardContent className="p-4">
                         <div className="flex flex-col items-center space-y-2">
                           <img 
-                            src={pokemon.image} 
-                            alt={pokemon.name}
+                            src={collection.pokemon?.image_url} 
+                            alt={collection.pokemon?.name}
                             className="w-16 h-16 object-contain"
                             onError={(e) => {
                               e.currentTarget.src = "/placeholder.svg";
                             }}
                           />
-                          <h4 className="font-semibold text-center text-sm">{pokemon.name}</h4>
+                          <h4 className="font-semibold text-center text-sm">{collection.pokemon?.name}</h4>
                           <div className="flex gap-1">
-                            <Badge variant="outline" className="text-xs">{pokemon.type}</Badge>
-                            <Badge className={`text-white text-xs ${getRarityColor(pokemon.rarity)}`}>
-                              {pokemon.rarity}
+                            <Badge variant="outline" className="text-xs">
+                              {collection.pokemon?.type_1}{collection.pokemon?.type_2 ? `/${collection.pokemon?.type_2}` : ''}
+                            </Badge>
+                            <Badge className={`text-white text-xs ${getRarityColor(collection.pokemon?.rarity || 'common')}`}>
+                              {collection.pokemon?.rarity}
                             </Badge>
                           </div>
                           
                           <Button
                             size="sm"
                             variant="destructive"
-                            onClick={() => handleRemovePokemon(pokemon.collectionId, pokemon.name)}
+                            onClick={() => handleRemovePokemon(collection.id, collection.pokemon?.name || 'Pokemon')}
                             disabled={loading}
                             className="w-full mt-2"
                           >

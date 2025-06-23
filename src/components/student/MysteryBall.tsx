@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Pokemon } from "@/types/pokemon";
@@ -54,8 +55,9 @@ const MysteryBall: React.FC<MysteryBallProps> = ({
         pokemonData: pokemon ? {
           id: pokemon.id,
           name: pokemon.name,
-          image: pokemon.image,
-          type: pokemon.type,
+          image_url: pokemon.image_url,
+          type_1: pokemon.type_1,
+          type_2: pokemon.type_2,
           rarity: pokemon.rarity
         } : undefined,
         coinsAmount

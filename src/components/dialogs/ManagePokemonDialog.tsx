@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -63,7 +64,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
   const loadAvailablePokemons = async () => {
     try {
       const { data, error } = await supabase
-        .from('pokemon_catalog')
+        .from('pokemon_pool')
         .select('*')
         .order('name');
 
@@ -73,9 +74,13 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
       const transformedData: Pokemon[] = (data || []).map(item => ({
         id: item.id,
         name: item.name || 'Unknown',
-        image: item.image || '',
-        type: item.type || 'normal',
-        rarity: item.rarity || 'common'
+        image_url: item.image_url || '',
+        type_1: item.type_1 || 'normal',
+        type_2: item.type_2,
+        rarity: item.rarity || 'common',
+        price: item.price || 15,
+        description: item.description,
+        power_stats: item.power_stats
       }));
 
       setAvailablePokemons(transformedData);
@@ -103,7 +108,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     try {
       const result = await awardPokemonToStudent(
         studentId,
-        parseInt(selectedPokemonId),
+        selectedPokemonId,
         `Awarded by teacher to ${studentName}`
       );
 
@@ -292,18 +297,23 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
                         </Button>
                       </div>
                       
-                      {pokemon.image && (
+                      {pokemon.image_url && (
                         <div className="mb-2">
                           <img 
-                            src={pokemon.image} 
+                            src={pokemon.image_url} 
                             alt={pokemon.name}
                             className="w-full h-32 object-contain bg-gray-50 rounded"
+                            onError={(e) => {
+                              e.currentTarget.src = "/placeholder.svg";
+                            }}
                           />
                         </div>
                       )}
                       
                       <h4 className="font-medium text-sm">{pokemon.name}</h4>
-                      <p className="text-xs text-gray-500 capitalize">{pokemon.type}</p>
+                      <p className="text-xs text-gray-500 capitalize">
+                        {pokemon.type_1}{pokemon.type_2 ? `/${pokemon.type_2}` : ''}
+                      </p>
                     </CardContent>
                   </Card>
                 ))}

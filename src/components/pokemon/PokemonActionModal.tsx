@@ -1,3 +1,4 @@
+
 import React from "react";
 import {
   Dialog,
@@ -49,7 +50,7 @@ const PokemonActionModal: React.FC<PokemonActionModalProps> = ({
             <>
               <div className="relative">
                 <img 
-                  src={pokemon.image} 
+                  src={pokemon.image_url} 
                   alt={pokemon.name}
                   className="w-32 h-32 object-contain"
                   onError={(e) => {
@@ -60,7 +61,9 @@ const PokemonActionModal: React.FC<PokemonActionModalProps> = ({
               <div className="text-center">
                 <h3 className="text-xl font-bold mb-2">{pokemon.name}</h3>
                 <div className="flex justify-center gap-2 mb-2">
-                  <Badge variant="outline">{pokemon.type}</Badge>
+                  <Badge variant="outline">
+                    {pokemon.type_1}{pokemon.type_2 ? `/${pokemon.type_2}` : ''}
+                  </Badge>
                   <Badge className={`text-white ${getRarityColor(pokemon.rarity)}`}>
                     {pokemon.rarity}
                   </Badge>
