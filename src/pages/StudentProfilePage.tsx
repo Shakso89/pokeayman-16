@@ -67,7 +67,7 @@ const StudentProfilePage: React.FC = () => {
 
       // Transform Pokemon data to match the Pokemon interface
       const transformedPokemon: Pokemon[] = (pokemonData || []).map((item: any) => ({
-        id: item.pokemon_catalog.id,
+        id: item.pokemon_catalog.id.toString(),
         name: item.pokemon_catalog.name,
         image_url: item.pokemon_catalog.image || '',
         type_1: item.pokemon_catalog.type || 'normal',

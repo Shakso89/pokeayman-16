@@ -69,7 +69,7 @@ const StudentDetailPage: React.FC = () => {
 
       // Transform Pokemon data
       const transformedPokemon: Pokemon[] = (pokemonData || []).map((item: any) => ({
-        id: item.pokemon_catalog.id,
+        id: item.pokemon_catalog.id.toString(),
         name: item.pokemon_catalog.name,
         image_url: item.pokemon_catalog.image || '',
         type_1: item.pokemon_catalog.type || 'normal',
@@ -276,7 +276,7 @@ const StudentDetailPage: React.FC = () => {
         onOpenChange={setShowGiveCoins}
         studentId={student.id}
         studentName={student.displayName}
-        onRemoveCoins={handleRefreshData}
+        onGiveCoins={handleRefreshData}
         teacherId={localStorage.getItem("teacherId") || ""}
         classId=""
         schoolId=""
