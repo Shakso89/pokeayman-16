@@ -9,7 +9,6 @@ export function Toaster() {
       expand={false}
       richColors
       closeButton
-      limit={1}
       toastOptions={{
         className: "sonner-toast",
         style: {
