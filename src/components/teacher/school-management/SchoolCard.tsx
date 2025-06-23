@@ -53,10 +53,7 @@ const SchoolCard: React.FC<SchoolCardProps> = ({
             <Eye className="h-3 w-3" />
             Pool
           </Button>
-          <Button variant="outline" size="sm" onClick={onRefresh} className="flex items-center gap-1 text-xs">
-            <RefreshCw className="h-3 w-3" />
-            Refresh
-          </Button>
+          
         </div>
 
         <div className="space-y-2 mt-auto">
