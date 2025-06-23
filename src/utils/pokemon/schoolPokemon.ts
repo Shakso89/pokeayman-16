@@ -67,12 +67,12 @@ export const getSchoolPokemonPool = async (schoolId: string): Promise<SchoolPool
         poolEntryId: item.id,
         id: item.pokemon_catalog.id,
         name: item.pokemon_catalog.name,
-        image: item.pokemon_catalog.image,
-        type: item.pokemon_catalog.type,
+        image_url: item.pokemon_catalog.image,
+        type_1: item.pokemon_catalog.type,
         rarity: item.pokemon_catalog.rarity,
       };
       if (item.pokemon_catalog.power_stats) {
-        pokemon.powerStats = item.pokemon_catalog.power_stats;
+        pokemon.power_stats = item.pokemon_catalog.power_stats;
       }
       return pokemon;
     })

@@ -15,10 +15,10 @@ export const saveClass = async (classData: Omit<ClassData, "id"> | ClassData): P
         .update({
           name: classData.name,
           description: classData.description,
-          school_id: classData.school_id,
-          teacher_id: classData.teacher_id,
+          school_id: classData.schoolId,
+          teacher_id: classData.teacherId,
           students: classData.students || [],
-          is_public: classData.is_public || true
+          is_public: classData.isPublic || true
         })
         .eq('id', (classData as ClassData).id);
         
@@ -32,12 +32,14 @@ export const saveClass = async (classData: Omit<ClassData, "id"> | ClassData): P
         id: newClassId,
         name: classData.name,
         description: classData.description || "",
-        school_id: classData.school_id,
-        teacher_id: classData.teacher_id,
+        schoolId: classData.schoolId,
+        teacherId: classData.teacherId,
         students: classData.students || [],
-        is_public: classData.is_public !== false,
+        isPublic: classData.isPublic !== false,
         likes: classData.likes || [],
-        created_at: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        assistants: classData.assistants || []
       };
       
       // Save to database
@@ -47,10 +49,10 @@ export const saveClass = async (classData: Omit<ClassData, "id"> | ClassData): P
           id: newClassId,
           name: classData.name,
           description: classData.description || null,
-          school_id: classData.school_id,
-          teacher_id: classData.teacher_id,
+          school_id: classData.schoolId,
+          teacher_id: classData.teacherId,
           students: classData.students || [],
-          is_public: classData.is_public !== false,
+          is_public: classData.isPublic !== false,
           likes: classData.likes || []
         });
         
@@ -75,12 +77,14 @@ export const saveClass = async (classData: Omit<ClassData, "id"> | ClassData): P
           id: newClassId,
           name: classData.name,
           description: classData.description || "",
-          school_id: classData.school_id,
-          teacher_id: classData.teacher_id,
+          schoolId: classData.schoolId,
+          teacherId: classData.teacherId,
           students: classData.students || [],
-          is_public: classData.is_public !== false,
+          isPublic: classData.isPublic !== false,
           likes: classData.likes || [],
-          created_at: new Date().toISOString()
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          assistants: classData.assistants || []
         };
         
         const savedClasses = localStorage.getItem("classes");
@@ -169,12 +173,14 @@ export const getClassById = async (classId: string): Promise<ClassData | null> =
         id: data.id,
         name: data.name,
         description: data.description || "",
-        school_id: data.school_id,
-        teacher_id: data.teacher_id,
+        schoolId: data.school_id,
+        teacherId: data.teacher_id,
         students: data.students || [],
-        is_public: data.is_public !== false,
+        isPublic: data.is_public !== false,
         likes: data.likes || [],
-        created_at: data.created_at
+        createdAt: data.created_at,
+        updatedAt: data.updated_at || data.created_at,
+        assistants: data.assistants || []
       };
     }
     
@@ -226,12 +232,14 @@ export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[
       id: item.id,
       name: item.name,
       description: item.description || "",
-      school_id: item.school_id,
-      teacher_id: item.teacher_id,
+      schoolId: item.school_id,
+      teacherId: item.teacher_id,
       students: item.students || [],
-      is_public: item.is_public !== false,
+      isPublic: item.is_public !== false,
       likes: item.likes || [],
-      created_at: item.created_at
+      createdAt: item.created_at,
+      updatedAt: item.updated_at || item.created_at,
+      assistants: item.assistants || []
     }));
   } catch (error) {
     console.error("Error getting classes by school ID:", error);
@@ -241,7 +249,7 @@ export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[
       const savedClasses = localStorage.getItem("classes");
       if (savedClasses) {
         const parsedClasses = JSON.parse(savedClasses);
-        return parsedClasses.filter((cls: ClassData) => cls.school_id === schoolId);
+        return parsedClasses.filter((cls: ClassData) => cls.schoolId === schoolId);
       }
     } catch (localError) {
       console.error("Error getting classes from localStorage:", localError);
