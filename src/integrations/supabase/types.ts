@@ -429,44 +429,6 @@ export type Database = {
         }
         Relationships: []
       }
-      mystery_ball_history: {
-        Row: {
-          coins_amount: number | null
-          created_at: string
-          id: string
-          pokemon_id: string | null
-          pokemon_name: string | null
-          result_type: string
-          student_id: string
-        }
-        Insert: {
-          coins_amount?: number | null
-          created_at?: string
-          id?: string
-          pokemon_id?: string | null
-          pokemon_name?: string | null
-          result_type: string
-          student_id: string
-        }
-        Update: {
-          coins_amount?: number | null
-          created_at?: string
-          id?: string
-          pokemon_id?: string | null
-          pokemon_name?: string | null
-          result_type?: string
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "mystery_ball_history_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "student_profiles"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       notifications: {
         Row: {
           created_at: string
