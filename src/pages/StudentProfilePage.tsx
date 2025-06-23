@@ -34,16 +34,22 @@ const StudentProfilePage: React.FC = () => {
   const [schoolData, setSchoolData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
-  const userType = localStorage.getItem("userType") || "teacher";
+  const userType = localStorage.getItem("userType") || "student";
   const userName = localStorage.getItem(userType === 'teacher' ? 'teacherDisplayName' : 'studentDisplayName') || 'User';
 
   const handleBackClick = () => {
-    navigate(-1);
+    // Navigate back to student dashboard for students
+    if (userType === "student") {
+      navigate("/student-dashboard");
+    } else {
+      navigate(-1);
+    }
   };
 
   useEffect(() => {
     const fetchStudentData = async () => {
       if (!studentId) {
+        console.error("No studentId provided");
         setLoading(false);
         return;
       }
@@ -52,38 +58,43 @@ const StudentProfilePage: React.FC = () => {
       try {
         console.log("🔍 Fetching student data for ID:", studentId);
 
-        // First try to get student by user_id, then by id
-        let { data: studentData, error: studentError } = await supabase
+        // First, determine the correct lookup strategy
+        let studentData = null;
+        let lookupUserId = studentId;
+
+        // Try to get student by user_id first (most common case for student profiles)
+        const { data: studentByUserId, error: userIdError } = await supabase
           .from('students')
           .select('*')
           .eq('user_id', studentId)
           .maybeSingle();
 
-        if (!studentData) {
-          const { data: studentById, error } = await supabase
+        if (studentByUserId) {
+          studentData = studentByUserId;
+          lookupUserId = studentByUserId.user_id;
+          console.log("✅ Found student by user_id:", studentData);
+        } else {
+          // Try by student ID
+          const { data: studentById, error: idError } = await supabase
             .from('students')
             .select('*')
             .eq('id', studentId)
             .maybeSingle();
-          studentData = studentById;
-          studentError = error;
+
+          if (studentById) {
+            studentData = studentById;
+            lookupUserId = studentById.user_id || studentById.id;
+            console.log("✅ Found student by id:", studentData);
+          }
         }
 
-        if (studentError && studentError.code !== 'PGRST116') {
-          console.error('Error fetching student:', studentError);
-        }
-
+        // If no student found in students table, try student_profiles
         if (!studentData) {
-          // Try student_profiles as fallback
           const { data: profileData, error: profileError } = await supabase
             .from('student_profiles')
             .select('*')
             .eq('user_id', studentId)
             .maybeSingle();
-
-          if (profileError) {
-            console.error('Error fetching student profile:', profileError);
-          }
 
           if (profileData) {
             studentData = {
@@ -91,57 +102,57 @@ const StudentProfilePage: React.FC = () => {
               id: profileData.user_id,
               user_id: profileData.user_id
             };
+            lookupUserId = profileData.user_id;
+            console.log("✅ Found student in student_profiles:", studentData);
           }
         }
 
         if (!studentData) {
-          console.log("No student found for ID:", studentId);
+          console.log("❌ No student found for ID:", studentId);
           setStudent(null);
           setLoading(false);
           return;
         }
 
-        console.log("✅ Found student data:", studentData);
-
-        // Fetch class and school names
+        // Fetch class and school information
         let className = '';
         let classId = studentData.class_id;
         let schoolName = '';
         let schoolId = studentData.school_id;
         
         if (classId) {
-          const { data: classData } = await supabase
+          const { data: classInfo } = await supabase
             .from('classes')
             .select('name, school_id, star_student_id, top_student_id')
             .eq('id', classId)
             .maybeSingle();
           
-          if (classData) {
-            className = classData.name;
-            schoolId = classData.school_id;
-            setClassData(classData);
+          if (classInfo) {
+            className = classInfo.name;
+            schoolId = classInfo.school_id;
+            setClassData(classInfo);
             
-            const { data: schoolData } = await supabase
+            const { data: schoolInfo } = await supabase
               .from('schools')
               .select('name, top_student_id')
-              .eq('id', classData.school_id)
+              .eq('id', classInfo.school_id)
               .maybeSingle();
             
-            if (schoolData) {
-              schoolName = schoolData.name;
-              setSchoolData(schoolData);
+            if (schoolInfo) {
+              schoolName = schoolInfo.name;
+              setSchoolData(schoolInfo);
             }
           }
         } else if (schoolId) {
-          const { data: schoolData } = await supabase
+          const { data: schoolInfo } = await supabase
             .from('schools')
             .select('name, top_student_id')
             .eq('id', schoolId)
             .maybeSingle();
           
-          if (schoolData) {
-            schoolName = schoolData.name;
-            setSchoolData(schoolData);
+          if (schoolInfo) {
+            schoolName = schoolInfo.name;
+            setSchoolData(schoolInfo);
           }
         }
 
@@ -154,8 +165,7 @@ const StudentProfilePage: React.FC = () => {
         });
 
         // Fetch student's Pokemon using the correct user_id
-        const lookupId = studentData.user_id || studentData.id;
-        console.log("🔍 Fetching Pokemon for user_id:", lookupId);
+        console.log("🔍 Fetching Pokemon for user_id:", lookupUserId);
         
         const { data: pokemonData, error: pokemonError } = await supabase
           .from('pokemon_collections')
@@ -172,10 +182,10 @@ const StudentProfilePage: React.FC = () => {
               power_stats
             )
           `)
-          .eq('student_id', lookupId);
+          .eq('student_id', lookupUserId);
 
         if (pokemonError) {
-          console.error('Error fetching Pokemon:', pokemonError);
+          console.error('❌ Error fetching Pokemon:', pokemonError);
         } else {
           console.log("📦 Found Pokemon collections:", pokemonData?.length || 0);
           
@@ -196,7 +206,7 @@ const StudentProfilePage: React.FC = () => {
         }
 
       } catch (error) {
-        console.error('Error loading student data:', error);
+        console.error('❌ Error loading student data:', error);
       } finally {
         setLoading(false);
       }
@@ -321,6 +331,7 @@ const StudentProfilePage: React.FC = () => {
               <div className="text-center py-8">
                 <Award className="h-12 w-12 mx-auto mb-4 text-gray-300" />
                 <p className="text-gray-500">No Pokémon in collection yet</p>
+                <p className="text-sm text-gray-400 mt-2">Complete homework or use the Mystery Ball to get your first Pokémon!</p>
               </div>
             )}
           </CardContent>

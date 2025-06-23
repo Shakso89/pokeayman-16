@@ -15,38 +15,49 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
 
   useEffect(() => {
     const fetchPokemons = async () => {
-      if (!studentId) return;
+      if (!studentId) {
+        console.warn("No studentId provided to StudentCollection");
+        setLoading(false);
+        return;
+      }
       
       setLoading(true);
       try {
         console.log("🔍 Fetching Pokemon for student:", studentId);
         
-        // First, get the student's user_id from student_profiles or students table
+        // First, determine the correct user_id to use for Pokemon lookup
         let actualUserId = studentId;
         
-        // Try to get from student_profiles first (which uses user_id as the primary identifier)
+        // Check if studentId is actually a user_id by looking in student_profiles
         const { data: profileData } = await supabase
           .from('student_profiles')
-          .select('user_id')
+          .select('user_id, id')
           .eq('user_id', studentId)
           .maybeSingle();
         
         if (profileData) {
+          // studentId is already a user_id, use it directly
           actualUserId = profileData.user_id;
+          console.log("✅ Found student profile, using user_id:", actualUserId);
         } else {
-          // Fallback: check if studentId is actually an ID from students table
+          // Check if studentId is an ID from students table, get the user_id
           const { data: studentData } = await supabase
             .from('students')
-            .select('user_id')
+            .select('user_id, id')
             .eq('id', studentId)
             .maybeSingle();
           
           if (studentData?.user_id) {
             actualUserId = studentData.user_id;
+            console.log("✅ Found student record, using user_id:", actualUserId);
+          } else {
+            // Try using studentId as user_id directly as fallback
+            console.log("⚠️ No specific student record found, trying studentId as user_id:", studentId);
+            actualUserId = studentId;
           }
         }
 
-        console.log("🔍 Using user_id for Pokemon lookup:", actualUserId);
+        console.log("🔍 Final user_id for Pokemon lookup:", actualUserId);
 
         // Now fetch Pokemon using the correct user_id
         const { data: pokemonData, error } = await supabase
@@ -72,7 +83,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
           return;
         }
 
-        console.log("📦 Found Pokemon collections:", pokemonData?.length || 0);
+        console.log("📦 Raw Pokemon data from database:", pokemonData);
 
         const transformedPokemons: Pokemon[] = (pokemonData || []).map(collection => {
           const pokemonCatalog = collection.pokemon_catalog as any;
@@ -86,7 +97,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
           };
         });
 
-        console.log("✅ Transformed Pokemon:", transformedPokemons.length);
+        console.log("✅ Transformed Pokemon for display:", transformedPokemons);
         setPokemons(transformedPokemons);
       } catch (error) {
         console.error("❌ Unexpected error fetching Pokemon:", error);
@@ -107,8 +118,13 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
       <CardContent className="p-6">
         {loading ? (
           <div className="text-center py-4">Loading Pokémon...</div>
-        ) : (
+        ) : pokemons.length > 0 ? (
           <PokemonList pokemons={pokemons} />
+        ) : (
+          <div className="text-center py-8 text-gray-500">
+            <p>No Pokémon in your collection yet.</p>
+            <p className="text-sm mt-2">Complete homework or use the Mystery Ball to get your first Pokémon!</p>
+          </div>
         )}
       </CardContent>
     </Card>
