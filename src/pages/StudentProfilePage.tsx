@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -66,7 +65,7 @@ const StudentProfilePage: React.FC = () => {
 
       if (pokemonError) throw pokemonError;
 
-      // Transform Pokemon data
+      // Transform Pokemon data to match the Pokemon interface
       const transformedPokemon: Pokemon[] = (pokemonData || []).map((item: any) => ({
         id: item.pokemon_catalog.id,
         name: item.pokemon_catalog.name,

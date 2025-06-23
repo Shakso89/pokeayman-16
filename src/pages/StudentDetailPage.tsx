@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -265,7 +264,7 @@ const StudentDetailPage: React.FC = () => {
 
       {/* Dialogs */}
       <ManagePokemonDialog
-        isOpen={showManagePokemon}
+        open={showManagePokemon}
         onOpenChange={setShowManagePokemon}
         studentId={student.id}
         studentName={student.displayName}
@@ -277,7 +276,10 @@ const StudentDetailPage: React.FC = () => {
         onOpenChange={setShowGiveCoins}
         studentId={student.id}
         studentName={student.displayName}
-        onCoinsUpdated={handleRefreshData}
+        onRemoveCoins={handleRefreshData}
+        teacherId={localStorage.getItem("teacherId") || ""}
+        classId=""
+        schoolId=""
       />
 
       <RemoveCoinsDialog
@@ -285,7 +287,10 @@ const StudentDetailPage: React.FC = () => {
         onOpenChange={setShowRemoveCoins}
         studentId={student.id}
         studentName={student.displayName}
-        onCoinsUpdated={handleRefreshData}
+        onRemoveCoins={handleRefreshData}
+        teacherId={localStorage.getItem("teacherId") || ""}
+        classId=""
+        schoolId=""
       />
     </div>
   );
