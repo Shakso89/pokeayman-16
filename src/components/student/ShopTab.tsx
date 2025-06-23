@@ -17,8 +17,9 @@ const ShopTab: React.FC<ShopTabProps> = ({
     <div className="space-y-6">
       <PokemonShop
         studentId={studentId}
-        studentCoins={studentCoins}
-        onPurchaseComplete={onPurchaseComplete}
+        coins={studentCoins}
+        onPurchase={() => {}}
+        onRefresh={onPurchaseComplete}
       />
     </div>
   );
