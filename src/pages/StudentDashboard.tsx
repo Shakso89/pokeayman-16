@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -19,6 +18,8 @@ import SchoolPokemonPoolDialog from "@/components/dialogs/SchoolPokemonPoolDialo
 import StudentDashboardButtons from "@/components/student/StudentDashboardButtons";
 import StudentHomeworkTab from "@/components/student/StudentHomeworkTab";
 import ShopTab from "@/components/student/ShopTab";
+import UnifiedMysteryBallTab from "@/components/student/UnifiedMysteryBallTab";
+import UnifiedShopTab from "@/components/student/UnifiedShopTab";
 
 const StudentDashboard: React.FC = () => {
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
@@ -116,6 +117,10 @@ const StudentDashboard: React.FC = () => {
     setActiveTab("my-pokemons");
   };
 
+  const handleShopClick = () => {
+    setActiveTab("shop");
+  };
+
   const handlePurchaseComplete = () => {
     refreshData();
   };
@@ -179,6 +184,7 @@ const StudentDashboard: React.FC = () => {
                 studentId={studentId}
                 onMysteryBallClick={handleMysteryBallClick}
                 onCollectionClick={handleCollectionClick}
+                onShopClick={handleShopClick}
               />
             </TabsContent>
 
@@ -209,21 +215,17 @@ const StudentDashboard: React.FC = () => {
             </TabsContent>
             
             <TabsContent value="mystery-ball" className="mt-4">
-              <MysteryBallTab 
+              <UnifiedMysteryBallTab 
                 studentId={studentId} 
-                coins={coins} 
-                isLoading={isLoadingPool} 
-                onPokemonWon={handlePokemonWon} 
-                onCoinsWon={handleCoinsWon} 
-                onDataRefresh={refreshData}
+                onDataUpdate={refreshData}
               />
             </TabsContent>
 
             <TabsContent value="shop" className="mt-4">
-              <ShopTab
+              <UnifiedShopTab
                 studentId={studentId}
                 studentCoins={coins}
-                onPurchaseComplete={handlePurchaseComplete}
+                onDataUpdate={refreshData}
               />
             </TabsContent>
           </Tabs>

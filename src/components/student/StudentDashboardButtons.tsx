@@ -1,3 +1,4 @@
+
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -8,11 +9,13 @@ interface StudentDashboardButtonsProps {
   studentId: string;
   onMysteryBallClick: () => void;
   onCollectionClick: () => void;
+  onShopClick: () => void;
 }
 const StudentDashboardButtons: React.FC<StudentDashboardButtonsProps> = ({
   coins,
   onMysteryBallClick,
-  onCollectionClick
+  onCollectionClick,
+  onShopClick
 }) => {
   const {
     t
@@ -42,7 +45,7 @@ const StudentDashboardButtons: React.FC<StudentDashboardButtonsProps> = ({
             </div>
             <div>
               <h3 className="text-lg md:text-xl font-bold">{t("mystery-ball")}</h3>
-              <p className="text-sm md:text-base text-white/80">5 {t("coins")}</p>
+              <p className="text-sm md:text-base text-white/80">Win from 300 Pokémon!</p>
             </div>
           </div>
         </CardContent>
@@ -63,16 +66,16 @@ const StudentDashboardButtons: React.FC<StudentDashboardButtonsProps> = ({
         </CardContent>
       </Card>
 
-      {/* Battle Arena Button */}
-      <Card className="bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      {/* Pokémon Shop Button */}
+      <Card className="bg-gradient-to-br from-green-400 to-green-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer" onClick={onShopClick}>
         <CardContent className="p-4 md:p-6">
           <div className="flex flex-col items-center text-center space-y-3">
             <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 rounded-full flex items-center justify-center">
-              <img src="/lovable-uploads/37428b9b-1c97-48af-9ecb-20160dc93ccf.png" alt="Battle Arena" className="w-10 h-10 md:w-12 md:h-12" />
+              <Coins className="w-10 h-10 md:w-12 md:h-12" />
             </div>
             <div>
-              <h3 className="text-lg md:text-xl font-bold">{t("battle-arena")}</h3>
-              <p className="text-sm md:text-base text-white/80">{t("compete-now")}</p>
+              <h3 className="text-lg md:text-xl font-bold">Pokémon Shop</h3>
+              <p className="text-sm md:text-base text-white/80">Buy from 300 Pokémon!</p>
             </div>
           </div>
         </CardContent>
