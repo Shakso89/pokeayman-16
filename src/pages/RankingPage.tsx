@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Badge } from "@/components/ui/badge";
@@ -8,11 +7,11 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ChevronLeft, Trophy, School, Users } from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import { Student, Pokemon } from "@/types/pokemon";
+import { StudentWithRank, Pokemon } from "@/types/pokemon";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import PokemonList from "@/components/student/PokemonList";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { SchoolRankingTab } from "@/components/student/SchoolRankingTab";
+import SchoolRankingTab from "@/components/student/SchoolRankingTab";
 import { supabase } from "@/integrations/supabase/client";
 
 interface School {
@@ -21,21 +20,14 @@ interface School {
   code: string;
   location?: string;
 }
-interface StudentWithRank extends Student {
-  pokemonCount: number;
-  rank: number;
-  coins: number;
-  totalScore: number;
-}
+
 const RankingPage: React.FC = () => {
-  const {
-    t
-  } = useTranslation();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [schools, setSchools] = useState<School[]>([]);
   const [selectedSchool, setSelectedSchool] = useState<School | null>(null);
   const [students, setStudents] = useState<StudentWithRank[]>([]);
-  const [selectedStudent, setSelectedStudent] = useState<Student | null>(null);
+  const [selectedStudent, setSelectedStudent] = useState<StudentWithRank | null>(null);
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
   const [selectedPokemon, setSelectedPokemon] = useState<Pokemon | null>(null);
   const [classStudents, setClassStudents] = useState<{
@@ -59,22 +51,20 @@ const RankingPage: React.FC = () => {
     navigate(`/teacher/student/${studentId}`);
   };
 
-  // Get all available schools
   useEffect(() => {
     if (userType === "student" && userSchoolId) {
-      // For students, auto-load their school
       autoSelectStudentSchool();
     } else {
       loadAllSchools();
     }
   }, [userType, userId, userSchoolId]);
 
-  // Load classes when school is selected
   useEffect(() => {
     if (selectedSchool) {
       loadSchoolClasses(selectedSchool.id);
     }
   }, [selectedSchool]);
+
   const autoSelectStudentSchool = async () => {
     try {
       let schoolIdToFetch = userSchoolId;
@@ -106,6 +96,7 @@ const RankingPage: React.FC = () => {
       console.error("Error auto-selecting student school:", error);
     }
   };
+
   const loadAllSchools = async () => {
     try {
       const { data, error } = await supabase.from('schools').select('*');
@@ -116,6 +107,7 @@ const RankingPage: React.FC = () => {
       setSchools([]);
     }
   };
+
   const loadSchoolClasses = async (schoolId: string) => {
     try {
       const { data: schoolClasses, error } = await supabase
@@ -149,6 +141,7 @@ const RankingPage: React.FC = () => {
       console.error("Error loading classes:", error);
     }
   };
+
   const loadClassStudents = async (classId: string): Promise<StudentWithRank[]> => {
     try {
       const { data: profilesData, error: profilesError } = await supabase
@@ -180,14 +173,18 @@ const RankingPage: React.FC = () => {
         const totalScore = count + Math.floor(coins / 10);
         return {
           id: s.user_id,
+          name: s.display_name || s.username,
           username: s.username,
           displayName: s.display_name || s.username,
           teacherId: s.teacher_id || '',
+          schoolId: '',
+          createdAt: new Date().toISOString(),
           classId: s.class_id,
           avatar: s.avatar_url || undefined,
           pokemonCount: count,
           coins,
           totalScore,
+          rank: 0
         };
       });
 
@@ -204,10 +201,12 @@ const RankingPage: React.FC = () => {
       return [];
     }
   };
+
   const selectSchool = (school: School) => {
     setSelectedSchool(school);
     loadSchoolStudents(school.id);
   };
+
   const loadSchoolStudents = async (schoolId: string) => {
     try {
       const { data: profilesData, error: profilesError } = await supabase
@@ -244,15 +243,18 @@ const RankingPage: React.FC = () => {
         
         return {
           id: p.user_id,
+          name: p.display_name || p.username,
           username: p.username,
           displayName: p.display_name || p.username,
           teacherId: p.teacher_id || '',
           classId: p.class_id,
           schoolId: p.school_id,
+          createdAt: new Date().toISOString(),
           avatar: p.avatar_url || undefined,
           pokemonCount: pokemonCount,
           coins: coins,
           totalScore,
+          rank: 0
         };
       });
       
@@ -267,25 +269,28 @@ const RankingPage: React.FC = () => {
       console.error("Error loading school students:", error);
     }
   };
+
   const handleStudentClick = async (student: StudentWithRank) => {
     setSelectedStudent(student);
     try {
       const { data, error } = await supabase
         .from('pokemon_collections')
-        .select('pokemon_id, pokemon_name, pokemon_image, pokemon_type, pokemon_rarity')
+        .select('*, pokemon_catalog!inner(*)')
         .eq('student_id', student.id);
       
       if (error) throw error;
       
-      const pokemons: Pokemon[] = data 
-        ? data.map(p => ({
-            id: p.pokemon_id!,
-            name: p.pokemon_name,
-            image: p.pokemon_image || undefined,
-            type: p.pokemon_type || 'normal',
-            rarity: p.pokemon_rarity || 'common'
-          }))
-        : [];
+      const pokemons: Pokemon[] = (data || []).map((item: any) => ({
+        id: item.pokemon_catalog.id,
+        name: item.pokemon_catalog.name,
+        image_url: item.pokemon_catalog.image || '',
+        type_1: item.pokemon_catalog.type || 'normal',
+        type_2: undefined,
+        rarity: item.pokemon_catalog.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
+        price: 15,
+        description: undefined,
+        power_stats: item.pokemon_catalog.power_stats
+      }));
       
       setStudentPokemons(pokemons);
     } catch (error) {
@@ -293,6 +298,7 @@ const RankingPage: React.FC = () => {
       setStudentPokemons([]);
     }
   };
+
   const getRankingColor = (rank: number) => {
     switch (rank) {
       case 1:
@@ -305,6 +311,7 @@ const RankingPage: React.FC = () => {
         return "bg-gray-200";
     }
   };
+
   const renderStudentList = (studentList: StudentWithRank[], title: string, showClassName = false) => {
     if (!studentList || studentList.length === 0) {
       return <div className="text-center py-12">
@@ -361,7 +368,6 @@ const RankingPage: React.FC = () => {
       </div>;
   };
 
-  // If user is a student and we have their school, show school ranking directly
   if (userType === "student" && selectedSchool) {
     return <div className="min-h-screen bg-gray-100">
         <NavBar userType={userType} userName={localStorage.getItem("studentName") || "Student"} />
@@ -381,6 +387,7 @@ const RankingPage: React.FC = () => {
         </div>
       </div>;
   }
+
   return <div className="min-h-screen bg-transparent">
       <NavBar userType={userType} userName={userType === "teacher" ? localStorage.getItem("teacherDisplayName") || localStorage.getItem("teacherUsername") : localStorage.getItem("studentName")} />
       
@@ -486,11 +493,11 @@ const RankingPage: React.FC = () => {
             </DialogTitle>
           </DialogHeader>
           {selectedPokemon && <div className="flex flex-col items-center p-4">
-              <img src={selectedPokemon.image} alt={selectedPokemon.name} className="w-48 h-48 object-contain mb-4" />
+              <img src={selectedPokemon.image_url} alt={selectedPokemon.name} className="w-48 h-48 object-contain mb-4" />
               <div className="grid grid-cols-2 gap-4 w-full">
                 <div>
                   <p className="text-sm font-medium text-gray-500">{t("type")}:</p>
-                  <p>{selectedPokemon.type}</p>
+                  <p>{selectedPokemon.type_1}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium text-gray-500">{t("rarity")}:</p>
@@ -502,4 +509,5 @@ const RankingPage: React.FC = () => {
       </Dialog>
     </div>;
 };
+
 export default RankingPage;

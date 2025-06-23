@@ -82,34 +82,25 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
               .select('*, pokemon_catalog!inner(*)')
               .eq('student_id', student.id);
 
-            const transformedPokemons: Pokemon[] = (pokemonData || []).map((item: any) => ({
-              id: item.pokemon_catalog.id,
-              name: item.pokemon_catalog.name,
-              image_url: item.pokemon_catalog.image || '',
-              type_1: item.pokemon_catalog.type || 'normal',
-              type_2: undefined,
-              rarity: item.pokemon_catalog.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
-              price: 15,
-              description: undefined,
-              power_stats: item.pokemon_catalog.power_stats
-            }));
+            const pokemonCount = pokemonData?.length || 0;
+            const coins = student.coins || 0;
+            const totalScore = pokemonCount + Math.floor(coins / 10);
 
             return {
               id: student.id,
-              name: student.display_name || student.username,
               username: student.username,
               displayName: student.display_name || student.username,
-              coins: student.coins || 0,
-              pokemonCount: transformedPokemons.length,
-              pokemons: transformedPokemons,
+              coins: coins,
+              pokemonCount: pokemonCount,
+              totalScore,
               rank: 0
             };
           })
         );
 
-        // Sort by Pokemon count (descending) and assign ranks
+        // Sort by total score (descending) and assign ranks
         const sortedStudents = studentsWithCounts
-          .sort((a, b) => b.pokemonCount - a.pokemonCount)
+          .sort((a, b) => b.totalScore - a.totalScore)
           .map((student, index) => ({
             ...student,
             rank: index + 1
@@ -131,20 +122,22 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
     try {
       const { data, error } = await supabase
         .from('pokemon_collections')
-        .select('pokemon_id, pokemon_name, pokemon_image, pokemon_type, pokemon_rarity')
+        .select('*, pokemon_catalog!inner(*)')
         .eq('student_id', student.id);
       
       if (error) throw error;
       
-      const pokemons: Pokemon[] = data 
-        ? data.map(p => ({
-            id: p.pokemon_id!,
-            name: p.pokemon_name,
-            image: p.pokemon_image || undefined,
-            type: p.pokemon_type || 'normal',
-            rarity: p.pokemon_rarity || 'common'
-          }))
-        : [];
+      const pokemons: Pokemon[] = (data || []).map((item: any) => ({
+        id: item.pokemon_catalog.id,
+        name: item.pokemon_catalog.name,
+        image_url: item.pokemon_catalog.image || '',
+        type_1: item.pokemon_catalog.type || 'normal',
+        type_2: undefined,
+        rarity: item.pokemon_catalog.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
+        price: 15,
+        description: undefined,
+        power_stats: item.pokemon_catalog.power_stats
+      }));
       
       setStudentPokemons(pokemons);
     } catch (error) {

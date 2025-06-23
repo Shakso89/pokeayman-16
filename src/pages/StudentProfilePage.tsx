@@ -1,343 +1,334 @@
 
-import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import AppHeader from '@/components/AppHeader';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Loader2, ArrowLeft, Award, Coins, User } from 'lucide-react';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Badge } from '@/components/ui/badge';
-import PokemonList from '@/components/student/PokemonList';
-import StudentBadges from '@/components/student/StudentBadges';
-import { Pokemon } from '@/types/pokemon';
+import React, { useState, useEffect } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { NavBar } from "@/components/NavBar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ChevronLeft, Trophy, Coins, Award, MessageCircle, UserPlus } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
+import { Pokemon } from "@/types/pokemon";
+import StudentProfilePokemonList from "@/components/student-profile/StudentProfilePokemonList";
 
-interface StudentProfile {
+interface StudentProfileData {
   id: string;
-  user_id: string;
   username: string;
-  display_name: string;
+  displayName: string;
+  avatar?: string;
   coins: number;
-  avatar_url?: string;
-  class_name?: string;
-  school_name?: string;
-  class_id?: string;
-  school_id?: string;
+  pokemonCount: number;
+  homeworkCount: number;
+  achievements: any[];
+  createdAt: string;
+  isOwnProfile: boolean;
 }
 
 const StudentProfilePage: React.FC = () => {
   const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
-  const [student, setStudent] = useState<StudentProfile | null>(null);
-  const [pokemons, setPokemons] = useState<Pokemon[]>([]);
-  const [classData, setClassData] = useState<any>(null);
-  const [schoolData, setSchoolData] = useState<any>(null);
+  const [student, setStudent] = useState<StudentProfileData | null>(null);
+  const [pokemon, setPokemon] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(true);
+  const currentUserId = localStorage.getItem("studentId");
+  const userType = localStorage.getItem("userType") as "teacher" | "student";
 
-  const userType = localStorage.getItem("userType") || "student";
-  const userName = localStorage.getItem(userType === 'teacher' ? 'teacherDisplayName' : 'studentDisplayName') || 'User';
+  useEffect(() => {
+    if (studentId) {
+      fetchStudentProfile();
+    }
+  }, [studentId]);
 
-  const handleBackClick = () => {
-    // Navigate back to student dashboard for students
-    if (userType === "student") {
-      navigate("/student-dashboard");
-    } else {
-      navigate(-1);
+  const fetchStudentProfile = async () => {
+    if (!studentId) return;
+
+    try {
+      setLoading(true);
+
+      // Get student basic info
+      const { data: studentData, error: studentError } = await supabase
+        .from("students")
+        .select("*")
+        .eq("id", studentId)
+        .single();
+
+      if (studentError) throw studentError;
+
+      // Get student's Pokemon
+      const { data: pokemonData, error: pokemonError } = await supabase
+        .from("pokemon_collections")
+        .select(`
+          *,
+          pokemon_catalog!inner(*)
+        `)
+        .eq("student_id", studentId);
+
+      if (pokemonError) throw pokemonError;
+
+      // Transform Pokemon data
+      const transformedPokemon: Pokemon[] = (pokemonData || []).map((item: any) => ({
+        id: item.pokemon_catalog.id,
+        name: item.pokemon_catalog.name,
+        image_url: item.pokemon_catalog.image || '',
+        type_1: item.pokemon_catalog.type || 'normal',
+        type_2: undefined,
+        rarity: item.pokemon_catalog.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
+        price: 15,
+        description: undefined,
+        power_stats: item.pokemon_catalog.power_stats
+      }));
+
+      // Get homework submissions count
+      const { data: homeworkData } = await supabase
+        .from("homework_submissions")
+        .select("id")
+        .eq("student_id", studentId);
+
+      // Get achievements
+      const { data: achievementsData } = await supabase
+        .from("achievements")
+        .select("*")
+        .eq("student_id", studentId);
+
+      setStudent({
+        id: studentData.id,
+        username: studentData.username,
+        displayName: studentData.display_name || studentData.username,
+        avatar: studentData.profile_photo,
+        coins: studentData.coins || 0,
+        pokemonCount: transformedPokemon.length,
+        homeworkCount: homeworkData?.length || 0,
+        achievements: achievementsData || [],
+        createdAt: studentData.created_at,
+        isOwnProfile: studentId === currentUserId
+      });
+
+      setPokemon(transformedPokemon);
+    } catch (error) {
+      console.error("Error fetching student profile:", error);
+    } finally {
+      setLoading(false);
     }
   };
 
-  useEffect(() => {
-    const fetchStudentData = async () => {
-      if (!studentId) {
-        console.error("No studentId provided");
-        setLoading(false);
-        return;
-      }
-      
-      setLoading(true);
-      try {
-        console.log("🔍 Fetching student data for ID:", studentId);
+  const handleBackClick = () => {
+    navigate(-1);
+  };
 
-        // First, determine the correct lookup strategy
-        let studentData = null;
-        let lookupUserId = studentId;
+  const handleSendMessage = () => {
+    // Navigate to messaging with this student
+    navigate(`/messages?to=${student?.id}`);
+  };
 
-        // Try to get student by user_id first (most common case for student profiles)
-        const { data: studentByUserId, error: userIdError } = await supabase
-          .from('students')
-          .select('*')
-          .eq('user_id', studentId)
-          .maybeSingle();
-
-        if (studentByUserId) {
-          studentData = studentByUserId;
-          lookupUserId = studentByUserId.user_id;
-          console.log("✅ Found student by user_id:", studentData);
-        } else {
-          // Try by student ID
-          const { data: studentById, error: idError } = await supabase
-            .from('students')
-            .select('*')
-            .eq('id', studentId)
-            .maybeSingle();
-
-          if (studentById) {
-            studentData = studentById;
-            lookupUserId = studentById.user_id || studentById.id;
-            console.log("✅ Found student by id:", studentData);
-          }
-        }
-
-        // If no student found in students table, try student_profiles
-        if (!studentData) {
-          const { data: profileData, error: profileError } = await supabase
-            .from('student_profiles')
-            .select('*')
-            .eq('user_id', studentId)
-            .maybeSingle();
-
-          if (profileData) {
-            studentData = {
-              ...profileData,
-              id: profileData.user_id,
-              user_id: profileData.user_id
-            };
-            lookupUserId = profileData.user_id;
-            console.log("✅ Found student in student_profiles:", studentData);
-          }
-        }
-
-        if (!studentData) {
-          console.log("❌ No student found for ID:", studentId);
-          setStudent(null);
-          setLoading(false);
-          return;
-        }
-
-        // Fetch class and school information
-        let className = '';
-        let classId = studentData.class_id;
-        let schoolName = '';
-        let schoolId = studentData.school_id;
-        
-        if (classId) {
-          const { data: classInfo } = await supabase
-            .from('classes')
-            .select('name, school_id, star_student_id, top_student_id')
-            .eq('id', classId)
-            .maybeSingle();
-          
-          if (classInfo) {
-            className = classInfo.name;
-            schoolId = classInfo.school_id;
-            setClassData(classInfo);
-            
-            const { data: schoolInfo } = await supabase
-              .from('schools')
-              .select('name, top_student_id')
-              .eq('id', classInfo.school_id)
-              .maybeSingle();
-            
-            if (schoolInfo) {
-              schoolName = schoolInfo.name;
-              setSchoolData(schoolInfo);
-            }
-          }
-        } else if (schoolId) {
-          const { data: schoolInfo } = await supabase
-            .from('schools')
-            .select('name, top_student_id')
-            .eq('id', schoolId)
-            .maybeSingle();
-          
-          if (schoolInfo) {
-            schoolName = schoolInfo.name;
-            setSchoolData(schoolInfo);
-          }
-        }
-
-        setStudent({
-          ...studentData,
-          class_name: className,
-          school_name: schoolName,
-          class_id: classId,
-          school_id: schoolId
-        });
-
-        // Fetch student's Pokemon using the correct user_id
-        console.log("🔍 Fetching Pokemon for user_id:", lookupUserId);
-        
-        const { data: pokemonData, error: pokemonError } = await supabase
-          .from('pokemon_collections')
-          .select(`
-            id,
-            pokemon_id,
-            obtained_at,
-            pokemon_catalog (
-              id,
-              name,
-              image,
-              type,
-              rarity,
-              power_stats
-            )
-          `)
-          .eq('student_id', lookupUserId);
-
-        if (pokemonError) {
-          console.error('❌ Error fetching Pokemon:', pokemonError);
-        } else {
-          console.log("📦 Found Pokemon collections:", pokemonData?.length || 0);
-          
-          const pokemonList: Pokemon[] = (pokemonData || []).map(collection => {
-            const pokemonCatalog = collection.pokemon_catalog as any;
-            return {
-              id: pokemonCatalog?.id || collection.pokemon_id,
-              name: pokemonCatalog?.name || `Pokemon #${collection.pokemon_id}`,
-              image: pokemonCatalog?.image || '',
-              type: pokemonCatalog?.type || 'normal',
-              rarity: pokemonCatalog?.rarity || 'common',
-              powerStats: pokemonCatalog?.power_stats || {}
-            };
-          });
-
-          console.log("✅ Transformed Pokemon list:", pokemonList);
-          setPokemons(pokemonList);
-        }
-
-      } catch (error) {
-        console.error('❌ Error loading student data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchStudentData();
-  }, [studentId]);
+  const handleAddFriend = () => {
+    // Implement friend request functionality
+    console.log("Add friend:", student?.id);
+  };
 
   if (loading) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="min-h-screen bg-transparent">
+        <NavBar userType={userType} userName={localStorage.getItem("studentName") || "Student"} />
+        <div className="flex items-center justify-center h-96">
+          <div className="text-lg">Loading profile...</div>
+        </div>
       </div>
     );
   }
 
   if (!student) {
     return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Card>
-          <CardContent className="p-8 text-center">
-            <p className="text-xl font-semibold mb-4">Student not found</p>
-            <Button onClick={handleBackClick}>
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Go Back
-            </Button>
-          </CardContent>
-        </Card>
+      <div className="min-h-screen bg-transparent">
+        <NavBar userType={userType} userName={localStorage.getItem("studentName") || "Student"} />
+        <div className="flex items-center justify-center h-96">
+          <div className="text-lg">Student not found</div>
+        </div>
       </div>
     );
   }
 
   return (
-    <>
-      <AppHeader userType={userType as "student" | "teacher"} userName={userName} />
-      <div className="container mx-auto py-8 max-w-6xl px-4">
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" size="icon" onClick={handleBackClick} className="mr-4">
-            <ArrowLeft />
-          </Button>
-          <h1 className="text-3xl font-bold">Student Profile</h1>
+    <div className="min-h-screen bg-transparent">
+      <NavBar userType={userType} userName={localStorage.getItem("studentName") || "Student"} />
+      
+      <div className="container mx-auto py-8 px-4">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center">
+            <Button variant="outline" onClick={handleBackClick} className="mr-4">
+              <ChevronLeft className="h-4 w-4 mr-1" />
+              Back
+            </Button>
+            <h1 className="text-2xl font-bold">
+              {student.isOwnProfile ? "My Profile" : `${student.displayName}'s Profile`}
+            </h1>
+          </div>
+          
+          {!student.isOwnProfile && (
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handleSendMessage}>
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Message
+              </Button>
+              <Button variant="outline" onClick={handleAddFriend}>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add Friend
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Student Info Card */}
+        {/* Profile Header */}
         <Card className="mb-6">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-4">
-              <div className="relative">
-                <Avatar className="h-16 w-16">
-                  <AvatarImage src={student.avatar_url} />
-                  <AvatarFallback>
-                    <User className="h-8 w-8" />
-                  </AvatarFallback>
-                </Avatar>
-                <StudentBadges 
-                  studentId={student.user_id || student.id}
-                  classData={classData}
-                  schoolData={schoolData}
-                  position="absolute"
-                />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold">{student.display_name}</h2>
-                <p className="text-gray-600">@{student.username}</p>
-              </div>
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div className="flex items-center gap-2">
-                <Coins className="h-5 w-5 text-yellow-500" />
-                <span className="font-semibold">{student.coins || 0} Coins</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Award className="h-5 w-5 text-purple-500" />
-                <span className="font-semibold">{pokemons.length} Pokémon</span>
-              </div>
-              <div className="flex flex-col gap-1">
-                {student.class_name && (
-                  <Badge variant="outline" className="w-fit">
-                    Class: {student.class_name}
+          <CardContent className="pt-6">
+            <div className="flex items-center space-x-4">
+              <Avatar className="h-20 w-20">
+                <AvatarImage src={student.avatar} />
+                <AvatarFallback className="text-lg">
+                  {student.displayName.substring(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+              
+              <div className="flex-1">
+                <h2 className="text-2xl font-bold">{student.displayName}</h2>
+                <p className="text-gray-500">@{student.username}</p>
+                <div className="flex gap-4 mt-2">
+                  <Badge variant="outline">
+                    <Coins className="h-3 w-3 mr-1" />
+                    {student.coins} coins
                   </Badge>
-                )}
-                {student.school_name && (
-                  <Badge variant="secondary" className="w-fit">
-                    School: {student.school_name}
+                  <Badge variant="outline">
+                    <Trophy className="h-3 w-3 mr-1" />
+                    {student.pokemonCount} Pokemon
                   </Badge>
-                )}
+                  <Badge variant="outline">
+                    <Award className="h-3 w-3 mr-1" />
+                    {student.achievements.length} achievements
+                  </Badge>
+                </div>
               </div>
-            </div>
-
-            {/* Student Badges Section */}
-            <div className="mt-4 pt-4 border-t">
-              <div className="flex items-center gap-2 mb-2">
-                <Award className="h-4 w-4 text-purple-500" />
-                <span className="text-sm font-medium text-gray-700">Achievements</span>
+              
+              <div className="text-right text-sm text-gray-500">
+                <p>Joined: {new Date(student.createdAt).toLocaleDateString()}</p>
+                <p>Total Score: {student.pokemonCount + student.homeworkCount + Math.floor(student.coins / 10)}</p>
               </div>
-              <StudentBadges 
-                studentId={student.user_id || student.id}
-                classData={classData}
-                schoolData={schoolData}
-                position="relative"
-                showContext={true}
-                size="lg"
-              />
             </div>
           </CardContent>
         </Card>
 
-        {/* Pokemon Collection */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <Award className="h-6 w-6 text-purple-500" />
-              Pokémon Collection ({pokemons.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            {pokemons.length > 0 ? (
-              <PokemonList pokemons={pokemons} />
-            ) : (
-              <div className="text-center py-8">
-                <Award className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p className="text-gray-500">No Pokémon in collection yet</p>
-                <p className="text-sm text-gray-400 mt-2">Complete homework or use the Mystery Ball to get your first Pokémon!</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        {/* Profile Tabs */}
+        <Tabs defaultValue="pokemon" className="space-y-4">
+          <TabsList>
+            <TabsTrigger value="pokemon">Pokemon Collection</TabsTrigger>
+            <TabsTrigger value="achievements">Achievements</TabsTrigger>
+            <TabsTrigger value="stats">Statistics</TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="pokemon">
+            <Card>
+              <CardHeader>
+                <CardTitle>Pokemon Collection ({pokemon.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <StudentProfilePokemonList pokemons={pokemon} />
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="achievements">
+            <Card>
+              <CardHeader>
+                <CardTitle>Achievements ({student.achievements.length})</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {student.achievements.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {student.achievements.map((achievement, index) => (
+                      <div key={index} className="border rounded-lg p-4">
+                        <div className="flex items-center gap-2">
+                          <Award className="h-5 w-5 text-yellow-500" />
+                          <h3 className="font-semibold">{achievement.type}</h3>
+                          <Badge variant="outline">{achievement.value} points</Badge>
+                        </div>
+                        <p className="text-sm text-gray-500 mt-1">
+                          Awarded on {new Date(achievement.awarded_at).toLocaleDateString()}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-gray-500">
+                    No achievements yet.
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="stats">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">Total Coins</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{student.coins}</div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">Pokemon Collection</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{student.pokemonCount}</div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">Homework Completed</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{student.homeworkCount}</div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">Achievements</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">{student.achievements.length}</div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">Activity Score</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {student.pokemonCount + student.homeworkCount + Math.floor(student.coins / 10)}
+                  </div>
+                </CardContent>
+              </Card>
+              
+              <Card>
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-medium text-gray-500">Days Active</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="text-2xl font-bold">
+                    {Math.floor((new Date().getTime() - new Date(student.createdAt).getTime()) / (1000 * 60 * 60 * 24))}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </TabsContent>
+        </Tabs>
       </div>
-    </>
+    </div>
   );
 };
 

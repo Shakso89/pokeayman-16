@@ -100,10 +100,13 @@ export const getUserAssignedPokemon = async (userId: string): Promise<Pokemon[]>
     return data.map((item: any) => ({
       id: item.pokemon_catalog.id,
       name: item.pokemon_catalog.name,
-      image: item.pokemon_catalog.image || '',
-      type: item.pokemon_catalog.type || '',
-      rarity: item.pokemon_catalog.rarity as any || 'common',
-      powerStats: item.pokemon_catalog.power_stats
+      image_url: item.pokemon_catalog.image || '',
+      type_1: item.pokemon_catalog.type || 'normal',
+      type_2: undefined,
+      rarity: item.pokemon_catalog.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
+      price: 15,
+      description: undefined,
+      power_stats: item.pokemon_catalog.power_stats
     }));
   } catch (error) {
     console.error('Error fetching user Pokemon:', error);
