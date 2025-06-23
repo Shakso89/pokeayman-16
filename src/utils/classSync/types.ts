@@ -1,62 +1,56 @@
 
-// Class data interface
+// Frontend types (what our React components use)
 export interface ClassData {
   id: string;
   name: string;
   description?: string;
-  teacher_id: string | null;
-  school_id: string;
+  teacher_id?: string;
+  school_id?: string;
   created_at: string;
-  updated_at: string;
+  updated_at?: string;
+  students: string[];
+  is_public: boolean;
+  likes: string[];
+  assistants: string[];
+}
+
+export interface StudentData {
+  id: string;
+  username: string;
+  display_name?: string;
+  class_id?: string;
+  school_id?: string;
+  teacher_id?: string;
+  coins?: number;
+  created_at: string;
+  is_active?: boolean;
+  profile_photo?: string;
+}
+
+// Database types (what comes from Supabase)
+export interface DatabaseClassData {
+  id: string;
+  name: string;
+  description?: string;
+  teacher_id?: string;
+  school_id?: string;
+  created_at: string;
+  updated_at?: string;
   students?: string[];
   is_public?: boolean;
   likes?: string[];
   assistants?: string[];
-  additionalInfo?: Record<string, any>;
-}
-
-// Student data interface
-export interface StudentData {
-  id: string;
-  username: string;
-  display_name: string;
-  email?: string;
-  avatar?: string;
-  class_id?: string;
-  school_id?: string;
-  teacher_id?: string;
-  created_at: string;
-  updated_at: string;
-  is_active?: boolean;
-  last_login?: string;
-  metadata?: Record<string, any>;
-}
-
-// Database to Frontend Mapping
-export interface DatabaseClassData {
-  id: string;
-  name: string;
-  description: string | null;
-  teacher_id: string | null;
-  school_id: string | null;
-  created_at: string;
-  updated_at?: string;
-  students?: string[] | null;
-  is_public?: boolean | null;
-  likes?: string[] | null;
-  assistants?: string[] | null;
 }
 
 export interface DatabaseStudentData {
   id: string;
   username: string;
-  display_name: string | null;
-  email?: string | null;
-  class_id?: string | null;
-  school_id?: string | null;
-  teacher_id?: string | null;
+  display_name?: string;
+  class_id?: string;
+  school_id?: string;
+  teacher_id?: string;
+  coins?: number;
   created_at: string;
-  updated_at?: string;
-  is_active?: boolean | null;
-  last_login?: string | null;
+  is_active?: boolean;
+  profile_photo?: string;
 }
