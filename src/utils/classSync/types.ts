@@ -4,12 +4,12 @@ export interface ClassData {
   id: string;
   name: string;
   description?: string;
-  teacherId: string | null;
-  schoolId: string;
-  createdAt: string;
-  updatedAt: string;
+  teacher_id: string | null;
+  school_id: string;
+  created_at: string;
+  updated_at: string;
   students?: string[];
-  isPublic?: boolean;
+  is_public?: boolean;
   likes?: string[];
   assistants?: string[];
   additionalInfo?: Record<string, any>;
