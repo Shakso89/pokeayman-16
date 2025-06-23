@@ -1,277 +1,254 @@
 
 import { supabase } from "@/integrations/supabase/client";
-import { Pokemon, StudentPokemonCollection } from "@/types/pokemon";
 
-export const getUnifiedPokemonPool = async (): Promise<Pokemon[]> => {
+export interface PokemonFromPool {
+  id: string;
+  name: string;
+  image_url?: string;
+  type_1: string;
+  type_2?: string;
+  rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
+  price: number;
+  description?: string;
+  power_stats?: any;
+  created_at: string;
+}
+
+export interface StudentPokemonCollection {
+  id: string;
+  student_id: string;
+  pokemon_id: string;
+  source: 'mystery_ball' | 'teacher_award' | 'shop_purchase';
+  awarded_by?: string;
+  awarded_at: string;
+  pokemon?: PokemonFromPool;
+}
+
+// Get all Pokémon from the unified pool
+export const getPokemonPool = async (): Promise<PokemonFromPool[]> => {
   try {
+    console.log("🎯 Fetching unified Pokémon pool...");
+    
     const { data, error } = await supabase
       .from('pokemon_pool')
       .select('*')
       .order('name');
 
     if (error) {
-      console.error('Error fetching Pokemon pool:', error);
+      console.error("❌ Error fetching Pokémon pool:", error);
       return [];
     }
 
+    console.log(`✅ Fetched ${data?.length || 0} Pokémon from unified pool`);
     return data || [];
   } catch (error) {
-    console.error('Unexpected error fetching Pokemon pool:', error);
+    console.error("❌ Unexpected error fetching Pokémon pool:", error);
     return [];
   }
 };
 
-export const getStudentPokemonCollection = async (studentId: string): Promise<StudentPokemonCollection[]> => {
+// Get Pokémon by rarity
+export const getPokemonByRarity = async (rarity: string): Promise<PokemonFromPool[]> => {
   try {
-    console.log('🔍 Fetching Pokemon collection for student:', studentId);
-
     const { data, error } = await supabase
-      .from('student_pokemon_collection')
-      .select(`
-        *,
-        pokemon:pokemon_pool (*)
-      `)
-      .eq('student_id', studentId)
-      .order('awarded_at', { ascending: false });
+      .from('pokemon_pool')
+      .select('*')
+      .eq('rarity', rarity)
+      .order('name');
 
     if (error) {
-      console.error('Error fetching student Pokemon collection:', error);
+      console.error("❌ Error fetching Pokémon by rarity:", error);
       return [];
     }
 
-    console.log('📦 Found Pokemon collection:', data?.length || 0);
     return data || [];
   } catch (error) {
-    console.error('Unexpected error fetching student Pokemon collection:', error);
+    console.error("❌ Unexpected error fetching Pokémon by rarity:", error);
     return [];
   }
 };
 
+// Get random Pokémon from pool
+export const getRandomPokemonFromPool = async (): Promise<PokemonFromPool | null> => {
+  try {
+    // Get total count first
+    const { count, error: countError } = await supabase
+      .from('pokemon_pool')
+      .select('*', { count: 'exact', head: true });
+
+    if (countError || !count) {
+      console.error("❌ Error getting Pokémon count:", countError);
+      return null;
+    }
+
+    // Get random offset
+    const randomOffset = Math.floor(Math.random() * count);
+
+    const { data, error } = await supabase
+      .from('pokemon_pool')
+      .select('*')
+      .range(randomOffset, randomOffset)
+      .single();
+
+    if (error) {
+      console.error("❌ Error fetching random Pokémon:", error);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("❌ Unexpected error fetching random Pokémon:", error);
+    return null;
+  }
+};
+
+// Award Pokémon to student
 export const awardPokemonToStudent = async (
   studentId: string,
   pokemonId: string,
   source: 'mystery_ball' | 'teacher_award' | 'shop_purchase' = 'teacher_award',
   awardedBy?: string
-): Promise<{ success: boolean; isDuplicate?: boolean; pokemon?: Pokemon; error?: string }> => {
+): Promise<boolean> => {
   try {
-    console.log('🎁 Awarding Pokemon to student:', { studentId, pokemonId, source });
+    console.log("🎁 Awarding Pokémon to student:", { studentId, pokemonId, source });
 
-    // Check if student already has this Pokemon
-    const { data: existingCollection } = await supabase
-      .from('student_pokemon_collection')
-      .select('id')
-      .eq('student_id', studentId)
-      .eq('pokemon_id', pokemonId)
-      .limit(1);
-
-    if (existingCollection && existingCollection.length > 0) {
-      console.log('⚠️ Student already has this Pokemon - awarding coins instead');
-      
-      // Get Pokemon details for response
-      const { data: pokemon } = await supabase
-        .from('pokemon_pool')
-        .select('*')
-        .eq('id', pokemonId)
-        .single();
-
-      // Award 5 coins for duplicate
-      await updateStudentCoins(studentId, 5, 'Duplicate Pokemon dismantled');
-
-      return { 
-        success: true, 
-        isDuplicate: true, 
-        pokemon: pokemon || undefined 
-      };
-    }
-
-    // Add Pokemon to student's collection
-    const { data: newCollection, error: insertError } = await supabase
+    const { error } = await supabase
       .from('student_pokemon_collection')
       .insert({
         student_id: studentId,
         pokemon_id: pokemonId,
         source,
         awarded_by: awardedBy
-      })
-      .select(`
-        *,
-        pokemon:pokemon_pool (*)
-      `)
-      .single();
-
-    if (insertError) {
-      console.error('Error inserting Pokemon into collection:', insertError);
-      return { success: false, error: insertError.message };
-    }
-
-    console.log('✅ Pokemon awarded successfully');
-    return { 
-      success: true, 
-      pokemon: newCollection.pokemon as Pokemon 
-    };
-
-  } catch (error) {
-    console.error('❌ Error awarding Pokemon:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    };
-  }
-};
-
-export const purchasePokemonFromShop = async (
-  studentId: string,
-  pokemonId: string
-): Promise<{ success: boolean; error?: string; pokemon?: Pokemon }> => {
-  try {
-    // Get Pokemon details and price
-    const { data: pokemon, error: pokemonError } = await supabase
-      .from('pokemon_pool')
-      .select('*')
-      .eq('id', pokemonId)
-      .single();
-
-    if (pokemonError || !pokemon) {
-      return { success: false, error: 'Pokemon not found' };
-    }
-
-    // Check student's current coins
-    const { data: studentProfile, error: profileError } = await supabase
-      .from('student_profiles')
-      .select('coins')
-      .eq('user_id', studentId)
-      .single();
-
-    if (profileError || !studentProfile) {
-      return { success: false, error: 'Student profile not found' };
-    }
-
-    if (studentProfile.coins < pokemon.price) {
-      return { success: false, error: `Not enough coins. Need ${pokemon.price} coins.` };
-    }
-
-    // Deduct coins and award Pokemon
-    const coinUpdateResult = await updateStudentCoins(studentId, -pokemon.price, `Purchased ${pokemon.name}`);
-    if (!coinUpdateResult) {
-      return { success: false, error: 'Failed to deduct coins' };
-    }
-
-    const awardResult = await awardPokemonToStudent(studentId, pokemonId, 'shop_purchase');
-    
-    if (!awardResult.success) {
-      // Refund coins if Pokemon award failed
-      await updateStudentCoins(studentId, pokemon.price, `Refund for failed ${pokemon.name} purchase`);
-      return { success: false, error: awardResult.error };
-    }
-
-    if (awardResult.isDuplicate) {
-      // Refund purchase price and keep the 5 duplicate coins
-      await updateStudentCoins(studentId, pokemon.price, `Refund for duplicate ${pokemon.name}`);
-      return { 
-        success: true, 
-        pokemon: awardResult.pokemon,
-        error: 'You already own this Pokemon! Purchase refunded and you received 5 coins instead.'
-      };
-    }
-
-    return { success: true, pokemon: awardResult.pokemon };
-
-  } catch (error) {
-    console.error('❌ Error purchasing Pokemon:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    };
-  }
-};
-
-export const assignRandomPokemonToStudent = async (studentId: string): Promise<{ success: boolean; pokemon?: Pokemon; isDuplicate?: boolean; error?: string }> => {
-  try {
-    // Get all Pokemon from the pool
-    const allPokemon = await getUnifiedPokemonPool();
-    
-    if (allPokemon.length === 0) {
-      return { success: false, error: 'No Pokemon available in pool' };
-    }
-
-    // Select random Pokemon
-    const randomPokemon = allPokemon[Math.floor(Math.random() * allPokemon.length)];
-    
-    const result = await awardPokemonToStudent(studentId, randomPokemon.id, 'mystery_ball');
-    
-    return {
-      success: result.success,
-      pokemon: result.pokemon,
-      isDuplicate: result.isDuplicate,
-      error: result.error
-    };
-
-  } catch (error) {
-    console.error('❌ Error assigning random Pokemon:', error);
-    return { 
-      success: false, 
-      error: error instanceof Error ? error.message : 'Unknown error' 
-    };
-  }
-};
-
-const updateStudentCoins = async (studentId: string, amount: number, reason: string): Promise<boolean> => {
-  try {
-    // Use RPC function to update coins atomically
-    const { error } = await supabase.rpc('update_student_coins', {
-      student_id: studentId,
-      coin_change: amount
-    });
-
-    if (error) {
-      console.error('Error updating student coins:', error);
-      // Fallback to direct update if RPC doesn't exist
-      const { error: updateError } = await supabase
-        .from('student_profiles')
-        .update({ 
-          coins: amount > 0 ? 
-            supabase.from('student_profiles').select('coins').eq('user_id', studentId).single().then(({data}) => (data?.coins || 0) + amount) :
-            supabase.from('student_profiles').select('coins').eq('user_id', studentId).single().then(({data}) => Math.max(0, (data?.coins || 0) + amount))
-        })
-        .eq('user_id', studentId);
-      
-      if (updateError) {
-        console.error('Fallback coin update also failed:', updateError);
-        return false;
-      }
-    }
-
-    // Log the coin transaction
-    await supabase
-      .from('coin_history')
-      .insert({
-        user_id: studentId,
-        change_amount: amount,
-        reason
       });
 
+    if (error) {
+      console.error("❌ Error awarding Pokémon:", error);
+      return false;
+    }
+
+    console.log("✅ Pokémon awarded successfully");
     return true;
   } catch (error) {
-    console.error('Error in coin update:', error);
+    console.error("❌ Unexpected error awarding Pokémon:", error);
     return false;
   }
 };
 
+// Get student's Pokémon collection
+export const getStudentPokemonCollection = async (studentId: string): Promise<StudentPokemonCollection[]> => {
+  try {
+    console.log("📦 Fetching student's Pokémon collection:", studentId);
+
+    const { data, error } = await supabase
+      .from('student_pokemon_collection')
+      .select(`
+        *,
+        pokemon:pokemon_pool(*)
+      `)
+      .eq('student_id', studentId)
+      .order('awarded_at', { ascending: false });
+
+    if (error) {
+      console.error("❌ Error fetching student's collection:", error);
+      return [];
+    }
+
+    console.log(`✅ Fetched ${data?.length || 0} Pokémon from student's collection`);
+    return data || [];
+  } catch (error) {
+    console.error("❌ Unexpected error fetching student's collection:", error);
+    return [];
+  }
+};
+
+// Remove Pokémon from student's collection
 export const removePokemonFromStudent = async (collectionId: string): Promise<boolean> => {
   try {
+    console.log("🗑️ Removing Pokémon from student's collection:", collectionId);
+
     const { error } = await supabase
       .from('student_pokemon_collection')
       .delete()
       .eq('id', collectionId);
 
     if (error) {
-      console.error('Error removing Pokemon from collection:', error);
+      console.error("❌ Error removing Pokémon:", error);
       return false;
     }
 
+    console.log("✅ Pokémon removed successfully");
     return true;
   } catch (error) {
-    console.error('Error removing Pokemon:', error);
+    console.error("❌ Unexpected error removing Pokémon:", error);
     return false;
+  }
+};
+
+// Get Pokémon pool statistics
+export const getPokemonPoolStats = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('pokemon_pool')
+      .select('rarity')
+      .order('rarity');
+
+    if (error) {
+      console.error("❌ Error fetching pool stats:", error);
+      return { total: 0, byRarity: {} };
+    }
+
+    const stats = data.reduce((acc: any, pokemon: any) => {
+      acc.byRarity[pokemon.rarity] = (acc.byRarity[pokemon.rarity] || 0) + 1;
+      acc.total++;
+      return acc;
+    }, { total: 0, byRarity: {} });
+
+    return stats;
+  } catch (error) {
+    console.error("❌ Unexpected error fetching pool stats:", error);
+    return { total: 0, byRarity: {} };
+  }
+};
+
+// Mystery ball functionality with unified pool
+export const openMysteryBall = async (studentId: string): Promise<{ success: boolean; pokemon?: PokemonFromPool; coins?: number }> => {
+  try {
+    console.log("🎲 Opening mystery ball for student:", studentId);
+
+    // 70% chance for Pokémon, 30% chance for coins
+    const isPokemon = Math.random() < 0.7;
+
+    if (isPokemon) {
+      // Get a random Pokémon with rarity weighting
+      const rarityRoll = Math.random();
+      let targetRarity: string;
+      
+      if (rarityRoll < 0.5) targetRarity = 'common';
+      else if (rarityRoll < 0.8) targetRarity = 'uncommon';
+      else if (rarityRoll < 0.95) targetRarity = 'rare';
+      else targetRarity = 'legendary';
+
+      const pokemonOfRarity = await getPokemonByRarity(targetRarity);
+      
+      if (pokemonOfRarity.length > 0) {
+        const randomPokemon = pokemonOfRarity[Math.floor(Math.random() * pokemonOfRarity.length)];
+        
+        // Award the Pokémon
+        const awarded = await awardPokemonToStudent(studentId, randomPokemon.id, 'mystery_ball');
+        
+        if (awarded) {
+          return { success: true, pokemon: randomPokemon };
+        }
+      }
+    } else {
+      // Give coins (5-20 coins)
+      const coinAmount = Math.floor(Math.random() * 16) + 5;
+      return { success: true, coins: coinAmount };
+    }
+
+    return { success: false };
+  } catch (error) {
+    console.error("❌ Error opening mystery ball:", error);
+    return { success: false };
   }
 };
