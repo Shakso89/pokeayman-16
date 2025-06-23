@@ -265,7 +265,7 @@ const StudentDetailPage: React.FC = () => {
 
       {/* Dialogs */}
       <ManagePokemonDialog
-        open={showManagePokemon}
+        isOpen={showManagePokemon}
         onOpenChange={setShowManagePokemon}
         studentId={student.id}
         studentName={student.displayName}
@@ -273,7 +273,7 @@ const StudentDetailPage: React.FC = () => {
       />
 
       <GiveCoinsDialog
-        open={showGiveCoins}
+        isOpen={showGiveCoins}
         onOpenChange={setShowGiveCoins}
         studentId={student.id}
         studentName={student.displayName}
@@ -281,7 +281,7 @@ const StudentDetailPage: React.FC = () => {
       />
 
       <RemoveCoinsDialog
-        open={showRemoveCoins}
+        isOpen={showRemoveCoins}
         onOpenChange={setShowRemoveCoins}
         studentId={student.id}
         studentName={student.displayName}

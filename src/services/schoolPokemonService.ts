@@ -116,7 +116,7 @@ export const getSchoolAvailablePokemon = async (schoolId: string): Promise<Schoo
   return fetchSchoolPokemonPool(schoolId);
 };
 
-export const assignPokemonFromPool = async (schoolId: string, studentId: string): Promise<boolean> => {
+export const assignPokemonFromPool = async (schoolId: string, studentId: string): Promise<{ success: boolean; pokemon?: SchoolPoolPokemon }> => {
   try {
     console.log('Assigning Pokemon from pool:', { schoolId, studentId });
     
@@ -125,7 +125,7 @@ export const assignPokemonFromPool = async (schoolId: string, studentId: string)
     
     if (availablePokemon.length === 0) {
       console.log('No Pokemon available in pool');
-      return false;
+      return { success: false };
     }
     
     // Select a random Pokemon
@@ -143,14 +143,14 @@ export const assignPokemonFromPool = async (schoolId: string, studentId: string)
     
     if (error) {
       console.error('Error assigning Pokemon:', error);
-      return false;
+      return { success: false };
     }
     
     console.log('Pokemon assigned successfully');
-    return true;
+    return { success: true, pokemon: selectedPokemon };
   } catch (error) {
     console.error('Error in assignPokemonFromPool:', error);
-    return false;
+    return { success: false };
   }
 };
 

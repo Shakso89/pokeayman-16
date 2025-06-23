@@ -94,10 +94,22 @@ const MysteryBallDatabase: React.FC<MysteryBallDatabaseProps> = ({
           const assignResult = await assignPokemonFromSchoolPool(schoolId, studentId);
           
           if (assignResult.success && assignResult.pokemon) {
+            const transformedPokemon: Pokemon = {
+              id: assignResult.pokemon.id,
+              name: assignResult.pokemon.name,
+              image_url: assignResult.pokemon.image_url,
+              type_1: assignResult.pokemon.type_1,
+              type_2: assignResult.pokemon.type_2,
+              rarity: assignResult.pokemon.rarity,
+              price: assignResult.pokemon.price,
+              description: assignResult.pokemon.description,
+              power_stats: assignResult.pokemon.power_stats
+            };
+            
             setResult("pokemon");
-            setWonPokemon(assignResult.pokemon);
-            onPokemonWon(assignResult.pokemon);
-            await addMysteryBallHistory(studentId, "pokemon", assignResult.pokemon);
+            setWonPokemon(transformedPokemon);
+            onPokemonWon(transformedPokemon);
+            await addMysteryBallHistory(studentId, "pokemon", transformedPokemon);
           } else {
             // Fallback to coins if assignment failed
             await handleCoinReward();
