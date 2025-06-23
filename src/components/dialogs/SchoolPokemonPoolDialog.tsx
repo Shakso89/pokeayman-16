@@ -5,8 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/hooks/useTranslation";
-import { getSchoolPokemonPool } from "@/utils/pokemon/schoolPokemon";
-import { SchoolPoolPokemon } from "@/types/pokemon";
+import { getUnifiedPokemonPool } from "@/services/unifiedPokemonService";
+import { Pokemon } from "@/types/pokemon";
 
 interface SchoolPokemonPoolDialogProps {
   isOpen: boolean;
@@ -20,22 +20,22 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
   schoolId,
 }) => {
   const { t } = useTranslation();
-  const [pokemonPool, setPokemonPool] = useState<SchoolPoolPokemon[]>([]);
+  const [pokemonPool, setPokemonPool] = useState<Pokemon[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (isOpen && schoolId) {
+    if (isOpen) {
       fetchData();
     }
-  }, [isOpen, schoolId]);
+  }, [isOpen]);
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const pokemonData = await getSchoolPokemonPool(schoolId);
+      const pokemonData = await getUnifiedPokemonPool();
       setPokemonPool(pokemonData || []);
     } catch (error) {
-      console.error("Error fetching school pokemon pool:", error);
+      console.error("Error fetching Pokemon pool:", error);
       setPokemonPool([]);
     } finally {
       setLoading(false);
@@ -65,7 +65,7 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
         <div className="space-y-4">
           <div className="flex justify-between items-center">
             <p className="text-sm text-gray-500">
-              {pokemonPool.length} Pokémon available in the school pool.
+              {pokemonPool.length} Pokémon available in the unified pool.
             </p>
           </div>
 
@@ -75,16 +75,16 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
             </div>
           ) : pokemonPool.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-gray-500">No Pokémon available in the school pool.</p>
+              <p className="text-gray-500">No Pokémon available in the pool.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {pokemonPool.map((pokemon) => (
-                <Card key={pokemon.poolEntryId} className="relative">
+                <Card key={pokemon.id} className="relative">
                   <CardContent className="p-4 flex flex-col justify-between h-full">
                     <div className="flex flex-col items-center space-y-2">
                       <img
-                        src={pokemon.image}
+                        src={pokemon.image_url}
                         alt={pokemon.name}
                         className="w-20 h-20 object-contain"
                         onError={(e) => {
@@ -93,7 +93,8 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
                       />
                       <h3 className="font-semibold text-center">{pokemon.name}</h3>
                       <div className="flex gap-2">
-                        <Badge variant="outline">{pokemon.type}</Badge>
+                        <Badge variant="outline">{pokemon.type_1}</Badge>
+                        {pokemon.type_2 && <Badge variant="outline">{pokemon.type_2}</Badge>}
                         <Badge className={`text-white ${getRarityColor(pokemon.rarity)}`}>
                           {pokemon.rarity}
                         </Badge>

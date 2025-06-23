@@ -32,7 +32,7 @@ const PokemonWinModal: React.FC<PokemonWinModalProps> = ({
             
             <div className="mx-auto w-32 h-32 bg-white rounded-full p-2 border-4 border-white shadow-xl flex items-center justify-center">
               <img 
-                src={pokemon.image} 
+                src={pokemon.image_url} 
                 alt={pokemon.name} 
                 className="w-full h-full object-contain animate-bounce"
               />
@@ -43,7 +43,7 @@ const PokemonWinModal: React.FC<PokemonWinModalProps> = ({
             <p className="mb-2">
               <span className="font-medium">
                 {/* Display Pokemon type directly without translation */}
-                Type: {pokemon.type}
+                Type: {pokemon.type_1}{pokemon.type_2 ? `/${pokemon.type_2}` : ''}
               </span>
             </p>
             <p>

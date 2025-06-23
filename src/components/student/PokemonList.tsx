@@ -64,7 +64,7 @@ const PokemonList: React.FC<PokemonListProps> = ({
                 <div className="flex flex-col items-center">
                   <div className="w-20 h-20 mb-2">
                     <img
-                      src={pokemon.image}
+                      src={pokemon.image_url}
                       alt={pokemon.name}
                       className="w-full h-full object-contain"
                     />
@@ -72,8 +72,13 @@ const PokemonList: React.FC<PokemonListProps> = ({
                   <h3 className="text-sm font-medium text-center">{pokemon.name}</h3>
                   <div className="flex items-center justify-center gap-2 mt-1">
                     <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">
-                      {pokemon.type}
+                      {pokemon.type_1}
                     </span>
+                    {pokemon.type_2 && (
+                      <span className="text-xs bg-gray-100 px-2 py-0.5 rounded-full">
+                        {pokemon.type_2}
+                      </span>
+                    )}
                     <span
                       className={`text-xs px-2 py-0.5 rounded-full ${
                         pokemon.rarity === "legendary"

@@ -51,7 +51,7 @@ const MysteryBallResult: React.FC<MysteryBallResultProps> = ({ isOpen, onClose, 
           <div className="text-center">
             <div className="relative mx-auto w-40 h-40 bg-gradient-to-br from-blue-50 to-purple-50 rounded-full p-3 mb-4 border-4 border-purple-300 shadow-lg">
               <img 
-                src={pokemon.image} 
+                src={pokemon.image_url} 
                 alt={pokemon.name} 
                 className="w-full h-full object-contain animate-bounce-slow"
               />
@@ -61,7 +61,7 @@ const MysteryBallResult: React.FC<MysteryBallResultProps> = ({ isOpen, onClose, 
             </div>
             
             <h3 className="text-xl font-bold mb-1">{pokemon.name}</h3>
-            <p className="text-gray-500 mb-2">{pokemon.type}</p>
+            <p className="text-gray-500 mb-2">{pokemon.type_1}{pokemon.type_2 ? `/${pokemon.type_2}` : ''}</p>
             <span className={`inline-block px-3 py-1 rounded-full text-sm text-white ${
               pokemon.rarity === 'legendary' ? 'bg-yellow-500' :
               pokemon.rarity === 'rare' ? 'bg-purple-500' :

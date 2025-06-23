@@ -217,16 +217,28 @@ export const assignRandomPokemonToStudent = async (studentId: string): Promise<{
 
 const updateStudentCoins = async (studentId: string, amount: number, reason: string): Promise<boolean> => {
   try {
-    const { error } = await supabase
-      .from('student_profiles')
-      .update({ 
-        coins: amount > 0 ? supabase.sql`coins + ${amount}` : supabase.sql`coins - ${Math.abs(amount)}`
-      })
-      .eq('user_id', studentId);
+    // Use RPC function to update coins atomically
+    const { error } = await supabase.rpc('update_student_coins', {
+      student_id: studentId,
+      coin_change: amount
+    });
 
     if (error) {
       console.error('Error updating student coins:', error);
-      return false;
+      // Fallback to direct update if RPC doesn't exist
+      const { error: updateError } = await supabase
+        .from('student_profiles')
+        .update({ 
+          coins: amount > 0 ? 
+            supabase.from('student_profiles').select('coins').eq('user_id', studentId).single().then(({data}) => (data?.coins || 0) + amount) :
+            supabase.from('student_profiles').select('coins').eq('user_id', studentId).single().then(({data}) => Math.max(0, (data?.coins || 0) + amount))
+        })
+        .eq('user_id', studentId);
+      
+      if (updateError) {
+        console.error('Fallback coin update also failed:', updateError);
+        return false;
+      }
     }
 
     // Log the coin transaction
