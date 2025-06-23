@@ -2,7 +2,18 @@ import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, MessageSquare, UserPlus, Edit3, Save, X, Camera, Users, BookOpen, GraduationCap } from "lucide-react";
+import {
+  ArrowLeft,
+  MessageSquare,
+  UserPlus,
+  Edit3,
+  Save,
+  X,
+  Camera,
+  Users,
+  BookOpen,
+  GraduationCap,
+} from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { supabase } from "@/integrations/supabase/client";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -13,11 +24,13 @@ import { useTeacherProfile } from "@/hooks/useTeacherProfile";
 import AppHeader from "@/components/AppHeader";
 
 const TeacherProfilePage: React.FC = () => {
-  const { teacherId } = useParams();
+  const { teacherId: routeId } = useParams();
+  const localTeacherId = localStorage.getItem("teacherId");
+  const teacherId = routeId || localTeacherId;
   const navigate = useNavigate();
   const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState("photos");
-  
+
   const {
     teacher,
     isLoading,
@@ -31,7 +44,7 @@ const TeacherProfilePage: React.FC = () => {
     handleSave,
     handleCancel,
     handleAddFriend,
-    updateSocialLink
+    updateSocialLink,
   } = useTeacherProfile(teacherId);
 
   const [joinedDate, setJoinedDate] = useState('');
@@ -39,83 +52,62 @@ const TeacherProfilePage: React.FC = () => {
   useEffect(() => {
     const loadJoinDate = async () => {
       if (!teacherId) return;
+      const { data, error } = await supabase
+        .from("teachers")
+        .select("created_at")
+        .eq("id", teacherId)
+        .single();
 
-      try {
-        const { data: teacherData, error: teacherError } = await supabase
-          .from('teachers')
-          .select('created_at')
-          .eq('id', teacherId)
-          .single();
-        
-        if (teacherError && teacherError.code !== 'PGRST116') {
-          throw teacherError;
-        }
-
-        if (teacherData?.created_at) {
-          setJoinedDate(new Date(teacherData.created_at).toLocaleDateString());
-        }
-      } catch (error) {
-        console.error('Error loading join date:', error);
+      if (!error && data?.created_at) {
+        setJoinedDate(new Date(data.created_at).toLocaleDateString());
       }
     };
-
     loadJoinDate();
   }, [teacherId]);
 
   const handleSendMessage = () => {
-    navigate("/messages", { 
-      state: { 
-        recipientId: teacherId, 
-        recipientName: teacher?.displayName || teacher?.username 
-      } 
+    if (!teacher?.id) return;
+    navigate("/messages", {
+      state: {
+        recipientId: teacher.id,
+        recipientName: teacher.displayName || teacher.username,
+      },
     });
   };
 
-  const handleAvatarUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
+  const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
     if (!file) return;
-
     if (file.size > 5 * 1024 * 1024) {
-      toast({
+      return toast({
         title: "Error",
-        description: "File size must be less than 5MB",
-        variant: "destructive"
+        description: "Image must be smaller than 5MB",
+        variant: "destructive",
       });
-      return;
     }
 
     const reader = new FileReader();
     reader.onload = (e) => {
       if (e.target?.result) {
-        setEditData({
-          ...editData,
-          avatar_url: e.target.result.toString()
-        });
+        setEditData({ ...editData, avatar_url: e.target.result.toString() });
       }
     };
     reader.readAsDataURL(file);
   };
 
-  // NEW: Gather header props
-  const username = teacher?.username || "";
-  const userAvatar = teacher?.avatar_url || "";
-  
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">{t("loading")}</p>
-        </div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
+        <div className="text-center animate-pulse text-gray-600 text-lg">{t("loading")}</div>
       </div>
     );
   }
 
   if (!teacher) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 flex items-center justify-center">
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100">
         <Card className="p-8 text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-4">{t("teacher-not-found")}</h2>
+          <h2 className="text-2xl font-bold mb-4">{t("teacher-not-found")}</h2>
           <Button onClick={() => navigate(-1)}>{t("go-back")}</Button>
         </Card>
       </div>
@@ -124,182 +116,96 @@ const TeacherProfilePage: React.FC = () => {
 
   return (
     <div className="min-h-screen">
-      {/* Add the unified AppHeader at the top */}
-      <AppHeader userType="teacher" userName={username} userAvatar={userAvatar} />
+      <AppHeader
+        userType="teacher"
+        userName={teacher.username}
+        userAvatar={teacher.avatar_url || "/default-avatar.png"}
+      />
+
       <div className="container mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-6">
-          <Button
-            variant="outline"
-            onClick={() => navigate(-1)}
-            className="flex items-center"
-          >
-            <ArrowLeft className="mr-2 h-4 w-4" />
-            {t("back")}
+        <div className="flex justify-between items-center mb-6">
+          <Button variant="outline" onClick={() => navigate(-1)}>
+            <ArrowLeft className="h-4 w-4 mr-2" /> {t("back")}
           </Button>
-          
+
           <div className="flex gap-2">
             {isOwner && !isEditing && (
-              <Button
-                onClick={() => setIsEditing(true)}
-                className="flex items-center"
-              >
-                <Edit3 className="mr-2 h-4 w-4" />
-                Edit Profile
+              <Button onClick={() => setIsEditing(true)}>
+                <Edit3 className="h-4 w-4 mr-2" /> Edit
               </Button>
             )}
-            
             {isOwner && isEditing && (
               <>
-                <Button
-                  onClick={handleSave}
-                  className="flex items-center bg-green-600 hover:bg-green-700"
-                >
-                  <Save className="mr-2 h-4 w-4" />
-                  Save
+                <Button onClick={handleSave} className="bg-green-600 hover:bg-green-700">
+                  <Save className="h-4 w-4 mr-2" /> Save
                 </Button>
-                <Button
-                  onClick={handleCancel}
-                  variant="outline"
-                  className="flex items-center"
-                >
-                  <X className="mr-2 h-4 w-4" />
-                  Cancel
+                <Button onClick={handleCancel} variant="outline">
+                  <X className="h-4 w-4 mr-2" /> Cancel
                 </Button>
               </>
             )}
-            
             {!isOwner && (
               <>
-                <Button
-                  onClick={handleSendMessage}
-                  className="flex items-center"
-                >
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  Send Message
+                <Button onClick={handleSendMessage}>
+                  <MessageSquare className="h-4 w-4 mr-2" /> Message
                 </Button>
                 <Button
                   onClick={handleAddFriend}
-                  variant="outline"
                   disabled={friendRequestSent}
-                  className="flex items-center"
+                  variant="outline"
                 >
-                  <UserPlus className="mr-2 h-4 w-4" />
-                  {friendRequestSent ? 'Request Sent' : 'Add Friend'}
+                  <UserPlus className="h-4 w-4 mr-2" />
+                  {friendRequestSent ? "Request Sent" : "Add Friend"}
                 </Button>
               </>
             )}
           </div>
         </div>
 
-        {/* Profile Header */}
-        <Card className="shadow-lg mb-6">
-          <CardContent className="p-6">
-            <div className="flex flex-col md:flex-row items-start gap-6">
-              {/* Avatar Section */}
-              <div className="relative">
-                <Avatar className="w-32 h-32">
-                  <AvatarImage 
-                    src={isEditing ? editData.avatar_url || teacher.avatar_url : teacher.avatar_url} 
-                    alt={teacher.displayName || teacher.username} 
-                  />
-                  <AvatarFallback className="text-3xl">
-                    {(teacher.displayName || teacher.username || "T").charAt(0).toUpperCase()}
-                  </AvatarFallback>
-                </Avatar>
-                
-                {isOwner && isEditing && (
-                  <div className="absolute bottom-0 right-0">
-                    <label htmlFor="avatar-upload" className="cursor-pointer">
-                      <div className="bg-blue-500 text-white rounded-full p-2 shadow-lg hover:bg-blue-600">
-                        <Camera className="h-4 w-4" />
-                      </div>
-                    </label>
-                    <input
-                      id="avatar-upload"
-                      type="file"
-                      accept="image/*"
-                      onChange={handleAvatarUpload}
-                      className="hidden"
-                    />
+        <Card className="mb-6">
+          <CardContent className="p-6 flex gap-6">
+            <div className="relative">
+              <Avatar className="h-32 w-32">
+                <AvatarImage src={editData.avatar_url || teacher.avatar_url} />
+                <AvatarFallback className="text-xl">
+                  {teacher.displayName?.[0]?.toUpperCase() || "T"}
+                </AvatarFallback>
+              </Avatar>
+              {isOwner && isEditing && (
+                <label htmlFor="avatar-upload" className="absolute bottom-0 right-0 cursor-pointer">
+                  <div className="bg-blue-500 text-white p-2 rounded-full hover:bg-blue-600">
+                    <Camera className="h-4 w-4" />
                   </div>
-                )}
-              </div>
-              
-              {/* Profile Info */}
-              <div className="flex-1">
-                <div className="space-y-4">
-                  {isEditing ? (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="text-sm font-medium text-gray-600">Display Name</label>
-                        <Input
-                          value={editData.displayName || ''}
-                          onChange={(e) => setEditData({...editData, displayName: e.target.value})}
-                          placeholder="Enter display name"
-                        />
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <div>
-                        <h1 className="text-3xl font-bold text-gray-900">
-                          {teacher.displayName || teacher.username}
-                        </h1>
-                        <p className="text-gray-500 text-lg">@{teacher.username}</p>
-                        {teacher.email && (
-                          <p className="text-gray-400 text-sm">{teacher.email}</p>
-                        )}
-                      </div>
-                    </>
-                  )}
-                  
-                  {/* Stats Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                    <Card 
-                      className="bg-blue-50 border-blue-200 cursor-pointer transition-shadow hover:shadow-lg" 
-                      onClick={() => setActiveTab("classes")}
-                    >
-                      <CardContent className="p-4 text-center">
-                        <div className="flex items-center justify-center mb-2">
-                          <BookOpen className="h-6 w-6 text-blue-600" />
-                        </div>
-                        <div className="text-2xl font-bold text-blue-700">{teacher?.classes?.length || 0}</div>
-                        <div className="text-sm text-blue-600">Classes</div>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card 
-                      className="bg-green-50 border-green-200 cursor-pointer transition-shadow hover:shadow-lg"
-                      onClick={() => setActiveTab("students")}
-                    >
-                      <CardContent className="p-4 text-center">
-                        <div className="flex items-center justify-center mb-2">
-                          <GraduationCap className="h-6 w-6 text-green-600" />
-                        </div>
-                        <div className="text-2xl font-bold text-green-700">{studentCount}</div>
-                        <div className="text-sm text-green-600">Students</div>
-                      </CardContent>
-                    </Card>
-                    
-                    <Card className="bg-purple-50 border-purple-200">
-                      <CardContent className="p-4 text-center">
-                        <div className="flex items-center justify-center mb-2">
-                          <Users className="h-6 w-6 text-purple-600" />
-                        </div>
-                        <div className="text-sm font-bold text-purple-700">Joined</div>
-                        <div className="text-sm text-purple-600">{joinedDate}</div>
-                      </CardContent>
-                    </Card>
-                  </div>
-                </div>
+                  <input id="avatar-upload" type="file" accept="image/*" onChange={handleAvatarUpload} className="hidden" />
+                </label>
+              )}
+            </div>
+
+            <div className="flex-1 space-y-4">
+              {isEditing ? (
+                <Input
+                  value={editData.displayName || ''}
+                  onChange={(e) => setEditData({ ...editData, displayName: e.target.value })}
+                  placeholder="Display Name"
+                />
+              ) : (
+                <>
+                  <h1 className="text-2xl font-bold">{teacher.displayName || teacher.username}</h1>
+                  <p className="text-gray-500">@{teacher.username}</p>
+                  <p className="text-gray-400 text-sm">{teacher.email}</p>
+                </>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <StatCard icon={<BookOpen />} title="Classes" count={teacher.classes?.length || 0} onClick={() => setActiveTab("classes")} color="blue" />
+                <StatCard icon={<GraduationCap />} title="Students" count={studentCount} onClick={() => setActiveTab("students")} color="green" />
+                <StatCard icon={<Users />} title="Joined" content={joinedDate} color="purple" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Profile Tabs */}
-        <ProfileTabs 
+        <ProfileTabs
           teacher={teacher}
           isEditing={isEditing}
           isOwner={isOwner}
@@ -314,5 +220,22 @@ const TeacherProfilePage: React.FC = () => {
     </div>
   );
 };
+
+const StatCard = ({ icon, title, count, content, onClick, color }: any) => (
+  <Card
+    className={`cursor-pointer border-${color}-200 bg-${color}-50 transition-shadow hover:shadow-lg`}
+    onClick={onClick}
+  >
+    <CardContent className="p-4 text-center">
+      <div className={`text-${color}-600 flex justify-center mb-2`}>{icon}</div>
+      {typeof count !== "undefined" ? (
+        <div className={`text-2xl font-bold text-${color}-700`}>{count}</div>
+      ) : (
+        <div className={`text-sm text-${color}-700`}>{content}</div>
+      )}
+      <div className={`text-sm text-${color}-600`}>{title}</div>
+    </CardContent>
+  </Card>
+);
 
 export default TeacherProfilePage;
