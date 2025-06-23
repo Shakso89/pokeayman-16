@@ -6,14 +6,22 @@ import { User, MessageCircle, UserPlus } from "lucide-react";
 
 interface ProfileActionsProps {
   isOwnProfile: boolean;
+  isTeacherView?: boolean;
   studentId: string;
-  studentName: string;
+  studentName?: string;
+  onGiveCoins?: () => void;
+  onSendMessage?: () => void;
+  onOpenSettings?: () => void;
 }
 
 const ProfileActions: React.FC<ProfileActionsProps> = ({
   isOwnProfile,
+  isTeacherView = false,
   studentId,
-  studentName
+  studentName,
+  onGiveCoins,
+  onSendMessage,
+  onOpenSettings
 }) => {
   const navigate = useNavigate();
 
@@ -23,9 +31,13 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
   };
 
   const handleSendMessage = () => {
-    navigate("/student/messages", {
-      state: { recipientId: studentId, recipientName: studentName }
-    });
+    if (onSendMessage) {
+      onSendMessage();
+    } else if (studentName) {
+      navigate("/student/messages", {
+        state: { recipientId: studentId, recipientName: studentName }
+      });
+    }
   };
 
   return (
@@ -61,6 +73,28 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
             Add Friend
           </Button>
         </>
+      )}
+
+      {isTeacherView && onGiveCoins && (
+        <Button 
+          onClick={onGiveCoins}
+          variant="outline" 
+          size="sm"
+          className="flex items-center gap-1"
+        >
+          Give Coins
+        </Button>
+      )}
+
+      {isOwnProfile && onOpenSettings && (
+        <Button 
+          onClick={onOpenSettings}
+          variant="outline" 
+          size="sm"
+          className="flex items-center gap-1"
+        >
+          Settings
+        </Button>
       )}
     </div>
   );
