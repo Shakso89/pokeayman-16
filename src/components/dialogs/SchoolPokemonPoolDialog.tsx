@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/hooks/useTranslation";
-import { getUnifiedPokemonPool } from "@/services/unifiedPokemonService";
+import { getPokemonPool } from "@/services/unifiedPokemonService";
 import { Pokemon } from "@/types/pokemon";
 
 interface SchoolPokemonPoolDialogProps {
@@ -32,7 +32,7 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
   const fetchData = async () => {
     setLoading(true);
     try {
-      const pokemonData = await getUnifiedPokemonPool();
+      const pokemonData = await getPokemonPool();
       setPokemonPool(pokemonData || []);
     } catch (error) {
       console.error("Error fetching Pokemon pool:", error);

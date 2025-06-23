@@ -1,118 +1,86 @@
-
-import React, { useState, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
-import { Input } from '@/components/ui/input';
-import { Search, ShoppingCart, Coins, Filter } from 'lucide-react';
-import { Pokemon } from '@/types/pokemon';
-import { getUnifiedPokemonPool, purchasePokemonFromShop } from '@/services/unifiedPokemonService';
-import { useToast } from '@/hooks/use-toast';
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Coins, ShoppingCart, Sparkles } from "lucide-react";
+import { toast } from "sonner";
+import { useTranslation } from "@/hooks/useTranslation";
+import { 
+  getPokemonPool,
+  purchasePokemonFromShop,
+  type PokemonFromPool
+} from "@/services/unifiedPokemonService";
+import { updateStudentCoins } from "@/services/studentDatabase";
 
 interface PokemonShopProps {
   studentId: string;
-  studentCoins: number;
-  onPurchaseComplete: () => void;
+  coins: number;
+  onPurchase: (pokemon: PokemonFromPool, cost: number) => void;
+  onRefresh: () => void;
 }
 
 const PokemonShop: React.FC<PokemonShopProps> = ({
   studentId,
-  studentCoins,
-  onPurchaseComplete
+  coins,
+  onPurchase,
+  onRefresh
 }) => {
-  const [pokemon, setPokemon] = useState<Pokemon[]>([]);
-  const [filteredPokemon, setFilteredPokemon] = useState<Pokemon[]>([]);
-  const [loading, setLoading] = useState(true);
+  const { t } = useTranslation();
+  const [pokemonPool, setPokemonPool] = useState<PokemonFromPool[]>([]);
+  const [loading, setLoading] = useState(false);
   const [purchasing, setPurchasing] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [rarityFilter, setRarityFilter] = useState<string>('all');
-  const { toast } = useToast();
 
   useEffect(() => {
     loadPokemonPool();
   }, []);
 
-  useEffect(() => {
-    filterPokemon();
-  }, [pokemon, searchTerm, rarityFilter]);
-
   const loadPokemonPool = async () => {
     setLoading(true);
     try {
-      const data = await getUnifiedPokemonPool();
-      setPokemon(data);
+      const pool = await getPokemonPool();
+      setPokemonPool(pool);
     } catch (error) {
-      console.error('Error loading Pokemon pool:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Failed to load Pokemon shop"
-      });
+      console.error("Error loading Pokemon pool:", error);
+      toast.error("Failed to load Pokemon shop");
     } finally {
       setLoading(false);
     }
   };
 
-  const filterPokemon = () => {
-    let filtered = pokemon;
-
-    if (searchTerm) {
-      filtered = filtered.filter(p => 
-        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.type_1.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (p.type_2 && p.type_2.toLowerCase().includes(searchTerm.toLowerCase()))
-      );
-    }
-
-    if (rarityFilter !== 'all') {
-      filtered = filtered.filter(p => p.rarity === rarityFilter);
-    }
-
-    setFilteredPokemon(filtered);
-  };
-
-  const handlePurchase = async (pokemonData: Pokemon) => {
-    if (studentCoins < pokemonData.price) {
-      toast({
-        variant: "destructive",
-        title: "Not Enough Coins",
-        description: `You need ${pokemonData.price} coins to purchase ${pokemonData.name}`
-      });
+  const handlePurchase = async (pokemon: PokemonFromPool) => {
+    if (coins < pokemon.price) {
+      toast.error(`You need ${pokemon.price} coins to buy ${pokemon.name}!`);
       return;
     }
 
-    setPurchasing(pokemonData.id);
-    try {
-      const result = await purchasePokemonFromShop(studentId, pokemonData.id);
+    setPurchasing(pokemon.id);
 
+    try {
+      // Deduct coins first
+      const coinsSuccess = await updateStudentCoins(studentId, -pokemon.price, `Purchased ${pokemon.name}`);
+      
+      if (!coinsSuccess) {
+        toast.error("Failed to deduct coins");
+        return;
+      }
+
+      // Purchase the Pokemon
+      const result = await purchasePokemonFromShop(studentId, pokemon.id, pokemon.price);
+      
       if (result.success) {
-        if (result.error) {
-          // This is the duplicate case
-          toast({
-            title: "Duplicate Pokemon!",
-            description: result.error
-          });
-        } else {
-          toast({
-            title: "Purchase Successful!",
-            description: `You purchased ${pokemonData.name} for ${pokemonData.price} coins!`
-          });
-        }
-        onPurchaseComplete();
+        toast.success(`Successfully purchased ${pokemon.name}!`);
+        onPurchase(pokemon, pokemon.price);
+        onRefresh();
       } else {
-        toast({
-          variant: "destructive",
-          title: "Purchase Failed",
-          description: result.error || "Failed to purchase Pokemon"
-        });
+        toast.error(result.error || "Failed to purchase Pokemon");
+        // Refund coins on failure
+        await updateStudentCoins(studentId, pokemon.price, `Refund for failed ${pokemon.name} purchase`);
       }
     } catch (error) {
-      console.error('Error purchasing Pokemon:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred"
-      });
+      console.error("Error purchasing Pokemon:", error);
+      toast.error("Purchase failed");
+      // Refund coins on error
+      await updateStudentCoins(studentId, pokemon.price, `Refund for failed ${pokemon.name} purchase`);
     } finally {
       setPurchasing(null);
     }
@@ -120,136 +88,121 @@ const PokemonShop: React.FC<PokemonShopProps> = ({
 
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
-      case 'legendary': return 'bg-yellow-500 text-white';
-      case 'rare': return 'bg-purple-500 text-white';
-      case 'uncommon': return 'bg-blue-500 text-white';
-      default: return 'bg-gray-500 text-white';
+      case 'common': return 'text-gray-700 border-gray-300';
+      case 'uncommon': return 'text-green-700 border-green-300';
+      case 'rare': return 'text-blue-700 border-blue-300';
+      case 'legendary': return 'text-purple-700 border-purple-300';
+      default: return 'text-gray-700 border-gray-300';
     }
   };
-
-  const getPriceColor = (price: number) => {
-    if (studentCoins >= price) return 'text-green-600';
-    return 'text-red-600';
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center py-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShoppingCart className="h-6 w-6" />
-            Pokemon Shop
+          <CardTitle className="text-center">
+            <ShoppingCart className="mr-2 inline-block h-5 w-5" />
+            Pokémon Shop
           </CardTitle>
-          <div className="flex items-center gap-2">
-            <Coins className="h-5 w-5 text-yellow-500" />
-            <span className="text-lg font-semibold">{studentCoins} Coins</span>
-          </div>
+          <p className="text-center text-sm text-gray-600">
+            Purchase Pokémon with your coins!
+          </p>
         </CardHeader>
-        <CardContent>
-          <div className="flex flex-col md:flex-row gap-4 mb-6">
-            <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
-              <Input
-                placeholder="Search Pokemon..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Filter className="h-4 w-4" />
-              <select
-                value={rarityFilter}
-                onChange={(e) => setRarityFilter(e.target.value)}
-                className="px-3 py-2 border rounded-md"
-              >
-                <option value="all">All Rarities</option>
-                <option value="common">Common</option>
-                <option value="uncommon">Uncommon</option>
-                <option value="rare">Rare</option>
-                <option value="legendary">Legendary</option>
-              </select>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredPokemon.map((pokemonData) => (
-              <Card key={pokemonData.id} className="hover:shadow-lg transition-shadow">
-                <CardContent className="p-4">
-                  <div className="space-y-3">
-                    <div className="aspect-square bg-gray-50 rounded-lg flex items-center justify-center">
+        <CardContent className="space-y-4">
+          {loading ? (
+            <div className="text-center">Loading Pokémon...</div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pokemonPool.map((pokemon) => (
+                <Card key={pokemon.id}>
+                  <CardContent className="flex flex-col items-center justify-between p-4">
+                    <div className="space-y-2 text-center">
                       <img
-                        src={pokemonData.image_url || '/placeholder-pokemon.png'}
-                        alt={pokemonData.name}
-                        className="w-full h-full object-contain"
+                        src={pokemon.image_url || "/placeholder.svg"}
+                        alt={pokemon.name}
+                        className="h-24 w-24 object-contain"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/placeholder.svg";
+                        }}
                       />
-                    </div>
-                    
-                    <div>
-                      <h3 className="font-semibold text-lg">{pokemonData.name}</h3>
-                      <div className="flex gap-1 flex-wrap mt-1">
-                        <Badge variant="outline" className="text-xs">
-                          {pokemonData.type_1}
-                        </Badge>
-                        {pokemonData.type_2 && (
-                          <Badge variant="outline" className="text-xs">
-                            {pokemonData.type_2}
-                          </Badge>
+                      <h3 className="text-lg font-semibold">{pokemon.name}</h3>
+                      <div className="flex justify-center gap-2">
+                        <Badge variant="outline">{pokemon.type_1}</Badge>
+                        {pokemon.type_2 && (
+                          <Badge variant="outline">{pokemon.type_2}</Badge>
                         )}
                       </div>
+                      <Badge className={getRarityColor(pokemon.rarity)}>
+                        {pokemon.rarity}
+                      </Badge>
                     </div>
-
-                    <Badge className={`${getRarityColor(pokemonData.rarity)} w-fit`}>
-                      {pokemonData.rarity}
-                    </Badge>
-
-                    {pokemonData.description && (
-                      <p className="text-sm text-gray-600 line-clamp-2">
-                        {pokemonData.description}
-                      </p>
-                    )}
-
-                    <div className="flex items-center justify-between">
-                      <span className={`font-bold text-lg ${getPriceColor(pokemonData.price)}`}>
-                        {pokemonData.price} coins
-                      </span>
+                    <div className="flex items-center justify-between w-full mt-4">
+                      <div className="flex items-center gap-1 text-sm text-gray-600">
+                        <Coins className="h-4 w-4" />
+                        {pokemon.price}
+                      </div>
                       <Button
-                        onClick={() => handlePurchase(pokemonData)}
-                        disabled={purchasing === pokemonData.id || studentCoins < pokemonData.price}
+                        onClick={() => handlePurchase(pokemon)}
+                        disabled={coins < pokemon.price || purchasing === pokemon.id}
+                        className="w-auto"
                         size="sm"
                       >
-                        {purchasing === pokemonData.id ? (
+                        {purchasing === pokemon.id ? (
                           <div className="flex items-center gap-2">
                             <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                            Buying...
+                            Purchasing...
                           </div>
                         ) : (
-                          'Buy'
+                          "Buy"
                         )}
                       </Button>
                     </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-
-          {filteredPokemon.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              {searchTerm || rarityFilter !== 'all' 
-                ? 'No Pokemon found matching your filters' 
-                : 'No Pokemon available in the shop'
-              }
+                  </CardContent>
+                </Card>
+              ))}
             </div>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Shop Information Card */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-lg">
+            <Sparkles className="mr-2 inline-block h-5 w-5" />
+            Shop Information
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-4 text-sm">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <h4 className="font-semibold text-green-700">💰 Pricing:</h4>
+                <ul className="space-y-1 text-gray-600">
+                  <li>• Common: 5-15 coins</li>
+                  <li>• Uncommon: 15-25 coins</li>
+                  <li>• Rare: 25-50 coins</li>
+                  <li>• Legendary: 100+ coins</li>
+                </ul>
+              </div>
+              <div className="space-y-2">
+                <h4 className="font-semibold text-blue-700">🛍️ Purchase Rules:</h4>
+                <ul className="space-y-1 text-gray-600">
+                  <li>• Buy any Pokémon multiple times</li>
+                  <li>• Instant delivery to collection</li>
+                  <li>• All 300 Pokémon available</li>
+                  <li>• Earn coins from activities</li>
+                </ul>
+              </div>
+            </div>
+            <div className="p-3 bg-blue-50 rounded-lg">
+              <p className="text-blue-800 text-xs">
+                <strong>New System:</strong> The shop now features the complete unified pool of 300 Pokémon!
+                You can purchase any Pokémon multiple times to build your ultimate collection.
+              </p>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>

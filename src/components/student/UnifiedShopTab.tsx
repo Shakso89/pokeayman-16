@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import UnifiedPokemonShop from "./UnifiedPokemonShop";
-import { useStudentData } from "@/hooks/useStudentData";
+import { useStudentDataRefresh } from "@/hooks/useStudentDataRefresh";
 
 interface UnifiedShopTabProps {
   studentId: string;
@@ -15,7 +15,7 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
   studentCoins,
   onDataUpdate 
 }) => {
-  const { refreshStudentData } = useStudentData(studentId);
+  const { refreshStudentData } = useStudentDataRefresh(studentId);
 
   const handlePurchase = () => {
     if (onDataUpdate) {

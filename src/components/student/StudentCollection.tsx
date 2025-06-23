@@ -1,43 +1,50 @@
-
-import React, { useEffect, useState } from "react";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import React, { useState, useEffect } from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Award } from "lucide-react";
-import { getStudentPokemonCollection } from "@/services/unifiedPokemonService";
+import { Package, Star, Award } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
+import { getStudentPokemonCollection, type StudentPokemonCollection as UnifiedStudentPokemonCollection } from "@/services/unifiedPokemonService";
 import { StudentPokemonCollection } from "@/types/pokemon";
 
 interface StudentCollectionProps {
   studentId: string;
+  refreshTrigger?: number;
 }
 
-const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
+const StudentCollection: React.FC<StudentCollectionProps> = ({
+  studentId,
+  refreshTrigger = 0
+}) => {
+  const { t } = useTranslation();
   const [pokemonCollection, setPokemonCollection] = useState<StudentPokemonCollection[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchCollection = async () => {
-      if (!studentId) {
-        console.warn("No studentId provided to StudentCollection");
-        setLoading(false);
-        return;
-      }
-      
-      setLoading(true);
-      try {
-        console.log("🔍 Fetching Pokemon collection for student:", studentId);
-        const collection = await getStudentPokemonCollection(studentId);
-        setPokemonCollection(collection);
-        console.log("✅ Loaded Pokemon collection:", collection.length);
-      } catch (error) {
-        console.error("❌ Error fetching Pokemon collection:", error);
-        setPokemonCollection([]);
-      } finally {
-        setLoading(false);
-      }
-    };
+    if (studentId) {
+      fetchStudentCollection();
+    }
+  }, [studentId, refreshTrigger]);
 
-    fetchCollection();
-  }, [studentId]);
+  const fetchStudentCollection = async () => {
+    setLoading(true);
+    try {
+      const collection = await getStudentPokemonCollection(studentId);
+      // Convert to the expected type format
+      const convertedCollection: StudentPokemonCollection[] = collection.map(item => ({
+        ...item,
+        pokemon: item.pokemon ? {
+          ...item.pokemon,
+          image_url: item.pokemon.image_url || "/placeholder.svg"
+        } : undefined
+      }));
+      setPokemonCollection(convertedCollection);
+    } catch (error) {
+      console.error("Error fetching student collection:", error);
+      setPokemonCollection([]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getRarityColor = (rarity: string) => {
     switch (rarity) {

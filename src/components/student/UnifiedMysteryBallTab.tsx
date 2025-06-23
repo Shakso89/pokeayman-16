@@ -2,7 +2,7 @@
 import React from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import UnifiedMysteryBall from "./UnifiedMysteryBall";
-import { useStudentData } from "@/hooks/useStudentData";
+import { useStudentDataRefresh } from "@/hooks/useStudentDataRefresh";
 
 interface UnifiedMysteryBallTabProps {
   studentId: string;
@@ -13,7 +13,7 @@ const UnifiedMysteryBallTab: React.FC<UnifiedMysteryBallTabProps> = ({
   studentId, 
   onDataUpdate 
 }) => {
-  const { refreshStudentData } = useStudentData(studentId);
+  const { refreshStudentData } = useStudentDataRefresh(studentId);
 
   const handlePokemonWon = () => {
     if (onDataUpdate) {

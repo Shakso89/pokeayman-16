@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 export interface PokemonFromPool {
   id: string;
   name: string;
-  image_url?: string;
+  image_url: string; // Made required to match Pokemon type
   type_1: string;
   type_2?: string;
   rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
@@ -23,6 +23,11 @@ export interface StudentPokemonCollection {
   awarded_at: string;
   pokemon?: PokemonFromPool;
 }
+
+// Get all Pokémon from the unified pool (alias for compatibility)
+export const getUnifiedPokemonPool = async (): Promise<PokemonFromPool[]> => {
+  return getPokemonPool();
+};
 
 // Get all Pokémon from the unified pool
 export const getPokemonPool = async (): Promise<PokemonFromPool[]> => {
@@ -102,6 +107,27 @@ export const getRandomPokemonFromPool = async (): Promise<PokemonFromPool | null
   }
 };
 
+// Award Pokémon to student (alias for compatibility)
+export const assignRandomPokemonToStudent = async (studentId: string): Promise<{ success: boolean; pokemon?: PokemonFromPool; isDuplicate?: boolean }> => {
+  try {
+    const randomPokemon = await getRandomPokemonFromPool();
+    if (!randomPokemon) {
+      return { success: false };
+    }
+
+    const success = await awardPokemonToStudent(studentId, randomPokemon.id, 'mystery_ball');
+    
+    if (success) {
+      return { success: true, pokemon: randomPokemon, isDuplicate: false };
+    }
+    
+    return { success: false };
+  } catch (error) {
+    console.error("❌ Error assigning random Pokémon:", error);
+    return { success: false };
+  }
+};
+
 // Award Pokémon to student
 export const awardPokemonToStudent = async (
   studentId: string,
@@ -131,6 +157,29 @@ export const awardPokemonToStudent = async (
   } catch (error) {
     console.error("❌ Unexpected error awarding Pokémon:", error);
     return false;
+  }
+};
+
+// Purchase Pokémon from shop
+export const purchasePokemonFromShop = async (
+  studentId: string,
+  pokemonId: string,
+  cost: number
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    console.log("🛒 Purchasing Pokémon from shop:", { studentId, pokemonId, cost });
+
+    // Award the Pokémon
+    const success = await awardPokemonToStudent(studentId, pokemonId, 'shop_purchase');
+    
+    if (success) {
+      return { success: true };
+    } else {
+      return { success: false, error: "Failed to purchase Pokémon" };
+    }
+  } catch (error) {
+    console.error("❌ Error purchasing Pokémon:", error);
+    return { success: false, error: "Purchase failed" };
   }
 };
 
