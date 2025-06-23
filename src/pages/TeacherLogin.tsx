@@ -111,7 +111,7 @@ const TeacherLogin: React.FC = () => {
       </div>;
   }
   return <div className="min-h-screen bg-gradient-to-br from-blue-500 via-purple-500 to-indigo-600">
-      <div className="bg-transparent">
+      <div className="flex items-center justify-center min-h-screen p-4 bg-transparent ">
         <div className="w-full max-w-md">
           <AuthLayout title="Teacher Login">
             <form onSubmit={onSubmit} className="space-y-4">
