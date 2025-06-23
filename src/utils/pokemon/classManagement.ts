@@ -1,7 +1,7 @@
 
-import { Class, ClassData } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
+import { ClassData } from "@/utils/classSync/types";
 
 // Save a class (create or update)
 export const saveClass = async (classData: Omit<ClassData, "id"> | ClassData): Promise<ClassData | null> => {
@@ -32,7 +32,7 @@ export const saveClass = async (classData: Omit<ClassData, "id"> | ClassData): P
         id: newClassId,
         name: classData.name,
         description: classData.description || "",
-        school_id: classData.school_id,
+        school_id: classData.school_id || "",
         teacher_id: classData.teacher_id,
         students: classData.students || [],
         is_public: classData.is_public !== false,
@@ -77,7 +77,7 @@ export const saveClass = async (classData: Omit<ClassData, "id"> | ClassData): P
           id: newClassId,
           name: classData.name,
           description: classData.description || "",
-          school_id: classData.school_id,
+          school_id: classData.school_id || "",
           teacher_id: classData.teacher_id,
           students: classData.students || [],
           is_public: classData.is_public !== false,
@@ -124,7 +124,7 @@ export const deleteClass = async (classId: string): Promise<boolean> => {
     const savedClasses = localStorage.getItem("classes");
     if (savedClasses) {
       const parsedClasses = JSON.parse(savedClasses);
-      const updatedClasses = parsedClasses.filter((cls: Class) => cls.id !== classId);
+      const updatedClasses = parsedClasses.filter((cls: ClassData) => cls.id !== classId);
       localStorage.setItem("classes", JSON.stringify(updatedClasses));
     }
     
@@ -137,7 +137,7 @@ export const deleteClass = async (classId: string): Promise<boolean> => {
       const savedClasses = localStorage.getItem("classes");
       if (savedClasses) {
         const parsedClasses = JSON.parse(savedClasses);
-        const updatedClasses = parsedClasses.filter((cls: Class) => cls.id !== classId);
+        const updatedClasses = parsedClasses.filter((cls: ClassData) => cls.id !== classId);
         localStorage.setItem("classes", JSON.stringify(updatedClasses));
         
         toast({
@@ -173,7 +173,7 @@ export const getClassById = async (classId: string): Promise<ClassData | null> =
         id: data.id,
         name: data.name,
         description: data.description || "",
-        school_id: data.school_id,
+        school_id: data.school_id || "",
         teacher_id: data.teacher_id,
         students: data.students || [],
         is_public: data.is_public !== false,
@@ -188,7 +188,7 @@ export const getClassById = async (classId: string): Promise<ClassData | null> =
     const savedClasses = localStorage.getItem("classes");
     if (savedClasses) {
       const parsedClasses = JSON.parse(savedClasses);
-      const foundClass = parsedClasses.find((cls: Class) => cls.id === classId);
+      const foundClass = parsedClasses.find((cls: ClassData) => cls.id === classId);
       if (foundClass) return foundClass;
     }
     
@@ -201,7 +201,7 @@ export const getClassById = async (classId: string): Promise<ClassData | null> =
       const savedClasses = localStorage.getItem("classes");
       if (savedClasses) {
         const parsedClasses = JSON.parse(savedClasses);
-        const foundClass = parsedClasses.find((cls: Class) => cls.id === classId);
+        const foundClass = parsedClasses.find((cls: ClassData) => cls.id === classId);
         if (foundClass) return foundClass;
       }
     } catch (localError) {
@@ -232,7 +232,7 @@ export const getClassesBySchoolId = async (schoolId: string): Promise<ClassData[
       id: item.id,
       name: item.name,
       description: item.description || "",
-      school_id: item.school_id,
+      school_id: item.school_id || "",
       teacher_id: item.teacher_id,
       students: item.students || [],
       is_public: item.is_public !== false,
