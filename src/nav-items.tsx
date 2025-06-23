@@ -3,16 +3,14 @@ import { HomeIcon, Users, BookOpen, Trophy, MessageSquare, Settings } from "luci
 import Index from "./pages/Index.jsx";
 import StudentDashboard from "./pages/StudentDashboard";
 import TeacherDashboard from "./pages/TeacherDashboard";
-import StudentLoginPage from "./pages/StudentLoginPage";
-import TeacherLoginPage from "./pages/TeacherLoginPage";
-import TeacherSignupPage from "./pages/TeacherSignupPage";
-import StudentSignupPage from "./pages/StudentSignupPage";
+import StudentLogin from "./pages/StudentLogin";
+import TeacherLogin from "./pages/TeacherLogin";
+import TeacherSignUp from "./pages/TeacherSignUp";
 import ClassDetailsPage from "./pages/ClassDetailsPage";
 import StudentDetailPage from "./pages/StudentDetailPage";
 import StudentProfilePage from "./pages/StudentProfilePage";
 import StudentRankingsPage from "./pages/StudentRankingsPage";
-import TeacherMessagesPage from "./pages/TeacherMessagesPage";
-import StudentMessagesPage from "./pages/StudentMessagesPage";
+import Messages from "./pages/Messages";
 import AdminDashboard from "./pages/AdminDashboard";
 
 export const navItems = [
@@ -38,25 +36,19 @@ export const navItems = [
     title: "Student Login",
     to: "/student-login",
     icon: <Users className="h-4 w-4" />,
-    page: <StudentLoginPage />,
+    page: <StudentLogin />,
   },
   {
     title: "Teacher Login",
     to: "/teacher-login", 
     icon: <Users className="h-4 w-4" />,
-    page: <TeacherLoginPage />,
+    page: <TeacherLogin />,
   },
   {
     title: "Teacher Signup",
     to: "/teacher-signup",
     icon: <Users className="h-4 w-4" />,
-    page: <TeacherSignupPage />,
-  },
-  {
-    title: "Student Signup",
-    to: "/student-signup",
-    icon: <Users className="h-4 w-4" />,
-    page: <StudentSignupPage />,
+    page: <TeacherSignUp />,
   },
   {
     title: "Class Details",
@@ -83,16 +75,16 @@ export const navItems = [
     page: <StudentRankingsPage />,
   },
   {
-    title: "Teacher Messages",
+    title: "Messages",
     to: "/teacher/messages",
     icon: <MessageSquare className="h-4 w-4" />,
-    page: <TeacherMessagesPage />,
+    page: <Messages />,
   },
   {
     title: "Student Messages",
     to: "/student/messages",
     icon: <MessageSquare className="h-4 w-4" />,
-    page: <StudentMessagesPage />,
+    page: <Messages />,
   },
   {
     title: "Admin Dashboard",
