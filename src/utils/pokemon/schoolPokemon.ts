@@ -70,6 +70,7 @@ export const getSchoolPokemonPool = async (schoolId: string): Promise<SchoolPool
         image_url: item.pokemon_catalog.image,
         type_1: item.pokemon_catalog.type,
         rarity: item.pokemon_catalog.rarity,
+        price: item.pokemon_catalog.price || 15,
       };
       if (item.pokemon_catalog.power_stats) {
         pokemon.power_stats = item.pokemon_catalog.power_stats;
