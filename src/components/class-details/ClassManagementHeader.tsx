@@ -133,10 +133,7 @@ const ClassManagementHeader: React.FC<ClassManagementHeaderProps> = ({
                   Add Assistant
                 </Button>
 
-                <Button variant="outline" size="sm" onClick={onManagePokemon} className="flex items-center gap-1">
-                  <Award className="h-4 w-4" />
-                  Manage Pokémon
-                </Button>
+                
 
                 <Button variant="outline" size="sm" onClick={onViewSchoolPool} className="flex items-center gap-1">
                   <Eye className="h-4 w-4" />
