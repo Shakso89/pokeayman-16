@@ -4,25 +4,32 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Coins, Package, Trophy, Sparkles } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
+
 interface StudentDashboardButtonsProps {
   coins: number;
   studentId: string;
   onMysteryBallClick: () => void;
   onCollectionClick: () => void;
   onShopClick: () => void;
+  onHomeworkClick?: () => void;
 }
+
 const StudentDashboardButtons: React.FC<StudentDashboardButtonsProps> = ({
   coins,
   onMysteryBallClick,
   onCollectionClick,
-  onShopClick
+  onShopClick,
+  onHomeworkClick
 }) => {
-  const {
-    t
-  } = useTranslation();
-  return <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
+  const { t } = useTranslation();
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 md:gap-6">
       {/* Homework Button */}
-      <Card className="bg-gradient-to-br from-red-400 to-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105">
+      <Card 
+        className="bg-gradient-to-br from-red-400 to-red-600 text-white shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 cursor-pointer"
+        onClick={onHomeworkClick}
+      >
         <CardContent className="p-4 md:p-6">
           <div className="flex flex-col items-center text-center space-y-3">
             <div className="w-16 h-16 md:w-20 md:h-20 bg-white/20 rounded-full flex items-center justify-center">
@@ -80,6 +87,8 @@ const StudentDashboardButtons: React.FC<StudentDashboardButtonsProps> = ({
           </div>
         </CardContent>
       </Card>
-    </div>;
+    </div>
+  );
 };
+
 export default StudentDashboardButtons;

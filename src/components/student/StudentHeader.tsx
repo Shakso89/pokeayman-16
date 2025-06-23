@@ -1,44 +1,125 @@
-import React from "react";
+
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Coins, MessageSquare, Sword } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-import NotificationBadge from "../NotificationBadge";
+import { Badge } from "@/components/ui/badge";
+import { Coins, Trophy, Users, Eye } from "lucide-react";
+import { useTranslation } from "@/hooks/useTranslation";
+import { supabase } from "@/integrations/supabase/client";
+
 interface StudentHeaderProps {
   studentName: string;
   coins: number;
   activeBattles: any[];
   onOpenSchoolPool: () => void;
 }
+
+interface ClassInfo {
+  id: string;
+  name: string;
+}
+
 const StudentHeader: React.FC<StudentHeaderProps> = ({
   studentName,
   coins,
   activeBattles,
   onOpenSchoolPool
 }) => {
-  const navigate = useNavigate();
-  return <Card className="mb-6 border-4 border-yellow-400 shadow-lg bg-gradient-to-r from-blue-400 to-purple-400 text-white rounded-xl">
-      <CardContent className="p-6">
-        <div className="flex justify-between items-start mb-4">
-          <h2 className="text-3xl font-bold">Hi {studentName}!</h2>
-          <NotificationBadge />
-        </div>
-        <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-          <Button onClick={onOpenSchoolPool} className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold text-lg px-6 py-3 rounded-full shadow-md border-2 border-yellow-300 flex items-center gap-2 transform hover:scale-105 transition-all">
-            <Coins className="h-6 w-6" />
-            <span className="font-bold">{coins} Coins</span>
-          </Button>
-          
-          <div className="flex gap-3">
-            {activeBattles.length > 0 && <Button className="bg-red-500 hover:bg-red-600 text-white font-bold text-lg px-6 py-3 rounded-full shadow-md border-2 border-red-300 flex items-center gap-2 transform hover:scale-105 transition-all" onClick={() => navigate("/student/battles")}>
-                <Sword className="h-6 w-6" />
-                Battles ({activeBattles.length})
-              </Button>}
+  const { t } = useTranslation();
+  const [classInfo, setClassInfo] = useState<ClassInfo[]>([]);
+  const studentId = localStorage.getItem("studentId");
+
+  useEffect(() => {
+    if (studentId) {
+      loadClassInfo();
+    }
+  }, [studentId]);
+
+  const loadClassInfo = async () => {
+    try {
+      // First try to get class info from student_profiles
+      const { data: profileData } = await supabase
+        .from("student_profiles")
+        .select("class_id")
+        .eq("user_id", studentId)
+        .single();
+
+      if (profileData?.class_id) {
+        // Get class names from the classes table
+        const { data: classData } = await supabase
+          .from("classes")
+          .select("id, name")
+          .eq("id", profileData.class_id);
+
+        if (classData && classData.length > 0) {
+          setClassInfo(classData);
+          return;
+        }
+      }
+
+      // Fallback: try to get from students table
+      const { data: studentData } = await supabase
+        .from("students")
+        .select("class_id")
+        .eq("id", studentId)
+        .single();
+
+      if (studentData?.class_id) {
+        const { data: classData } = await supabase
+          .from("classes")
+          .select("id, name")
+          .eq("id", studentData.class_id);
+
+        if (classData && classData.length > 0) {
+          setClassInfo(classData);
+        }
+      }
+    } catch (error) {
+      console.error("Error loading class info:", error);
+    }
+  };
+
+  return (
+    <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0 shadow-lg">
+      <CardContent className="p-4 md:p-6">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
+          <div className="flex-1">
+            <h1 className="text-2xl md:text-3xl font-bold mb-2">
+              {t("hi")} {studentName}!
+            </h1>
             
-            
+            <div className="flex flex-wrap items-center gap-2 md:gap-3">
+              <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold flex items-center gap-1">
+                <Coins className="h-4 w-4" />
+                {coins} {t("coins")}
+              </Badge>
+              
+              {classInfo.length > 0 && (
+                <Badge className="bg-green-500 hover:bg-green-600 text-white font-bold">
+                  📚 {classInfo[0].name}
+                </Badge>
+              )}
+              
+              {activeBattles.length > 0 && (
+                <Badge className="bg-red-500 hover:bg-red-600 text-white font-bold animate-pulse">
+                  ⚔️ {activeBattles.length} Active Battle{activeBattles.length > 1 ? 's' : ''}
+                </Badge>
+              )}
+            </div>
           </div>
+
+          <Button
+            onClick={onOpenSchoolPool}
+            variant="secondary"
+            className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm flex items-center gap-2"
+          >
+            <Eye className="h-4 w-4" />
+            {t("school-pool")}
+          </Button>
         </div>
       </CardContent>
-    </Card>;
+    </Card>
+  );
 };
+
 export default StudentHeader;

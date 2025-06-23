@@ -125,6 +125,10 @@ const StudentDashboard: React.FC = () => {
     refreshData();
   };
 
+  const handleHomeworkClick = () => {
+    setActiveTab("my-classes");
+  };
+
   if (!isLoggedIn || userType !== "student") {
     return <Navigate to="/student-login" />;
   }
@@ -185,6 +189,7 @@ const StudentDashboard: React.FC = () => {
                 onMysteryBallClick={handleMysteryBallClick}
                 onCollectionClick={handleCollectionClick}
                 onShopClick={handleShopClick}
+                onHomeworkClick={handleHomeworkClick}
               />
             </TabsContent>
 

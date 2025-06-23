@@ -9,6 +9,7 @@ import TeacherSignUp from "./pages/TeacherSignUp";
 import ClassDetailsPage from "./pages/ClassDetailsPage";
 import StudentDetailPage from "./pages/StudentDetailPage";
 import StudentProfilePage from "./pages/StudentProfilePage";
+import TeacherProfilePage from "./pages/TeacherProfilePage";
 import StudentRankingsPage from "./pages/StudentRankingsPage";
 import Messages from "./pages/Messages";
 import AdminDashboard from "./pages/AdminDashboard";
@@ -67,6 +68,18 @@ export const navItems = [
     to: "/student-profile/:studentId",
     icon: <Users className="h-4 w-4" />,
     page: <StudentProfilePage />,
+  },
+  {
+    title: "Teacher Profile",
+    to: "/teacher-profile/:teacherId",
+    icon: <Users className="h-4 w-4" />,
+    page: <TeacherProfilePage />,
+  },
+  {
+    title: "Teacher Profile Self",
+    to: "/teacher-profile",
+    icon: <Users className="h-4 w-4" />,
+    page: <TeacherProfilePage />,
   },
   {
     title: "Student Rankings",

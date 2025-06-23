@@ -1,86 +1,66 @@
 
 import React from "react";
 import { Button } from "@/components/ui/button";
-import { Coins, MessageSquare, UserPlus, Settings } from "lucide-react";
-import { useTranslation } from "@/hooks/useTranslation";
 import { useNavigate } from "react-router-dom";
+import { User, MessageCircle, UserPlus } from "lucide-react";
 
 interface ProfileActionsProps {
   isOwnProfile: boolean;
-  isTeacherView: boolean;
-  studentId?: string;
-  onGiveCoins?: () => void;
-  onSendMessage?: () => void;
-  onOpenSettings?: () => void;
+  studentId: string;
+  studentName: string;
 }
 
 const ProfileActions: React.FC<ProfileActionsProps> = ({
   isOwnProfile,
-  isTeacherView,
   studentId,
-  onGiveCoins,
-  onSendMessage,
-  onOpenSettings
+  studentName
 }) => {
-  const { t } = useTranslation();
   const navigate = useNavigate();
 
   const handleViewProfile = () => {
-    if (studentId && studentId !== 'undefined') {
-      console.log("ProfileActions - Navigating to student profile with ID:", studentId);
-      try {
-        // Navigate to student profile page using the correct route
-        navigate(`/student-profile/${studentId}`);
-      } catch (error) {
-        console.error("Navigation error:", error);
-        // Fallback navigation
-        window.location.href = `/student-profile/${studentId}`;
-      }
-    } else {
-      console.error("ProfileActions - Invalid student ID:", studentId);
-    }
+    console.log("Navigating to profile for student:", studentId);
+    navigate(`/student-profile/${studentId}`);
+  };
+
+  const handleSendMessage = () => {
+    navigate("/student/messages", {
+      state: { recipientId: studentId, recipientName: studentName }
+    });
   };
 
   return (
-    <div className="flex flex-col gap-2">
-      {isTeacherView && onGiveCoins && (
-        <Button className="w-full flex items-center" onClick={onGiveCoins}>
-          <Coins className="h-4 w-4 mr-2" />
-          {t("give-coins")}
-        </Button>
-      )}
+    <div className="flex gap-2">
+      <Button 
+        onClick={handleViewProfile}
+        variant="outline" 
+        size="sm"
+        className="flex items-center gap-1"
+      >
+        <User className="h-4 w-4" />
+        View Profile
+      </Button>
       
       {!isOwnProfile && (
         <>
           <Button 
-            variant="secondary" 
-            className="w-full flex items-center" 
-            onClick={onSendMessage}
+            onClick={handleSendMessage}
+            variant="outline" 
+            size="sm"
+            className="flex items-center gap-1"
           >
-            <MessageSquare className="h-4 w-4 mr-2" />
-            {t("send-message")}
+            <MessageCircle className="h-4 w-4" />
+            Message
           </Button>
+          
           <Button 
             variant="outline" 
-            className="w-full flex items-center"
-            onClick={handleViewProfile}
-            disabled={!studentId || studentId === 'undefined'}
+            size="sm"
+            className="flex items-center gap-1"
           >
-            <UserPlus className="h-4 w-4 mr-2" />
-            {t("view-profile")}
+            <UserPlus className="h-4 w-4" />
+            Add Friend
           </Button>
         </>
-      )}
-      
-      {isOwnProfile && (
-        <Button
-          variant="outline"
-          className="w-full flex items-center"
-          onClick={onOpenSettings}
-        >
-          <Settings className="h-4 w-4 mr-2" />
-          {t("settings")}
-        </Button>
       )}
     </div>
   );
