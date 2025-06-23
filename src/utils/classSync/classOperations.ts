@@ -6,14 +6,14 @@ import { formatClassData } from "./mappers";
 
 // Helper to convert ClassData to DatabaseClassData
 const toDbFormat = (classData: Partial<ClassData>): Partial<DatabaseClassData> => {
-  const { teacherId, schoolId, createdAt, updatedAt, isPublic, assistants, ...restData } = classData;
+  const { teacher_id, school_id, created_at, updated_at, is_public, assistants, ...restData } = classData;
   return {
     ...restData,
-    teacher_id: teacherId,
-    school_id: schoolId,
-    created_at: createdAt,
-    updated_at: updatedAt,
-    is_public: isPublic,
+    teacher_id: teacher_id,
+    school_id: school_id,
+    created_at: created_at,
+    updated_at: updated_at,
+    is_public: is_public,
     assistants: assistants,
   };
 };
@@ -24,21 +24,21 @@ export const createClass = async (classData: Omit<ClassData, "id">): Promise<Cla
     console.log("Creating class with data:", classData);
     
     // Validate required fields
-    if (!classData.name || !classData.schoolId) {
-      console.error("Missing required fields:", { name: classData.name, schoolId: classData.schoolId });
+    if (!classData.name || !classData.school_id) {
+      console.error("Missing required fields:", { name: classData.name, school_id: classData.school_id });
       throw new Error("Class name and school ID are required");
     }
     
     const insertData = {
       name: classData.name.trim(),
       description: classData.description?.trim() || "",
-      teacher_id: classData.teacherId || null,
-      school_id: classData.schoolId,
-      is_public: classData.isPublic !== false,
+      teacher_id: classData.teacher_id || null,
+      school_id: classData.school_id,
+      is_public: classData.is_public !== false,
       students: classData.students || [],
       likes: classData.likes || [],
       assistants: classData.assistants || [],
-      created_at: classData.createdAt || new Date().toISOString(),
+      created_at: classData.created_at || new Date().toISOString(),
     };
     
     console.log("Inserting class data:", insertData);

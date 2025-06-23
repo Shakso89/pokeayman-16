@@ -53,7 +53,7 @@ export const useClassDetails = () => {
         setClassData(cls);
         
         const currentTeacherId = localStorage.getItem("teacherId") || "";
-        if (cls.teacherId === currentTeacherId) {
+        if (cls.teacher_id === currentTeacherId) {
           setUserPermissionLevel("owner");
         } else if (isAdmin) {
           setUserPermissionLevel("owner");
@@ -119,7 +119,7 @@ export const useClassDetails = () => {
         setClassData(foundClass);
         
         const currentTeacherId = localStorage.getItem("teacherId") || "";
-        if (foundClass.teacherId === currentTeacherId) {
+        if (foundClass.teacher_id === currentTeacherId) {
           setUserPermissionLevel("owner");
         } else if (isAdmin) {
           setUserPermissionLevel("owner");
@@ -195,7 +195,7 @@ export const useClassDetails = () => {
     const currentTeacherId = localStorage.getItem("teacherId") || "";
     return (classData && 
       (classData.teacher_id === currentTeacherId || 
-       classData.teacherId === currentTeacherId)
+       classData.teacher_id === currentTeacherId)
     ) || isAdmin;
   };
 

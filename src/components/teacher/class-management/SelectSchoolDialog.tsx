@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -34,7 +35,7 @@ export function SelectSchoolDialog({
   const [newClass, setNewClass] = useState({
     name: "",
     description: "",
-    schoolId: ""
+    school_id: ""
   });
   const [creatingClass, setCreatingClass] = useState(false);
   
@@ -46,7 +47,7 @@ export function SelectSchoolDialog({
       setNewClass({
         name: "",
         description: "",
-        schoolId: ""
+        school_id: ""
       });
     }
   }, [open]);
@@ -93,7 +94,7 @@ export function SelectSchoolDialog({
       return;
     }
     
-    if (!newClass.schoolId) {
+    if (!newClass.school_id) {
       toast({
         title: t("error"),
         description: t("select-school-first"),
@@ -111,14 +112,14 @@ export function SelectSchoolDialog({
       const classData = {
         name: newClass.name.trim(),
         description: newClass.description.trim() || "",
-        schoolId: newClass.schoolId,
-        teacherId: teacherId, // Always assign the creator as the teacher
+        school_id: newClass.school_id,
+        teacher_id: teacherId, // Always assign the creator as the teacher
         students: [],
-        isPublic: true,
+        is_public: true,
         likes: [],
         assistants: [],
-        createdAt: currentTime,
-        updatedAt: currentTime
+        created_at: currentTime,
+        updated_at: currentTime
       };
       
       console.log("Creating class with data:", classData);
@@ -132,7 +133,7 @@ export function SelectSchoolDialog({
         });
         
         // Reset form
-        setNewClass({ name: "", description: "", schoolId: "" });
+        setNewClass({ name: "", description: "", school_id: "" });
         
         // Close dialog
         onOpenChange(false);
@@ -193,9 +194,9 @@ export function SelectSchoolDialog({
                 filteredSchools.map(school => (
                   <Button
                     key={school.id}
-                    variant={newClass.schoolId === school.id ? "default" : "outline"}
+                    variant={newClass.school_id === school.id ? "default" : "outline"}
                     className="w-full justify-start text-left flex items-center"
-                    onClick={() => setNewClass({...newClass, schoolId: school.id})}
+                    onClick={() => setNewClass({...newClass, school_id: school.id})}
                   >
                     <School className="mr-2 h-4 w-4 flex-shrink-0" />
                     <span>{school.name}</span>
@@ -234,7 +235,7 @@ export function SelectSchoolDialog({
           <Button 
             className="w-full bg-pokemon-red hover:bg-red-600 text-white" 
             onClick={handleCreateClass}
-            disabled={!newClass.name || !newClass.schoolId || creatingClass}
+            disabled={!newClass.name || !newClass.school_id || creatingClass}
           >
             {creatingClass ? (
               <>

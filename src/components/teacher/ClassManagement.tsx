@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card";
@@ -115,14 +114,14 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       const formattedClasses = data.map(dbClass => ({
         id: dbClass.id || '',
         name: dbClass.name || '',
-        schoolId: dbClass.school_id || '',
-        teacherId: dbClass.teacher_id || null,
+        school_id: dbClass.school_id || '',
+        teacher_id: dbClass.teacher_id || null,
         students: dbClass.students || [],
-        isPublic: dbClass.is_public !== false,
+        is_public: dbClass.is_public !== false,
         description: dbClass.description || '',
         likes: dbClass.likes || [],
-        createdAt: dbClass.created_at,
-        updatedAt: dbClass.updated_at || dbClass.created_at, // Add updatedAt field with fallback
+        created_at: dbClass.created_at,
+        updated_at: dbClass.updated_at || dbClass.created_at, // Add updated_at field with fallback
         assistants: dbClass.assistants || []
       }));
       
@@ -132,7 +131,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       // Fallback to localStorage
       const allClasses = JSON.parse(localStorage.getItem("classes") || "[]");
       const filteredClasses = allClasses.filter((cls: any) => 
-        cls.schoolId === schoolId
+        cls.school_id === schoolId
       );
       setClasses(filteredClasses);
     } finally {
@@ -157,14 +156,14 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
       const classData = {
         name: newClass.name,
         description: newClass.description || "",
-        schoolId,
-        teacherId: isAdmin ? null : teacherId, // Set teacherId to null for admin users
+        school_id: schoolId,
+        teacher_id: isAdmin ? null : teacherId, // Set teacher_id to null for admin users
         students: [],
-        isPublic: true,
+        is_public: true,
         likes: [],
         assistants: [],
-        createdAt: currentTime,
-        updatedAt: currentTime
+        created_at: currentTime,
+        updated_at: currentTime
       };
       
       console.log("Creating class with data:", classData);
@@ -205,7 +204,7 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
   
   // Check if the current teacher is the creator of a class
   const isClassCreator = (classData: ClassData) => {
-    return classData.teacherId === teacherId;
+    return classData.teacher_id === teacherId;
   };
   
   const handleDeleteClass = async (classId: string) => {
@@ -514,11 +513,11 @@ const ClassManagement: React.FC<ClassManagementProps> = ({
                     {cls.students?.length || 0} {t("students")}
                   </span>
                   {/* Show teacher ID if available */}
-                  {cls.teacherId && (
+                  {cls.teacher_id && (
                     <div className="flex items-center mt-2 text-xs text-gray-500">
                       <User className="h-4 w-4 mr-1" />
                       <span>
-                        {t("creator")}: {cls.teacherId === teacherId ? t("you") : cls.teacherId.substring(0, 8) + '...'}
+                        {t("creator")}: {cls.teacher_id === teacherId ? t("you") : cls.teacher_id.substring(0, 8) + '...'}
                       </span>
                     </div>
                   )}

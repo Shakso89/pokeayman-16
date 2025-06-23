@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
@@ -77,7 +76,7 @@ export const useClassDetailsWithId = (classId?: string) => {
       const currentTeacherId = localStorage.getItem("teacherId") || "";
       
       // Check permissions
-      if ((fetchedClass.teacherId === currentTeacherId) || 
+      if ((fetchedClass.teacher_id === currentTeacherId) || 
           ((fetchedClass as any).teacher_id === currentTeacherId)) {
         setUserPermissionLevel("owner");
       } else if (fetchedClass.assistants && fetchedClass.assistants.includes(currentTeacherId)) {
@@ -148,7 +147,7 @@ export const useClassDetailsWithId = (classId?: string) => {
         setClassData(foundClass);
         
         const currentTeacherId = localStorage.getItem("teacherId") || "";
-        if (foundClass.teacherId === currentTeacherId) {
+        if (foundClass.teacher_id === currentTeacherId) {
           setUserPermissionLevel("owner");
         } else if (foundClass.assistants && foundClass.assistants.includes(currentTeacherId)) {
           setUserPermissionLevel("teacher");
@@ -238,7 +237,7 @@ export const useClassDetailsWithId = (classId?: string) => {
     const currentTeacherId = localStorage.getItem("teacherId") || "";
     return (classData && 
       ((classData as any).teacher_id === currentTeacherId || 
-       classData.teacherId === currentTeacherId)
+       classData.teacher_id === currentTeacherId)
     ) || isAdmin;
   };
 
