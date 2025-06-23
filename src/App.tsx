@@ -19,9 +19,6 @@ const App = () => (
           {navItems.map(({ to, page }) => (
             <Route key={to} path={to} element={page} />
           ))}
-          {/* Add student profile routes */}
-          <Route path="/student/profile/:studentId" element={navItems.find(item => item.to === "/student/profile/:studentId")?.page} />
-          <Route path="/student/rankings" element={navItems.find(item => item.to === "/student/rankings")?.page} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>

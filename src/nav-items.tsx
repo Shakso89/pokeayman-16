@@ -64,7 +64,7 @@ export const navItems = [
   },
   {
     title: "Student Profile",
-    to: "/student/profile/:studentId",
+    to: "/student-profile/:studentId",
     icon: <Users className="h-4 w-4" />,
     page: <StudentProfilePage />,
   },

@@ -29,7 +29,7 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
     if (studentId && studentId !== 'undefined') {
       console.log("ProfileActions - Navigating to student profile with ID:", studentId);
       try {
-        // Navigate to student profile page
+        // Navigate to student profile page using the correct route
         navigate(`/student-profile/${studentId}`);
       } catch (error) {
         console.error("Navigation error:", error);
