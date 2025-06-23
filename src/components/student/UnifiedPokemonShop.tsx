@@ -41,7 +41,9 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
   const fetchPokemonPool = async () => {
     setLoading(true);
     try {
+      console.log("🛒 Fetching complete Pokemon pool for shop...");
       const poolData = await getPokemonPool();
+      console.log(`🛒 Fetched ${poolData.length} Pokemon for shop`);
       setPokemon(poolData);
     } catch (error) {
       console.error("Error fetching Pokémon pool:", error);
@@ -158,7 +160,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2">
               🏪 Pokémon Shop
-              <Badge variant="outline">Global Collection</Badge>
+              <Badge variant="outline">{pokemon.length} Available</Badge>
             </span>
             <div className="flex items-center gap-2 text-lg">
               <Coins className="h-5 w-5 text-yellow-500" />
@@ -168,7 +170,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-600">
-            Purchase Pokémon using your coins! Each Pokémon can be bought multiple times.
+            Purchase any Pokémon using your coins! Each Pokémon can be bought multiple times from our collection of {pokemon.length} unique Pokémon.
           </p>
         </CardContent>
       </Card>
@@ -195,6 +197,9 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
                 <TabsTrigger value="legendary">Legendary</TabsTrigger>
               </TabsList>
             </Tabs>
+          </div>
+          <div className="mt-2 text-sm text-gray-500">
+            Showing {filteredPokemon.length} of {pokemon.length} Pokémon
           </div>
         </CardContent>
       </Card>
@@ -263,7 +268,11 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
       {filteredPokemon.length === 0 && (
         <Card>
           <CardContent className="text-center py-8">
-            <p className="text-gray-500">No Pokémon found matching your criteria.</p>
+            <p className="text-gray-500">
+              {searchTerm || selectedRarity !== "all" 
+                ? "No Pokémon found matching your criteria." 
+                : "No Pokémon available in the shop."}
+            </p>
           </CardContent>
         </Card>
       )}

@@ -56,7 +56,7 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
       // Simulate spinning animation
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Open mystery ball
+      // Open mystery ball with updated 50% Pokemon chance
       const mysteryResult = await openMysteryBall(studentId);
 
       if (mysteryResult.success) {
@@ -140,7 +140,7 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
         <CardHeader>
           <CardTitle className="text-center">🎯 Mystery Ball</CardTitle>
           <p className="text-center text-sm text-gray-600">
-            One free attempt per day! Win Pokémon or coins!
+            One free attempt per day! Win Pokémon or coins from 300 unique Pokémon!
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -214,8 +214,8 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
 
           {/* Instructions */}
           <div className="text-xs text-gray-500 text-center space-y-1">
-            <p>• 70% chance to win a Pokémon</p>
-            <p>• 30% chance to win 5-20 coins</p>
+            <p>• 50% chance to win a Pokémon from 300 unique Pokémon</p>
+            <p>• 50% chance to win 5-20 coins</p>
             <p>• Free attempt resets daily</p>
           </div>
         </CardContent>

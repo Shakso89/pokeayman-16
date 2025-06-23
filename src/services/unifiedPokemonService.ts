@@ -259,13 +259,13 @@ export const getPokemonPoolStats = async () => {
   }
 };
 
-// Mystery ball functionality with unified pool
+// Mystery ball functionality with unified pool - UPDATED TO 50% POKEMON CHANCE
 export const openMysteryBall = async (studentId: string): Promise<{ success: boolean; pokemon?: PokemonFromPool; coins?: number }> => {
   try {
     console.log("🎲 Opening mystery ball for student:", studentId);
 
-    // 70% chance for Pokémon, 30% chance for coins
-    const isPokemon = Math.random() < 0.7;
+    // 50% chance for Pokémon, 50% chance for coins (UPDATED FROM 70/30)
+    const isPokemon = Math.random() < 0.5;
 
     if (isPokemon) {
       // Get a random Pokémon with rarity weighting

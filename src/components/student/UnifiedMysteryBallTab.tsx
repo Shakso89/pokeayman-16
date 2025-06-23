@@ -57,9 +57,9 @@ const UnifiedMysteryBallTab: React.FC<UnifiedMysteryBallTabProps> = ({
               <div className="space-y-2">
                 <h4 className="font-semibold text-green-700">🎁 What You Can Win:</h4>
                 <ul className="space-y-1 text-gray-600">
-                  <li>• 70% chance: Random Pokémon</li>
-                  <li>• 30% chance: 5-20 coins</li>
-                  <li>• All from the unified 300 Pokémon pool</li>
+                  <li>• 50% chance: Random Pokémon from 300 unique Pokémon</li>
+                  <li>• 50% chance: 5-20 coins</li>
+                  <li>• All from the unified global pool</li>
                 </ul>
               </div>
               <div className="space-y-2">
@@ -73,8 +73,7 @@ const UnifiedMysteryBallTab: React.FC<UnifiedMysteryBallTabProps> = ({
             </div>
             <div className="p-3 bg-yellow-50 rounded-lg">
               <p className="text-yellow-800 text-xs">
-                <strong>Tip:</strong> The mystery ball draws from the same global pool of 300 unique Pokémon 
-                that all students and teachers share. You can collect the same Pokémon multiple times!
+                <strong>Updated:</strong> The mystery ball now has a 50% chance for Pokémon and draws from the complete global pool of 300 unique Pokémon that all students and teachers share. You can collect the same Pokémon multiple times!
               </p>
             </div>
           </div>
