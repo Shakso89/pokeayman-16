@@ -65,9 +65,7 @@ const SchoolCard: React.FC<SchoolCardProps> = ({
             View Rankings
           </Button>
           
-          <Button onClick={() => onSelectSchool(school.id)} className="w-full bg-blue-600 hover:bg-blue-700 text-white" size="sm">
-            Create Class
-          </Button>
+          <Button onClick={() => onSelectSchool(school.id)} className="w-full bg-blue-600 hover:bg-blue-700 text-white" size="sm">Classes</Button>
           
           
         </div>
