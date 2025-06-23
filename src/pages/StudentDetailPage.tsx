@@ -47,38 +47,93 @@ const StudentDetailPage: React.FC = () => {
     try {
       setLoading(true);
 
-      // Get student basic info
-      const { data: studentData, error: studentError } = await supabase
+      // Get student basic info - try both students and student_profiles tables
+      let studentData;
+      let studentError;
+      
+      // First try the students table
+      const { data: studentsData, error: studentsError } = await supabase
         .from("students")
         .select("*")
         .eq("id", studentId)
-        .single();
+        .maybeSingle();
 
-      if (studentError) throw studentError;
+      if (studentsData) {
+        studentData = studentsData;
+      } else {
+        // Try student_profiles table with user_id
+        const { data: profilesData, error: profilesError } = await supabase
+          .from("student_profiles")
+          .select("*")
+          .eq("user_id", studentId)
+          .maybeSingle();
+        
+        if (profilesData) {
+          studentData = {
+            id: profilesData.user_id,
+            username: profilesData.username,
+            display_name: profilesData.display_name,
+            coins: profilesData.coins,
+            profile_photo: profilesData.avatar_url,
+            created_at: profilesData.created_at
+          };
+        } else {
+          studentError = profilesError || studentsError;
+        }
+      }
 
-      // Get student's Pokemon
+      if (studentError || !studentData) {
+        throw studentError || new Error("Student not found");
+      }
+
+      // Get student's Pokemon using the unified collection system
       const { data: pokemonData, error: pokemonError } = await supabase
-        .from("pokemon_collections")
+        .from("student_pokemon_collection")
         .select(`
           *,
-          pokemon_catalog!inner(*)
+          pokemon_pool!inner(*)
         `)
         .eq("student_id", studentId);
 
-      if (pokemonError) throw pokemonError;
-
-      // Transform Pokemon data
-      const transformedPokemon: Pokemon[] = (pokemonData || []).map((item: any) => ({
-        id: item.pokemon_catalog.id.toString(),
-        name: item.pokemon_catalog.name,
-        image_url: item.pokemon_catalog.image || '',
-        type_1: item.pokemon_catalog.type || 'normal',
-        type_2: undefined,
-        rarity: item.pokemon_catalog.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
-        price: 15,
-        description: undefined,
-        power_stats: item.pokemon_catalog.power_stats
-      }));
+      if (pokemonError) {
+        console.warn("Error fetching Pokemon from student_pokemon_collection:", pokemonError);
+        // Fallback to old system
+        const { data: fallbackData } = await supabase
+          .from("pokemon_collections")
+          .select(`
+            *,
+            pokemon_catalog!inner(*)
+          `)
+          .eq("student_id", studentId);
+        
+        // Transform fallback data
+        const transformedFallback: Pokemon[] = (fallbackData || []).map((item: any) => ({
+          id: item.pokemon_catalog.id.toString(),
+          name: item.pokemon_catalog.name,
+          image_url: item.pokemon_catalog.image || '',
+          type_1: item.pokemon_catalog.type || 'normal',
+          type_2: undefined,
+          rarity: item.pokemon_catalog.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
+          price: 15,
+          description: undefined,
+          power_stats: item.pokemon_catalog.power_stats
+        }));
+        setPokemon(transformedFallback);
+      } else {
+        // Transform new Pokemon data
+        const transformedPokemon: Pokemon[] = (pokemonData || []).map((item: any) => ({
+          id: item.pokemon_pool.id.toString(),
+          name: item.pokemon_pool.name,
+          image_url: item.pokemon_pool.image_url || '',
+          type_1: item.pokemon_pool.type_1 || 'normal',
+          type_2: item.pokemon_pool.type_2,
+          rarity: item.pokemon_pool.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
+          price: item.pokemon_pool.price || 15,
+          description: item.pokemon_pool.description,
+          power_stats: item.pokemon_pool.power_stats
+        }));
+        setPokemon(transformedPokemon);
+      }
 
       // Get homework submissions count
       const { data: homeworkData } = await supabase
@@ -92,13 +147,12 @@ const StudentDetailPage: React.FC = () => {
         displayName: studentData.display_name || studentData.username,
         avatar: studentData.profile_photo,
         coins: studentData.coins || 0,
-        pokemonCount: transformedPokemon.length,
+        pokemonCount: pokemon.length,
         homeworkCount: homeworkData?.length || 0,
         lastActive: studentData.last_login || studentData.created_at,
         createdAt: studentData.created_at
       });
 
-      setPokemon(transformedPokemon);
     } catch (error) {
       console.error("Error fetching student details:", error);
     } finally {

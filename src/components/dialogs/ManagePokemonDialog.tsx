@@ -37,6 +37,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
   const [selectedPokemonId, setSelectedPokemonId] = useState<string>('');
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
+  const [activeTab, setActiveTab] = useState<'award' | 'remove'>('award');
   const { toast } = useToast();
 
   useEffect(() => {
@@ -123,7 +124,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     try {
       const result = await awardPokemonToStudent(
         studentId,
-        parseInt(selectedPokemonId), // Convert string to number
+        parseInt(selectedPokemonId),
         `Awarded by teacher to ${studentName}`
       );
 
@@ -172,7 +173,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     try {
       const success = await removePokemonFromStudent(
         pokemon.collectionId,
-        parseInt(pokemon.id), // Convert string to number
+        parseInt(pokemon.id),
         `Removed by teacher from ${studentName}`
       );
 
@@ -227,74 +228,82 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
         </DialogHeader>
 
         <div className="flex-1 overflow-y-auto space-y-6">
-          {/* Award New Pokemon Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">Award New Pokémon</h3>
-            
-            <div className="flex gap-4">
-              <div className="flex-1">
-                <Label htmlFor="search">Search Available Pokémon</Label>
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    id="search"
-                    placeholder="Search Pokémon..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
-              </div>
-              
-              <div className="flex-1">
-                <Label htmlFor="pokemon-select">Select Pokémon</Label>
-                <Select value={selectedPokemonId} onValueChange={setSelectedPokemonId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Choose a Pokémon" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredAvailablePokemons.map((pokemon) => (
-                      <SelectItem key={pokemon.id} value={pokemon.id.toString()}>
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline" className={getRarityColor(pokemon.rarity || 'common')}>
-                            {pokemon.rarity}
-                          </Badge>
-                          {pokemon.name}
-                        </div>
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              
-              <div className="flex items-end">
-                <Button 
-                  onClick={handleAwardPokemon} 
-                  disabled={loading || !selectedPokemonId}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Award
-                </Button>
-              </div>
-            </div>
+          {/* Action Tabs */}
+          <div className="flex gap-2">
+            <Button
+              variant={activeTab === "award" ? "default" : "outline"}
+              onClick={() => setActiveTab("award")}
+              className="flex items-center gap-2"
+            >
+              <Plus className="h-4 w-4" />
+              Award Pokémon
+            </Button>
+            <Button
+              variant={activeTab === "remove" ? "default" : "outline"}
+              onClick={() => setActiveTab("remove")}
+              className="flex items-center gap-2"
+            >
+              <Trash2 className="h-4 w-4" />
+              Remove Pokémon
+            </Button>
           </div>
 
-          {/* Current Collection Section */}
-          <div className="space-y-4">
-            <h3 className="text-lg font-semibold">
-              Current Collection ({studentPokemons.length} Pokémon)
-            </h3>
-            
-            {studentPokemons.length === 0 ? (
-              <div className="text-center py-8 text-gray-500">
-                {studentName} doesn't have any Pokémon yet.
+          {activeTab === "award" && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Award New Pokémon</h3>
+              
+              <div className="flex gap-4">
+                <div className="flex-1">
+                  <Label htmlFor="search">Search Available Pokémon</Label>
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      id="search"
+                      placeholder="Search Pokémon..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-8"
+                    />
+                  </div>
+                </div>
+                
+                <div className="flex-1">
+                  <Label htmlFor="pokemon-select">Select Pokémon</Label>
+                  <Select value={selectedPokemonId} onValueChange={setSelectedPokemonId}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Choose a Pokémon" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {filteredAvailablePokemons.map((pokemon) => (
+                        <SelectItem key={pokemon.id} value={pokemon.id.toString()}>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline" className={getRarityColor(pokemon.rarity || 'common')}>
+                              {pokemon.rarity}
+                            </Badge>
+                            {pokemon.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                <div className="flex items-end">
+                  <Button 
+                    onClick={handleAwardPokemon} 
+                    disabled={loading || !selectedPokemonId}
+                  >
+                    <Plus className="h-4 w-4 mr-2" />
+                    Award
+                  </Button>
+                </div>
               </div>
-            ) : (
-              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-                {studentPokemons.map((pokemon) => (
-                  <Card key={`${pokemon.id}-${pokemon.collectionId}`} className="relative">
+
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 max-h-96 overflow-y-auto">
+                {filteredAvailablePokemons.map((pokemon) => (
+                  <Card key={pokemon.id} className="relative">
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between mb-2">
+                      <div className="flex flex-col items-center space-y-2">
                         <Badge 
                           variant="outline" 
                           className={`${getRarityColor(pokemon.rarity || 'common')} text-white`}
@@ -304,11 +313,10 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
                         <Button
                           variant="ghost"
                           size="sm"
-                          onClick={() => handleRemovePokemon(pokemon)}
-                          disabled={loading}
-                          className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          onClick={() => setSelectedPokemonId(pokemon.id.toString())}
+                          className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Plus className="h-4 w-4" />
                         </Button>
                       </div>
                       
@@ -333,8 +341,66 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
                   </Card>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
+
+          {activeTab === "remove" && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">
+                Current Collection ({studentPokemons.length} Pokémon)
+              </h3>
+              
+              {studentPokemons.length === 0 ? (
+                <div className="text-center py-8 text-gray-500">
+                  {studentName} doesn't have any Pokémon yet.
+                </div>
+              ) : (
+                <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+                  {studentPokemons.map((pokemon) => (
+                    <Card key={`${pokemon.id}-${pokemon.collectionId}`} className="relative">
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <Badge 
+                            variant="outline" 
+                            className={`${getRarityColor(pokemon.rarity || 'common')} text-white`}
+                          >
+                            {pokemon.rarity}
+                          </Badge>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleRemovePokemon(pokemon)}
+                            disabled={loading}
+                            className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </div>
+                        
+                        {pokemon.image_url && (
+                          <div className="mb-2">
+                            <img 
+                              src={pokemon.image_url} 
+                              alt={pokemon.name}
+                              className="w-full h-32 object-contain bg-gray-50 rounded"
+                              onError={(e) => {
+                                e.currentTarget.src = "/placeholder.svg";
+                              }}
+                            />
+                          </div>
+                        )}
+                        
+                        <h4 className="font-medium text-sm">{pokemon.name}</h4>
+                        <p className="text-xs text-gray-500 capitalize">
+                          {pokemon.type_1}{pokemon.type_2 ? `/${pokemon.type_2}` : ''}
+                        </p>
+                      </CardContent>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </DialogContent>
     </Dialog>
