@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { Pokemon, StudentPokemonCollection } from "@/types/pokemon";
 
@@ -184,7 +185,7 @@ export const purchasePokemonFromShop = async (
   }
 };
 
-export const assignRandomPokemonToStudent = async (studentId: string): Promise<{ success: boolean; pokemon?: Pokemon; error?: string }> => {
+export const assignRandomPokemonToStudent = async (studentId: string): Promise<{ success: boolean; pokemon?: Pokemon; isDuplicate?: boolean; error?: string }> => {
   try {
     // Get all Pokemon from the pool
     const allPokemon = await getUnifiedPokemonPool();
@@ -201,6 +202,7 @@ export const assignRandomPokemonToStudent = async (studentId: string): Promise<{
     return {
       success: result.success,
       pokemon: result.pokemon,
+      isDuplicate: result.isDuplicate,
       error: result.error
     };
 

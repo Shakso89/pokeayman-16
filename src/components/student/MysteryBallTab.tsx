@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -159,7 +160,7 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
         const pokemonResult = await assignRandomPokemonToStudent(actualStudentId);
         
         if (pokemonResult.success && pokemonResult.pokemon) {
-          if (pokemonResult.pokemon.isDuplicate) {
+          if (pokemonResult.isDuplicate) {
             const coinAmount = 5; 
             resultOutcome = {
               type: 'coins',
@@ -290,7 +291,7 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
               </div>
             )}
 
-            {pokemonPoolCount === 0 && !poolLoading && (
+            {pokemonPoolCount === 0 && !isLoading && (
               <div className="p-2 md:p-3 bg-orange-50 rounded-lg border border-orange-200">
                 <p className="text-orange-700 text-xs md:text-sm">
                   No Pokémon available in the pool. Contact your teacher to add Pokémon to the school pool.
