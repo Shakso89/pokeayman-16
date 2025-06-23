@@ -24,11 +24,23 @@ interface StudentProfileData {
   isOwnProfile: boolean;
 }
 
+// Interface for the component's Pokemon display needs
+interface DisplayPokemon {
+  id: number;
+  name: string;
+  image: string;
+  type?: string;
+  rarity?: string;
+  power?: number;
+  level?: number;
+  powerStats?: Record<string, number>;
+}
+
 const StudentProfilePage: React.FC = () => {
   const { studentId } = useParams<{ studentId: string }>();
   const navigate = useNavigate();
   const [student, setStudent] = useState<StudentProfileData | null>(null);
-  const [pokemon, setPokemon] = useState<Pokemon[]>([]);
+  const [pokemon, setPokemon] = useState<DisplayPokemon[]>([]);
   const [loading, setLoading] = useState(true);
   const currentUserId = localStorage.getItem("studentId");
   const userType = localStorage.getItem("userType") as "teacher" | "student";
@@ -65,17 +77,14 @@ const StudentProfilePage: React.FC = () => {
 
       if (pokemonError) throw pokemonError;
 
-      // Transform Pokemon data to match the Pokemon interface
-      const transformedPokemon: Pokemon[] = (pokemonData || []).map((item: any) => ({
-        id: item.pokemon_catalog.id.toString(),
+      // Transform Pokemon data to match the display interface
+      const transformedPokemon: DisplayPokemon[] = (pokemonData || []).map((item: any) => ({
+        id: parseInt(item.pokemon_catalog.id.toString()),
         name: item.pokemon_catalog.name,
-        image_url: item.pokemon_catalog.image || '',
-        type_1: item.pokemon_catalog.type || 'normal',
-        type_2: undefined,
-        rarity: item.pokemon_catalog.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
-        price: 15,
-        description: undefined,
-        power_stats: item.pokemon_catalog.power_stats
+        image: item.pokemon_catalog.image || '',
+        type: item.pokemon_catalog.type || 'normal',
+        rarity: item.pokemon_catalog.rarity,
+        powerStats: item.pokemon_catalog.power_stats
       }));
 
       // Get homework submissions count
