@@ -49,7 +49,7 @@ const SchoolCard: React.FC<SchoolCardProps> = ({
         </div>
 
         <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" size="sm" onClick={() => onViewSchoolPool(school.id)} className="flex items-center gap-1 text-xs">
+          <Button variant="outline" size="sm" onClick={() => onViewSchoolPool(school.id)} className="flex items-center gap-1 text-xs font-normal px-[94px] py-0 mx-0 text-slate-100 bg-cyan-800 hover:bg-cyan-700">
             <Eye className="h-3 w-3" />
             Pool
           </Button>
