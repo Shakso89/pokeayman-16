@@ -6,6 +6,7 @@ import './index.css'
 import { AuthProvider } from './contexts/AuthContext'
 import { LanguageProvider } from './hooks/useTranslation'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Toaster } from './components/ui/toaster'
 
 const queryClient = new QueryClient()
 
@@ -15,6 +16,7 @@ createRoot(document.getElementById("root")!).render(
       <LanguageProvider>
         <AuthProvider>
           <App />
+          <Toaster />
         </AuthProvider>
       </LanguageProvider>
     </QueryClientProvider>

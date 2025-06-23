@@ -1,4 +1,8 @@
+
 import { supabase } from "@/integrations/supabase/client";
+
+// Track active notifications to prevent duplicates
+const activeNotifications = new Set<string>();
 
 export const createNotification = async (
   recipientId: string,
@@ -8,6 +12,18 @@ export const createNotification = async (
   link?: string
 ) => {
   try {
+    // Create unique key for this notification
+    const notificationKey = `${recipientId}-${title}-${message}-${type}`;
+    
+    // Check if notification is already being processed
+    if (activeNotifications.has(notificationKey)) {
+      console.log('🔕 Duplicate notification prevented (already processing):', { title, message });
+      return;
+    }
+    
+    // Add to active set
+    activeNotifications.add(notificationKey);
+    
     // Check for recent duplicate notifications (within last 5 minutes)
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
     
@@ -22,7 +38,8 @@ export const createNotification = async (
       .limit(1);
 
     if (existingNotifications && existingNotifications.length > 0) {
-      console.log('🔕 Duplicate notification prevented:', { title, message });
+      console.log('🔕 Duplicate notification prevented (recent duplicate found):', { title, message });
+      activeNotifications.delete(notificationKey);
       return;
     }
 
@@ -40,6 +57,10 @@ export const createNotification = async (
     console.log('✅ Notification created successfully:', title);
   } catch (error) {
     console.error('❌ Error creating notification:', error);
+  } finally {
+    // Always remove from active set after processing
+    const notificationKey = `${recipientId}-${title}-${message}-${type}`;
+    activeNotifications.delete(notificationKey);
   }
 };
 

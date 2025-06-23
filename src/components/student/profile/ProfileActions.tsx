@@ -29,12 +29,12 @@ const ProfileActions: React.FC<ProfileActionsProps> = ({
     if (studentId && studentId !== 'undefined') {
       console.log("ProfileActions - Navigating to student profile with ID:", studentId);
       try {
-        // Use the correct route format that matches App.tsx
-        navigate(`/teacher/student/${studentId}`);
+        // Navigate to student profile page
+        navigate(`/student-profile/${studentId}`);
       } catch (error) {
         console.error("Navigation error:", error);
         // Fallback navigation
-        window.location.href = `/teacher/student/${studentId}`;
+        window.location.href = `/student-profile/${studentId}`;
       }
     } else {
       console.error("ProfileActions - Invalid student ID:", studentId);
