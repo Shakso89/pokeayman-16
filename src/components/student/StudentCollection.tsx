@@ -21,17 +21,8 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
       try {
         console.log("🔍 Fetching Pokemon for student:", studentId);
         
-        // Get student to find the correct user_id
-        const { data: student } = await supabase
-          .from("students")
-          .select("user_id")
-          .or(`id.eq.${studentId},user_id.eq.${studentId}`)
-          .maybeSingle();
-
-        const lookupId = student?.user_id || studentId;
-        console.log("🔍 Using lookup ID:", lookupId);
-
-        const { data: pokemonData, error } = await supabase
+        // First try to get by direct student ID
+        let { data: pokemonData, error } = await supabase
           .from('pokemon_collections')
           .select(`
             id,
@@ -46,9 +37,47 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
               power_stats
             )
           `)
-          .eq('student_id', lookupId);
+          .eq('student_id', studentId);
 
-        if (error) {
+        // If no results, try to find student and use their user_id
+        if (!pokemonData || pokemonData.length === 0) {
+          console.log("🔍 No results with direct ID, trying to find student record...");
+          
+          const { data: student } = await supabase
+            .from("students")
+            .select("user_id")
+            .or(`id.eq.${studentId},user_id.eq.${studentId}`)
+            .maybeSingle();
+
+          if (student?.user_id) {
+            console.log("🔍 Found student user_id:", student.user_id);
+            
+            const { data: pokemonDataByUserId, error: userIdError } = await supabase
+              .from('pokemon_collections')
+              .select(`
+                id,
+                pokemon_id,
+                obtained_at,
+                pokemon_catalog (
+                  id,
+                  name,
+                  image,
+                  type,
+                  rarity,
+                  power_stats
+                )
+              `)
+              .eq('student_id', student.user_id);
+
+            if (userIdError) {
+              console.error("❌ Error fetching Pokemon by user_id:", userIdError);
+            } else {
+              pokemonData = pokemonDataByUserId;
+            }
+          }
+        }
+
+        if (error && !pokemonData) {
           console.error("❌ Error fetching Pokemon:", error);
           return;
         }

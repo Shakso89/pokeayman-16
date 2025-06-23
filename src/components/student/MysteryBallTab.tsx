@@ -62,9 +62,14 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
     });
     
     initializeStudent();
-    checkDailyAttemptStatus();
     loadSchoolPokemonPool();
   }, [studentId, schoolId]);
+
+  useEffect(() => {
+    if (actualStudentId) {
+      checkDailyAttemptStatus();
+    }
+  }, [actualStudentId]);
 
   const initializeStudent = async () => {
     try {
@@ -72,7 +77,7 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
       const student = await getOrCreateStudentProfile(studentId);
       if (student) {
         console.log("✅ Student profile initialized:", student.id);
-        setActualStudentId(student.id);
+        setActualStudentId(student.user_id || student.id);
       }
     } catch (error) {
       console.error("❌ Error initializing student:", error);
@@ -271,75 +276,75 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
   const currentPokemonCount = actualSchoolPokemons.length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 md:space-y-6 px-2 md:px-0">
       <Card className="bg-gradient-to-br from-purple-50 to-pink-50 border-purple-200 shadow-lg">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-purple-800">
-            <Gift className="h-7 w-7" />
+        <CardHeader className="pb-3 md:pb-4">
+          <CardTitle className="flex items-center gap-2 text-purple-800 text-lg md:text-xl">
+            <Gift className="h-6 w-6 md:h-7 md:w-7" />
             {t("mystery-ball-title")}
           </CardTitle>
-          <p className="text-purple-600">
+          <p className="text-purple-600 text-sm md:text-base">
             {t("mystery-ball-description")}
           </p>
         </CardHeader>
-        <CardContent>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-white rounded-lg border">
+        <CardContent className="pt-0">
+          <div className="space-y-3 md:space-y-4">
+            <div className="flex items-center justify-between p-2 md:p-3 bg-white rounded-lg border">
               <div className="flex items-center gap-2">
-                <Sparkles className="h-5 w-5 text-purple-500" />
-                <span className="font-medium">Available Pokémon Pool</span>
+                <Sparkles className="h-4 w-4 md:h-5 md:w-5 text-purple-500" />
+                <span className="font-medium text-sm md:text-base">Available Pokémon Pool</span>
               </div>
-              <Badge variant="outline" className="text-purple-600 border-purple-200">
+              <Badge variant="outline" className="text-purple-600 border-purple-200 text-xs md:text-sm">
                 {poolLoading ? "Loading..." : `${currentPokemonCount} Pokémon`}
               </Badge>
             </div>
 
-            <div className="flex items-center justify-between p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+            <div className="flex items-center justify-between p-2 md:p-3 bg-yellow-50 rounded-lg border border-yellow-200">
               <div className="flex items-center gap-2">
-                <Coins className="h-5 w-5 text-yellow-500" />
-                <span className="font-medium text-yellow-700">Your Coins</span>
+                <Coins className="h-4 w-4 md:h-5 md:w-5 text-yellow-500" />
+                <span className="font-medium text-yellow-700 text-sm md:text-base">Your Coins</span>
               </div>
-              <Badge className="bg-yellow-500 text-white">
+              <Badge className="bg-yellow-500 text-white text-xs md:text-sm">
                 {coins} Coins
               </Badge>
             </div>
             
-            <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <div className="flex items-center justify-between p-2 md:p-3 bg-blue-50 rounded-lg border border-blue-200">
               <div className="flex items-center gap-2">
-                <PackageX className="h-5 w-5 text-blue-500" />
-                <span className="font-medium text-blue-700">Session Opens</span>
+                <PackageX className="h-4 w-4 md:h-5 md:w-5 text-blue-500" />
+                <span className="font-medium text-blue-700 text-sm md:text-base">Session Opens</span>
               </div>
-              <Badge className={`${atMaxSessionOpens ? 'bg-red-500' : 'bg-blue-500'} text-white`}>
+              <Badge className={`${atMaxSessionOpens ? 'bg-red-500' : 'bg-blue-500'} text-white text-xs md:text-sm`}>
                 {sessionOpensCount} / {MAX_SESSION_OPENS}
               </Badge>
             </div>
 
             {dailyAttemptAvailable && !atMaxSessionOpens && (
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200 animate-fade-in">
+              <div className="flex items-center justify-between p-2 md:p-3 bg-green-50 rounded-lg border border-green-200 animate-fade-in">
                 <div className="flex items-center gap-2">
-                  <Clock className="h-5 w-5 text-green-500" />
-                  <span className="font-medium text-green-700">Daily Free Attempt</span>
+                  <Clock className="h-4 w-4 md:h-5 md:w-5 text-green-500" />
+                  <span className="font-medium text-green-700 text-sm md:text-base">Daily Free Attempt</span>
                 </div>
-                <Badge className="bg-green-500 text-white">
+                <Badge className="bg-green-500 text-white text-xs md:text-sm">
                   Available
                 </Badge>
               </div>
             )}
 
             {currentPokemonCount === 0 && !poolLoading && (
-              <div className="p-3 bg-orange-50 rounded-lg border border-orange-200">
-                <p className="text-orange-700 text-sm">
+              <div className="p-2 md:p-3 bg-orange-50 rounded-lg border border-orange-200">
+                <p className="text-orange-700 text-xs md:text-sm">
                   No Pokémon available in the school pool. Contact your teacher to add Pokémon to the school pool.
                 </p>
               </div>
             )}
 
-            <div className="space-y-3 pt-2">
+            <div className="space-y-2 md:space-y-3 pt-2">
               {canOpenFree && !atMaxSessionOpens && (
                 <Button
                   onClick={() => handleOpenMysteryBall(true)}
                   disabled={isOpening || poolLoading || currentPokemonCount === 0}
-                  className="w-full bg-green-600 hover:bg-green-700 text-white shadow-md"
+                  className="w-full bg-green-600 hover:bg-green-700 text-white shadow-md text-sm md:text-base"
                   size="lg"
                 >
                   {isOpening ? (
@@ -349,7 +354,7 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
                     </div>
                   ) : (
                     <div className="flex items-center gap-2">
-                      <Gift className="h-5 w-5" />
+                      <Gift className="h-4 w-4 md:h-5 md:w-5" />
                       Open Free Mystery Ball
                     </div>
                   )}
@@ -359,7 +364,7 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
               <Button
                 onClick={() => handleOpenMysteryBall(false)}
                 disabled={isOpening || poolLoading || !canOpenWithCoins || atMaxSessionOpens || currentPokemonCount === 0}
-                className="w-full bg-purple-600 hover:bg-purple-700 text-white shadow-md"
+                className="w-full bg-purple-600 hover:bg-purple-700 text-white shadow-md text-sm md:text-base"
                 size="lg"
                 variant={!canOpenWithCoins || atMaxSessionOpens || currentPokemonCount === 0 ? "outline" : "default"}
               >
@@ -370,7 +375,7 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
                   </div>
                 ) : (
                   <div className="flex items-center gap-2">
-                    <Coins className="h-5 w-5" />
+                    <Coins className="h-4 w-4 md:h-5 md:w-5" />
                     Open Mystery Ball ({MYSTERY_BALL_COST} coins)
                   </div>
                 )}
@@ -378,12 +383,12 @@ const MysteryBallTab: React.FC<MysteryBallTabProps> = ({
             </div>
 
             {(!canOpenWithCoins && !canOpenFree && !atMaxSessionOpens && currentPokemonCount > 0) && (
-              <p className="text-sm text-gray-500 text-center pt-2">
+              <p className="text-xs md:text-sm text-gray-500 text-center pt-2">
                 You need {MYSTERY_BALL_COST} coins or wait for daily free attempt
               </p>
             )}
             {atMaxSessionOpens && (
-              <p className="text-sm text-red-500 text-center font-semibold pt-2">
+              <p className="text-xs md:text-sm text-red-500 text-center font-semibold pt-2">
                 Maximum session opens reached!
               </p>
             )}

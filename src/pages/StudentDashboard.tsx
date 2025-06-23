@@ -146,7 +146,7 @@ const StudentDashboard: React.FC = () => {
     <div className="min-h-screen bg-transparent">
       <NavBar userType="student" userName={profile?.display_name || studentName} userAvatar={avatar} />
       
-      <div className="container mx-auto py-8 px-4">
+      <div className="container mx-auto py-4 md:py-8 px-2 md:px-4">
         <StudentHeader 
           studentName={profile?.display_name || studentName} 
           coins={coins} 
@@ -156,29 +156,32 @@ const StudentDashboard: React.FC = () => {
         
         <div className="flex justify-end mt-4">
           <Link to="/student/rankings">
-            <Button variant="outline" className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-lg rounded-full shadow-md border-2 border-orange-300 flex items-center gap-2 transform hover:scale-105 transition-all">
-              <Trophy className="h-5 w-5" />
+            <Button variant="outline" className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm md:text-lg rounded-full shadow-md border-2 border-orange-300 flex items-center gap-2 transform hover:scale-105 transition-all">
+              <Trophy className="h-4 w-4 md:h-5 md:w-5" />
               {t("rankings")}
             </Button>
           </Link>
         </div>
         
-        <div className="mt-6 relative">
-          <Tabs defaultValue="home" className="w-full mt-8" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-4 mb-8 p-2 rounded-full bg-transparent">
-              <TabsTrigger value="home" className="data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all">
+        <div className="mt-4 md:mt-6 relative">
+          <Tabs defaultValue="home" className="w-full mt-4 md:mt-8" value={activeTab} onValueChange={setActiveTab}>
+            <TabsList className="grid w-full grid-cols-4 mb-4 md:mb-8 p-1 md:p-2 rounded-full bg-transparent">
+              <TabsTrigger value="home" className="data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-full px-2 md:px-6 py-2 md:py-3 font-bold text-xs md:text-lg transition-all">
                 {t("home-tab")}
               </TabsTrigger>
-              <TabsTrigger value="my-classes" className="data-[state=active]:bg-red-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all flex items-center justify-center gap-2">
-                <Book className="h-5 w-5" />
-                Homework
+              <TabsTrigger value="my-classes" className="data-[state=active]:bg-red-500 data-[state=active]:text-white rounded-full px-2 md:px-6 py-2 md:py-3 font-bold text-xs md:text-lg transition-all flex items-center justify-center gap-1 md:gap-2">
+                <Book className="h-3 w-3 md:h-5 md:w-5" />
+                <span className="hidden sm:inline">Homework</span>
+                <span className="sm:hidden">HW</span>
               </TabsTrigger>
-              <TabsTrigger value="my-pokemons" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all">
-                {t("my-pokemon-tab")}
+              <TabsTrigger value="my-pokemons" className="data-[state=active]:bg-blue-500 data-[state=active]:text-white rounded-full px-2 md:px-6 py-2 md:py-3 font-bold text-xs md:text-lg transition-all">
+                <span className="hidden sm:inline">{t("my-pokemon-tab")}</span>
+                <span className="sm:hidden">Pokémon</span>
               </TabsTrigger>
-              <TabsTrigger value="mystery-ball" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-full px-6 py-3 font-bold text-lg transition-all flex items-center justify-center gap-2">
-                <Package className="h-5 w-5" />
-                {t("mystery-ball-tab")}
+              <TabsTrigger value="mystery-ball" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-full px-2 md:px-6 py-2 md:py-3 font-bold text-xs md:text-lg transition-all flex items-center justify-center gap-1 md:gap-2">
+                <Package className="h-3 w-3 md:h-5 md:w-5" />
+                <span className="hidden sm:inline">{t("mystery-ball-tab")}</span>
+                <span className="sm:hidden">Ball</span>
               </TabsTrigger>
             </TabsList>
             

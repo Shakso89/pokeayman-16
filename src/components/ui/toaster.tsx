@@ -5,10 +5,11 @@ import { Toaster as SonnerToaster } from "sonner";
 export function Toaster() {
   return (
     <SonnerToaster 
-      position="top-right"
+      position="top-center"
       expand={false}
       richColors
       closeButton
+      limit={1}
       toastOptions={{
         className: "sonner-toast",
         style: {
