@@ -93,7 +93,7 @@ const ClassManagementHeader: React.FC<ClassManagementHeaderProps> = ({
               {classData.name}
             </h1>
             
-            {classData.description && <p className="text-gray-600 mb-3">{classData.description}</p>}
+            {classData.description && <p className="text-gray-600 mb-3 mx-px my-0 py-[8px] px-0 text-left">{classData.description}</p>}
 
             <div className="flex flex-wrap gap-2 mb-3">
               <Badge variant="secondary" className="flex items-center gap-1">
@@ -113,12 +113,12 @@ const ClassManagementHeader: React.FC<ClassManagementHeaderProps> = ({
 
           <div className="flex flex-wrap gap-2">
             {isClassCreator && <>
-                <Button variant="outline" size="sm" onClick={() => setIsAssignStarOpen(true)} className="flex items-center gap-1">
+                <Button variant="outline" size="sm" onClick={() => setIsAssignStarOpen(true)} className="flex items-center gap-1 mx-0 my-0">
                   <Star className="h-4 w-4" />
                   Assign Star
                 </Button>
 
-                <Button variant="outline" size="sm" onClick={handleRefreshTopStudents} disabled={isRefreshing} className="flex items-center gap-1">
+                <Button variant="outline" size="sm" onClick={handleRefreshTopStudents} disabled={isRefreshing} className="flex items-center gap-1 mx-0">
                   <RefreshCw className={`h-4 w-4 ${isRefreshing ? 'animate-spin' : ''}`} />
                   Refresh Rankings
                 </Button>
@@ -146,7 +146,7 @@ const ClassManagementHeader: React.FC<ClassManagementHeaderProps> = ({
                 </Button>
               </>}
 
-            <Button onClick={onSwitchToHomework} className="flex items-center gap-1">
+            <Button onClick={onSwitchToHomework} className="flex items-center gap-1 my-0 mx-[88px] px-[240px] bg-teal-700 hover:bg-teal-600">
               <BookOpen className="h-4 w-4" />
               Homework
               {pendingSubmissions > 0 && <Badge variant="secondary" className="ml-1">
