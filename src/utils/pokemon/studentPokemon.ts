@@ -21,14 +21,32 @@ export const getStudentPokemons = async (studentId: string): Promise<any[]> => {
       return [];
     }
 
-    // Get student to find the correct user_id
-    const { data: student } = await supabase
-      .from("students")
-      .select("user_id")
-      .or(`id.eq.${studentId},user_id.eq.${studentId}`)
-      .single();
+    // Determine the correct user_id to use for Pokemon lookup
+    let actualUserId = studentId;
+    
+    // First check if this is already a user_id by looking in student_profiles
+    const { data: profileCheck } = await supabase
+      .from('student_profiles')
+      .select('user_id')
+      .eq('user_id', studentId)
+      .maybeSingle();
+    
+    if (profileCheck) {
+      actualUserId = profileCheck.user_id;
+    } else {
+      // Check if studentId is an ID from students table, get the user_id
+      const { data: studentData } = await supabase
+        .from('students')
+        .select('user_id')
+        .eq('id', studentId)
+        .maybeSingle();
+      
+      if (studentData?.user_id) {
+        actualUserId = studentData.user_id;
+      }
+    }
 
-    const lookupId = student?.user_id || studentId;
+    console.log("🔍 Using actual user_id for lookup:", actualUserId);
 
     const { data, error } = await supabase
       .from('pokemon_collections')
@@ -45,7 +63,7 @@ export const getStudentPokemons = async (studentId: string): Promise<any[]> => {
           power_stats
         )
       `)
-      .eq('student_id', lookupId);
+      .eq('student_id', actualUserId);
 
     if (error) {
       console.error("❌ Error fetching student's Pokémon:", error);
@@ -106,7 +124,7 @@ export const awardPokemonToStudent = async (
       return { success: false, error };
     }
 
-    // Get or create student profile
+    // Get or create student profile to ensure consistency
     console.log("🔍 Getting or creating student profile...");
     const student = await getOrCreateStudentProfile(userId, classId, schoolId);
     if (!student) {
@@ -115,11 +133,10 @@ export const awardPokemonToStudent = async (
       return { success: false, error };
     }
 
-    console.log("✅ Student profile found/created:", {
-      studentId: student.id,
-      userId: student.user_id,
-      username: student.username
-    });
+    // Use the user_id from the profile (which should be the same as the input userId)
+    const targetUserId = student.user_id;
+
+    console.log("✅ Using target user_id for Pokemon award:", targetUserId);
 
     // Get the Pokemon from the catalog
     console.log("🔍 Fetching Pokemon from catalog...");
@@ -142,14 +159,14 @@ export const awardPokemonToStudent = async (
     const { data: existingPokemon } = await supabase
       .from('pokemon_collections')
       .select('id')
-      .eq('student_id', student.user_id)
+      .eq('student_id', targetUserId)
       .eq('pokemon_id', pokemonId)
       .limit(1);
 
     if (existingPokemon && existingPokemon.length > 0) {
       console.log("⚠️ Student already has this Pokemon, awarding coins instead");
       const coinResult = await awardCoinsToStudentEnhanced(
-        userId, 
+        targetUserId, 
         3, 
         "Duplicate Pokemon compensation", 
         "duplicate_pokemon",
@@ -172,7 +189,7 @@ export const awardPokemonToStudent = async (
     const { data: result, error: insertError } = await supabase
       .from('pokemon_collections')
       .insert({
-        student_id: student.user_id,
+        student_id: targetUserId,
         pokemon_id: pokemonId,
         school_id: schoolId || student.school_id
       })
@@ -207,7 +224,7 @@ export const awardPokemonToStudent = async (
 
       const studentName = student.display_name || student.username || "Unknown Student";
 
-      await createPokemonAwardNotification(student.user_id, pokemon.name, reason);
+      await createPokemonAwardNotification(targetUserId, pokemon.name, reason);
       await createAdminNotification({
         teacherName: teacherDisplayName,
         studentName,

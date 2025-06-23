@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { Pokemon } from '@/types/pokemon';
 import { 
@@ -66,7 +67,8 @@ export const useStudentData = (studentId: string, userId?: string, username?: st
 
         setProfile(fullProfile);
 
-        // Load Pokemon collection
+        // Load Pokemon collection using the correct user_id
+        console.log("🔍 Loading Pokemon for user_id:", studentProfile.user_id);
         const pokemonCollection = await getStudentPokemonCollection(studentProfile.user_id);
         if (pokemonCollection) {
           setPokemons(pokemonCollection.map(p => ({
