@@ -36,6 +36,7 @@ export interface Student {
   username: string;
   displayName: string;
   teacherId: string;
+  schoolId: string;
   createdAt: string;
   updatedAt?: string;
   avatar?: string;
@@ -56,6 +57,17 @@ export interface Class {
   name: string;
   teacherId: string;
   createdAt: string;
+}
+
+export interface ClassData {
+  id: string;
+  name: string;
+  description?: string;
+  teacher_id: string;
+  school_id?: string;
+  star_student_id?: string;
+  top_student_id?: string;
+  created_at: string;
 }
 
 export interface Homework {
@@ -116,4 +128,11 @@ export interface FriendRequest {
 
 export interface StudentCollectionPokemon extends Pokemon {
   collectionId: string;
+}
+
+export interface StudentWithRank extends Student {
+  rank: number;
+  pokemonCount: number;
+  coins: number;
+  totalScore: number;
 }

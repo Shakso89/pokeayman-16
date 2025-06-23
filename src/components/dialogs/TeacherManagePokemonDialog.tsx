@@ -137,7 +137,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
     setLoading(true);
     try {
       const result = await assignSpecificPokemonToStudent(
-        pokemon.id,
+        parseInt(pokemon.id), // Convert string to number
         schoolId,
         selectedStudent.id,
         classId
@@ -281,7 +281,7 @@ const TeacherManagePokemonDialog: React.FC<TeacherManagePokemonDialogProps> = ({
               <ArrowLeft className="h-4 w-4" />
             </Button>
             <DialogTitle>
-              Manage Pokémon - {selectedStudent.display_name || selectedStudent.username}
+              Manage Pokémon - {selectedStudent?.display_name || selectedStudent?.username || "Select Student"}
             </DialogTitle>
           </div>
         </DialogHeader>

@@ -50,7 +50,22 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     try {
       const pokemons = await getStudentPokemons(studentId);
       console.log('Loaded student pokemons:', pokemons);
-      setStudentPokemons(pokemons);
+      
+      // Transform to match Pokemon interface
+      const transformedPokemons: StudentCollectionPokemon[] = pokemons.map(p => ({
+        id: p.id,
+        name: p.name,
+        image_url: p.image || '',
+        type_1: p.type || 'normal',
+        type_2: undefined,
+        rarity: p.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
+        price: 15,
+        description: undefined,
+        power_stats: p.powerStats,
+        collectionId: p.collectionId
+      }));
+      
+      setStudentPokemons(transformedPokemons);
     } catch (error) {
       console.error('Error loading student Pokemon:', error);
       toast({
@@ -108,7 +123,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     try {
       const result = await awardPokemonToStudent(
         studentId,
-        selectedPokemonId,
+        parseInt(selectedPokemonId), // Convert string to number
         `Awarded by teacher to ${studentName}`
       );
 
@@ -157,7 +172,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     try {
       const success = await removePokemonFromStudent(
         pokemon.collectionId,
-        pokemon.id,
+        parseInt(pokemon.id), // Convert string to number
         `Removed by teacher from ${studentName}`
       );
 

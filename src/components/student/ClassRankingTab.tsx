@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -31,78 +30,102 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
   const [students, setStudents] = useState<StudentWithScore[]>([]);
   const [selectedStudent, setSelectedStudent] = useState<StudentWithScore | null>(null);
   const [studentPokemons, setStudentPokemons] = useState<Pokemon[]>([]);
-  
+  const [loading, setLoading] = useState(false);
+
   const handleStudentClick = (student: StudentWithScore) => {
     navigate(`/teacher/student/${student.id}`);
   };
-  
+
   useEffect(() => {
-    if (classId) {
-      loadRankings();
-    }
-  }, [classId]);
-  
-  const loadRankings = async () => {
-    try {
-      const { data: profilesData, error: profilesError } = await supabase
-        .from('student_profiles')
-        .select('id, user_id, display_name, username, avatar_url, coins')
-        .eq('class_id', classId);
-
-      if (profilesError) throw profilesError;
-      if (!profilesData || profilesData.length === 0) {
-        setStudents([]);
-        return;
-      }
-
-      const profileUserIds = profilesData.map(p => p.user_id);
-
-      const { data: pokemonCollections, error: pokemonError } = await supabase
-        .from('pokemon_collections')
-        .select('student_id')
-        .in('student_id', profileUserIds);
-
-      if (pokemonError) throw pokemonError;
-
-      const pokemonCounts = new Map<string, number>();
-      if (pokemonCollections) {
-        pokemonCollections.forEach(p => {
-          pokemonCounts.set(p.student_id, (pokemonCounts.get(p.student_id) || 0) + 1);
-        });
-      }
-
-      const studentsWithScore = profilesData.map((p) => {
-        const pokemonCount = pokemonCounts.get(p.user_id) || 0;
-        const coins = p.coins || 0;
-        const totalScore = pokemonCount + Math.floor(coins / 10);
+    const fetchClassRanking = async () => {
+      if (!classId) return;
+      
+      setLoading(true);
+      try {
+        console.log('Fetching class ranking for class:', classId);
         
-        return {
-          id: p.user_id,
-          displayName: p.display_name || p.username,
-          username: p.username,
-          avatar: p.avatar_url || undefined,
-          pokemonCount,
-          coins,
-          totalScore,
-          rank: 0
-        };
-      });
-      
-      const sortedStudents = studentsWithScore.sort((a, b) => b.totalScore - a.totalScore);
-      
-      const rankedStudents = sortedStudents.map((student, index) => ({
-        ...student,
-        rank: index + 1
-      }));
-      
-      setStudents(rankedStudents.slice(0, 10));
-      
-    } catch (error) {
-      console.error("Error loading rankings:", error);
-      setStudents([]);
-    }
-  };
-  
+        // Get students in this class
+        const { data: studentClassData, error: studentClassError } = await supabase
+          .from('student_classes')
+          .select('student_id')
+          .eq('class_id', classId);
+
+        if (studentClassError) {
+          console.error('Error fetching student class data:', studentClassError);
+          return;
+        }
+
+        const studentIds = studentClassData?.map(sc => sc.student_id) || [];
+        
+        if (studentIds.length === 0) {
+          setStudents([]);
+          return;
+        }
+
+        // Get student data
+        const { data: studentsData, error: studentsError } = await supabase
+          .from('students')
+          .select('id, username, display_name, coins')
+          .in('id', studentIds)
+          .eq('is_active', true);
+
+        if (studentsError) {
+          console.error('Error fetching students:', studentsError);
+          return;
+        }
+
+        // Get Pokemon counts for each student
+        const studentsWithCounts = await Promise.all(
+          (studentsData || []).map(async (student) => {
+            const { data: pokemonData } = await supabase
+              .from('pokemon_collections')
+              .select('*, pokemon_catalog!inner(*)')
+              .eq('student_id', student.id);
+
+            const transformedPokemons: Pokemon[] = (pokemonData || []).map((item: any) => ({
+              id: item.pokemon_catalog.id,
+              name: item.pokemon_catalog.name,
+              image_url: item.pokemon_catalog.image || '',
+              type_1: item.pokemon_catalog.type || 'normal',
+              type_2: undefined,
+              rarity: item.pokemon_catalog.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
+              price: 15,
+              description: undefined,
+              power_stats: item.pokemon_catalog.power_stats
+            }));
+
+            return {
+              id: student.id,
+              name: student.display_name || student.username,
+              username: student.username,
+              displayName: student.display_name || student.username,
+              coins: student.coins || 0,
+              pokemonCount: transformedPokemons.length,
+              pokemons: transformedPokemons,
+              rank: 0
+            };
+          })
+        );
+
+        // Sort by Pokemon count (descending) and assign ranks
+        const sortedStudents = studentsWithCounts
+          .sort((a, b) => b.pokemonCount - a.pokemonCount)
+          .map((student, index) => ({
+            ...student,
+            rank: index + 1
+          }));
+
+        setStudents(sortedStudents);
+      } catch (error) {
+        console.error('Error fetching class ranking:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClassRanking();
+  }, [classId]);
+
   const handleStudentRowClick = async (student: StudentWithScore) => {
     setSelectedStudent(student);
     try {
@@ -129,7 +152,7 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
       setStudentPokemons([]);
     }
   };
-  
+
   const getRankingColor = (rank: number) => {
     switch (rank) {
       case 1:
@@ -142,7 +165,7 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
         return "bg-gray-200";
     }
   };
-  
+
   if (students.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center py-16 px-4">
@@ -153,7 +176,7 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
       </div>
     );
   }
-  
+
   return (
     <Card>
       <CardContent className="pt-6">

@@ -96,7 +96,7 @@ export const StudentsList = ({
       // Fetch all active students from Supabase
       const { data: studentsData, error } = await supabase
         .from("students")
-        .select("id, username, display_name, class_id")
+        .select("id, username, display_name, class_id, created_at")
         .eq('is_active', true)
         .order('display_name', { ascending: true });
       
@@ -107,10 +107,12 @@ export const StudentsList = ({
       if (studentsData) {
         studentsList = studentsData.map(student => ({
           id: student.id,
+          name: student.display_name || student.username,
           username: student.username,
           displayName: student.display_name || student.username,
           teacherId: "",
           schoolId: "",
+          createdAt: student.created_at || new Date().toISOString(),
           avatar: "",
           classId: student.class_id || null
         }));
