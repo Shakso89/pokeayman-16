@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,6 +13,7 @@ import PokemonList from "@/components/student/PokemonList";
 import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
 import RemoveCoinsDialog from "@/components/dialogs/RemoveCoinsDialog";
+import { getStudentPokemonCollection } from "@/services/unifiedPokemonService";
 
 interface StudentDetail {
   id: string;
@@ -46,6 +48,7 @@ const StudentDetailPage: React.FC = () => {
 
     try {
       setLoading(true);
+      console.log('🔍 Fetching student details for ID:', studentId);
 
       // Get student basic info - try both students and student_profiles tables
       let studentData;
@@ -60,6 +63,7 @@ const StudentDetailPage: React.FC = () => {
 
       if (studentsData) {
         studentData = studentsData;
+        console.log('✅ Found student in students table:', studentsData);
       } else {
         // Try student_profiles table with user_id
         const { data: profilesData, error: profilesError } = await supabase
@@ -77,6 +81,7 @@ const StudentDetailPage: React.FC = () => {
             profile_photo: profilesData.avatar_url,
             created_at: profilesData.created_at
           };
+          console.log('✅ Found student in student_profiles table:', profilesData);
         } else {
           studentError = profilesError || studentsError;
         }
@@ -87,53 +92,25 @@ const StudentDetailPage: React.FC = () => {
       }
 
       // Get student's Pokemon using the unified collection system
-      const { data: pokemonData, error: pokemonError } = await supabase
-        .from("student_pokemon_collection")
-        .select(`
-          *,
-          pokemon_pool!inner(*)
-        `)
-        .eq("student_id", studentId);
+      console.log('🔍 Fetching Pokemon collection...');
+      const pokemonCollections = await getStudentPokemonCollection(studentId);
+      console.log('📦 Pokemon collections found:', pokemonCollections.length);
 
-      if (pokemonError) {
-        console.warn("Error fetching Pokemon from student_pokemon_collection:", pokemonError);
-        // Fallback to old system
-        const { data: fallbackData } = await supabase
-          .from("pokemon_collections")
-          .select(`
-            *,
-            pokemon_catalog!inner(*)
-          `)
-          .eq("student_id", studentId);
-        
-        // Transform fallback data
-        const transformedFallback: Pokemon[] = (fallbackData || []).map((item: any) => ({
-          id: item.pokemon_catalog.id.toString(),
-          name: item.pokemon_catalog.name,
-          image_url: item.pokemon_catalog.image || '',
-          type_1: item.pokemon_catalog.type || 'normal',
-          type_2: undefined,
-          rarity: item.pokemon_catalog.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
-          price: 15,
-          description: undefined,
-          power_stats: item.pokemon_catalog.power_stats
-        }));
-        setPokemon(transformedFallback);
-      } else {
-        // Transform new Pokemon data
-        const transformedPokemon: Pokemon[] = (pokemonData || []).map((item: any) => ({
-          id: item.pokemon_pool.id.toString(),
-          name: item.pokemon_pool.name,
-          image_url: item.pokemon_pool.image_url || '',
-          type_1: item.pokemon_pool.type_1 || 'normal',
-          type_2: item.pokemon_pool.type_2,
-          rarity: item.pokemon_pool.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
-          price: item.pokemon_pool.price || 15,
-          description: item.pokemon_pool.description,
-          power_stats: item.pokemon_pool.power_stats
-        }));
-        setPokemon(transformedPokemon);
-      }
+      // Transform to match Pokemon interface
+      const transformedPokemon: Pokemon[] = pokemonCollections.map((collection: any) => ({
+        id: collection.pokemon?.id || collection.pokemon_id,
+        name: collection.pokemon?.name || 'Unknown Pokemon',
+        image_url: collection.pokemon?.image_url || '',
+        type_1: collection.pokemon?.type_1 || 'normal',
+        type_2: collection.pokemon?.type_2,
+        rarity: collection.pokemon?.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
+        price: collection.pokemon?.price || 15,
+        description: collection.pokemon?.description,
+        power_stats: collection.pokemon?.power_stats
+      }));
+
+      console.log('✅ Transformed Pokemon data:', transformedPokemon.length);
+      setPokemon(transformedPokemon);
 
       // Get homework submissions count
       const { data: homeworkData } = await supabase
@@ -147,14 +124,16 @@ const StudentDetailPage: React.FC = () => {
         displayName: studentData.display_name || studentData.username,
         avatar: studentData.profile_photo,
         coins: studentData.coins || 0,
-        pokemonCount: pokemon.length,
+        pokemonCount: transformedPokemon.length,
         homeworkCount: homeworkData?.length || 0,
         lastActive: studentData.last_login || studentData.created_at,
         createdAt: studentData.created_at
       });
 
+      console.log('✅ Student details loaded successfully');
+
     } catch (error) {
-      console.error("Error fetching student details:", error);
+      console.error("❌ Error fetching student details:", error);
     } finally {
       setLoading(false);
     }

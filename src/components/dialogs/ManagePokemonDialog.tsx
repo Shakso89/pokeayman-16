@@ -9,9 +9,9 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Trash2, Plus, Search } from 'lucide-react';
 import { Pokemon } from '@/types/pokemon';
-import { getStudentPokemons, awardPokemonToStudent, removePokemonFromStudent } from '@/utils/pokemon/studentPokemon';
 import { useToast } from '@/hooks/use-toast';
 import { supabase } from '@/integrations/supabase/client';
+import { awardPokemonToStudent, getStudentPokemonCollection, removePokemonFromStudent } from '@/services/unifiedPokemonService';
 
 interface StudentCollectionPokemon extends Pokemon {
   collectionId?: string;
@@ -49,26 +49,29 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
   const loadStudentPokemon = async () => {
     try {
-      const pokemons = await getStudentPokemons(studentId);
-      console.log('Loaded student pokemons:', pokemons);
+      console.log('🔍 Loading student Pokemon collection for:', studentId);
       
-      // Transform to match Pokemon interface
-      const transformedPokemons: StudentCollectionPokemon[] = pokemons.map(p => ({
-        id: p.id,
-        name: p.name,
-        image_url: p.image || '',
-        type_1: p.type || 'normal',
-        type_2: undefined,
-        rarity: p.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
-        price: 15,
-        description: undefined,
-        power_stats: p.powerStats,
-        collectionId: p.collectionId
+      const collections = await getStudentPokemonCollection(studentId);
+      console.log('📦 Student collections found:', collections.length);
+      
+      // Transform to match our interface
+      const transformedPokemons: StudentCollectionPokemon[] = collections.map(collection => ({
+        id: collection.pokemon?.id || collection.pokemon_id,
+        name: collection.pokemon?.name || 'Unknown Pokemon',
+        image_url: collection.pokemon?.image_url || '',
+        type_1: collection.pokemon?.type_1 || 'normal',
+        type_2: collection.pokemon?.type_2,
+        rarity: collection.pokemon?.rarity || 'common',
+        price: collection.pokemon?.price || 15,
+        description: collection.pokemon?.description,
+        power_stats: collection.pokemon?.power_stats,
+        collectionId: collection.id
       }));
       
+      console.log('✅ Transformed student Pokemon:', transformedPokemons.length);
       setStudentPokemons(transformedPokemons);
     } catch (error) {
-      console.error('Error loading student Pokemon:', error);
+      console.error('❌ Error loading student Pokemon:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -79,6 +82,8 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
   const loadAvailablePokemons = async () => {
     try {
+      console.log('🔍 Loading available Pokemon from unified pool...');
+      
       const { data, error } = await supabase
         .from('pokemon_pool')
         .select('*')
@@ -99,9 +104,10 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
         power_stats: item.power_stats
       }));
 
+      console.log('✅ Loaded available Pokemon:', transformedData.length);
       setAvailablePokemons(transformedData);
     } catch (error) {
-      console.error('Error loading available Pokemon:', error);
+      console.error('❌ Error loading available Pokemon:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -122,13 +128,15 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
     setLoading(true);
     try {
-      const result = await awardPokemonToStudent(
+      console.log('🎁 Awarding Pokemon:', selectedPokemonId, 'to student:', studentId);
+      
+      const success = await awardPokemonToStudent(
         studentId,
-        parseInt(selectedPokemonId),
-        `Awarded by teacher to ${studentName}`
+        selectedPokemonId,
+        'teacher_award'
       );
 
-      if (result.success) {
+      if (success) {
         toast({
           title: "Success",
           description: `Pokémon awarded to ${studentName} successfully!`
@@ -144,11 +152,11 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
         toast({
           variant: "destructive",
           title: "Error",
-          description: result.error || "Failed to award Pokémon"
+          description: "Failed to award Pokémon"
         });
       }
     } catch (error) {
-      console.error('Error awarding Pokemon:', error);
+      console.error('❌ Error awarding Pokemon:', error);
       toast({
         variant: "destructive",
         title: "Error",
@@ -171,11 +179,9 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
     setLoading(true);
     try {
-      const success = await removePokemonFromStudent(
-        pokemon.collectionId,
-        parseInt(pokemon.id),
-        `Removed by teacher from ${studentName}`
-      );
+      console.log('🗑️ Removing Pokemon collection:', pokemon.collectionId);
+      
+      const success = await removePokemonFromStudent(pokemon.collectionId);
 
       if (success) {
         toast({
@@ -196,7 +202,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
         });
       }
     } catch (error) {
-      console.error('Error removing Pokemon:', error);
+      console.error('❌ Error removing Pokemon:', error);
       toast({
         variant: "destructive",
         title: "Error",
