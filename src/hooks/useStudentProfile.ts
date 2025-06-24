@@ -1,14 +1,27 @@
-import { useState, useEffect, useCallback } from "react"; // Import useCallback
+
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
-// ... (Student interface as improved above) ...
+// Define Student interface
+export interface Student {
+  id: string;
+  username: string;
+  displayName: string;
+  avatarUrl?: string;
+  classId?: string;
+  schoolId?: string;
+  schoolName?: string;
+  contactInfo?: string;
+  photos: string[];
+  pokemonCollection: any[];
+}
 
 export const useStudentProfile = (studentId: string | undefined) => {
   const [student, setStudent] = useState<Student | null>(null);
   const [isLoading, setIsLoading] = useState(true);
-  const [isSaving, setIsSaving] = useState(false); // New state for save operations
-  const [error, setError] = useState<string | null>(null); // New state for errors
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<Student>>({});
   const [friendRequestSent, setFriendRequestSent] = useState(false);
@@ -29,24 +42,22 @@ export const useStudentProfile = (studentId: string | undefined) => {
     }
 
     setIsLoading(true);
-    setError(null); // Clear previous errors
+    setError(null);
     try {
-      // Always fetch from Supabase as primary source
+      // Fetch from students table with school join
       const { data: studentData, error: dbError } = await supabase
         .from('students')
         .select(`
           id,
           username,
           display_name,
-          avatar_url, // Assuming avatar_url in DB
+          profile_photo,
           class_id,
           school_id,
-          contact_info, // Assuming contact_info in DB
           schools:school_id (
             id,
             name
           )
-          // Select other columns you need like coins, etc.
         `)
         .eq('id', studentId)
         .maybeSingle();
@@ -64,13 +75,13 @@ export const useStudentProfile = (studentId: string | undefined) => {
           id: studentData.id,
           username: studentData.username,
           displayName: studentData.display_name || studentData.username,
-          avatarUrl: studentData.avatar_url || undefined,
+          avatarUrl: studentData.profile_photo || undefined,
           classId: studentData.class_id || undefined,
           schoolId: studentData.school_id || undefined,
           schoolName: schoolName,
-          contactInfo: studentData.contact_info || undefined,
-          photos: [], // You'll need a separate fetch for photos if they're in a different table/storage
-          pokemonCollection: [] // You'll need a separate fetch for pokemon if they're in a different table
+          contactInfo: undefined,
+          photos: [],
+          pokemonCollection: []
         };
         setStudent(normalizedStudent);
         setEditData({
@@ -79,15 +90,13 @@ export const useStudentProfile = (studentId: string | undefined) => {
           photos: normalizedStudent.photos
         });
 
-        // Optional: If you *must* sync session data for the current user (e.g., for NavBar display)
+        // Optional: If you *must* sync session data for the current user
         if (isOwner) {
             localStorage.setItem("studentName", normalizedStudent.displayName);
             localStorage.setItem("studentDisplayName", normalizedStudent.displayName);
-            // You might want to update studentAvatarUrl, studentClassId etc. here too
         }
 
       } else {
-        // If student not found in DB
         setStudent(null);
         setError("Student not found.");
         toast.error("Student not found");
@@ -99,26 +108,26 @@ export const useStudentProfile = (studentId: string | undefined) => {
     } finally {
       setIsLoading(false);
     }
-  }, [studentId, isOwner]); // Include isOwner in dependency array
+  }, [studentId, isOwner]);
 
   // --- Fetching Pokemon Collection (separate concern) ---
   const fetchStudentPokemon = useCallback(async () => {
     if (!studentId) return;
     try {
-      // Assuming 'pokemon_collections' has a 'student_id' and joins to 'pokemon_catalog'
       const { data, error } = await supabase
-        .from('pokemon_collections')
-        .select('pokemon_catalog(id, name, image_url)') // Select only necessary fields
+        .from('student_pokemon_collection')
+        .select(`
+          pokemon_pool(id, name, image_url)
+        `)
         .eq('student_id', studentId);
 
       if (error) {
         console.error("Error fetching student pokemon:", error.message);
-        // Optionally, set a specific error for pokemon collection
       } else {
         const pokemons = data?.map((item: any) => ({
-          id: item.pokemon_catalog.id,
-          name: item.pokemon_catalog.name,
-          imageUrl: item.pokemon_catalog.image_url,
+          id: item.pokemon_pool.id,
+          name: item.pokemon_pool.name,
+          imageUrl: item.pokemon_pool.image_url,
         })) || [];
         setStudent(prev => prev ? { ...prev, pokemonCollection: pokemons } : null);
       }
@@ -127,12 +136,10 @@ export const useStudentProfile = (studentId: string | undefined) => {
     }
   }, [studentId]);
 
-  // --- Check Friendship Status (could also be fetched from DB) ---
+  // --- Check Friendship Status ---
   const checkFriendshipStatus = useCallback(async () => {
     if (!currentUserId || !studentId) return;
 
-    // Ideally, this would be fetched from a 'friend_requests' table in Supabase
-    // For now, keeping your localStorage implementation, but acknowledge its limitations
     const friendRequests = JSON.parse(localStorage.getItem("friendRequests") || "[]");
     const existingRequest = friendRequests.find(
       (request: any) =>
@@ -143,29 +150,25 @@ export const useStudentProfile = (studentId: string | undefined) => {
     setFriendRequestSent(!!existingRequest);
   }, [currentUserId, studentId]);
 
-
   useEffect(() => {
     if (studentId) {
       fetchStudentData();
-      fetchStudentPokemon(); // Fetch Pokémon separately
+      fetchStudentPokemon();
       checkFriendshipStatus();
     }
-  }, [studentId, fetchStudentData, fetchStudentPokemon, checkFriendshipStatus]); // Add all dependencies
+  }, [studentId, fetchStudentData, fetchStudentPokemon, checkFriendshipStatus]);
 
   // --- Save Handler ---
   const handleSave = useCallback(async () => {
-    if (!student || !studentId) return; // Ensure studentId is available
+    if (!student || !studentId) return;
 
-    setIsSaving(true); // Set saving state
+    setIsSaving(true);
     setError(null);
     try {
-      const updates: Partial<Student> = {
-        display_name: editData.displayName // Map back to snake_case for DB
-      };
-      // Only update fields that are actually changed in editData
-      if (editData.contactInfo !== student.contactInfo) updates.contact_info = editData.contactInfo; // Map back to snake_case
-      // If photos are managed via Supabase storage, this logic would change
-      // if (editData.photos !== student.photos) updates.photos = editData.photos;
+      const updates: any = {};
+      if (editData.displayName !== student.displayName) {
+        updates.display_name = editData.displayName;
+      }
 
       const { error: updateError } = await supabase
         .from('students')
@@ -177,18 +180,15 @@ export const useStudentProfile = (studentId: string | undefined) => {
         throw updateError;
       }
 
-      // Update local state based on what was saved to DB
       setStudent(prev => prev ? {
         ...prev,
-        ...editData, // Update with editData fields
-        // Ensure display_name also updates if displayName was changed
+        ...editData,
         displayName: editData.displayName || prev.displayName,
       } : null);
 
       setIsEditing(false);
       toast.success("Profile updated successfully!");
 
-      // Update localStorage session data if it's the current user (for header, etc.)
       if (isOwner && editData.displayName) {
           localStorage.setItem("studentName", editData.displayName);
           localStorage.setItem("studentDisplayName", editData.displayName);
@@ -199,7 +199,7 @@ export const useStudentProfile = (studentId: string | undefined) => {
       setError(`Failed to save profile: ${err.message}`);
       toast.error("Failed to save profile");
     } finally {
-      setIsSaving(false); // Reset saving state
+      setIsSaving(false);
     }
   }, [student, studentId, editData, isOwner]);
 
@@ -232,21 +232,19 @@ export const useStudentProfile = (studentId: string | undefined) => {
       return;
     }
 
-    // Ideally, send this to your Supabase 'friend_requests' table
     try {
-      const { data, error } = await supabase.from('friend_requests').insert({
+      const { error } = await supabase.from('messages').insert({
         sender_id: currentUserId,
-        receiver_id: student.id,
-        status: 'pending', // 'pending', 'accepted', 'rejected'
-        // Add sender_type if necessary for your DB schema
-      }).select().single();
+        recipient_id: student.id,
+        content: 'Friend request',
+        subject: 'Friend Request'
+      });
 
       if (error) throw error;
 
       setFriendRequestSent(true);
       toast.success("Friend request sent!");
 
-      // (Optional) Remove localStorage friendRequests logic if moving to DB
     } catch (err: any) {
       console.error("Error sending friend request:", err.message);
       setError(`Failed to send friend request: ${err.message}`);
@@ -257,8 +255,8 @@ export const useStudentProfile = (studentId: string | undefined) => {
   return {
     student,
     isLoading,
-    isSaving, // Expose isSaving state
-    error, // Expose error state
+    isSaving,
+    error,
     isEditing,
     editData,
     isOwner,

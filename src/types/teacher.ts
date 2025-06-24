@@ -1,8 +1,19 @@
 
 export interface TeacherProfile {
-  teacherId: string;
+  id: string;
   username: string;
-  displayName?: string;
-  createdAt?: string;
-  email?: string; // Add email field
+  display_name: string;
+  email?: string;
+  avatar_url?: string;
+  school_id?: string;
+  created_at: string;
+  last_login?: string;
+  is_active: boolean;
+  photos?: string[];
+  social_links?: {
+    phone?: string;
+    whatsapp?: string;
+    instagram?: string;
+    line?: string;
+  };
 }
