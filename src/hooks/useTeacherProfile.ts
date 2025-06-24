@@ -1,246 +1,280 @@
-
-import { useState, useEffect } from "react";
-import { supabase } from "@/integrations/supabase/client";
-import { TeacherProfile } from "@/types/teacher";
+import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
+import { TeacherProfile } from "@/types/teacher"; // Assuming this exists and has base properties
 
-export interface SocialLinks {
-  line?: string;
-  whatsapp?: string;
-  instagram?: string;
-  phone?: string;
-}
+// ... (SocialLinks and TeacherProfileData interfaces as improved above) ...
 
-export interface TeacherProfileData extends TeacherProfile {
-  id: string;
-  displayName: string;
-  username: string;
-  avatar_url?: string;
-  photos: string[];
-  classes: { id: string; name: string }[];
-  socialLinks?: SocialLinks;
-}
-
-// Helper: get item from localStorage
-const getLocalItem = <T = any>(key: string, fallback: T): T => {
-  try {
-    const value = localStorage.getItem(key);
-    return value ? JSON.parse(value) : fallback;
-  } catch {
-    return fallback;
-  }
-};
+// Remove getLocalItem helper, as localStorage will be phased out for primary data.
 
 export function useTeacherProfile(teacherId?: string) {
   const [teacher, setTeacher] = useState<TeacherProfileData | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editData, setEditData] = useState<Partial<TeacherProfileData>>({});
-  const [studentCount, setStudentCount] = useState(0);
+  const [studentCount, setStudentCount] = useState<number>(0); // Initialize with 0
   const [isLoading, setIsLoading] = useState(true);
-  const [friendRequestSent, setFriendRequestSent] = useState(false);
+  const [isSaving, setIsSaving] = useState(false); // New state for save operations
+  const [error, setError] = useState<string | null>(null); // New state for errors
+  const [friendRequestSent, setFriendRequestSent] = useState(false); // This should ideally be fetched from DB
 
   const currentUserId = localStorage.getItem("teacherId");
   const isOwner = currentUserId === teacherId;
 
-  useEffect(() => {
-    if (teacherId) {
-      loadTeacherProfile();
-      checkFriendRequestStatus();
-    }
-  }, [teacherId]);
+  // --- Data Fetching Logic ---
 
-  const loadTeacherProfile = async () => {
+  const fetchTeacherProfile = useCallback(async () => {
+    if (!teacherId) {
+      setIsLoading(false);
+      setError("Teacher ID is not provided.");
+      return;
+    }
+
     setIsLoading(true);
+    setError(null); // Clear previous errors
 
     try {
-      const { data, error } = await supabase
+      // 1. Fetch Teacher Data
+      const { data: teacherData, error: teacherError } = await supabase
         .from("teachers")
-        .select("*")
+        .select(`
+          id,
+          username,
+          display_name,
+          email,
+          avatar_url,
+          photos,
+          social_links,
+          // Include any other columns directly from the teachers table that are needed
+        `)
         .eq("id", teacherId)
         .single();
 
-      if (data) {
-        const { data: classesData, error: classesError } = await supabase
-          .from("classes")
-          .select("id, name")
-          .or(`teacher_id.eq.${teacherId},assistants.cs.{${teacherId}}`);
-
-        if (classesError) {
-          toast.error("Failed to load teacher's classes.");
-          console.error(classesError);
-        }
-
-        const teacherData: TeacherProfileData = {
-          id: data.id,
-          teacherId: data.id,
-          displayName: data.display_name || data.username,
-          username: data.username,
-          email: data.email || "",
-          photos: (data.photos as string[]) || [],
-          classes: classesData || [],
-          socialLinks: (data.social_links as SocialLinks) || {},
-          avatar_url: data.avatar_url || undefined,
-        };
-
-        setTeacher(teacherData);
-        setEditData(teacherData);
-
-        const { count } = await supabase
-          .from("students")
-          .select("*", { count: "exact", head: true })
-          .eq("teacher_id", teacherId);
-
-        setStudentCount(count || 0);
+      if (teacherError) {
+        console.error("Error fetching teacher profile from DB:", teacherError.message);
+        setError(`Failed to load teacher profile: ${teacherError.message}`);
+        setTeacher(null);
         return;
       }
 
-      console.log("Teacher not found in Supabase, falling back to localStorage");
-      const teachers = getLocalItem("teachers", []);
-      const foundTeacher = teachers.find((t: any) => t.id === teacherId);
-
-      if (!foundTeacher) {
-        toast.error("Teacher not found");
+      if (!teacherData) {
+        setError("Teacher not found.");
+        setTeacher(null);
+        toast.error("Teacher not found.");
         return;
       }
 
-      const classes = getLocalItem("classes", []);
-      const teacherClasses = classes.filter((c: any) =>
-        foundTeacher.classes?.includes(c.id)
-      );
+      // 2. Fetch Classes associated with this teacher
+      const { data: classesData, error: classesError } = await supabase
+        .from("classes")
+        .select("id, name")
+        // Use 'or' for teacher_id OR if teacherId is in the 'assistants' array (JSONB column, assuming it stores an array of IDs)
+        .or(`teacher_id.eq.${teacherId},assistants.cs.{${teacherId}}`); // Ensure 'assistants' is properly indexed if it's a large array
 
-      const teacherData = {
-        ...foundTeacher,
-        teacherId: foundTeacher.id,
-        photos: foundTeacher.photos || [],
-        socialLinks: foundTeacher.socialLinks || {},
-        avatar_url: foundTeacher.avatar_url,
-        classes: teacherClasses.map((c: any) => ({ id: c.id, name: c.name })),
+      if (classesError) {
+        toast.error("Failed to load teacher's classes.");
+        console.error("Error fetching classes:", classesError.message);
+        // Do not return here, continue with partial data
+      }
+
+      // 3. Fetch Student Count
+      // Optimized to count students directly from the 'students' table where teacher_id matches
+      const { count: studentsCount, error: studentCountError } = await supabase
+        .from("students")
+        .select("*", { count: "exact", head: true })
+        .eq("teacher_id", teacherId);
+
+      if (studentCountError) {
+        console.error("Error fetching student count:", studentCountError.message);
+        // Continue, studentCount will remain 0
+      }
+
+      // Consolidate data into TeacherProfileData format
+      const normalizedTeacher: TeacherProfileData = {
+        id: teacherData.id,
+        displayName: teacherData.display_name || teacherData.username,
+        username: teacherData.username,
+        email: teacherData.email || undefined,
+        avatarUrl: teacherData.avatar_url || undefined,
+        photos: (teacherData.photos as string[] | null) || [],
+        classes: classesData || [],
+        socialLinks: (teacherData.social_links as SocialLinks | null) || undefined, // Type assertion for JSONB
       };
 
-      setTeacher(teacherData as TeacherProfileData);
-      setEditData(teacherData as TeacherProfileData);
+      setTeacher(normalizedTeacher);
+      // Set editData initially to the full fetched profile
+      setEditData(normalizedTeacher);
+      setStudentCount(studentsCount || 0);
 
-      const totalStudents = teacherClasses.reduce(
-        (acc: number, cls: any) => acc + (cls.students?.length || 0),
-        0
-      );
-      setStudentCount(totalStudents);
-    } catch (error) {
-      console.error("Error loading teacher profile:", error);
-      toast.error("Error loading profile");
+    } catch (err: any) {
+      console.error("Unexpected error loading teacher profile:", err.message);
+      setError(`An unexpected error occurred: ${err.message}`);
+      setTeacher(null);
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [teacherId]); // Dependency array: Re-run if teacherId changes
 
-  const checkFriendRequestStatus = () => {
+  // --- Friend Request Status Check (Should be DB-based) ---
+  const checkFriendRequestStatus = useCallback(async () => {
     if (!teacherId || !currentUserId) return;
 
-    const friendRequests = getLocalItem("friendRequests", []);
-    const existingRequest = friendRequests.find(
-      (req: any) =>
-        (req.senderId === currentUserId && req.receiverId === teacherId) ||
-        (req.senderId === teacherId && req.receiverId === currentUserId)
-    );
-
-    if (existingRequest) setFriendRequestSent(true);
-  };
-
-  const handleSave = async () => {
-    if (!teacher || !teacherId) return;
-
     try {
-      const { error } = await supabase
-        .from('teachers')
-        .update({
-          display_name: editData.displayName,
-          avatar_url: editData.avatar_url,
-          photos: editData.photos,
-          social_links: editData.socialLinks,
-        })
-        .eq('id', teacherId);
-      
-      const updatedTeacher = { ...teacher, ...editData };
+      // IDEAL: Query your 'friend_requests' table in Supabase
+      const { data: requests, error: reqError } = await supabase
+        .from('friend_requests')
+        .select('status')
+        .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${teacherId}),and(sender_id.eq.${teacherId},receiver_id.eq.${currentUserId})`)
+        .limit(1); // Only need to know if one exists
 
-      if (error) {
-        console.error('Error saving to Supabase:', error);
-        // Fall back to localStorage
-        const teachers = getLocalItem("teachers", []);
-        const index = teachers.findIndex((t: any) => t.id === teacherId);
-        if (index !== -1) {
-          teachers[index] = { ...teachers[index], ...updatedTeacher };
-          localStorage.setItem("teachers", JSON.stringify(teachers));
-        }
+      if (reqError) {
+        console.error("Error checking friend request status:", reqError.message);
+        setFriendRequestSent(false); // Assume no request if error
+        return;
       }
 
-      setTeacher(updatedTeacher);
+      const hasPendingOrAcceptedRequest = requests?.some(
+        req => req.status === "pending" || req.status === "accepted"
+      );
+      setFriendRequestSent(!!hasPendingOrAcceptedRequest);
 
-      if (isOwner) {
-        localStorage.setItem("teacherDisplayName", updatedTeacher.displayName);
+    } catch (err: any) {
+      console.error("Unexpected error checking friend request status:", err.message);
+      setFriendRequestSent(false);
+    }
+    // Remove localStorage logic for friend requests if moving to DB
+  }, [currentUserId, teacherId]);
+
+  // --- Effects ---
+  useEffect(() => {
+    fetchTeacherProfile();
+    checkFriendRequestStatus();
+  }, [fetchTeacherProfile, checkFriendRequestStatus]); // Dependencies on memoized functions
+
+  // --- Save Handler ---
+  const handleSave = useCallback(async () => {
+    if (!teacher || !teacherId) return;
+
+    setIsSaving(true);
+    setError(null);
+
+    try {
+      // Map camelCase editData back to snake_case for Supabase update
+      const updates: { [key: string]: any } = {};
+      if ('displayName' in editData && editData.displayName !== teacher.displayName) {
+        updates.display_name = editData.displayName;
+      }
+      if ('avatarUrl' in editData && editData.avatarUrl !== teacher.avatarUrl) {
+        updates.avatar_url = editData.avatarUrl;
+      }
+      if ('photos' in editData && JSON.stringify(editData.photos) !== JSON.stringify(teacher.photos)) { // Deep compare arrays
+        updates.photos = editData.photos;
+      }
+      if ('socialLinks' in editData && JSON.stringify(editData.socialLinks) !== JSON.stringify(teacher.socialLinks)) { // Deep compare objects
+        updates.social_links = editData.socialLinks;
+      }
+      // Add other fields you allow to be edited
+
+      if (Object.keys(updates).length === 0) {
+          toast.info("No changes to save.");
+          setIsEditing(false);
+          setIsSaving(false);
+          return;
+      }
+
+      const { error: updateError } = await supabase
+        .from('teachers')
+        .update(updates)
+        .eq('id', teacherId);
+
+      if (updateError) {
+        console.error('Error saving to Supabase:', updateError.message);
+        throw updateError;
+      }
+
+      // Update local state directly from editData since the save was successful
+      setTeacher(prev => prev ? { ...prev, ...editData } : null);
+
+      if (isOwner && editData.displayName) {
+        localStorage.setItem("teacherDisplayName", editData.displayName);
+        // You might also update teacherUsername if you allow it to be edited
       }
 
       setIsEditing(false);
       toast.success("Profile updated successfully");
-    } catch (error) {
-      console.error("Error saving profile:", error);
+
+    } catch (err: any) {
+      console.error("Error saving profile:", err.message);
+      setError(`Failed to save profile changes: ${err.message}`);
       toast.error("Failed to save profile changes");
+    } finally {
+      setIsSaving(false);
     }
-  };
+  }, [teacher, teacherId, editData, isOwner]);
 
-  const handleCancel = () => {
-    setEditData(teacher || {});
+  const handleCancel = useCallback(() => {
+    // Reset editData to the current 'teacher' state when canceling
+    if (teacher) {
+      setEditData({
+        displayName: teacher.displayName,
+        avatarUrl: teacher.avatarUrl,
+        photos: teacher.photos,
+        socialLinks: teacher.socialLinks,
+        // ... (reset other editable fields)
+      });
+    }
     setIsEditing(false);
-  };
+  }, [teacher]);
 
-  const handleAddFriend = async () => {
+  const handleAddFriend = useCallback(async () => {
     if (!currentUserId || !teacherId) return;
-    
+
+    if (friendRequestSent) {
+      toast.info("Friend request already sent or accepted.");
+      return;
+    }
+
     try {
-      // Check if we're already friends or have a pending request
-      if (friendRequestSent) {
-        toast.info("Friend request already sent");
-        return;
-      }
-      
-      // Create a friend request
-      const friendRequest = {
-        id: crypto.randomUUID(),
-        senderId: currentUserId,
-        receiverId: teacherId,
-        status: "pending",
-        createdAt: new Date().toISOString()
-      };
-      
-      // Store in localStorage for demo
-      const friendRequests = getLocalItem("friendRequests", []);
-      friendRequests.push(friendRequest);
-      localStorage.setItem("friendRequests", JSON.stringify(friendRequests));
-      
+      const { data, error } = await supabase.from('friend_requests').insert({
+        sender_id: currentUserId,
+        receiver_id: teacherId,
+        status: 'pending', // 'pending', 'accepted', 'rejected'
+        // Consider adding sender_type if your friend_requests table requires it
+      }).select().single();
+
+      if (error) throw error;
+
       setFriendRequestSent(true);
-      toast.success("Friend request sent");
-    } catch (error) {
-      console.error("Error sending friend request:", error);
+      toast.success("Friend request sent!");
+
+    } catch (err: any) {
+      console.error("Error sending friend request to DB:", err.message);
+      setError(`Failed to send friend request: ${err.message}`);
       toast.error("Failed to send friend request");
     }
-  };
+  }, [currentUserId, teacherId, friendRequestSent]);
 
-  const updateSocialLink = (platform: keyof SocialLinks, value: string) => {
-    if (!teacher) return;
-    
-    const updatedSocialLinks = {
-      ...(editData.socialLinks || teacher.socialLinks || {}),
-      [platform]: value
-    };
-    
-    setEditData({
-      ...editData,
-      socialLinks: updatedSocialLinks
+
+  const updateSocialLink = useCallback((platform: keyof SocialLinks, value: string) => {
+    // This updates the 'editData' state for the form
+    setEditData(prev => {
+      const currentSocialLinks = prev.socialLinks || teacher?.socialLinks || {}; // Prioritize prev.socialLinks
+      const updatedSocialLinks = {
+        ...currentSocialLinks,
+        [platform]: value
+      };
+      return {
+        ...prev,
+        socialLinks: updatedSocialLinks
+      };
     });
-  };
+  }, [teacher]); // Dependency on teacher to access its socialLinks if editData.socialLinks is null
+
 
   return {
     teacher,
     isLoading,
+    isSaving,
+    error,
     isEditing,
     setIsEditing,
     editData,
