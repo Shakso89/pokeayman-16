@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useNavigate } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -28,6 +27,7 @@ const StudentHeader: React.FC<StudentHeaderProps> = ({
   const { t } = useTranslation();
   const [classInfo, setClassInfo] = useState<ClassInfo[]>([]);
   const studentId = localStorage.getItem("studentId");
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (studentId) {
@@ -79,6 +79,10 @@ const StudentHeader: React.FC<StudentHeaderProps> = ({
     }
   };
 
+  const handleRankingsClick = () => {
+    navigate("/student-ranking");
+  };
+
   return (
     <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0 shadow-lg">
       <CardContent className="p-4 md:p-6">
@@ -108,14 +112,25 @@ const StudentHeader: React.FC<StudentHeaderProps> = ({
             </div>
           </div>
 
-          <Button
-            onClick={onOpenSchoolPool}
-            variant="secondary"
-            className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm flex items-center gap-2"
-          >
-            <Eye className="h-4 w-4" />
-            {t("school-pool")}
-          </Button>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleRankingsClick}
+              variant="secondary"
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm flex items-center gap-2"
+            >
+              <Trophy className="h-4 w-4" />
+              Rankings
+            </Button>
+            
+            <Button
+              onClick={onOpenSchoolPool}
+              variant="secondary"
+              className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm flex items-center gap-2"
+            >
+              <Eye className="h-4 w-4" />
+              {t("school-pool")}
+            </Button>
+          </div>
         </div>
       </CardContent>
     </Card>

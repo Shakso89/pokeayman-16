@@ -88,6 +88,18 @@ export const navItems = [
     page: <StudentRankingsPage />,
   },
   {
+    title: "Student Ranking Page",
+    to: "/student-ranking",
+    icon: <Trophy className="h-4 w-4" />,
+    page: <StudentRankingPage />,
+  },
+  {
+    title: "Teacher Ranking Page",
+    to: "/teacher-ranking",
+    icon: <Trophy className="h-4 w-4" />,
+    page: <TeacherRankingPage />,
+  },
+  {
     title: "Messages",
     to: "/teacher/messages",
     icon: <MessageSquare className="h-4 w-4" />,

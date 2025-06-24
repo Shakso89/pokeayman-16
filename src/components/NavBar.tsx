@@ -8,11 +8,14 @@ import UserSettingsModal from "./modals/UserSettingsModal";
 import NotificationBadge from "./NotificationBadge";
 import { useTranslation } from "@/hooks/useTranslation";
 import { SelectSchoolDialog } from "./teacher/class-management/SelectSchoolDialog";
+import { useSecureLogout } from "@/hooks/useSecureLogout";
+
 interface NavBarProps {
   userType: "teacher" | "student";
   userName?: string;
   userAvatar?: string;
 }
+
 export const NavBar: React.FC<NavBarProps> = ({
   userType,
   userName,
@@ -24,10 +27,12 @@ export const NavBar: React.FC<NavBarProps> = ({
   } = useTranslation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSelectSchoolOpen, setIsSelectSchoolOpen] = useState(false);
-  const handleLogout = () => {
-    // Navigate to logout page which will handle the full logout process
-    navigate("/logout");
+  const { secureLogout, isLoggingOut } = useSecureLogout();
+
+  const handleLogout = async () => {
+    await secureLogout();
   };
+
   const handleHomeClick = () => {
     // Direct to the appropriate dashboard based on user type
     if (userType === "teacher") {
@@ -36,10 +41,12 @@ export const NavBar: React.FC<NavBarProps> = ({
       navigate("/student-dashboard");
     }
   };
+
   const isAdmin = localStorage.getItem("isAdmin") === "true";
   const handleCloseSettings = () => {
     setIsSettingsOpen(false);
   };
+
   const handleViewProfile = () => {
     if (userType === "teacher") {
       const teacherId = localStorage.getItem("teacherId");
@@ -57,6 +64,23 @@ export const NavBar: React.FC<NavBarProps> = ({
       }
     }
   };
+
+  const userMenuItems = userType === "student" 
+    ? [
+        { label: "Dashboard", action: () => navigate("/student-dashboard") },
+        { label: "Profile", action: () => navigate(`/student-profile/${localStorage.getItem("studentId")}`) },
+        { label: "Rankings", action: () => navigate("/student-ranking") },
+        { label: "Messages", action: () => navigate("/student/messages") },
+        { label: "Logout", action: handleLogout, loading: isLoggingOut }
+      ]
+    : [
+        { label: "Dashboard", action: () => navigate("/teacher-dashboard") },
+        { label: "Profile", action: () => navigate("/teacher-profile") },
+        { label: "Rankings", action: () => navigate("/teacher-ranking") },
+        { label: "Messages", action: () => navigate("/teacher/messages") },
+        { label: "Logout", action: handleLogout, loading: isLoggingOut }
+      ];
+
   return <div className="bg-transparent">
       <div className="flex items-center justify-between px-4 py-2 max-w-7xl mx-auto">
         <div className="flex items-center gap-4">

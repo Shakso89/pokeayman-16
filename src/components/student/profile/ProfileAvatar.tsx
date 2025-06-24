@@ -1,14 +1,15 @@
-
 import React from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Camera } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
+import AvatarBorder from "./AvatarBorder";
 
 interface ProfileAvatarProps {
   avatar?: string;
   displayName: string;
   isOwnProfile: boolean;
+  achievement?: "star_of_class" | "top_of_school" | null;
   onAvatarChange: (imageDataUrl: string) => void;
   onViewProfile: () => void;
 }
@@ -17,6 +18,7 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
   avatar,
   displayName,
   isOwnProfile,
+  achievement,
   onAvatarChange,
   onViewProfile
 }) => {
@@ -37,12 +39,14 @@ const ProfileAvatar: React.FC<ProfileAvatarProps> = ({
   return (
     <div className="text-center">
       <div className="relative inline-block">
-        <Avatar className="w-20 h-20 mx-auto">
-          <AvatarImage src={avatar} />
-          <AvatarFallback className="text-lg">
-            {displayName.charAt(0).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
+        <AvatarBorder achievement={achievement}>
+          <Avatar className="w-20 h-20 mx-auto">
+            <AvatarImage src={avatar} />
+            <AvatarFallback className="text-lg">
+              {displayName.charAt(0).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+        </AvatarBorder>
         
         {isOwnProfile && (
           <div className="absolute bottom-0 right-0">
