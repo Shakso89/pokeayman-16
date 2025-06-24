@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -51,6 +52,8 @@ export const NavBar: React.FC<NavBarProps> = ({
         navigate(`/teacher-profile/${teacherId}`);
       } else {
         console.error("Teacher ID not found in localStorage");
+        // Fallback to general teacher profile route
+        navigate("/teacher-profile");
       }
     } else {
       const studentId = localStorage.getItem("studentId");
@@ -58,25 +61,18 @@ export const NavBar: React.FC<NavBarProps> = ({
         navigate(`/student-profile/${studentId}`);
       } else {
         console.error("Student ID not found in localStorage");
+        // Try to get from current user session or show error
       }
     }
   };
 
-  const userMenuItems = userType === "student" 
-    ? [
-        { label: "Dashboard", action: () => navigate("/student-dashboard") },
-        { label: "Profile", action: () => navigate(`/student-profile/${localStorage.getItem("studentId")}`) },
-        { label: "Rankings", action: () => navigate("/student-ranking") },
-        { label: "Messages", action: () => navigate("/student/messages") },
-        { label: "Logout", action: handleLogout, loading: isLoggingOut }
-      ]
-    : [
-        { label: "Dashboard", action: () => navigate("/teacher-dashboard") },
-        { label: "Profile", action: () => navigate("/teacher-profile") },
-        { label: "Rankings", action: () => navigate("/teacher-ranking") },
-        { label: "Messages", action: () => navigate("/teacher/messages") },
-        { label: "Logout", action: handleLogout, loading: isLoggingOut }
-      ];
+  const handleRankingsClick = () => {
+    if (userType === "student") {
+      navigate("/student-ranking");
+    } else {
+      navigate("/teacher-ranking");
+    }
+  };
 
   return (
     <div className="bg-transparent">
@@ -93,6 +89,10 @@ export const NavBar: React.FC<NavBarProps> = ({
             <Home size={20} />
           </Button>
           
+          <Button variant="ghost" size="icon" onClick={handleRankingsClick} title="Rankings" className="text-slate-600 bg-slate-300 hover:bg-slate-200">
+            <Medal size={20} />
+          </Button>
+
           <NotificationBadge />
 
           <Button variant="secondary" onClick={() => navigate(`/${userType}/messages`)} className="flex items-center gap-2">

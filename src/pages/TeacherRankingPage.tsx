@@ -1,293 +1,184 @@
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { NavBar } from '@/components/NavBar';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Loader2, ArrowLeft, Trophy, Coins, Award, Crown, Users, School } from 'lucide-react';
-import AvatarBorder from '@/components/student/profile/AvatarBorder';
+import React, { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
+import { NavBar } from "@/components/NavBar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Trophy, Users, BookOpen, Medal, Crown } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-interface RankingStudent {
+interface TeacherRanking {
   id: string;
-  user_id: string;
-  username: string;
   display_name: string;
-  coins: number;
-  pokemon_count: number;
+  username: string;
+  student_count: number;
+  class_count: number;
   total_score: number;
   avatar_url?: string;
-  class_name?: string;
-  is_star_of_class?: boolean;
-  is_top_of_school?: boolean;
-}
-
-interface ClassRanking {
-  id: string;
-  name: string;
-  total_students: number;
-  average_coins: number;
-  total_coins: number;
-  rank: number;
+  school_name?: string;
 }
 
 const TeacherRankingPage: React.FC = () => {
-  const navigate = useNavigate();
-  const [schoolRankings, setSchoolRankings] = useState<RankingStudent[]>([]);
-  const [classRankings, setClassRankings] = useState<ClassRanking[]>([]);
+  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+  const userType = localStorage.getItem("userType");
+  const teacherId = localStorage.getItem("teacherId");
+  const [rankings, setRankings] = useState<TeacherRanking[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const userType = "teacher";
-  const userName = localStorage.getItem("teacherDisplayName") || "Teacher";
-  const teacherId = localStorage.getItem("teacherId");
-  const schoolId = localStorage.getItem("teacherSchoolId");
-
-  const handleBackClick = () => {
-    navigate("/teacher-dashboard");
-  };
-
   useEffect(() => {
-    const fetchRankings = async () => {
+    if (teacherId) {
+      loadRankings();
+    }
+  }, [teacherId]);
+
+  const loadRankings = async () => {
+    try {
       setLoading(true);
-      try {
-        // Fetch school-wide rankings
-        const { data: studentsData, error } = await supabase
-          .from('student_profiles')
-          .select(`
-            id,
-            user_id,
-            username,
-            display_name,
-            coins,
-            avatar_url,
-            school_id,
-            class_id
-          `)
-          .eq('school_id', schoolId || 'default-school-1')
-          .order('coins', { ascending: false });
+      
+      // Get all teachers
+      const { data: teachers, error: teachersError } = await supabase
+        .from("teachers")
+        .select("*");
 
-        if (error) throw error;
+      if (teachersError) throw teachersError;
 
-        const studentsWithPokemon = await Promise.all((studentsData || []).map(async (student) => {
-          const { data: pokemonData } = await supabase
-            .from('pokemon_collections')
-            .select('id')
-            .eq('student_id', student.user_id);
+      if (teachers) {
+        // Get class and student counts for each teacher
+        const teachersWithStats = await Promise.all(
+          teachers.map(async (teacher) => {
+            // Get class count
+            const { data: classData } = await supabase
+              .from("classes")
+              .select("id")
+              .eq("teacher_id", teacher.id);
 
-          const pokemonCount = pokemonData?.length || 0;
-          const totalScore = student.coins + (pokemonCount * 3);
+            const classCount = classData?.length || 0;
 
-          return {
-            ...student,
-            pokemon_count: pokemonCount,
-            total_score: totalScore,
-            class_name: '',
-            is_top_of_school: false,
-            is_star_of_class: false
-          };
-        }));
+            // Get student count
+            const { data: studentData } = await supabase
+              .from("student_profiles")
+              .select("id")
+              .eq("teacher_id", teacher.id);
 
-        const sortedStudents = studentsWithPokemon.sort((a, b) => b.total_score - a.total_score);
-        
-        // Mark top student
-        if (sortedStudents.length > 0) {
-          sortedStudents[0].is_top_of_school = true;
-        }
-
-        setSchoolRankings(sortedStudents.slice(0, 20));
-
-        // Fetch class rankings
-        const { data: classesData, error: classError } = await supabase
-          .from('classes')
-          .select('id, name')
-          .eq('school_id', schoolId || 'default-school-1');
-
-        if (classError) throw classError;
-
-        if (classesData && classesData.length > 0) {
-          const classesWithStats = await Promise.all(classesData.map(async (classItem) => {
-            const { data: classStudents } = await supabase
-              .from('student_profiles')
-              .select('coins')
-              .eq('class_id', classItem.id);
-
-            const students = classStudents || [];
-            const totalStudents = students.length;
-            const totalCoins = students.reduce((sum, student) => sum + (student.coins || 0), 0);
-            const averageCoins = totalStudents > 0 ? Math.round(totalCoins / totalStudents) : 0;
+            const studentCount = studentData?.length || 0;
+            const totalScore = (classCount * 10) + (studentCount * 2);
 
             return {
-              id: classItem.id,
-              name: classItem.name,
-              total_students: totalStudents,
-              total_coins: totalCoins,
-              average_coins: averageCoins,
-              rank: 0
+              id: teacher.id,
+              display_name: teacher.display_name,
+              username: teacher.username,
+              student_count: studentCount,
+              class_count: classCount,
+              total_score: totalScore,
+              avatar_url: teacher.avatar_url,
+              school_name: teacher.school_id // This would need to be resolved
             };
-          }));
+          })
+        );
 
-          const sortedClasses = classesWithStats
-            .sort((a, b) => b.average_coins - a.average_coins)
-            .map((classItem, index) => ({ ...classItem, rank: index + 1 }));
-
-          setClassRankings(sortedClasses);
-        }
-
-      } catch (error) {
-        console.error("❌ Error loading rankings:", error);
-      } finally {
-        setLoading(false);
+        // Sort by total score
+        teachersWithStats.sort((a, b) => b.total_score - a.total_score);
+        setRankings(teachersWithStats);
       }
-    };
-
-    fetchRankings();
-  }, [schoolId, teacherId]);
+    } catch (error) {
+      console.error("Error loading teacher rankings:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
         return <Crown className="h-6 w-6 text-yellow-500" />;
       case 2:
-        return <Trophy className="h-6 w-6 text-gray-400" />;
+        return <Medal className="h-6 w-6 text-gray-400" />;
       case 3:
-        return <Trophy className="h-6 w-6 text-orange-600" />;
+        return <Medal className="h-6 w-6 text-amber-600" />;
       default:
-        return <span className="text-lg font-bold text-gray-600">#{rank}</span>;
+        return <Trophy className="h-6 w-6 text-gray-300" />;
     }
   };
 
-  const getAchievementType = (student: RankingStudent) => {
-    if (student.is_top_of_school) return "top_of_school";
-    if (student.is_star_of_class) return "star_of_class";
-    return null;
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+  if (!isLoggedIn || userType !== "teacher") {
+    return <Navigate to="/teacher-login" />;
   }
 
   return (
-    <>
-      <NavBar userType={userType} userName={userName} />
-      <div className="container mx-auto py-8 max-w-6xl px-4">
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" size="icon" onClick={handleBackClick} className="mr-4">
-            <ArrowLeft />
-          </Button>
-          <h1 className="text-3xl font-bold">School Rankings</h1>
-        </div>
+    <div className="min-h-screen bg-transparent">
+      <NavBar userType="teacher" userName={localStorage.getItem("teacherName") || "Teacher"} />
+      
+      <div className="container mx-auto py-8 px-4">
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Trophy className="h-6 w-6 text-yellow-500" />
+              Teacher Rankings
+            </CardTitle>
+          </CardHeader>
+        </Card>
 
-        <Tabs defaultValue="students" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-6">
-            <TabsTrigger value="students" className="text-base">
-              <Users className="mr-2 h-4 w-4" />
-              Student Rankings ({schoolRankings.length})
-            </TabsTrigger>
-            <TabsTrigger value="classes" className="text-base">
-              <School className="mr-2 h-4 w-4" />
-              Class Rankings ({classRankings.length})
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="students">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">Top Students by Total Score</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {schoolRankings.length > 0 ? (
-                  <div className="space-y-3">
-                    {schoolRankings.map((student, index) => {
-                      const rank = index + 1;
-                      return (
-                        <div key={student.id} className={`flex items-center justify-between p-4 rounded-lg border ${
-                          rank <= 3 ? 'bg-gradient-to-r from-yellow-50 to-orange-50 border-yellow-200' : 'bg-gray-50'
-                        }`}>
-                          <div className="flex items-center space-x-4">
-                            <div className="flex items-center justify-center w-8">
-                              {getRankIcon(rank)}
-                            </div>
-                            <AvatarBorder achievement={getAchievementType(student)}>
-                              <Avatar className="h-12 w-12">
-                                <AvatarImage src={student.avatar_url} />
-                                <AvatarFallback>
-                                  {student.display_name?.[0] || student.username?.[0] || '?'}
-                                </AvatarFallback>
-                              </Avatar>
-                            </AvatarBorder>
-                            <div>
-                              <p className="font-semibold text-lg">{student.display_name}</p>
-                              <p className="text-sm text-gray-600">@{student.username}</p>
-                              <p className="text-xs text-purple-600">{student.pokemon_count} Pokémon</p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p className="text-2xl font-bold text-blue-600">{student.total_score}</p>
-                            <p className="text-sm text-gray-500">total points</p>
-                            <p className="text-xs text-gray-400">{student.coins} coins</p>
-                          </div>
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <p className="text-gray-500">Loading rankings...</p>
+          </div>
+        ) : rankings.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <p className="text-gray-500">No rankings available yet.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {rankings.map((teacher, index) => (
+              <Card key={teacher.id} className={`${index < 3 ? 'border-blue-200 bg-gradient-to-r from-blue-50 to-indigo-50' : ''} ${teacher.id === teacherId ? 'ring-2 ring-blue-500' : ''}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        {getRankIcon(index + 1)}
+                        <span className="font-bold text-2xl">#{index + 1}</span>
+                      </div>
+                      
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                          {teacher.avatar_url ? (
+                            <img src={teacher.avatar_url} alt={teacher.display_name} className="w-12 h-12 rounded-full" />
+                          ) : (
+                            <span className="text-lg font-bold">{teacher.display_name.charAt(0).toUpperCase()}</span>
+                          )}
                         </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="text-center text-gray-500 py-8">
-                    <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p className="text-lg font-medium">No students found</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="classes">
-            <Card>
-              <CardHeader>
-                <CardTitle className="text-xl">Class Rankings by Average Coins</CardTitle>
-              </CardHeader>
-              <CardContent>
-                {classRankings.length > 0 ? (
-                  <div className="space-y-3">
-                    {classRankings.map((classItem) => (
-                      <div key={classItem.id} className={`flex items-center justify-between p-4 rounded-lg border ${
-                        classItem.rank <= 3 ? 'bg-gradient-to-r from-green-50 to-blue-50 border-green-200' : 'bg-gray-50'
-                      }`}>
-                        <div className="flex items-center space-x-4">
-                          <div className="flex items-center justify-center w-8">
-                            {getRankIcon(classItem.rank)}
-                          </div>
-                          <div>
-                            <p className="font-semibold text-lg">{classItem.name}</p>
-                            <p className="text-sm text-gray-600">{classItem.total_students} students</p>
-                          </div>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-2xl font-bold text-green-600">{classItem.average_coins}</p>
-                          <p className="text-sm text-gray-500">avg coins</p>
-                          <p className="text-xs text-gray-400">({classItem.total_coins} total)</p>
+                        
+                        <div>
+                          <h3 className="font-semibold text-lg">{teacher.display_name}</h3>
+                          <p className="text-sm text-gray-500">@{teacher.username}</p>
                         </div>
                       </div>
-                    ))}
+                    </div>
+
+                    <div className="text-right">
+                      <div className="flex items-center gap-4 mb-2">
+                        <Badge variant="outline" className="flex items-center gap-1">
+                          <BookOpen className="h-3 w-3" />
+                          {teacher.class_count} classes
+                        </Badge>
+                        <Badge variant="outline" className="flex items-center gap-1">
+                          <Users className="h-3 w-3" />
+                          {teacher.student_count} students
+                        </Badge>
+                        <Badge className="bg-blue-600 text-white font-bold">
+                          {teacher.total_score} pts
+                        </Badge>
+                      </div>
+                    </div>
                   </div>
-                ) : (
-                  <div className="text-center text-gray-500 py-8">
-                    <School className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p className="text-lg font-medium">No classes found</p>
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
-        </Tabs>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 

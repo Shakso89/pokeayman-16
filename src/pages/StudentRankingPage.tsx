@@ -1,271 +1,192 @@
 
-import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
-import { NavBar } from '@/components/NavBar';
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Badge } from '@/components/ui/badge';
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Loader2, ArrowLeft, Trophy, Coins, Award, Crown } from 'lucide-react';
-import AvatarBorder from '@/components/student/profile/AvatarBorder';
+import React, { useState, useEffect } from "react";
+import { Navigate } from "react-router-dom";
+import { NavBar } from "@/components/NavBar";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Trophy, Star, Crown, Medal } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
-interface RankingStudent {
+interface StudentRanking {
   id: string;
-  user_id: string;
-  username: string;
   display_name: string;
+  username: string;
   coins: number;
   pokemon_count: number;
   total_score: number;
   avatar_url?: string;
-  class_name?: string;
   school_name?: string;
-  is_star_of_class?: boolean;
-  is_top_of_school?: boolean;
+  achievement?: "star_of_class" | "top_of_school" | null;
 }
 
 const StudentRankingPage: React.FC = () => {
-  const navigate = useNavigate();
-  const [rankings, setRankings] = useState<RankingStudent[]>([]);
+  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+  const userType = localStorage.getItem("userType");
+  const studentId = localStorage.getItem("studentId");
+  const [rankings, setRankings] = useState<StudentRanking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [currentStudentRank, setCurrentStudentRank] = useState<number | null>(null);
-
-  const userType = localStorage.getItem("userType") || "student";
-  const userName = localStorage.getItem("studentDisplayName") || "Student";
-  const currentStudentId = localStorage.getItem("studentId");
-  const schoolId = localStorage.getItem("studentSchoolId");
-
-  const handleBackClick = () => {
-    navigate("/student-dashboard");
-  };
 
   useEffect(() => {
-    const fetchRankings = async () => {
+    if (studentId) {
+      loadRankings();
+    }
+  }, [studentId]);
+
+  const loadRankings = async () => {
+    try {
       setLoading(true);
-      try {
-        console.log("🔍 Fetching student rankings...");
+      
+      // Get all students with their Pokemon counts
+      const { data: students, error: studentsError } = await supabase
+        .from("student_profiles")
+        .select("*");
 
-        const { data: studentsData, error } = await supabase
-          .from('student_profiles')
-          .select(`
-            id,
-            user_id,
-            username,
-            display_name,
-            coins,
-            avatar_url,
-            school_id,
-            class_id
-          `)
-          .eq('school_id', schoolId || 'default-school-1')
-          .order('coins', { ascending: false });
+      if (studentsError) throw studentsError;
 
-        if (error) {
-          console.error("❌ Error fetching students:", error);
-          return;
-        }
+      if (students) {
+        // Get Pokemon counts for each student
+        const studentsWithPokemon = await Promise.all(
+          students.map(async (student) => {
+            const { data: pokemonData } = await supabase
+              .from("student_pokemon_collection")
+              .select("id")
+              .eq("student_id", student.user_id);
 
-        const studentsWithPokemon = await Promise.all((studentsData || []).map(async (student) => {
-          const { data: pokemonData } = await supabase
-            .from('pokemon_collections')
-            .select('id')
-            .eq('student_id', student.user_id);
+            const pokemonCount = pokemonData?.length || 0;
+            const totalScore = (student.coins || 0) + (pokemonCount * 3);
 
-          const pokemonCount = pokemonData?.length || 0;
-          const totalScore = student.coins + (pokemonCount * 3);
-
-          return {
-            ...student,
-            pokemon_count: pokemonCount,
-            total_score: totalScore,
-            class_name: '',
-            school_name: ''
-          };
-        }));
-
-        const sortedStudents = studentsWithPokemon.sort((a, b) => b.total_score - a.total_score);
-        
-        // Add achievement flags
-        const studentsWithAchievements = sortedStudents.map((student, index) => ({
-          ...student,
-          is_top_of_school: index === 0,
-          is_star_of_class: false // This would be determined by teacher selection
-        }));
-
-        setRankings(studentsWithAchievements);
-
-        const currentRank = studentsWithAchievements.findIndex(student => 
-          student.user_id === currentStudentId || student.id === currentStudentId
+            return {
+              id: student.user_id,
+              display_name: student.display_name || student.username,
+              username: student.username,
+              coins: student.coins || 0,
+              pokemon_count: pokemonCount,
+              total_score: totalScore,
+              avatar_url: student.avatar_url,
+              school_name: student.school_name,
+              achievement: null // This would be determined by ranking logic
+            };
+          })
         );
-        
-        if (currentRank !== -1) {
-          setCurrentStudentRank(currentRank + 1);
+
+        // Sort by total score
+        studentsWithPokemon.sort((a, b) => b.total_score - a.total_score);
+
+        // Add achievements for top performers
+        if (studentsWithPokemon.length > 0) {
+          studentsWithPokemon[0].achievement = "top_of_school";
         }
 
-        console.log("✅ Rankings loaded successfully:", studentsWithAchievements.length);
-      } catch (error) {
-        console.error("❌ Error loading rankings:", error);
-      } finally {
-        setLoading(false);
+        setRankings(studentsWithPokemon);
       }
-    };
-
-    fetchRankings();
-  }, [schoolId, currentStudentId]);
+    } catch (error) {
+      console.error("Error loading rankings:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
       case 1:
         return <Crown className="h-6 w-6 text-yellow-500" />;
       case 2:
-        return <Trophy className="h-6 w-6 text-gray-400" />;
+        return <Medal className="h-6 w-6 text-gray-400" />;
       case 3:
-        return <Trophy className="h-6 w-6 text-orange-600" />;
+        return <Medal className="h-6 w-6 text-amber-600" />;
       default:
-        return <span className="text-lg font-bold text-gray-600">#{rank}</span>;
+        return <Trophy className="h-6 w-6 text-gray-300" />;
     }
   };
 
-  const getRankBadgeColor = (rank: number) => {
-    switch (rank) {
-      case 1:
-        return "bg-yellow-500 text-white";
-      case 2:
-        return "bg-gray-400 text-white";
-      case 3:
-        return "bg-orange-600 text-white";
+  const getAchievementBadge = (achievement: string | null) => {
+    switch (achievement) {
+      case "star_of_class":
+        return <Badge className="bg-blue-500"><Star className="h-3 w-3 mr-1" />Star of Class</Badge>;
+      case "top_of_school":
+        return <Badge className="bg-purple-600"><Crown className="h-3 w-3 mr-1" />Top of School</Badge>;
       default:
-        return "bg-gray-200 text-gray-700";
+        return null;
     }
   };
 
-  const getAchievementType = (student: RankingStudent) => {
-    if (student.is_top_of_school) return "top_of_school";
-    if (student.is_star_of_class) return "star_of_class";
-    return null;
-  };
-
-  if (loading) {
-    return (
-      <div className="flex justify-center items-center min-h-screen">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
-      </div>
-    );
+  if (!isLoggedIn || userType !== "student") {
+    return <Navigate to="/student-login" />;
   }
 
   return (
-    <>
-      <NavBar userType={userType as "student"} userName={userName} />
-      <div className="container mx-auto py-8 max-w-4xl px-4">
-        <div className="flex items-center mb-6">
-          <Button variant="ghost" size="icon" onClick={handleBackClick} className="mr-4">
-            <ArrowLeft />
-          </Button>
-          <h1 className="text-3xl font-bold">School Rankings</h1>
-        </div>
-
-        {currentStudentRank && (
-          <Card className="mb-6 bg-gradient-to-r from-blue-500 to-purple-600 text-white">
-            <CardContent className="p-6">
-              <div className="text-center">
-                <h2 className="text-2xl font-bold mb-2">Your Rank</h2>
-                <div className="text-4xl font-bold">#{currentStudentRank}</div>
-                <p className="text-blue-100 mt-2">Keep collecting Pokémon and coins to climb higher!</p>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <Card>
+    <div className="min-h-screen bg-transparent">
+      <NavBar userType="student" userName={localStorage.getItem("studentName") || "Student"} />
+      
+      <div className="container mx-auto py-8 px-4">
+        <Card className="mb-6">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Trophy className="h-6 w-6 text-yellow-500" />
-              School Leaderboard
+              Student Rankings
             </CardTitle>
-            <p className="text-sm text-gray-600">
-              Rankings based on coins + Pokémon collection (each Pokémon = 3 points)
-            </p>
           </CardHeader>
-          <CardContent>
-            {rankings.length > 0 ? (
-              <div className="space-y-4">
-                {rankings.map((student, index) => {
-                  const rank = index + 1;
-                  const isCurrentStudent = student.user_id === currentStudentId || student.id === currentStudentId;
-                  
-                  return (
-                    <div
-                      key={student.id}
-                      className={`flex items-center justify-between p-4 rounded-lg border ${
-                        isCurrentStudent 
-                          ? 'bg-blue-50 border-blue-200 shadow-md' 
-                          : 'bg-white hover:bg-gray-50'
-                      }`}
-                    >
-                      <div className="flex items-center gap-4">
-                        <div className="flex items-center justify-center w-12 h-12">
-                          {getRankIcon(rank)}
-                        </div>
-                        
-                        <AvatarBorder achievement={getAchievementType(student)}>
-                          <Avatar className="h-12 w-12">
-                            <AvatarImage src={student.avatar_url} />
-                            <AvatarFallback>
-                              {student.display_name?.[0] || student.username?.[0] || '?'}
-                            </AvatarFallback>
-                          </Avatar>
-                        </AvatarBorder>
-                        
-                        <div>
-                          <h3 className="font-semibold text-lg">
-                            {student.display_name || student.username}
-                            {isCurrentStudent && (
-                              <Badge variant="secondary" className="ml-2">You</Badge>
-                            )}
-                          </h3>
-                          <p className="text-gray-600">@{student.username}</p>
-                        </div>
+        </Card>
+
+        {loading ? (
+          <div className="flex justify-center py-8">
+            <p className="text-gray-500">Loading rankings...</p>
+          </div>
+        ) : rankings.length === 0 ? (
+          <Card>
+            <CardContent className="py-8 text-center">
+              <p className="text-gray-500">No rankings available yet.</p>
+            </CardContent>
+          </Card>
+        ) : (
+          <div className="space-y-4">
+            {rankings.map((student, index) => (
+              <Card key={student.id} className={`${index < 3 ? 'border-yellow-200 bg-gradient-to-r from-yellow-50 to-amber-50' : ''} ${student.id === studentId ? 'ring-2 ring-blue-500' : ''}`}>
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="flex items-center gap-2">
+                        {getRankIcon(index + 1)}
+                        <span className="font-bold text-2xl">#{index + 1}</span>
                       </div>
                       
-                      <div className="flex items-center gap-6">
-                        <div className="text-center">
-                          <div className="flex items-center gap-1">
-                            <Coins className="h-4 w-4 text-yellow-500" />
-                            <span className="font-semibold">{student.coins}</span>
-                          </div>
-                          <p className="text-xs text-gray-500">Coins</p>
+                      <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-full bg-gray-200 flex items-center justify-center">
+                          {student.avatar_url ? (
+                            <img src={student.avatar_url} alt={student.display_name} className="w-12 h-12 rounded-full" />
+                          ) : (
+                            <span className="text-lg font-bold">{student.display_name.charAt(0).toUpperCase()}</span>
+                          )}
                         </div>
                         
-                        <div className="text-center">
-                          <div className="flex items-center gap-1">
-                            <Award className="h-4 w-4 text-purple-500" />
-                            <span className="font-semibold">{student.pokemon_count}</span>
-                          </div>
-                          <p className="text-xs text-gray-500">Pokémon</p>
-                        </div>
-                        
-                        <div className="text-center">
-                          <div className={`px-3 py-1 rounded-full text-sm font-bold ${getRankBadgeColor(rank)}`}>
-                            {student.total_score} pts
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">Total</p>
+                        <div>
+                          <h3 className="font-semibold text-lg">{student.display_name}</h3>
+                          <p className="text-sm text-gray-500">@{student.username}</p>
+                          {student.school_name && (
+                            <p className="text-xs text-gray-400">{student.school_name}</p>
+                          )}
                         </div>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <Trophy className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                <p className="text-gray-500">No rankings available yet</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+
+                    <div className="text-right">
+                      <div className="flex items-center gap-4 mb-2">
+                        <Badge variant="outline">{student.coins} coins</Badge>
+                        <Badge variant="outline">{student.pokemon_count} Pokémon</Badge>
+                        <Badge className="bg-green-600 text-white font-bold">
+                          {student.total_score} pts
+                        </Badge>
+                      </div>
+                      {getAchievementBadge(student.achievement)}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
-    </>
+    </div>
   );
 };
 

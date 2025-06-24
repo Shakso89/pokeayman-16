@@ -43,7 +43,16 @@ const StudentDashboard: React.FC = () => {
   const coins = studentInfo?.coins || 0;
   const spentCoins = 0; // This would need to be calculated if needed
 
-  const studentClasses = profile?.class_id ? profile.class_id.split(',') : [];
+  // Parse class IDs - handle both single class and comma-separated classes
+  const studentClasses = profile?.class_id ? 
+    (typeof profile.class_id === 'string' ? profile.class_id.split(',').filter(Boolean) : [profile.class_id]) 
+    : [];
+
+  console.log("Student classes parsed:", { 
+    rawClassId: profile?.class_id, 
+    parsedClasses: studentClasses,
+    studentInfo: profile 
+  });
 
   const refreshData = () => {
     // This would trigger a re-fetch of student data
@@ -54,7 +63,8 @@ const StudentDashboard: React.FC = () => {
     console.log("StudentDashboard loaded with:", {
       studentId,
       schoolId,
-      profileClassId: profile?.class_id
+      profileClassId: profile?.class_id,
+      parsedClasses: studentClasses
     });
 
     const tabParam = searchParams.get('tab');
@@ -69,7 +79,6 @@ const StudentDashboard: React.FC = () => {
 
   const loadActiveBattles = () => {
     if (!studentId || !schoolId) return; 
-    const studentClasses = profile?.class_id ? profile.class_id.split(',') : [];
 
     const savedBattles = localStorage.getItem("battles");
     const allBattles = savedBattles ? JSON.parse(savedBattles) : [];
@@ -148,7 +157,7 @@ const StudentDashboard: React.FC = () => {
         />
         
         <div className="flex justify-end mt-4">
-          <Link to="/student/rankings">
+          <Link to="/student-ranking">
             <Button variant="outline" className="bg-orange-500 hover:bg-orange-600 text-white font-bold text-sm md:text-lg rounded-full shadow-md border-2 border-orange-300 flex items-center gap-2 transform hover:scale-105 transition-all">
               <Trophy className="h-4 w-4 md:h-5 md:w-5" />
               {t("rankings")}
@@ -204,6 +213,10 @@ const StudentDashboard: React.FC = () => {
                 <Card>
                   <CardContent className="py-8 text-center">
                     <p className="text-gray-500">You are not enrolled in any class yet, so you can't see homework assignments.</p>
+                    <p className="text-sm text-gray-400 mt-2">
+                      Debug info: Profile class_id = {profile?.class_id || 'null'}, 
+                      Parsed classes = {JSON.stringify(studentClasses)}
+                    </p>
                   </CardContent>
                 </Card>
               )}
