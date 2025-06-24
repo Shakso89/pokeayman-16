@@ -1,12 +1,12 @@
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth } from '@/hooks/useAuth';
+import { useSecureLogout } from '@/hooks/useSecureLogout';
 import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const LogoutPage: React.FC = () => {
-  const { logout } = useAuth();
+  const { secureLogout } = useSecureLogout();
   const navigate = useNavigate();
   const [hasStarted, setHasStarted] = useState(false);
 
@@ -20,15 +20,10 @@ const LogoutPage: React.FC = () => {
       try {
         console.log("LogoutPage: Starting logout process...");
         
-        // Call the logout function and wait for it
-        await logout();
+        // Call the secure logout function
+        await secureLogout();
         
-        console.log("LogoutPage: Logout completed, redirecting...");
-        
-        // Small delay to ensure state is cleared
-        setTimeout(() => {
-          navigate('/', { replace: true });
-        }, 1000);
+        console.log("LogoutPage: Logout completed");
         
       } catch (error: unknown) {
         console.error("LogoutPage: Logout error:", error);
@@ -54,7 +49,7 @@ const LogoutPage: React.FC = () => {
     return () => {
       clearTimeout(safetyTimeout);
     };
-  }, [logout, navigate, hasStarted]);
+  }, [secureLogout, navigate, hasStarted]);
 
   return (
     <motion.div 

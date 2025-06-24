@@ -2,7 +2,7 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { LogOut, MessageSquare, UserCog, Home, Medal, School, Bell } from "lucide-react";
+import { LogOut, MessageSquare, UserCog, Home, Medal } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import UserSettingsModal from "./modals/UserSettingsModal";
@@ -29,6 +29,7 @@ export const NavBar: React.FC<NavBarProps> = ({
   const { secureLogout, isLoggingOut } = useSecureLogout();
 
   const handleLogout = async () => {
+    console.log('NavBar: Initiating logout for', userType);
     await secureLogout();
   };
 
@@ -52,7 +53,6 @@ export const NavBar: React.FC<NavBarProps> = ({
         navigate(`/teacher-profile/${teacherId}`);
       } else {
         console.error("Teacher ID not found in localStorage");
-        // Fallback to general teacher profile route
         navigate("/teacher-profile");
       }
     } else {
@@ -61,7 +61,7 @@ export const NavBar: React.FC<NavBarProps> = ({
         navigate(`/student-profile/${studentId}`);
       } else {
         console.error("Student ID not found in localStorage");
-        // Try to get from current user session or show error
+        navigate("/student-dashboard");
       }
     }
   };

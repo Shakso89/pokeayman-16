@@ -23,25 +23,33 @@ const StudentRankingPage: React.FC = () => {
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
   const userType = localStorage.getItem("userType");
   const studentId = localStorage.getItem("studentId");
+  const studentName = localStorage.getItem("studentName") || "Student";
+  const studentAvatar = localStorage.getItem("studentAvatar");
+  const schoolId = localStorage.getItem("studentSchoolId");
   const [rankings, setRankings] = useState<StudentRanking[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (studentId) {
+    if (schoolId || studentId) {
       loadRankings();
     }
-  }, [studentId]);
+  }, [schoolId, studentId]);
 
   const loadRankings = async () => {
     try {
       setLoading(true);
+      console.log("Loading student rankings for school:", schoolId);
       
-      // Get all students with their Pokemon counts
+      // Get all students with their Pokemon counts from the same school
       const { data: students, error: studentsError } = await supabase
         .from("student_profiles")
-        .select("*");
+        .select("*")
+        .eq("school_id", schoolId || "default-school-1");
 
-      if (studentsError) throw studentsError;
+      if (studentsError) {
+        console.error("Error fetching students:", studentsError);
+        throw studentsError;
+      }
 
       if (students) {
         // Get Pokemon counts for each student
@@ -78,6 +86,7 @@ const StudentRankingPage: React.FC = () => {
         }
 
         setRankings(studentsWithPokemon);
+        console.log("Rankings loaded successfully:", studentsWithPokemon.length, "students");
       }
     } catch (error) {
       console.error("Error loading rankings:", error);
@@ -116,7 +125,7 @@ const StudentRankingPage: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-transparent">
-      <NavBar userType="student" userName={localStorage.getItem("studentName") || "Student"} />
+      <NavBar userType="student" userName={studentName} userAvatar={studentAvatar} />
       
       <div className="container mx-auto py-8 px-4">
         <Card className="mb-6">

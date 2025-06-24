@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -19,56 +20,105 @@ const StudentProfilePage: React.FC = () => {
 
   const currentUserId = localStorage.getItem("studentId");
   const userType = localStorage.getItem("userType") as "teacher" | "student";
+  const userName = localStorage.getItem("studentName") || localStorage.getItem("teacherName") || "User";
 
   useEffect(() => {
-    if (studentId) fetchStudentProfile();
+    if (studentId) {
+      fetchStudentProfile();
+    }
   }, [studentId]);
 
   const fetchStudentProfile = async () => {
     setLoading(true);
     try {
-      const { data: studentData, error: studentError } = await supabase
-        .from("students")
+      console.log("Fetching student profile for ID:", studentId);
+
+      // First try student_profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from("student_profiles")
         .select("*")
-        .eq("id", studentId)
+        .eq("user_id", studentId)
         .single();
 
-      if (studentError || !studentData) throw studentError;
+      let studentData = null;
 
+      if (profileError || !profileData) {
+        console.log("Profile not found, trying students table");
+        // Fallback to students table
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from("students")
+          .select("*")
+          .eq("id", studentId)
+          .single();
+
+        if (fallbackError || !fallbackData) {
+          console.error("Student not found in either table");
+          throw new Error("Student not found");
+        }
+
+        studentData = {
+          id: fallbackData.id,
+          user_id: fallbackData.user_id,
+          username: fallbackData.username,
+          display_name: fallbackData.display_name || fallbackData.username,
+          coins: fallbackData.coins || 0,
+          avatar_url: fallbackData.profile_photo,
+          school_name: fallbackData.school_name,
+          created_at: fallbackData.created_at
+        };
+      } else {
+        studentData = profileData;
+      }
+
+      // Get Pokemon collection
       const { data: pokemonData } = await supabase
-        .from("pokemon_collections")
-        .select("*, pokemon_catalog(*)")
+        .from("student_pokemon_collection")
+        .select(`
+          *,
+          pokemon_pool (
+            id,
+            name,
+            image_url,
+            type_1,
+            type_2,
+            rarity,
+            power_stats
+          )
+        `)
         .eq("student_id", studentId);
 
+      // Get homework submissions count
       const { data: homeworkData } = await supabase
         .from("homework_submissions")
         .select("id")
         .eq("student_id", studentId);
 
+      // Get achievements
       const { data: achievementsData } = await supabase
         .from("achievements")
         .select("*")
         .eq("student_id", studentId);
 
       const pokemonList = pokemonData?.map(p => ({
-        id: p.pokemon_catalog.id,
-        name: p.pokemon_catalog.name,
-        image: p.pokemon_catalog.image,
-        type: p.pokemon_catalog.type,
-        rarity: p.pokemon_catalog.rarity,
-        powerStats: p.pokemon_catalog.power_stats,
+        id: p.pokemon_pool.id,
+        name: p.pokemon_pool.name,
+        image: p.pokemon_pool.image_url,
+        type: p.pokemon_pool.type_1,
+        rarity: p.pokemon_pool.rarity,
+        powerStats: p.pokemon_pool.power_stats,
       })) || [];
 
       setStudent({
         ...studentData,
         displayName: studentData.display_name || studentData.username,
-        isOwnProfile: currentUserId === studentData.id,
+        isOwnProfile: currentUserId === studentData.user_id || currentUserId === studentData.id,
         pokemonCount: pokemonList.length,
         homeworkCount: homeworkData?.length || 0,
         achievements: achievementsData || []
       });
 
       setPokemon(pokemonList);
+      console.log("Student profile loaded successfully");
     } catch (err) {
       console.error("Error loading profile:", err);
       setStudent(null);
@@ -78,16 +128,26 @@ const StudentProfilePage: React.FC = () => {
   };
 
   if (loading) {
-    return <div className="min-h-screen flex items-center justify-center text-lg">Loading profile...</div>;
+    return (
+      <div className="min-h-screen bg-transparent">
+        <NavBar userType={userType} userName={userName} />
+        <div className="min-h-screen flex items-center justify-center text-lg">Loading profile...</div>
+      </div>
+    );
   }
 
   if (!student) {
-    return <div className="min-h-screen flex items-center justify-center text-lg">Student not found.</div>;
+    return (
+      <div className="min-h-screen bg-transparent">
+        <NavBar userType={userType} userName={userName} />
+        <div className="min-h-screen flex items-center justify-center text-lg">Student not found.</div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-transparent">
-      <NavBar userType={userType} userName={student.displayName} />
+      <NavBar userType={userType} userName={userName} />
       <div className="container mx-auto py-8 px-4">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-4">
@@ -113,7 +173,7 @@ const StudentProfilePage: React.FC = () => {
           <CardContent className="pt-6">
             <div className="flex items-center space-x-4">
               <Avatar className="h-20 w-20">
-                <AvatarImage src={student.avatar} />
+                <AvatarImage src={student.avatar_url} />
                 <AvatarFallback>{student.displayName?.slice(0, 2).toUpperCase()}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
