@@ -1,4 +1,3 @@
-
 import { HomeIcon, Users, BookOpen, Trophy, MessageSquare, Settings } from "lucide-react";
 import Index from "./pages/Index.jsx";
 import StudentDashboard from "./pages/StudentDashboard";
@@ -84,7 +83,7 @@ export const navItems = [
     page: <TeacherProfilePage />,
   },
   {
-    title: "Student Rankings",
+    title: "Student Rankings Legacy",
     to: "/student/rankings",
     icon: <Trophy className="h-4 w-4" />,
     page: <StudentRankingsPage />,

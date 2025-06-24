@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
@@ -18,6 +19,7 @@ interface StudentProfileProps {
   pokemonCount: number;
   battlesCount: number;
   schoolRanking: number | null;
+  achievement?: "star_of_class" | "top_of_school" | null;
   onGiveCoins: () => void;
 }
 
@@ -28,6 +30,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
   pokemonCount,
   battlesCount,
   schoolRanking,
+  achievement,
   onGiveCoins,
 }) => {
   const { t } = useTranslation();
@@ -40,7 +43,6 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
   const [teacherName, setTeacherName] = useState<string>("Loading...");
   
   useEffect(() => {
-    // Fetch school and teacher information
     if (student.schoolId) {
       getSchoolName(student.schoolId).then(setSchoolName);
     }
@@ -59,12 +61,10 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
         students[studentIndex].avatar = imageDataUrl;
         localStorage.setItem("students", JSON.stringify(students));
         
-        // Update page without reload
         if (isOwnProfile) {
           localStorage.setItem("studentAvatar", imageDataUrl);
         }
         
-        // Force reload to update avatar everywhere
         window.location.reload();
       }
     } catch (error) {
@@ -73,27 +73,20 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
   };
 
   const handleSendMessage = () => {
-    // Navigate to messages page with this student selected
     navigate(userType === "teacher" ? "/teacher/messages" : "/student/messages");
-    
-    // Store the selected contact in localStorage for the messages page to use
     localStorage.setItem("selectedContactId", student.id);
     localStorage.setItem("selectedContactType", "student");
   };
 
   const handleViewProfile = () => {
     if (userType === "teacher") {
-      // Navigate to the correct teacher view route for student profile
-      navigate(`/teacher/student/${student.id}`);
+      navigate(`/student/${student.id}`);
     } else {
-      // For student view, navigate to their own profile page
-      navigate(`/student/profile/${student.id}`);
+      navigate(`/student-profile/${student.id}`);
     }
   };
   
   const handleOpenSettings = () => {
-    // For demonstration purposes, we'll just show a toast
-    // In a real implementation, this would open a settings modal
     import("sonner").then(({ toast }) => {
       toast("Settings would open here");
     });
@@ -110,6 +103,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
             avatar={student.avatar}
             displayName={student.displayName}
             isOwnProfile={isOwnProfile}
+            achievement={achievement}
             onAvatarChange={handleAvatarChange}
             onViewProfile={handleViewProfile}
           />
@@ -137,6 +131,7 @@ const StudentProfile: React.FC<StudentProfileProps> = ({
             isOwnProfile={isOwnProfile}
             isTeacherView={userType === "teacher"}
             studentId={student.id}
+            studentName={student.displayName}
             onGiveCoins={onGiveCoins}
             onSendMessage={handleSendMessage}
             onOpenSettings={handleOpenSettings}
