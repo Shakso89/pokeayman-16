@@ -47,6 +47,8 @@ export function useTeacherProfile(teacherId?: string) {
     setError(null);
 
     try {
+      console.log("Fetching teacher profile for ID:", teacherId);
+
       // 1. Fetch Teacher Data
       const { data: teacherData, error: teacherError } = await supabase
         .from("teachers")
@@ -76,6 +78,8 @@ export function useTeacherProfile(teacherId?: string) {
         return;
       }
 
+      console.log("Teacher data fetched:", teacherData);
+
       // 2. Fetch Classes associated with this teacher
       const { data: classesData, error: classesError } = await supabase
         .from("classes")
@@ -87,6 +91,8 @@ export function useTeacherProfile(teacherId?: string) {
         console.error("Error fetching classes:", classesError.message);
       }
 
+      console.log("Classes data fetched:", classesData);
+
       // 3. Fetch Student Count
       const { count: studentsCount, error: studentCountError } = await supabase
         .from("students")
@@ -96,6 +102,8 @@ export function useTeacherProfile(teacherId?: string) {
       if (studentCountError) {
         console.error("Error fetching student count:", studentCountError.message);
       }
+
+      console.log("Student count:", studentsCount);
 
       // Consolidate data into TeacherProfileData format
       const normalizedTeacher: TeacherProfileData = {
@@ -108,6 +116,8 @@ export function useTeacherProfile(teacherId?: string) {
         classes: classesData || [],
         socialLinks: (teacherData.social_links as SocialLinks | null) || undefined,
       };
+
+      console.log("Normalized teacher data:", normalizedTeacher);
 
       setTeacher(normalizedTeacher);
       setEditData(normalizedTeacher);

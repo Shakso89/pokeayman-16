@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -43,6 +44,8 @@ export const useStudentProfile = (studentId: string | undefined) => {
     setIsLoading(true);
     setError(null);
     try {
+      console.log("Fetching student profile for ID:", studentId);
+
       // Fetch from students table with school join
       const { data: studentData, error: dbError } = await supabase
         .from('students')
@@ -68,6 +71,8 @@ export const useStudentProfile = (studentId: string | undefined) => {
         return;
       }
 
+      console.log("Student data fetched:", studentData);
+
       if (studentData) {
         // Properly extract school name from the schools relation
         const schoolName = studentData.schools && typeof studentData.schools === 'object' && !Array.isArray(studentData.schools) 
@@ -86,6 +91,9 @@ export const useStudentProfile = (studentId: string | undefined) => {
           photos: [],
           pokemonCollection: []
         };
+
+        console.log("Normalized student data:", normalizedStudent);
+
         setStudent(normalizedStudent);
         setEditData({
           displayName: normalizedStudent.displayName,
@@ -117,6 +125,8 @@ export const useStudentProfile = (studentId: string | undefined) => {
   const fetchStudentPokemon = useCallback(async () => {
     if (!studentId) return;
     try {
+      console.log("Fetching Pokemon for student:", studentId);
+
       const { data, error } = await supabase
         .from('student_pokemon_collection')
         .select(`
@@ -132,6 +142,9 @@ export const useStudentProfile = (studentId: string | undefined) => {
           name: item.pokemon_pool.name,
           imageUrl: item.pokemon_pool.image_url,
         })) || [];
+
+        console.log("Pokemon collection fetched:", pokemons);
+
         setStudent(prev => prev ? { ...prev, pokemonCollection: pokemons } : null);
       }
     } catch (err) {
