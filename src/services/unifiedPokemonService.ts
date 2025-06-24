@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 
 export interface PokemonFromPool {
@@ -132,16 +131,31 @@ export const assignRandomPokemonToStudent = async (studentId: string): Promise<{
 export const awardPokemonToStudent = async (
   studentId: string,
   pokemonId: string,
-  source: 'mystery_ball' | 'teacher_award' | 'shop_purchase' = 'teacher_award',
+  source: 'mystery_ball' | 'teacher_award' | 'shop_purchase' = 'teacher_ball',
   awardedBy?: string
 ): Promise<boolean> => {
   try {
     console.log("🎁 Awarding Pokémon to student:", { studentId, pokemonId, source });
 
+    // First, let's make sure we're using the correct student ID (user_id vs id)
+    const { data: studentData, error: studentError } = await supabase
+      .from("students")
+      .select("id, user_id")
+      .or(`id.eq.${studentId},user_id.eq.${studentId}`)
+      .single();
+
+    if (studentError || !studentData) {
+      console.error("❌ Student not found:", studentError);
+      return false;
+    }
+
+    const actualStudentId = studentData.user_id || studentData.id;
+    console.log("🔍 Using student ID:", actualStudentId);
+
     const { error } = await supabase
       .from('student_pokemon_collection')
       .insert({
-        student_id: studentId,
+        student_id: actualStudentId,
         pokemon_id: pokemonId,
         source,
         awarded_by: awardedBy
@@ -169,7 +183,7 @@ export const purchasePokemonFromShop = async (
   try {
     console.log("🛒 Purchasing Pokémon from shop:", { studentId, pokemonId, cost });
 
-    // Award the Pokémon
+    // Award the Pokémon with proper student ID handling
     const success = await awardPokemonToStudent(studentId, pokemonId, 'shop_purchase');
     
     if (success) {

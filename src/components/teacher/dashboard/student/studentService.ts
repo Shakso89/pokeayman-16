@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { getValidUUID } from "./studentUtils";
@@ -132,7 +131,7 @@ export const createStudent = async (
     
     console.log("Creating student in database with teacherId:", validTeacherId, "and schoolId:", studentData.schoolId);
     
-    // Create student with school_id
+    // Create student with school_id - IMPORTANT: this is where we need to ensure class_id gets set
     const { data, error } = await supabase
       .from('students')
       .insert({
@@ -141,6 +140,7 @@ export const createStudent = async (
         display_name: studentData.displayName,
         teacher_id: validTeacherId,
         school_id: studentData.schoolId,
+        // Note: class_id will be set when student is added to a class
         is_active: true,
         created_at: new Date().toISOString()
       })
@@ -168,6 +168,7 @@ export const createStudent = async (
           display_name: studentData.displayName,
           teacher_id: validTeacherId,
           school_id: studentData.schoolId,
+          // Note: class_id will be set when student is added to a class
           coins: 0,
           spent_coins: 0
         });
@@ -184,7 +185,7 @@ export const createStudent = async (
     
     toast({
       title: "Student Created",
-      description: `Successfully created student account for ${studentData.displayName} in the selected school`
+      description: `Successfully created student account for ${studentData.displayName}. Add them to a class to assign class ID automatically.`
     });
     
     return {

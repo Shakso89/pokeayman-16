@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { assignPokemonFromPool } from "./schoolPokemonService";
 
@@ -38,7 +37,7 @@ export interface MysteryBallHistoryRecord {
   created_at: string;
 }
 
-// Get or create student profile - now properly handles the user_id column
+// Get or create student profile - now properly handles the user_id column and class_id assignment
 export const getOrCreateStudentProfile = async (
   userId: string,
   classId?: string,
@@ -66,11 +65,19 @@ export const getOrCreateStudentProfile = async (
         id: student.id,
         user_id: student.user_id,
         username: student.username,
-        coins: student.coins || 0
+        coins: student.coins || 0,
+        class_id: student.class_id
       });
       
+      // If classId is provided and student doesn't have one, update it
+      if (classId && !student.class_id) {
+        console.log("📝 Updating student with class_id:", classId);
+        await updateStudentClassId(student.id, classId);
+        student.class_id = classId;
+      }
+      
       // Ensure student profile exists in student_profiles table
-      await ensureStudentProfileExists(student);
+      await ensureStudentProfileExists(student, classId, schoolId);
       
       return {
         id: student.id,
@@ -100,7 +107,14 @@ export const getOrCreateStudentProfile = async (
           username: studentById.username
         });
         
-        await ensureStudentProfileExists(studentById);
+        // If classId is provided and student doesn't have one, update it
+        if (classId && !studentById.class_id) {
+          console.log("📝 Updating student with class_id:", classId);
+          await updateStudentClassId(studentById.id, classId);
+          studentById.class_id = classId;
+        }
+        
+        await ensureStudentProfileExists(studentById, classId, schoolId);
         
         return {
           id: studentById.id,
@@ -126,10 +140,30 @@ export const getOrCreateStudentProfile = async (
   }
 };
 
+// New function to update student class_id
+const updateStudentClassId = async (studentId: string, classId: string): Promise<void> => {
+  try {
+    const { error } = await supabase
+      .from("students")
+      .update({ class_id: classId })
+      .eq("id", studentId);
+
+    if (error) {
+      console.error("❌ Error updating student class_id:", error);
+    } else {
+      console.log("✅ Student class_id updated successfully");
+    }
+  } catch (error) {
+    console.error("❌ Error in updateStudentClassId:", error);
+  }
+};
+
 // Ensure student profile exists in student_profiles table
-const ensureStudentProfileExists = async (student: any): Promise<void> => {
+const ensureStudentProfileExists = async (student: any, classId?: string, schoolId?: string): Promise<void> => {
   try {
     const userId = student.user_id || student.id;
+    const finalClassId = classId || student.class_id;
+    const finalSchoolId = schoolId || student.school_id;
     
     // Check if profile exists
     const { data: existingProfile } = await supabase
@@ -147,8 +181,8 @@ const ensureStudentProfileExists = async (student: any): Promise<void> => {
           user_id: userId,
           username: student.username,
           display_name: student.display_name || student.username,
-          school_id: student.school_id,
-          class_id: student.class_id,
+          school_id: finalSchoolId,
+          class_id: finalClassId,
           coins: student.coins || 0,
           spent_coins: 0
         });
@@ -157,6 +191,26 @@ const ensureStudentProfileExists = async (student: any): Promise<void> => {
         console.error("❌ Error creating student profile:", insertError);
       } else {
         console.log("✅ Student profile created successfully");
+      }
+    } else {
+      // Update existing profile with class_id if provided
+      if (finalClassId || finalSchoolId) {
+        console.log("📝 Updating existing student profile with class/school info");
+        
+        const updateData: any = {};
+        if (finalClassId) updateData.class_id = finalClassId;
+        if (finalSchoolId) updateData.school_id = finalSchoolId;
+        
+        const { error: updateError } = await supabase
+          .from("student_profiles")
+          .update(updateData)
+          .eq("user_id", userId);
+
+        if (updateError) {
+          console.error("❌ Error updating student profile:", updateError);
+        } else {
+          console.log("✅ Student profile updated successfully");
+        }
       }
     }
   } catch (error) {
