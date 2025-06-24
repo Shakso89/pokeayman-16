@@ -131,7 +131,7 @@ export const assignRandomPokemonToStudent = async (studentId: string): Promise<{
 export const awardPokemonToStudent = async (
   studentId: string,
   pokemonId: string,
-  source: 'mystery_ball' | 'teacher_award' | 'shop_purchase' = 'teacher_ball',
+  source: 'mystery_ball' | 'teacher_award' | 'shop_purchase' = 'teacher_award',
   awardedBy?: string
 ): Promise<boolean> => {
   try {
