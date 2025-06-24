@@ -54,7 +54,7 @@ const StudentsManagement: React.FC<StudentsManagementProps> = ({
           display_name,
           created_at,
           school_id,
-          schools:school_id (name)
+          schools!inner (name)
         `)
         .eq('teacher_id', teacherId)
         .eq('is_active', true)
@@ -81,7 +81,7 @@ const StudentsManagement: React.FC<StudentsManagementProps> = ({
           id: student.id,
           username: student.username,
           display_name: student.display_name || student.username,
-          school_name: student.schools?.name || "No School",
+          school_name: (student.schools as any)?.name || "No School",
           coins: profilesMap.get(student.id)?.coins || 0,
           created_at: student.created_at
         }));
