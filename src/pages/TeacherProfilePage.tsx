@@ -125,7 +125,7 @@ const TeacherProfilePage: React.FC = () => {
                 </Button>
               </>}
             {!isOwner && <>
-                <Button variant="outline">
+                <Button variant="outline" className="bg-transparent">
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Message
                 </Button>
