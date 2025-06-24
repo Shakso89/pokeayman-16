@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback, useMemo } from "react";
 import { NavBar } from "@/components/NavBar";
 import { Badge } from "@/components/ui/badge";
@@ -80,7 +81,7 @@ const RankingPage: React.FC = () => {
   }, []);
 
   const fetchStudentProfilesAndPokemonCounts = useCallback(async (
-    profileQuery: ReturnType<typeof supabase['from']['student_profiles']['select']>,
+    profileQuery: ReturnType<typeof supabase['from']['students']['select']>,
     limitResults: number | null = null
   ): Promise<StudentWithRank[]> => {
     const { data: profilesData, error: profilesError } = await profileQuery;
@@ -119,7 +120,7 @@ const RankingPage: React.FC = () => {
         schoolId: s.school_id || '',
         createdAt: new Date().toISOString(), // This might be better fetched from DB if actual creation date is needed
         classId: s.class_id,
-        avatar: s.avatar_url || undefined,
+        avatar: s.profile_photo || undefined,
         pokemonCount: pokemonCount,
         coins: coins,
         totalScore,
@@ -173,7 +174,7 @@ const RankingPage: React.FC = () => {
       // Fetch students for each class concurrently
       const classStudentsPromises = schoolClasses.map(async (cls) => {
         const students = await fetchStudentProfilesAndPokemonCounts(
-          supabase.from('student_profiles').select('id, user_id, display_name, username, teacher_id, class_id, avatar_url, coins').eq('class_id', cls.id),
+          supabase.from('students').select('id, user_id, display_name, username, teacher_id, class_id, profile_photo, coins').eq('class_id', cls.id),
           10 // Limit to top 10 per class
         );
         return { classId: cls.id, students };
@@ -205,7 +206,7 @@ const RankingPage: React.FC = () => {
     setError(null); // Clear errors
     try {
       const students = await fetchStudentProfilesAndPokemonCounts(
-        supabase.from('student_profiles').select('id, user_id, display_name, username, teacher_id, class_id, school_id, avatar_url, coins').eq('school_id', schoolId),
+        supabase.from('students').select('id, user_id, display_name, username, teacher_id, class_id, school_id, profile_photo, coins').eq('school_id', schoolId),
         20 // Limit to top 20 for school ranking
       );
       setSchoolStudents(students);
@@ -471,7 +472,7 @@ const RankingPage: React.FC = () => {
                 <Card
                   key={school.id}
                   className="cursor-pointer transform transition-transform duration-200 hover:scale-[1.02] hover:shadow-lg flex flex-col"
-                  onClick={() => selectSchool(school)}
+                  onClick={() => setSelectedSchool(school)}
                 >
                   <CardHeader className="pb-2 flex-grow">
                     <CardTitle className="flex items-center gap-2 text-xl">
