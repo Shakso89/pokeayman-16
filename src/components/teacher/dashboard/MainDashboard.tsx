@@ -32,7 +32,9 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
   const {
     submissions,
     activeHomework,
-    archivedHomework
+    archivedHomework,
+    classes,
+    loadHomework
   } = useHomeworkManagement(teacherId);
 
   const pendingSubmissions = submissions.filter(sub => sub.status === 'pending').length;
@@ -60,12 +62,13 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
           teacherId={teacherId}
           onAddStudent={onAddStudent}
           onManageClasses={onManageClasses}
+          onNavigateToClass={onNavigateToClass}
           isAdmin={isAdmin}
         />
         <RecentClasses 
-          teacherId={teacherId}
+          classes={classes}
+          loading={false}
           onNavigateToClass={onNavigateToClass}
-          onCreateClass={onCreateClass}
         />
       </TabsContent>
 
