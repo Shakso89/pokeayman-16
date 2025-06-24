@@ -4,6 +4,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Badge } from "@/components/ui/badge";
 import DashboardCards from "./DashboardCards";
 import RecentClasses from "./RecentClasses";
+import StudentsManagement from "./StudentsManagement";
 import { useHomeworkManagement } from "../homework/hooks/useHomeworkManagement";
 import TeacherHomeworkManagement from "../homework/TeacherHomeworkManagement";
 
@@ -36,6 +37,8 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
     classes,
     loadHomework
   } = useHomeworkManagement(teacherId);
+
+  const [teacherData, setTeacherData] = useState<any>(null);
 
   const pendingSubmissions = submissions.filter(sub => sub.status === 'pending').length;
 
@@ -73,9 +76,11 @@ const MainDashboard: React.FC<MainDashboardProps> = ({
       </TabsContent>
 
       <TabsContent value="students" className="space-y-6">
-        <div className="text-center py-8">
-          <p className="text-gray-500">Student management features coming soon...</p>
-        </div>
+        <StudentsManagement
+          teacherId={teacherId}
+          teacherData={teacherData}
+          onTeacherDataUpdate={setTeacherData}
+        />
       </TabsContent>
 
       <TabsContent value="homework" className="space-y-6">
