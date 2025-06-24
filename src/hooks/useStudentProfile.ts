@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from "react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
@@ -70,7 +69,11 @@ export const useStudentProfile = (studentId: string | undefined) => {
       }
 
       if (studentData) {
-        const schoolName = (studentData.schools as { name: string } | null)?.name || "No School Assigned";
+        // Properly extract school name from the schools relation
+        const schoolName = studentData.schools && typeof studentData.schools === 'object' && !Array.isArray(studentData.schools) 
+          ? (studentData.schools as { name: string }).name 
+          : "No School Assigned";
+          
         const normalizedStudent: Student = {
           id: studentData.id,
           username: studentData.username,
