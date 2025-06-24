@@ -11,6 +11,8 @@ import StudentDetailPage from "./pages/StudentDetailPage";
 import StudentProfilePage from "./pages/StudentProfilePage";
 import TeacherProfilePage from "./pages/TeacherProfilePage";
 import StudentRankingsPage from "./pages/StudentRankingsPage";
+import StudentRankingPage from "./pages/StudentRankingPage";
+import TeacherRankingPage from "./pages/TeacherRankingPage";
 import Messages from "./pages/Messages";
 import AdminDashboard from "./pages/AdminDashboard";
 
