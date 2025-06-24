@@ -12,7 +12,9 @@ export const useHomeworkManagement = (teacherId: string) => {
     submissions,
     setSubmissions,
     classes,
-    setClasses
+    setClasses,
+    loadHomework,
+    loadSubmissions
   } = useHomeworkData(teacherId);
 
   // UI state management
@@ -33,23 +35,33 @@ export const useHomeworkManagement = (teacherId: string) => {
   } = useHomeworkUIState();
 
   // Homework operations
-  const { handleHomeworkCreated, handleDeleteHomework } = useHomeworkOperations();
+  const { handleHomeworkCreated, handleDeleteHomework, handleCreateHomework: createHomework } = useHomeworkOperations();
 
   // Submission operations
   const { handleApproveSubmission, handleRejectSubmission } = useSubmissionOperations();
 
   // Create wrapped handlers that include state setters
-  const wrappedHandleHomeworkCreated = (homework: any) => 
+  const wrappedHandleHomeworkCreated = (homework: any) => {
     handleHomeworkCreated(homework, setHomework);
+    loadSubmissions(); // Reload submissions after creating homework
+  };
 
   const wrappedHandleDeleteHomework = (homeworkId: string) => 
     handleDeleteHomework(homeworkId, setHomework, setSubmissions);
 
   const wrappedHandleApproveSubmission = (submission: any) => 
-    handleApproveSubmission(submission, homework, setSubmissions);
+    handleApproveSubmission(submission, homework, setSubmissions, teacherId);
 
   const wrappedHandleRejectSubmission = (submission: any, feedback?: string) => 
     handleRejectSubmission(submission, feedback, setSubmissions);
+
+  const wrappedHandleCreateHomework = async (homeworkData: any) => {
+    const success = await createHomework(homeworkData, teacherId, setHomework);
+    if (success) {
+      loadSubmissions(); // Reload submissions after creating homework
+    }
+    return success;
+  };
 
   // Filter homework based on expiration
   const now = new Date();
@@ -76,11 +88,13 @@ export const useHomeworkManagement = (teacherId: string) => {
     setSelectedClassName,
     handleHomeworkCreated: wrappedHandleHomeworkCreated,
     handleGiveCoins,
-    handleCreateHomework,
+    handleCreateHomework: wrappedHandleCreateHomework,
     handleDeleteHomework: wrappedHandleDeleteHomework,
     handleApproveSubmission: wrappedHandleApproveSubmission,
     handleRejectSubmission: wrappedHandleRejectSubmission,
     activeHomework,
-    archivedHomework
+    archivedHomework,
+    loadHomework,
+    loadSubmissions
   };
 };

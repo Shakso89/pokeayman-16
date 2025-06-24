@@ -11,10 +11,16 @@ export const useHomeworkData = (teacherId: string) => {
   useEffect(() => {
     if (teacherId) {
       loadHomework();
-      loadSubmissions();
       loadClasses();
     }
   }, [teacherId]);
+
+  // Load submissions when homework changes
+  useEffect(() => {
+    if (homework.length > 0) {
+      loadSubmissions();
+    }
+  }, [homework]);
 
   const loadHomework = async () => {
     try {
@@ -33,13 +39,17 @@ export const useHomeworkData = (teacherId: string) => {
 
   const loadSubmissions = async () => {
     try {
-      const homeworkIds = homework.map(hw => hw.id);
-      if (homeworkIds.length === 0) return;
+      if (homework.length === 0) {
+        setSubmissions([]);
+        return;
+      }
 
+      const homeworkIds = homework.map(hw => hw.id);
       const { data, error } = await supabase
         .from('homework_submissions')
         .select('*')
-        .in('homework_id', homeworkIds);
+        .in('homework_id', homeworkIds)
+        .order('submitted_at', { ascending: false });
 
       if (error) throw error;
       setSubmissions(data || []);
@@ -53,7 +63,7 @@ export const useHomeworkData = (teacherId: string) => {
       const { data, error } = await supabase
         .from('classes')
         .select('*')
-        .eq('teacher_id', teacherId);
+        .or(`teacher_id.eq.${teacherId},assistants.cs.{${teacherId}}`);
 
       if (error) throw error;
       setClasses(data || []);
