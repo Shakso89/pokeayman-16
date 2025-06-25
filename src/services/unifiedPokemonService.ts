@@ -47,6 +47,34 @@ export const getPokemonPool = async (): Promise<PokemonFromPool[]> => {
   }
 };
 
+// Alias for backward compatibility
+export const getUnifiedPokemonPool = getPokemonPool;
+
+// Get Pokemon pool statistics
+export const getPokemonPoolStats = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('pokemon_pool')
+      .select('rarity');
+
+    if (error) {
+      console.error("❌ Error fetching Pokemon pool stats:", error);
+      return { total: 0, byRarity: {} };
+    }
+
+    const total = data?.length || 0;
+    const byRarity = data?.reduce((acc, pokemon) => {
+      acc[pokemon.rarity] = (acc[pokemon.rarity] || 0) + 1;
+      return acc;
+    }, {} as Record<string, number>) || {};
+
+    return { total, byRarity };
+  } catch (error) {
+    console.error("❌ Unexpected error fetching Pokemon pool stats:", error);
+    return { total: 0, byRarity: {} };
+  }
+};
+
 // Get Pokemon by rarity from shared pool
 export const getPokemonByRarity = async (rarity: string): Promise<PokemonFromPool[]> => {
   try {
@@ -136,6 +164,75 @@ export const awardPokemonToStudent = async (
   } catch (error) {
     console.error("❌ Unexpected error awarding Pokemon:", error);
     return false;
+  }
+};
+
+// Assign random Pokemon to student with duplicate handling
+export const assignRandomPokemonToStudent = async (studentId: string) => {
+  try {
+    console.log("🎯 Assigning random Pokemon to student from shared pool:", studentId);
+
+    // Get a random Pokemon from the shared pool
+    const randomPokemon = await getRandomPokemonFromPool();
+    
+    if (!randomPokemon) {
+      return { success: false, error: "No Pokemon available in shared pool" };
+    }
+
+    // Check if student already has this Pokemon
+    const { data: existingPokemon, error: checkError } = await supabase
+      .from('student_pokemon_collection')
+      .select('id')
+      .eq('student_id', studentId)
+      .eq('pokemon_id', randomPokemon.id)
+      .limit(1);
+
+    if (checkError) {
+      console.error("❌ Error checking for duplicate Pokemon:", checkError);
+      return { success: false, error: "Failed to check for duplicates" };
+    }
+
+    const isDuplicate = existingPokemon && existingPokemon.length > 0;
+
+    // Award the Pokemon copy to student's collection
+    const success = await awardPokemonToStudent(studentId, randomPokemon.id, 'mystery_ball');
+
+    if (!success) {
+      return { success: false, error: "Failed to award Pokemon copy" };
+    }
+
+    return {
+      success: true,
+      pokemon: randomPokemon,
+      isDuplicate
+    };
+  } catch (error) {
+    console.error("❌ Error assigning random Pokemon:", error);
+    return { success: false, error: "Unexpected error occurred" };
+  }
+};
+
+// Purchase Pokemon from shop (creates a copy in student's collection)
+export const purchasePokemonFromShop = async (
+  studentId: string,
+  pokemonId: string,
+  price: number
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    console.log("🛒 Purchasing Pokemon copy from shared pool:", { studentId, pokemonId, price });
+
+    // Award a copy of the Pokemon to student's collection
+    const success = await awardPokemonToStudent(studentId, pokemonId, 'shop_purchase');
+
+    if (!success) {
+      return { success: false, error: "Failed to award Pokemon copy to collection" };
+    }
+
+    console.log("✅ Pokemon copy purchased successfully from shared pool");
+    return { success: true };
+  } catch (error) {
+    console.error("❌ Error purchasing Pokemon:", error);
+    return { success: false, error: "Unexpected error occurred during purchase" };
   }
 };
 
