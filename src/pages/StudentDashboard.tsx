@@ -21,13 +21,18 @@ import UnifiedMysteryBallTab from "@/components/student/UnifiedMysteryBallTab";
 import UnifiedShopTab from "@/components/student/UnifiedShopTab";
 
 const StudentDashboard: React.FC = () => {
-  const { isLoggedIn, userType, userId: studentId, username: studentName } = useUnifiedAuth();
+  const { isAuthenticated, user, isLoading } = useUnifiedAuth();
+  
+  // Derive student-specific data from the user object
+  const studentId = user?.id || "";
+  const studentName = user?.username || "";
   const schoolId = localStorage.getItem("studentSchoolId") || "default-school-1";
+  
   const { t } = useTranslation();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   
-  const { studentInfo, pokemon: pokemons, loading: dataLoading, error } = useStudentData(studentId || "");
+  const { studentInfo, pokemon: pokemons, loading: dataLoading, error } = useStudentData(studentId);
   
   const [activeTab, setActiveTab] = useState("home");
   const [activeBattles, setActiveBattles] = useState<any[]>([]);
@@ -115,7 +120,17 @@ const StudentDashboard: React.FC = () => {
     setActiveTab("my-classes");
   };
 
-  if (!isLoggedIn || userType !== "student") {
+  // Show loading while auth is being determined
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-transparent flex items-center justify-center">
+        <div className="text-gray-500">Loading...</div>
+      </div>
+    );
+  }
+
+  // Redirect if not authenticated or not a student
+  if (!isAuthenticated || !user || user.role !== "student") {
     return <Navigate to="/student-login" />;
   }
 
@@ -171,7 +186,7 @@ const StudentDashboard: React.FC = () => {
             <TabsContent value="home" className="mt-4">
               <StudentDashboardButtons
                 coins={coins}
-                studentId={studentId || ""}
+                studentId={studentId}
                 onMysteryBallClick={handleMysteryBallClick}
                 onCollectionClick={handleCollectionClick}
                 onShopClick={handleShopClick}
@@ -182,8 +197,8 @@ const StudentDashboard: React.FC = () => {
             <TabsContent value="my-classes" className="mt-4">
               {studentClasses.length > 0 ? (
                 <StudentHomeworkTab 
-                  studentId={studentId || ""}
-                  studentName={studentName || ""}
+                  studentId={studentId}
+                  studentName={studentName}
                   classIds={studentClasses}
                 />
               ) : (
@@ -201,20 +216,20 @@ const StudentDashboard: React.FC = () => {
                   <div className="text-gray-500">{t("loading-collection")}</div>
                 </div>
               ) : (
-                <StudentCollection studentId={studentId || ""} />
+                <StudentCollection studentId={studentId} />
               )}
             </TabsContent>
             
             <TabsContent value="mystery-ball" className="mt-4">
               <UnifiedMysteryBallTab 
-                studentId={studentId || ""} 
+                studentId={studentId} 
                 onDataUpdate={refreshData}
               />
             </TabsContent>
 
             <TabsContent value="shop" className="mt-4">
               <UnifiedShopTab
-                studentId={studentId || ""}
+                studentId={studentId}
                 studentCoins={coins}
                 onDataUpdate={refreshData}
               />
