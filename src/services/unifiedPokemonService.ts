@@ -183,13 +183,23 @@ export const purchasePokemonFromShop = async (
   try {
     console.log("🛒 Purchasing Pokémon from shop:", { studentId, pokemonId, cost });
 
+    // First deduct coins
+    const { updateStudentCoins } = await import("./studentDatabase");
+    const coinSuccess = await updateStudentCoins(studentId, -cost, "Shop purchase");
+    
+    if (!coinSuccess) {
+      return { success: false, error: "Failed to deduct coins" };
+    }
+
     // Award the Pokémon with proper student ID handling
     const success = await awardPokemonToStudent(studentId, pokemonId, 'shop_purchase');
     
     if (success) {
       return { success: true };
     } else {
-      return { success: false, error: "Failed to purchase Pokémon" };
+      // Refund coins if Pokémon award failed
+      await updateStudentCoins(studentId, cost, "Shop purchase refund");
+      return { success: false, error: "Failed to award Pokémon" };
     }
   } catch (error) {
     console.error("❌ Error purchasing Pokémon:", error);
@@ -278,7 +288,7 @@ export const openMysteryBall = async (studentId: string): Promise<{ success: boo
   try {
     console.log("🎲 Opening mystery ball for student:", studentId);
 
-    // 50% chance for Pokémon, 50% chance for coins (UPDATED FROM 70/30)
+    // 50% chance for Pokémon, 50% chance for coins
     const isPokemon = Math.random() < 0.5;
 
     if (isPokemon) {

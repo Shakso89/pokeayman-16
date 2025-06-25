@@ -33,7 +33,7 @@ const UnifiedMysteryBallTab: React.FC<UnifiedMysteryBallTabProps> = ({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-center">🎯 Daily Mystery Ball</CardTitle>
+          <CardTitle className="text-center">🎯 Mystery Pokéball</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="max-w-md mx-auto">
@@ -49,7 +49,7 @@ const UnifiedMysteryBallTab: React.FC<UnifiedMysteryBallTabProps> = ({
       {/* Information Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">How Mystery Ball Works</CardTitle>
+          <CardTitle className="text-lg">How Mystery Pokéball Works</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4 text-sm">
@@ -63,17 +63,17 @@ const UnifiedMysteryBallTab: React.FC<UnifiedMysteryBallTabProps> = ({
                 </ul>
               </div>
               <div className="space-y-2">
-                <h4 className="font-semibold text-blue-700">⏰ Usage Rules:</h4>
+                <h4 className="font-semibold text-blue-700">💰 Pricing:</h4>
                 <ul className="space-y-1 text-gray-600">
-                  <li>• One free attempt per day</li>
-                  <li>• Resets at midnight</li>
+                  <li>• 10 coins per use</li>
+                  <li>• No daily limits</li>
                   <li>• No limit on collected Pokémon</li>
                 </ul>
               </div>
             </div>
             <div className="p-3 bg-yellow-50 rounded-lg">
               <p className="text-yellow-800 text-xs">
-                <strong>Updated:</strong> The mystery ball now has a 50% chance for Pokémon and draws from the complete global pool of 300 unique Pokémon that all students and teachers share. You can collect the same Pokémon multiple times!
+                <strong>Updated:</strong> The mystery Pokéball now costs 10 coins per use and draws from the complete global pool of 300 unique Pokémon that all students and teachers share. You can collect the same Pokémon multiple times!
               </p>
             </div>
           </div>

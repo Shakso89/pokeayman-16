@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import confetti from "canvas-confetti";
 import { openMysteryBall, type PokemonFromPool } from "@/services/unifiedPokemonService";
 import { updateStudentCoins } from "@/services/studentDatabase";
-import { checkDailyAttempt, useDailyAttempt, addMysteryBallHistory } from "@/services/studentDatabase";
+import { addMysteryBallHistory } from "@/services/studentDatabase";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
 
@@ -24,34 +24,24 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
   const { t } = useTranslation();
   const [isSpinning, setIsSpinning] = useState(false);
   const [result, setResult] = useState<{ type: 'pokemon' | 'coins'; pokemon?: PokemonFromPool; coins?: number } | null>(null);
-  const [hasUsedDailyAttempt, setHasUsedDailyAttempt] = useState(false);
 
-  React.useEffect(() => {
-    checkDailyStatus();
-  }, [studentId]);
-
-  const checkDailyStatus = async () => {
-    const canAttempt = await checkDailyAttempt(studentId);
-    setHasUsedDailyAttempt(!canAttempt);
-  };
+  const MYSTERY_BALL_COST = 10; // Changed from free daily to 10 coins
 
   const handleSpin = async () => {
-    if (hasUsedDailyAttempt) {
-      toast({
-        title: t("info"),
-        description: "You've already used your daily mystery ball attempt!",
-        variant: "default"
-      });
-      return;
-    }
-
     setIsSpinning(true);
     setResult(null);
 
     try {
-      // Use daily attempt
-      await useDailyAttempt(studentId);
-      setHasUsedDailyAttempt(true);
+      // Deduct coins first
+      const coinSuccess = await updateStudentCoins(studentId, -MYSTERY_BALL_COST, "Mystery Ball purchase");
+      if (!coinSuccess) {
+        toast({
+          title: "Error",
+          description: "Failed to deduct coins for mystery ball!",
+          variant: "destructive"
+        });
+        return;
+      }
 
       // Simulate spinning animation
       await new Promise(resolve => setTimeout(resolve, 2000));
@@ -113,12 +103,13 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
       }
     } catch (error) {
       console.error("Error with mystery ball:", error);
+      // Refund coins on error
+      await updateStudentCoins(studentId, MYSTERY_BALL_COST, "Mystery Ball refund");
       toast({
         title: t("error"),
-        description: "Something went wrong with the mystery ball!",
+        description: "Something went wrong with the mystery ball! Coins refunded.",
         variant: "destructive"
       });
-      setHasUsedDailyAttempt(false); // Reset on error
     } finally {
       setIsSpinning(false);
     }
@@ -138,20 +129,36 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
     <div className="max-w-md mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle className="text-center">🎯 Mystery Ball</CardTitle>
+          <CardTitle className="text-center">🎯 Mystery Pokéball</CardTitle>
           <p className="text-center text-sm text-gray-600">
-            One free attempt per day! Win Pokémon or coins from 300 unique Pokémon!
+            {MYSTERY_BALL_COST} coins per use! Win Pokémon or coins from 300 unique Pokémon!
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Mystery Ball Animation */}
+          {/* Mystery Ball Animation - Now looks like a Pokéball */}
           <div className="text-center">
             <div 
-              className={`inline-block text-8xl transition-transform duration-1000 ${
+              className={`inline-block transition-transform duration-1000 ${
                 isSpinning ? 'animate-bounce' : ''
               }`}
             >
-              ⚪
+              <div className="w-20 h-20 mx-auto relative">
+                {/* Pokéball design */}
+                <div className="w-full h-full rounded-full bg-gradient-to-b from-red-500 to-red-600 relative overflow-hidden border-4 border-gray-800">
+                  {/* Top half */}
+                  <div className="absolute top-0 left-0 w-full h-1/2 bg-gradient-to-b from-red-400 to-red-500"></div>
+                  {/* Bottom half */}
+                  <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-gray-100 to-white"></div>
+                  {/* Center line */}
+                  <div className="absolute top-1/2 left-0 w-full h-1 bg-gray-800 transform -translate-y-1/2"></div>
+                  {/* Center button */}
+                  <div className="absolute top-1/2 left-1/2 w-6 h-6 bg-white rounded-full border-2 border-gray-800 transform -translate-x-1/2 -translate-y-1/2">
+                    <div className="w-2 h-2 bg-gray-300 rounded-full mx-auto mt-1"></div>
+                  </div>
+                  {/* Shine effect */}
+                  <div className="absolute top-2 left-2 w-3 h-3 bg-white opacity-60 rounded-full"></div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -159,17 +166,12 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
           <div className="text-center">
             <Button
               onClick={handleSpin}
-              disabled={isSpinning || hasUsedDailyAttempt}
+              disabled={isSpinning}
               size="lg"
               className="w-full"
             >
-              {isSpinning ? "Opening..." : hasUsedDailyAttempt ? "Used Today" : "Open Mystery Ball"}
+              {isSpinning ? "Opening..." : `Open Mystery Pokéball (${MYSTERY_BALL_COST} coins)`}
             </Button>
-            {hasUsedDailyAttempt && (
-              <p className="text-xs text-gray-500 mt-2">
-                Come back tomorrow for another attempt!
-              </p>
-            )}
           </div>
 
           {/* Result Display */}
@@ -216,7 +218,7 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
           <div className="text-xs text-gray-500 text-center space-y-1">
             <p>• 50% chance to win a Pokémon from 300 unique Pokémon</p>
             <p>• 50% chance to win 5-20 coins</p>
-            <p>• Free attempt resets daily</p>
+            <p>• Costs {MYSTERY_BALL_COST} coins per use</p>
           </div>
         </CardContent>
       </Card>
