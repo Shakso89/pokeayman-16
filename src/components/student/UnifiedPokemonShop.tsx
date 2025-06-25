@@ -91,32 +91,44 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
     setPurchasing(pokemon.id);
 
     try {
-      // Deduct coins
+      console.log("🛒 Starting purchase:", pokemon.name, "for", pokemon.price, "coins");
+
+      // Deduct coins first
       const success = await updateStudentCoins(studentId, -pokemon.price, `Purchased ${pokemon.name}`);
       
-      if (success) {
-        // Award the Pokémon
-        const awarded = await awardPokemonToStudent(studentId, pokemon.id, 'shop_purchase');
-        
-        if (awarded) {
-          toast({
-            title: "🎉 Purchase Successful!",
-            description: `You bought ${pokemon.name} for ${pokemon.price} coins!`,
-          });
-          
-          if (onPurchase) {
-            onPurchase();
-          }
-        } else {
-          // Refund coins if awarding failed
-          await updateStudentCoins(studentId, pokemon.price, `Refund for failed ${pokemon.name} purchase`);
-          throw new Error("Failed to award Pokémon");
-        }
-      } else {
+      if (!success) {
         throw new Error("Failed to deduct coins");
       }
+
+      // Award the Pokémon directly
+      const { error: insertError } = await supabase
+        .from('student_pokemon_collection')
+        .insert({
+          student_id: studentId,
+          pokemon_id: pokemon.id,
+          source: 'shop_purchase'
+        });
+
+      if (insertError) {
+        console.error("❌ Error inserting Pokemon:", insertError);
+        // Refund coins if awarding failed
+        await updateStudentCoins(studentId, pokemon.price, `Refund for failed ${pokemon.name} purchase`);
+        throw new Error("Failed to award Pokémon");
+      }
+
+      console.log("✅ Pokemon purchased successfully:", pokemon.name);
+
+      toast({
+        title: "🎉 Purchase Successful!",
+        description: `You bought ${pokemon.name} for ${pokemon.price} coins!`,
+      });
+      
+      if (onPurchase) {
+        onPurchase();
+      }
+
     } catch (error) {
-      console.error("Error purchasing Pokémon:", error);
+      console.error("❌ Error purchasing Pokémon:", error);
       toast({
         title: t("error"),
         description: "Failed to purchase Pokémon. Please try again.",

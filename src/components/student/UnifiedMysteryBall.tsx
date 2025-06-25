@@ -4,11 +4,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import confetti from "canvas-confetti";
-import { openMysteryBall, type PokemonFromPool } from "@/services/unifiedPokemonService";
-import { updateStudentCoins } from "@/services/studentDatabase";
-import { addMysteryBallHistory } from "@/services/studentDatabase";
+import { getRandomPokemonFromPool, type PokemonFromPool } from "@/services/unifiedPokemonService";
+import { updateStudentCoins, addMysteryBallHistory } from "@/services/studentDatabase";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
+import { supabase } from "@/integrations/supabase/client";
 
 interface UnifiedMysteryBallProps {
   studentId: string;
@@ -25,19 +25,21 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
   const [isSpinning, setIsSpinning] = useState(false);
   const [result, setResult] = useState<{ type: 'pokemon' | 'coins'; pokemon?: PokemonFromPool; coins?: number } | null>(null);
 
-  const MYSTERY_BALL_COST = 10; // Changed from free daily to 10 coins
+  const MYSTERY_BALL_COST = 10;
 
   const handleSpin = async () => {
     setIsSpinning(true);
     setResult(null);
 
     try {
-      // Deduct coins first
+      console.log("🎲 Starting mystery ball for student:", studentId);
+
+      // First deduct coins
       const coinSuccess = await updateStudentCoins(studentId, -MYSTERY_BALL_COST, "Mystery Ball purchase");
       if (!coinSuccess) {
         toast({
           title: "Error",
-          description: "Failed to deduct coins for mystery ball!",
+          description: "Not enough coins for mystery ball!",
           variant: "destructive"
         });
         return;
@@ -46,16 +48,36 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
       // Simulate spinning animation
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Open mystery ball with updated 50% Pokemon chance
-      const mysteryResult = await openMysteryBall(studentId);
+      // 50% chance for Pokemon, 50% chance for coins
+      const isPokemon = Math.random() < 0.5;
 
-      if (mysteryResult.success) {
-        if (mysteryResult.pokemon) {
-          // Won a Pokémon
-          setResult({ type: 'pokemon', pokemon: mysteryResult.pokemon });
+      if (isPokemon) {
+        console.log("🎯 Mystery ball: Trying to award Pokemon");
+        
+        // Get random Pokemon
+        const randomPokemon = await getRandomPokemonFromPool();
+        
+        if (randomPokemon) {
+          // Award Pokemon directly to collection
+          const { error: insertError } = await supabase
+            .from('student_pokemon_collection')
+            .insert({
+              student_id: studentId,
+              pokemon_id: randomPokemon.id,
+              source: 'mystery_ball'
+            });
+
+          if (insertError) {
+            console.error("❌ Error inserting Pokemon:", insertError);
+            throw new Error("Failed to award Pokemon");
+          }
+
+          console.log("✅ Pokemon awarded successfully:", randomPokemon.name);
+          
+          setResult({ type: 'pokemon', pokemon: randomPokemon });
           
           // Add to history
-          await addMysteryBallHistory(studentId, 'pokemon', mysteryResult.pokemon);
+          await addMysteryBallHistory(studentId, 'pokemon', randomPokemon);
           
           // Trigger confetti
           confetti({
@@ -66,21 +88,27 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
 
           toast({
             title: "🎉 Congratulations!",
-            description: `You caught ${mysteryResult.pokemon.name}!`,
+            description: `You caught ${randomPokemon.name}!`,
           });
 
           if (onPokemonWon) {
-            onPokemonWon(mysteryResult.pokemon);
+            onPokemonWon(randomPokemon);
           }
-        } else if (mysteryResult.coins) {
-          // Won coins
-          setResult({ type: 'coins', coins: mysteryResult.coins });
-          
-          // Update student coins
-          await updateStudentCoins(studentId, mysteryResult.coins, "Mystery Ball reward");
+        } else {
+          throw new Error("No Pokemon available");
+        }
+      } else {
+        // Award coins (1-20 coins)
+        const coinAmount = Math.floor(Math.random() * 20) + 1;
+        console.log("💰 Mystery ball: Awarding coins:", coinAmount);
+        
+        const success = await updateStudentCoins(studentId, coinAmount, "Mystery Ball reward");
+        
+        if (success) {
+          setResult({ type: 'coins', coins: coinAmount });
           
           // Add to history
-          await addMysteryBallHistory(studentId, 'coins', undefined, mysteryResult.coins);
+          await addMysteryBallHistory(studentId, 'coins', undefined, coinAmount);
           
           // Trigger confetti
           confetti({
@@ -91,22 +119,25 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
 
           toast({
             title: "💰 Coins!",
-            description: `You won ${mysteryResult.coins} coins!`,
+            description: `You won ${coinAmount} coins!`,
           });
 
           if (onCoinsWon) {
-            onCoinsWon(mysteryResult.coins);
+            onCoinsWon(coinAmount);
           }
+        } else {
+          throw new Error("Failed to award coins");
         }
-      } else {
-        throw new Error("Mystery ball failed");
       }
+
     } catch (error) {
-      console.error("Error with mystery ball:", error);
-      // Refund coins on error
+      console.error("❌ Mystery ball error:", error);
+      
+      // Refund coins on any error
       await updateStudentCoins(studentId, MYSTERY_BALL_COST, "Mystery Ball refund");
+      
       toast({
-        title: t("error"),
+        title: "Error",
         description: "Something went wrong with the mystery ball! Coins refunded.",
         variant: "destructive"
       });
@@ -131,11 +162,11 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
         <CardHeader>
           <CardTitle className="text-center">🎯 Mystery Pokéball</CardTitle>
           <p className="text-center text-sm text-gray-600">
-            {MYSTERY_BALL_COST} coins per use! Win Pokémon or coins from 300 unique Pokémon!
+            {MYSTERY_BALL_COST} coins per use! Win 1-20 coins or a random Pokémon!
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
-          {/* Mystery Ball Animation - Now looks like a Pokéball */}
+          {/* Pokéball Animation */}
           <div className="text-center">
             <div 
               className={`inline-block transition-transform duration-1000 ${
@@ -216,8 +247,8 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
 
           {/* Instructions */}
           <div className="text-xs text-gray-500 text-center space-y-1">
-            <p>• 50% chance to win a Pokémon from 300 unique Pokémon</p>
-            <p>• 50% chance to win 5-20 coins</p>
+            <p>• 50% chance to win a random Pokémon</p>
+            <p>• 50% chance to win 1-20 coins</p>
             <p>• Costs {MYSTERY_BALL_COST} coins per use</p>
           </div>
         </CardContent>

@@ -57,9 +57,9 @@ const UnifiedMysteryBallTab: React.FC<UnifiedMysteryBallTabProps> = ({
               <div className="space-y-2">
                 <h4 className="font-semibold text-green-700">🎁 What You Can Win:</h4>
                 <ul className="space-y-1 text-gray-600">
-                  <li>• 50% chance: Random Pokémon from 300 unique Pokémon</li>
-                  <li>• 50% chance: 5-20 coins</li>
-                  <li>• All from the unified global pool</li>
+                  <li>• 50% chance: Random Pokémon from the global pool</li>
+                  <li>• 50% chance: 1-20 coins</li>
+                  <li>• All Pokémon from the unified collection</li>
                 </ul>
               </div>
               <div className="space-y-2">
@@ -67,13 +67,13 @@ const UnifiedMysteryBallTab: React.FC<UnifiedMysteryBallTabProps> = ({
                 <ul className="space-y-1 text-gray-600">
                   <li>• 10 coins per use</li>
                   <li>• No daily limits</li>
-                  <li>• No limit on collected Pokémon</li>
+                  <li>• Use as many times as you can afford</li>
                 </ul>
               </div>
             </div>
             <div className="p-3 bg-yellow-50 rounded-lg">
               <p className="text-yellow-800 text-xs">
-                <strong>Updated:</strong> The mystery Pokéball now costs 10 coins per use and draws from the complete global pool of 300 unique Pokémon that all students and teachers share. You can collect the same Pokémon multiple times!
+                <strong>Updated:</strong> The mystery Pokéball now costs 10 coins per use and gives you either 1-20 coins or a random Pokémon from our collection of 300+ unique Pokémon!
               </p>
             </div>
           </div>
