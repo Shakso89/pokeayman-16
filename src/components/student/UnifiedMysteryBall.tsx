@@ -4,11 +4,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import confetti from "canvas-confetti";
-import { getRandomPokemonFromPool, type PokemonFromPool } from "@/services/unifiedPokemonService";
+import { getRandomPokemonFromPool, awardPokemonToStudent, type PokemonFromPool } from "@/services/unifiedPokemonService";
 import { updateStudentCoins, addMysteryBallHistory } from "@/services/studentDatabase";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface UnifiedMysteryBallProps {
   studentId: string;
@@ -32,7 +31,7 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
     setResult(null);
 
     try {
-      console.log("🎲 Starting mystery ball for student:", studentId);
+      console.log("🎲 Starting mystery ball from site-wide Pokemon pool for student:", studentId);
 
       // First deduct coins
       const coinSuccess = await updateStudentCoins(studentId, -MYSTERY_BALL_COST, "Mystery Ball purchase");
@@ -48,54 +47,47 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
       // Simulate spinning animation
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // 50% chance for Pokemon, 50% chance for coins
+      // 50% chance for Pokemon from shared pool, 50% chance for coins
       const isPokemon = Math.random() < 0.5;
 
       if (isPokemon) {
-        console.log("🎯 Mystery ball: Trying to award Pokemon");
+        console.log("🎯 Mystery ball: Trying to award Pokemon from shared site-wide pool");
         
-        // Get random Pokemon
+        // Get random Pokemon from shared site-wide pool
         const randomPokemon = await getRandomPokemonFromPool();
         
         if (randomPokemon) {
-          // Award Pokemon directly to collection
-          const { error: insertError } = await supabase
-            .from('student_pokemon_collection')
-            .insert({
-              student_id: studentId,
-              pokemon_id: randomPokemon.id,
-              source: 'mystery_ball'
+          // Award a copy to student's collection (original stays in shared pool)
+          const success = await awardPokemonToStudent(studentId, randomPokemon.id, 'mystery_ball');
+
+          if (success) {
+            console.log(`✅ Pokemon copy awarded from shared pool: ${randomPokemon.name}`);
+            
+            setResult({ type: 'pokemon', pokemon: randomPokemon });
+            
+            // Add to history
+            await addMysteryBallHistory(studentId, 'pokemon', randomPokemon);
+            
+            // Trigger confetti
+            confetti({
+              particleCount: 100,
+              spread: 70,
+              origin: { y: 0.6 }
             });
 
-          if (insertError) {
-            console.error("❌ Error inserting Pokemon:", insertError);
-            throw new Error("Failed to award Pokemon");
-          }
+            toast({
+              title: "🎉 Congratulations!",
+              description: `You caught ${randomPokemon.name} from the site pool!`,
+            });
 
-          console.log("✅ Pokemon awarded successfully:", randomPokemon.name);
-          
-          setResult({ type: 'pokemon', pokemon: randomPokemon });
-          
-          // Add to history
-          await addMysteryBallHistory(studentId, 'pokemon', randomPokemon);
-          
-          // Trigger confetti
-          confetti({
-            particleCount: 100,
-            spread: 70,
-            origin: { y: 0.6 }
-          });
-
-          toast({
-            title: "🎉 Congratulations!",
-            description: `You caught ${randomPokemon.name}!`,
-          });
-
-          if (onPokemonWon) {
-            onPokemonWon(randomPokemon);
+            if (onPokemonWon) {
+              onPokemonWon(randomPokemon);
+            }
+          } else {
+            throw new Error("Failed to award Pokemon copy");
           }
         } else {
-          throw new Error("No Pokemon available");
+          throw new Error("No Pokemon available in shared pool");
         }
       } else {
         // Award coins (1-20 coins)
@@ -160,9 +152,9 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
     <div className="max-w-md mx-auto">
       <Card>
         <CardHeader>
-          <CardTitle className="text-center">🎯 Mystery Pokéball</CardTitle>
+          <CardTitle className="text-center">🎯 Site-Wide Mystery Pokéball</CardTitle>
           <p className="text-center text-sm text-gray-600">
-            {MYSTERY_BALL_COST} coins per use! Win 1-20 coins or a random Pokémon!
+            {MYSTERY_BALL_COST} coins per use! Win 1-20 coins or a random Pokémon from our shared site pool!
           </p>
         </CardHeader>
         <CardContent className="space-y-6">
@@ -210,7 +202,7 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
             <div className="text-center space-y-4 p-4 bg-gray-50 rounded-lg">
               {result.type === 'pokemon' && result.pokemon && (
                 <div className="space-y-2">
-                  <div className="text-lg font-bold">🎉 You caught a Pokémon!</div>
+                  <div className="text-lg font-bold">🎉 You caught a Pokémon from the site pool!</div>
                   <div className="flex justify-center">
                     <img
                       src={result.pokemon.image_url || "/placeholder.svg"}
@@ -247,9 +239,10 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
 
           {/* Instructions */}
           <div className="text-xs text-gray-500 text-center space-y-1">
-            <p>• 50% chance to win a random Pokémon</p>
+            <p>• 50% chance to win a random Pokémon from our shared site pool</p>
             <p>• 50% chance to win 1-20 coins</p>
             <p>• Costs {MYSTERY_BALL_COST} coins per use</p>
+            <p>• Pokémon pool is shared across all schools</p>
           </div>
         </CardContent>
       </Card>

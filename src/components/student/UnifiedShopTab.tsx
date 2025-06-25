@@ -35,7 +35,7 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
       {/* Information Card */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-lg">Shop Information</CardTitle>
+          <CardTitle className="text-lg">Site-Wide Shop Information</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="space-y-4 text-sm">
@@ -53,16 +53,17 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
                 <h4 className="font-semibold text-blue-700">🛍️ Purchase Rules:</h4>
                 <ul className="space-y-1 text-gray-600">
                   <li>• Buy any Pokémon multiple times</li>
-                  <li>• Instant delivery to collection</li>
-                  <li>• All 300 Pokémon available</li>
-                  <li>• Earn coins from activities</li>
+                  <li>• Instant delivery to your collection</li>
+                  <li>• All Pokemon from site-wide pool available</li>
+                  <li>• Pool shared across all schools</li>
                 </ul>
               </div>
             </div>
             <div className="p-3 bg-blue-50 rounded-lg">
               <p className="text-blue-800 text-xs">
-                <strong>New System:</strong> The shop now features the complete unified pool of 300 Pokémon! 
-                You can purchase any Pokémon multiple times to build your ultimate collection.
+                <strong>Site-Wide System:</strong> Our shop features the complete site-wide Pokemon pool shared across all schools! 
+                You can purchase any Pokemon multiple times - each purchase adds a copy to your personal collection while 
+                the original stays in the shared pool for everyone to access.
               </p>
             </div>
           </div>

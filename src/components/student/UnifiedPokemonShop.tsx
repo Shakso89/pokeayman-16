@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,10 +7,9 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, ShoppingBag, Coins } from "lucide-react";
 import { getPokemonPool, awardPokemonToStudent, type PokemonFromPool } from "@/services/unifiedPokemonService";
-import { updateStudentCoins, getOrCreateStudentProfile } from "@/services/studentDatabase";
+import { updateStudentCoins } from "@/services/studentDatabase";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
 
 interface UnifiedPokemonShopProps {
   studentId: string;
@@ -41,9 +41,9 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
   const fetchPokemonPool = async () => {
     setLoading(true);
     try {
-      console.log("🛒 Fetching complete Pokemon pool for shop...");
+      console.log("🛒 Fetching site-wide Pokemon pool for shop...");
       const poolData = await getPokemonPool();
-      console.log(`🛒 Fetched ${poolData.length} Pokemon for shop`);
+      console.log(`🛒 Fetched ${poolData.length} Pokemon from shared site pool`);
       setPokemon(poolData);
     } catch (error) {
       console.error("Error fetching Pokémon pool:", error);
@@ -91,7 +91,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
     setPurchasing(pokemon.id);
 
     try {
-      console.log("🛒 Starting purchase:", pokemon.name, "for", pokemon.price, "coins");
+      console.log(`🛒 Starting purchase: ${pokemon.name} for ${pokemon.price} coins from shared pool`);
 
       // Deduct coins first
       const success = await updateStudentCoins(studentId, -pokemon.price, `Purchased ${pokemon.name}`);
@@ -100,27 +100,21 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
         throw new Error("Failed to deduct coins");
       }
 
-      // Award the Pokémon directly
-      const { error: insertError } = await supabase
-        .from('student_pokemon_collection')
-        .insert({
-          student_id: studentId,
-          pokemon_id: pokemon.id,
-          source: 'shop_purchase'
-        });
+      // Award a copy of the Pokémon to student's collection (original stays in shared pool)
+      const awardSuccess = await awardPokemonToStudent(studentId, pokemon.id, 'shop_purchase');
 
-      if (insertError) {
-        console.error("❌ Error inserting Pokemon:", insertError);
+      if (!awardSuccess) {
+        console.error("❌ Error awarding Pokemon copy to collection");
         // Refund coins if awarding failed
         await updateStudentCoins(studentId, pokemon.price, `Refund for failed ${pokemon.name} purchase`);
-        throw new Error("Failed to award Pokémon");
+        throw new Error("Failed to award Pokémon copy");
       }
 
-      console.log("✅ Pokemon purchased successfully:", pokemon.name);
+      console.log(`✅ Pokemon copy purchased successfully: ${pokemon.name}`);
 
       toast({
         title: "🎉 Purchase Successful!",
-        description: `You bought ${pokemon.name} for ${pokemon.price} coins!`,
+        description: `You bought ${pokemon.name} for ${pokemon.price} coins from the site pool!`,
       });
       
       if (onPurchase) {
@@ -153,11 +147,11 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Pokémon Shop</CardTitle>
+          <CardTitle>Site-Wide Pokémon Shop</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p>Loading shop...</p>
+            <p>Loading shared Pokemon pool...</p>
           </div>
         </CardContent>
       </Card>
@@ -171,7 +165,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2">
-              🏪 Pokémon Shop
+              🌍 Site-Wide Pokémon Shop
               <Badge variant="outline">{pokemon.length} Available</Badge>
             </span>
             <div className="flex items-center gap-2 text-lg">
@@ -182,7 +176,8 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-600">
-            Purchase any Pokémon using your coins! Each Pokémon can be bought multiple times from our collection of {pokemon.length} unique Pokémon.
+            Purchase any Pokémon from our shared site-wide pool! Each Pokémon can be bought multiple times. 
+            The pool is shared across all schools and contains {pokemon.length} unique Pokémon.
           </p>
         </CardContent>
       </Card>
@@ -211,7 +206,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
             </Tabs>
           </div>
           <div className="mt-2 text-sm text-gray-500">
-            Showing {filteredPokemon.length} of {pokemon.length} Pokémon
+            Showing {filteredPokemon.length} of {pokemon.length} Pokémon from shared pool
           </div>
         </CardContent>
       </Card>
@@ -266,7 +261,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
                 ) : studentCoins >= pokemon.price ? (
                   <>
                     <ShoppingBag className="h-3 w-3 mr-1" />
-                    Buy
+                    Buy Copy
                   </>
                 ) : (
                   "Not enough coins"
@@ -283,7 +278,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
             <p className="text-gray-500">
               {searchTerm || selectedRarity !== "all" 
                 ? "No Pokémon found matching your criteria." 
-                : "No Pokémon available in the shop."}
+                : "No Pokémon available in the shared pool."}
             </p>
           </CardContent>
         </Card>
