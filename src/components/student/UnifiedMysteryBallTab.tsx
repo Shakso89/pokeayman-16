@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Package, Coins, Sparkles, Gift } from "lucide-react";
-import { openMysteryBall, type PokemonFromPool } from "@/services/unifiedPokemonService";
+import { openMysteryBall, type Pokemon } from "@/services/pokemonService";
 import { updateStudentCoins } from "@/services/studentDatabase";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
@@ -20,7 +20,7 @@ const UnifiedMysteryBallTab: React.FC<UnifiedMysteryBallTabProps> = ({
 }) => {
   const { t } = useTranslation();
   const [isOpening, setIsOpening] = useState(false);
-  const [lastResult, setLastResult] = useState<{ pokemon?: PokemonFromPool; coins?: number } | null>(null);
+  const [lastResult, setLastResult] = useState<{ pokemon?: Pokemon; coins?: number } | null>(null);
 
   const handleOpenMysteryBall = async () => {
     if (!studentId) {
@@ -102,12 +102,12 @@ const UnifiedMysteryBallTab: React.FC<UnifiedMysteryBallTabProps> = ({
           <CardTitle className="flex items-center gap-2">
             <Package className="h-6 w-6 text-purple-500" />
             Mystery Ball
-            <Badge variant="outline">Site-Wide Pool</Badge>
+            <Badge variant="outline">Unified Pool</Badge>
           </CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-gray-600 mb-4">
-            Open a mystery ball to get a random Pokémon or coins from our shared site-wide pool! 
+            Open a mystery ball to get a random Pokémon or coins from our unified pool! 
             Each mystery ball has a 50% chance of giving you a Pokémon and 50% chance of giving you coins.
           </p>
           
@@ -172,7 +172,7 @@ const UnifiedMysteryBallTab: React.FC<UnifiedMysteryBallTabProps> = ({
                     </Badge>
                   </div>
                   <p className="text-sm text-gray-600 mt-1">
-                    Added to your collection from the site-wide pool!
+                    Added to your collection from the unified pool!
                   </p>
                 </div>
               </div>
@@ -213,8 +213,8 @@ const UnifiedMysteryBallTab: React.FC<UnifiedMysteryBallTabProps> = ({
               <span className="text-purple-600 text-sm font-bold">2</span>
             </div>
             <div>
-              <h4 className="font-semibold">Site-Wide Pool</h4>
-              <p className="text-sm text-gray-600">Pokémon come from our shared site-wide pool used by all schools</p>
+              <h4 className="font-semibold">Unified Pool</h4>
+              <p className="text-sm text-gray-600">Pokémon come from our unified pool used across the entire platform</p>
             </div>
           </div>
           

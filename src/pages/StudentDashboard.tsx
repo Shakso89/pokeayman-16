@@ -4,12 +4,12 @@ import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent } from "@/components/ui/card";
-import { Pokemon } from "@/types/pokemon";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Trophy, Users, Package, Sword, Book } from "lucide-react";
 import { useStudentData } from "@/hooks/useStudentData";
+import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 
 // Import our components
 import StudentHeader from "@/components/student/StudentHeader";
@@ -17,23 +17,17 @@ import StudentCollection from "@/components/student/StudentCollection";
 import SchoolPokemonPoolDialog from "@/components/dialogs/SchoolPokemonPoolDialog";
 import StudentDashboardButtons from "@/components/student/StudentDashboardButtons";
 import StudentHomeworkTab from "@/components/student/StudentHomeworkTab";
-import ShopTab from "@/components/student/ShopTab";
+import UnifiedMysteryBallTab from "@/components/student/UnifiedMysteryBallTab";
 import UnifiedShopTab from "@/components/student/UnifiedShopTab";
 
-// Use the unified mystery ball component
-import UnifiedMysteryBallTab from "@/components/student/UnifiedMysteryBallTab";
-
 const StudentDashboard: React.FC = () => {
-  const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-  const userType = localStorage.getItem("userType");
-  const studentName = localStorage.getItem("studentName") || "Student";
-  const studentId = localStorage.getItem("studentId") || "";
+  const { isLoggedIn, userType, userId: studentId, username: studentName } = useUnifiedAuth();
   const schoolId = localStorage.getItem("studentSchoolId") || "default-school-1";
   const { t } = useTranslation();
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   
-  const { studentInfo, pokemon: pokemons, loading: dataLoading, error } = useStudentData(studentId);
+  const { studentInfo, pokemon: pokemons, loading: dataLoading, error } = useStudentData(studentId || "");
   
   const [activeTab, setActiveTab] = useState("home");
   const [activeBattles, setActiveBattles] = useState<any[]>([]);
@@ -43,7 +37,6 @@ const StudentDashboard: React.FC = () => {
   // Extract profile data from studentInfo
   const profile = studentInfo;
   const coins = studentInfo?.coins || 0;
-  const spentCoins = 0; // This would need to be calculated if needed
 
   // Parse class IDs - handle both single class and comma-separated classes
   const studentClasses = profile?.class_id ? 
@@ -93,24 +86,6 @@ const StudentDashboard: React.FC = () => {
       return isSchoolMatch && isClassMatch && isActive && isNotExpired;
     });
     setActiveBattles(relevantBattles);
-  };
-
-  const handlePokemonWon = (pokemon: Pokemon) => {
-    console.log("Pokemon won:", pokemon);
-    toast({
-      title: t("congratulations"),
-      description: t("new-pokemon-toast").replace("{pokemonName}", pokemon.name)
-    });
-    refreshData();
-  };
-
-  const handleCoinsWon = (amount: number) => {
-    console.log("Coins won:", amount);
-    toast({
-      title: t("congratulations"),
-      description: t("coins-won-toast").replace("{amount}", amount.toString())
-    });
-    refreshData();
   };
 
   const handleRefreshPool = () => {
@@ -196,7 +171,7 @@ const StudentDashboard: React.FC = () => {
             <TabsContent value="home" className="mt-4">
               <StudentDashboardButtons
                 coins={coins}
-                studentId={studentId}
+                studentId={studentId || ""}
                 onMysteryBallClick={handleMysteryBallClick}
                 onCollectionClick={handleCollectionClick}
                 onShopClick={handleShopClick}
@@ -207,18 +182,14 @@ const StudentDashboard: React.FC = () => {
             <TabsContent value="my-classes" className="mt-4">
               {studentClasses.length > 0 ? (
                 <StudentHomeworkTab 
-                  studentId={studentId}
-                  studentName={studentName}
+                  studentId={studentId || ""}
+                  studentName={studentName || ""}
                   classIds={studentClasses}
                 />
               ) : (
                 <Card>
                   <CardContent className="py-8 text-center">
                     <p className="text-gray-500">You are not enrolled in any class yet, so you can't see homework assignments.</p>
-                    <p className="text-sm text-gray-400 mt-2">
-                      Debug info: Profile class_id = {profile?.class_id || 'null'}, 
-                      Parsed classes = {JSON.stringify(studentClasses)}
-                    </p>
                   </CardContent>
                 </Card>
               )}
@@ -230,20 +201,20 @@ const StudentDashboard: React.FC = () => {
                   <div className="text-gray-500">{t("loading-collection")}</div>
                 </div>
               ) : (
-                <StudentCollection studentId={studentId} />
+                <StudentCollection studentId={studentId || ""} />
               )}
             </TabsContent>
             
             <TabsContent value="mystery-ball" className="mt-4">
               <UnifiedMysteryBallTab 
-                studentId={studentId} 
+                studentId={studentId || ""} 
                 onDataUpdate={refreshData}
               />
             </TabsContent>
 
             <TabsContent value="shop" className="mt-4">
               <UnifiedShopTab
-                studentId={studentId}
+                studentId={studentId || ""}
                 studentCoins={coins}
                 onDataUpdate={refreshData}
               />

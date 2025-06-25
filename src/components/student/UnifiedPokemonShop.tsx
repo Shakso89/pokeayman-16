@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, ShoppingBag, Coins } from "lucide-react";
-import { getPokemonPool, awardPokemonToStudent, type PokemonFromPool } from "@/services/unifiedPokemonService";
+import { getPokemonPool, awardPokemonToStudent, type Pokemon } from "@/services/pokemonService";
 import { updateStudentCoins } from "@/services/studentDatabase";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
@@ -23,8 +23,8 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
   onPurchase
 }) => {
   const { t } = useTranslation();
-  const [pokemon, setPokemon] = useState<PokemonFromPool[]>([]);
-  const [filteredPokemon, setFilteredPokemon] = useState<PokemonFromPool[]>([]);
+  const [pokemon, setPokemon] = useState<Pokemon[]>([]);
+  const [filteredPokemon, setFilteredPokemon] = useState<Pokemon[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRarity, setSelectedRarity] = useState<string>("all");
   const [loading, setLoading] = useState(true);
@@ -41,9 +41,9 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
   const fetchPokemonPool = async () => {
     setLoading(true);
     try {
-      console.log("🛒 Fetching site-wide Pokemon pool for shop...");
+      console.log("🛒 Fetching unified Pokemon pool for shop...");
       const poolData = await getPokemonPool();
-      console.log(`🛒 Fetched ${poolData.length} Pokemon from shared site pool`);
+      console.log(`🛒 Fetched ${poolData.length} Pokemon from unified pool`);
       setPokemon(poolData);
     } catch (error) {
       console.error("Error fetching Pokémon pool:", error);
@@ -78,7 +78,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
     setFilteredPokemon(filtered);
   };
 
-  const handlePurchase = async (pokemon: PokemonFromPool) => {
+  const handlePurchase = async (pokemon: Pokemon) => {
     console.log("🛒 Starting purchase process:", { pokemonId: pokemon.id, pokemonName: pokemon.name, price: pokemon.price, studentCoins, studentId });
 
     if (studentCoins < pokemon.price) {
@@ -110,7 +110,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
 
       console.log("✅ Coins deducted successfully");
 
-      // Award a copy of the Pokémon to student's collection (original stays in shared pool)
+      // Award a copy of the Pokémon to student's collection
       console.log("🎁 Awarding Pokemon copy to student collection...");
       const awardSuccess = await awardPokemonToStudent(studentId, pokemon.id, 'shop_purchase');
 
@@ -133,7 +133,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
 
       toast({
         title: "🎉 Purchase Successful!",
-        description: `You bought ${pokemon.name} for ${pokemon.price} coins from the site pool!`,
+        description: `You bought ${pokemon.name} for ${pokemon.price} coins from the unified pool!`,
       });
       
       if (onPurchase) {
@@ -175,11 +175,11 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
     return (
       <Card>
         <CardHeader>
-          <CardTitle>Site-Wide Pokémon Shop</CardTitle>
+          <CardTitle>Unified Pokémon Shop</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="text-center py-8">
-            <p>Loading shared Pokemon pool...</p>
+            <p>Loading unified Pokemon pool...</p>
           </div>
         </CardContent>
       </Card>
@@ -193,7 +193,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
             <span className="flex items-center gap-2">
-              🌍 Site-Wide Pokémon Shop
+              🌍 Unified Pokémon Shop
               <Badge variant="outline">{pokemon.length} Available</Badge>
             </span>
             <div className="flex items-center gap-2 text-lg">
@@ -204,8 +204,8 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
         </CardHeader>
         <CardContent>
           <p className="text-sm text-gray-600">
-            Purchase any Pokémon from our shared site-wide pool! Each Pokémon can be bought multiple times. 
-            The pool is shared across all schools and contains {pokemon.length} unique Pokémon.
+            Purchase any Pokémon from our unified pool! Each Pokémon can be bought multiple times. 
+            The pool is shared across the entire platform and contains {pokemon.length} unique Pokémon.
           </p>
         </CardContent>
       </Card>
@@ -234,7 +234,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
             </Tabs>
           </div>
           <div className="mt-2 text-sm text-gray-500">
-            Showing {filteredPokemon.length} of {pokemon.length} Pokémon from shared pool
+            Showing {filteredPokemon.length} of {pokemon.length} Pokémon from unified pool
           </div>
         </CardContent>
       </Card>
@@ -306,7 +306,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
             <p className="text-gray-500">
               {searchTerm || selectedRarity !== "all" 
                 ? "No Pokémon found matching your criteria." 
-                : "No Pokémon available in the shared pool."}
+                : "No Pokémon available in the unified pool."}
             </p>
           </CardContent>
         </Card>

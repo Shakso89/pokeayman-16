@@ -1,30 +1,20 @@
-
-import {
-  awardPokemonToStudent,
-  assignRandomPokemonToStudent,
-  assignSpecificPokemonToStudent,
-  removePokemonFromStudent,
-  getStudentPokemonCollection,
-  awardCoinsToStudent,
-} from './studentPokemon';
-
-import {
-  initializeSchoolPokemonPool,
-  getSchoolPokemonPool,
-  forceUpdateAllSchoolPools
-} from './schoolPokemon';
-
+// Re-export everything from the unified Pokemon service
 export {
-  // Student Pokemon operations
+  getPokemonPool,
+  getRandomPokemonFromPool,
+  awardPokemonToStudent,
+  getStudentPokemonCollection,
+  openMysteryBall,
+  purchasePokemonFromShop,
+  type Pokemon,
+  type StudentPokemonCollection
+} from '@/services/pokemonService';
+
+// Keep student-specific functions from studentPokemon.ts that are still needed
+export {
+  getStudentPokemons,
   assignRandomPokemonToStudent,
   assignSpecificPokemonToStudent,
-  removePokemonFromStudent,
-  getStudentPokemonCollection,
   awardCoinsToStudent,
-  awardPokemonToStudent,
-  
-  // School Pokemon operations
-  initializeSchoolPokemonPool,
-  getSchoolPokemonPool,
-  forceUpdateAllSchoolPools,
-};
+  removePokemonFromStudent
+} from './studentPokemon';
