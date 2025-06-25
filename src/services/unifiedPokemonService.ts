@@ -162,6 +162,53 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
   }
 };
 
+// Remove Pokémon from student collection
+export const removePokemonFromStudent = async (collectionId: string): Promise<boolean> => {
+  try {
+    console.log("🗑️ Removing Pokémon from collection:", collectionId);
+
+    const { error } = await supabase
+      .from('student_pokemon_collection')
+      .delete()
+      .eq('id', collectionId);
+
+    if (error) {
+      console.error("❌ Error removing Pokémon:", error);
+      return false;
+    }
+
+    console.log("✅ Pokémon removed successfully");
+    return true;
+  } catch (error) {
+    console.error("❌ Unexpected error removing Pokémon:", error);
+    return false;
+  }
+};
+
+// Purchase Pokémon from shop
+export const purchasePokemonFromShop = async (
+  studentId: string,
+  pokemonId: string,
+  price: number
+): Promise<{ success: boolean; error?: string }> => {
+  try {
+    console.log("🛒 Purchasing Pokémon from shop:", { studentId, pokemonId, price });
+
+    // Award the Pokémon to the student
+    const success = await awardPokemonToStudent(studentId, pokemonId, 'shop_purchase');
+
+    if (success) {
+      console.log("✅ Pokémon purchased successfully");
+      return { success: true };
+    } else {
+      return { success: false, error: "Failed to award Pokémon" };
+    }
+  } catch (error) {
+    console.error("❌ Error purchasing Pokémon:", error);
+    return { success: false, error: error instanceof Error ? error.message : "Unknown error" };
+  }
+};
+
 // Mystery ball functionality with unified pool - 50% POKEMON CHANCE
 export const openMysteryBall = async (studentId: string): Promise<{ success: boolean; pokemon?: PokemonFromPool; coins?: number; error?: string }> => {
   try {
