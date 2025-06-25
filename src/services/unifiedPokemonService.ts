@@ -135,7 +135,7 @@ export const getRandomPokemonFromPool = async (): Promise<PokemonFromPool | null
   }
 };
 
-// Award Pokemon to student (creates a copy in their collection)
+// FIXED: Award Pokemon to student (creates a copy in their collection)
 export const awardPokemonToStudent = async (
   studentId: string,
   pokemonId: string,
@@ -145,6 +145,21 @@ export const awardPokemonToStudent = async (
   try {
     console.log("🎁 Awarding Pokemon copy to student:", { studentId, pokemonId, source });
 
+    // First verify the Pokemon exists in the pool
+    const { data: pokemonExists, error: checkError } = await supabase
+      .from('pokemon_pool')
+      .select('id, name')
+      .eq('id', pokemonId)
+      .single();
+
+    if (checkError || !pokemonExists) {
+      console.error("❌ Pokemon not found in pool:", { pokemonId, error: checkError });
+      return false;
+    }
+
+    console.log("✅ Pokemon verified in pool:", pokemonExists.name);
+
+    // Insert into student's collection with the current user's ID
     const { error } = await supabase
       .from('student_pokemon_collection')
       .insert({
@@ -156,6 +171,12 @@ export const awardPokemonToStudent = async (
 
     if (error) {
       console.error("❌ Error awarding Pokemon:", error);
+      console.error("❌ Error details:", {
+        code: error.code,
+        message: error.message,
+        details: error.details,
+        hint: error.hint
+      });
       return false;
     }
 
