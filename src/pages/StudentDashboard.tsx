@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -13,13 +14,14 @@ import { useStudentData } from "@/hooks/useStudentData";
 // Import our components
 import StudentHeader from "@/components/student/StudentHeader";
 import StudentCollection from "@/components/student/StudentCollection";
-import MysteryBallTab from "@/components/student/MysteryBallTab";
 import SchoolPokemonPoolDialog from "@/components/dialogs/SchoolPokemonPoolDialog";
 import StudentDashboardButtons from "@/components/student/StudentDashboardButtons";
 import StudentHomeworkTab from "@/components/student/StudentHomeworkTab";
 import ShopTab from "@/components/student/ShopTab";
-import UnifiedMysteryBallTab from "@/components/student/UnifiedMysteryBallTab";
 import UnifiedShopTab from "@/components/student/UnifiedShopTab";
+
+// Use the unified mystery ball component
+import UnifiedMysteryBallTab from "@/components/student/UnifiedMysteryBallTab";
 
 const StudentDashboard: React.FC = () => {
   const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
