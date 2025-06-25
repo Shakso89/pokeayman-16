@@ -31,8 +31,12 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
   }, [studentId]);
 
   const checkDailyStatus = async () => {
-    const canAttempt = await checkDailyAttempt(studentId);
-    setHasUsedDailyAttempt(!canAttempt);
+    try {
+      const canAttempt = await checkDailyAttempt(studentId);
+      setHasUsedDailyAttempt(!canAttempt);
+    } catch (error) {
+      console.error("Error checking daily status:", error);
+    }
   };
 
   const handleSpin = async () => {
@@ -49,19 +53,23 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
     setResult(null);
 
     try {
-      // Use daily attempt
+      console.log("🎯 Starting mystery ball for student:", studentId);
+      
+      // Use daily attempt first
       await useDailyAttempt(studentId);
       setHasUsedDailyAttempt(true);
 
       // Simulate spinning animation
       await new Promise(resolve => setTimeout(resolve, 2000));
 
-      // Open mystery ball with updated 50% Pokemon chance
+      // Open mystery ball from unified pool
       const mysteryResult = await openMysteryBall(studentId);
+      console.log("🎲 Mystery ball result:", mysteryResult);
 
       if (mysteryResult.success) {
         if (mysteryResult.pokemon) {
           // Won a Pokémon
+          console.log("🎉 Won Pokémon:", mysteryResult.pokemon.name);
           setResult({ type: 'pokemon', pokemon: mysteryResult.pokemon });
           
           // Add to history
@@ -84,6 +92,7 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
           }
         } else if (mysteryResult.coins) {
           // Won coins
+          console.log("💰 Won coins:", mysteryResult.coins);
           setResult({ type: 'coins', coins: mysteryResult.coins });
           
           // Update student coins
@@ -109,16 +118,17 @@ const UnifiedMysteryBall: React.FC<UnifiedMysteryBallProps> = ({
           }
         }
       } else {
-        throw new Error("Mystery ball failed");
+        throw new Error(mysteryResult.error || "Mystery ball failed");
       }
     } catch (error) {
-      console.error("Error with mystery ball:", error);
+      console.error("❌ Error with mystery ball:", error);
       toast({
-        title: t("error"),
-        description: "Something went wrong with the mystery ball!",
+        title: "Error",
+        description: "Something went wrong with the mystery ball! Please try again.",
         variant: "destructive"
       });
-      setHasUsedDailyAttempt(false); // Reset on error
+      // Reset daily attempt on error so user can try again
+      setHasUsedDailyAttempt(false);
     } finally {
       setIsSpinning(false);
     }
