@@ -8,7 +8,6 @@ import PokemonOrbit from "@/components/PokemonOrbit";
 import { toast } from "@/hooks/use-toast";
 import { useStudentAuth } from "@/hooks/useStudentAuth";
 import { Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
 
 const StudentLogin: React.FC = () => {
   const navigate = useNavigate();
@@ -28,32 +27,6 @@ const StudentLogin: React.FC = () => {
         if (isLoggedIn && userType === "student") {
           navigate("/student-dashboard", { replace: true });
           return;
-        }
-
-        // Quick session check with timeout
-        const timeoutPromise = new Promise((_, reject) => 
-          setTimeout(() => reject(new Error("Session check timeout")), 3000)
-        );
-        
-        const sessionPromise = supabase.auth.getSession();
-        
-        try {
-          const { data: { session }, error } = await Promise.race([sessionPromise, timeoutPromise]) as any;
-          
-          if (error) {
-            console.error("Session check error:", error);
-            setCheckingSession(false);
-            return;
-          }
-          
-          if (session && session.user) {
-            localStorage.setItem("isLoggedIn", "true");
-            localStorage.setItem("userType", "student");
-            navigate("/student-dashboard", { replace: true });
-            return;
-          }
-        } catch (timeoutError) {
-          console.log("Session check timed out, proceeding to login");
         }
       } catch (err) {
         console.log("Session check error:", err);
@@ -86,6 +59,10 @@ const StudentLogin: React.FC = () => {
 
       if (result.success) {
         console.log("Login successful, redirecting to dashboard");
+        toast({
+          title: "Welcome!",
+          description: "Login successful",
+        });
         navigate("/student-dashboard", { replace: true });
       } else {
         toast({
@@ -98,7 +75,7 @@ const StudentLogin: React.FC = () => {
       console.error("Login error:", error);
       toast({
         title: "Login Error",
-        description: error.message || "An error occurred during login.",
+        description: "An error occurred during login.",
         variant: "destructive",
       });
     } finally {

@@ -42,6 +42,7 @@ export const NavBar: React.FC<NavBarProps> = ({
   };
 
   const isAdmin = localStorage.getItem("isAdmin") === "true";
+  
   const handleCloseSettings = () => {
     setIsSettingsOpen(false);
   };
@@ -68,97 +69,101 @@ export const NavBar: React.FC<NavBarProps> = ({
 
   const handleRankingsClick = () => {
     if (userType === "student") {
-      navigate("/student-ranking");
+      navigate("/rankings");
     } else {
-      navigate("/teacher-ranking");
+      navigate("/teacher/rankings");
     }
   };
 
   return (
-    <div className="bg-transparent">
-      <div className="flex items-center justify-between px-4 py-2 max-w-7xl mx-auto">
-        <div className="flex items-center gap-4">
-          <img src="/lovable-uploads/40c04be5-3d6e-4938-9a00-006177dbef3b.png" alt="PokéAyman Logo" className="h-12 w-auto" />
-          <h1 className="text-xl font-bold">
-            {userType === "teacher" ? "Teacher Dashboard" : "Student Dashboard"}
-          </h1>
-        </div>
-        
-        <div className="flex items-center gap-2">
-          <Button variant="ghost" size="icon" onClick={handleHomeClick} title="Home" className="text-slate-600 bg-slate-300 hover:bg-slate-200">
-            <Home size={20} />
-          </Button>
-          
-          <Button variant="ghost" size="icon" onClick={handleRankingsClick} title="Rankings" className="text-slate-600 bg-slate-300 hover:bg-slate-200">
-            <Medal size={20} />
-          </Button>
-
-          <NotificationBadge />
-
-          <Button variant="secondary" onClick={() => navigate(`/${userType}/messages`)} className="flex items-center gap-2">
-            <MessageSquare size={20} />
-            <span className="hidden md:inline">Messages</span>
-          </Button>
-
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                <Avatar>
-                  <AvatarImage src={userAvatar} alt={userName} />
-                  <AvatarFallback>
-                    {userName?.substring(0, 2).toUpperCase() || "NA"}
-                  </AvatarFallback>
-                </Avatar>
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end">
-              <div className="flex items-center justify-start p-2">
-                <div className="flex flex-col space-y-1 leading-none">
-                  <p className="font-medium">{userName}</p>
-                  <p className="text-sm text-gray-500">{userType}</p>
-                </div>
+    <>
+      <nav className="bg-white shadow-lg border-b">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between h-16">
+            <div className="flex items-center">
+              <div className="flex-shrink-0 cursor-pointer" onClick={handleHomeClick}>
+                <img
+                  src="/lovable-uploads/ba2eeb4e-ffdf-4d91-9bfc-182a58aef8da.png"
+                  alt="PokéAyman"
+                  className="h-10 w-auto"
+                />
               </div>
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleViewProfile}>
-                <UserCog className="mr-2 h-4 w-4" />
-                <span>View Profile</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
-                <UserCog className="mr-2 h-4 w-4" />
-                <span>{t("profile-and-settings")}</span>
-              </DropdownMenuItem>
-              
-              {isAdmin && userType === "teacher" && (
-                <DropdownMenuItem onClick={() => navigate("/admin-dashboard")}>
-                  <UserCog className="mr-2 h-4 w-4" />
-                  <span>{t("admin-dashboard")}</span>
-                </DropdownMenuItem>
-              )}
-              <DropdownMenuSeparator />
-              <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut}>
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>{isLoggingOut ? "Logging out..." : t("logout")}</span>
-              </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
+              <div className="ml-4">
+                <h1 className="text-xl font-semibold text-gray-900">
+                  {userType === "teacher" ? 
+                    (isAdmin ? "Admin Dashboard" : "Teacher Dashboard") : 
+                    "Student Dashboard"
+                  }
+                </h1>
+              </div>
+            </div>
+
+            <div className="flex items-center space-x-4">
+              <Button variant="ghost" size="icon" onClick={handleHomeClick}>
+                <Home className="h-5 w-5" />
+              </Button>
+
+              <Button variant="ghost" size="icon" onClick={handleRankingsClick}>
+                <Medal className="h-5 w-5" />
+              </Button>
+
+              <NotificationBadge />
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
+                    <Avatar className="h-8 w-8">
+                      <AvatarImage src={userAvatar} alt={userName || "User"} />
+                      <AvatarFallback>
+                        {userName ? userName.charAt(0).toUpperCase() : "U"}
+                      </AvatarFallback>
+                    </Avatar>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-56" align="end" forceMount>
+                  <div className="flex items-center justify-start gap-2 p-2">
+                    <div className="flex flex-col space-y-1 leading-none">
+                      <p className="font-medium">{userName || "User"}</p>
+                      <p className="w-[200px] truncate text-sm text-muted-foreground">
+                        {userType === "teacher" ? "Teacher" : "Student"}
+                      </p>
+                    </div>
+                  </div>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleViewProfile}>
+                    <UserCog className="mr-2 h-4 w-4" />
+                    {t("view-profile")}
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setIsSettingsOpen(true)}>
+                    <UserCog className="mr-2 h-4 w-4" />
+                    {t("settings")}
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    {isLoggingOut ? "Logging out..." : t("logout")}
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+          </div>
         </div>
-      </div>
-      
-      {isSettingsOpen && (
-        <UserSettingsModal 
-          isOpen={isSettingsOpen} 
-          onClose={handleCloseSettings} 
-          userType={userType} 
-        />
-      )}
-      
-      {userType === "teacher" && (
-        <SelectSchoolDialog 
-          open={isSelectSchoolOpen} 
-          onOpenChange={setIsSelectSchoolOpen} 
-          teacherId={localStorage.getItem("teacherId") || ""} 
-        />
-      )}
-    </div>
+      </nav>
+
+      <UserSettingsModal 
+        isOpen={isSettingsOpen} 
+        onClose={handleCloseSettings}
+        userType={userType}
+      />
+
+      <SelectSchoolDialog
+        isOpen={isSelectSchoolOpen}
+        onClose={() => setIsSelectSchoolOpen(false)}
+        onSelectSchool={(schoolId) => {
+          console.log("Selected school:", schoolId);
+          setIsSelectSchoolOpen(false);
+        }}
+      />
+    </>
   );
 };
