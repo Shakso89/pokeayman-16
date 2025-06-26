@@ -159,7 +159,18 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
         source,
         awarded_by,
         obtained_at,
-        pokemon_catalog(*)
+        pokemon_catalog!inner(
+          id,
+          name,
+          image_url,
+          type_1,
+          type_2,
+          rarity,
+          price,
+          description,
+          power_stats,
+          created_at
+        )
       `)
       .eq('student_id', studentId)
       .order('obtained_at', { ascending: false });
@@ -169,8 +180,16 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
       return [];
     }
 
-    // Ensure data is not null and filter out entries where join might have failed
-    const collection = (data || []).filter(item => item.pokemon_catalog !== null) as StudentPokemonCollectionItem[];
+    // Transform the data to match our interface
+    const collection = (data || []).map(item => ({
+      id: item.id,
+      student_id: item.student_id,
+      pokemon_id: item.pokemon_id,
+      source: item.source,
+      awarded_by: item.awarded_by,
+      obtained_at: item.obtained_at,
+      pokemon_catalog: Array.isArray(item.pokemon_catalog) ? item.pokemon_catalog[0] : item.pokemon_catalog
+    })) as StudentPokemonCollectionItem[];
 
     console.log(`✅ Fetched ${collection.length || 0} Pokemon from student's collection`);
     return collection;
