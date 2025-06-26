@@ -33,6 +33,29 @@ export const useStudentProfile = (studentId: string | undefined) => {
 
   const isOwner = userType === "student" && currentUserId === studentId;
 
+  // Helper function to resolve student ID
+  const resolveStudentId = async (inputId: string): Promise<string | null> => {
+    if (!inputId) return null;
+    
+    // If it looks like a UUID, return as is
+    if (inputId.includes('-') && inputId.length > 30) {
+      return inputId;
+    }
+
+    // Try to find by username in students table
+    const { data: studentData, error: studentError } = await supabase
+      .from('students')
+      .select('id, user_id, username')
+      .eq('username', inputId)
+      .single();
+    
+    if (studentData && !studentError) {
+      return studentData.user_id || studentData.id;
+    }
+
+    return inputId; // fallback
+  };
+
   // --- Fetching Student Data ---
   const fetchStudentData = useCallback(async () => {
     if (!studentId) {
@@ -43,50 +66,93 @@ export const useStudentProfile = (studentId: string | undefined) => {
 
     setIsLoading(true);
     setError(null);
+    
     try {
       console.log("Fetching student profile for ID:", studentId);
 
-      // Fetch from students table with school join
+      // First resolve the student ID
+      const resolvedId = await resolveStudentId(studentId);
+      if (!resolvedId) {
+        setError("Could not resolve student ID");
+        return;
+      }
+
+      console.log("Resolved student ID:", resolvedId);
+
+      // Try students table first (with resolved ID)
       const { data: studentData, error: dbError } = await supabase
         .from('students')
         .select(`
           id,
+          user_id,
           username,
           display_name,
           profile_photo,
           class_id,
           school_id,
-          schools:school_id (
-            id,
-            name
-          )
+          school_name
         `)
-        .eq('id', studentId)
+        .eq('user_id', resolvedId)
         .maybeSingle();
 
       if (dbError) {
-        console.error("Error fetching student profile from DB:", dbError.message);
-        setError(`Failed to load profile: ${dbError.message}`);
-        setStudent(null);
+        console.error("Error fetching from students table:", dbError);
+        // Try by ID as fallback
+        const { data: fallbackData, error: fallbackError } = await supabase
+          .from('students')
+          .select(`
+            id,
+            user_id,
+            username,
+            display_name,
+            profile_photo,
+            class_id,
+            school_id,
+            school_name
+          `)
+          .eq('id', resolvedId)
+          .maybeSingle();
+
+        if (fallbackError || !fallbackData) {
+          console.error("Error in fallback query:", fallbackError);
+          setError(`Failed to load profile: ${fallbackError?.message || 'Student not found'}`);
+          return;
+        }
+        
+        // Use fallback data
+        const normalizedStudent: Student = {
+          id: fallbackData.user_id || fallbackData.id,
+          username: fallbackData.username,
+          displayName: fallbackData.display_name || fallbackData.username,
+          avatarUrl: fallbackData.profile_photo || undefined,
+          classId: fallbackData.class_id || undefined,
+          schoolId: fallbackData.school_id || undefined,
+          schoolName: fallbackData.school_name || "No School Assigned",
+          contactInfo: undefined,
+          photos: [],
+          pokemonCollection: []
+        };
+
+        setStudent(normalizedStudent);
+        setEditData({
+          displayName: normalizedStudent.displayName,
+          contactInfo: normalizedStudent.contactInfo,
+          photos: normalizedStudent.photos
+        });
         return;
       }
 
-      console.log("Student data fetched:", studentData);
-
       if (studentData) {
-        // Properly extract school name from the schools relation
-        const schoolName = studentData.schools && typeof studentData.schools === 'object' && !Array.isArray(studentData.schools) 
-          ? (studentData.schools as { name: string }).name 
-          : "No School Assigned";
-          
+        console.log("Student data found:", studentData);
+        
         const normalizedStudent: Student = {
-          id: studentData.id,
+          id: studentData.user_id || studentData.id,
           username: studentData.username,
           displayName: studentData.display_name || studentData.username,
           avatarUrl: studentData.profile_photo || undefined,
           classId: studentData.class_id || undefined,
           schoolId: studentData.school_id || undefined,
-          schoolName: schoolName,
+          schoolName: studentData.school_name || "No School Assigned",
           contactInfo: undefined,
           photos: [],
           pokemonCollection: []
@@ -101,19 +167,18 @@ export const useStudentProfile = (studentId: string | undefined) => {
           photos: normalizedStudent.photos
         });
 
-        // Optional: If you *must* sync session data for the current user
+        // Update session data if this is the current user
         if (isOwner) {
-            localStorage.setItem("studentName", normalizedStudent.displayName);
-            localStorage.setItem("studentDisplayName", normalizedStudent.displayName);
+          localStorage.setItem("studentName", normalizedStudent.displayName);
+          localStorage.setItem("studentDisplayName", normalizedStudent.displayName);
         }
-
       } else {
         setStudent(null);
         setError("Student not found.");
         toast.error("Student not found");
       }
     } catch (err: any) {
-      console.error("Unexpected error fetching student data:", err.message);
+      console.error("Unexpected error fetching student data:", err);
       setError(`An unexpected error occurred: ${err.message}`);
       setStudent(null);
     } finally {
@@ -125,30 +190,26 @@ export const useStudentProfile = (studentId: string | undefined) => {
   const fetchStudentPokemon = useCallback(async () => {
     if (!studentId) return;
     try {
-      console.log("Fetching Pokemon for student:", studentId);
+      console.log("Fetching Pokemon for student profile:", studentId);
 
-      const { data, error } = await supabase
-        .from('student_pokemon_collection')
-        .select(`
-          pokemon_pool(id, name, image_url)
-        `)
-        .eq('student_id', studentId);
+      const resolvedId = await resolveStudentId(studentId);
+      if (!resolvedId) return;
 
-      if (error) {
-        console.error("Error fetching student pokemon:", error.message);
-      } else {
-        const pokemons = data?.map((item: any) => ({
-          id: item.pokemon_pool.id,
-          name: item.pokemon_pool.name,
-          imageUrl: item.pokemon_pool.image_url,
-        })) || [];
+      // Use the unified pokemon service
+      const { getStudentPokemonCollection } = await import('@/services/pokemonService');
+      const collection = await getStudentPokemonCollection(resolvedId);
 
-        console.log("Pokemon collection fetched:", pokemons);
+      const pokemons = collection?.map((item: any) => ({
+        id: item.pokemon?.id || item.pokemon_id,
+        name: item.pokemon?.name || `Pokemon #${item.pokemon_id}`,
+        imageUrl: item.pokemon?.image_url || '/placeholder.svg',
+      })) || [];
 
-        setStudent(prev => prev ? { ...prev, pokemonCollection: pokemons } : null);
-      }
+      console.log("Pokemon collection for profile:", pokemons);
+
+      setStudent(prev => prev ? { ...prev, pokemonCollection: pokemons } : null);
     } catch (err) {
-      console.error("Unexpected error fetching pokemon:", err);
+      console.error("Unexpected error fetching pokemon for profile:", err);
     }
   }, [studentId]);
 
@@ -181,6 +242,11 @@ export const useStudentProfile = (studentId: string | undefined) => {
     setIsSaving(true);
     setError(null);
     try {
+      const resolvedId = await resolveStudentId(studentId);
+      if (!resolvedId) {
+        throw new Error("Could not resolve student ID for update");
+      }
+
       const updates: any = {};
       if (editData.displayName !== student.displayName) {
         updates.display_name = editData.displayName;
@@ -189,7 +255,7 @@ export const useStudentProfile = (studentId: string | undefined) => {
       const { error: updateError } = await supabase
         .from('students')
         .update(updates)
-        .eq('id', studentId);
+        .eq('user_id', resolvedId);
 
       if (updateError) {
         console.error("Error updating student in Supabase:", updateError.message);
@@ -206,8 +272,8 @@ export const useStudentProfile = (studentId: string | undefined) => {
       toast.success("Profile updated successfully!");
 
       if (isOwner && editData.displayName) {
-          localStorage.setItem("studentName", editData.displayName);
-          localStorage.setItem("studentDisplayName", editData.displayName);
+        localStorage.setItem("studentName", editData.displayName);
+        localStorage.setItem("studentDisplayName", editData.displayName);
       }
 
     } catch (err: any) {

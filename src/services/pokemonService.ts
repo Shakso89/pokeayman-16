@@ -82,6 +82,33 @@ export const getRandomPokemonFromPool = async (): Promise<Pokemon | null> => {
   }
 };
 
+// Helper function to resolve student ID from username to proper user_id
+const resolveStudentId = async (studentId: string): Promise<string> => {
+  console.log("🔍 Resolving student ID:", studentId);
+  
+  // If it looks like a UUID, return as is
+  if (studentId && studentId.includes('-') && studentId.length > 30) {
+    console.log("✅ Already a UUID:", studentId);
+    return studentId;
+  }
+
+  // Try to find by username in students table
+  const { data: studentData, error: studentError } = await supabase
+    .from('students')
+    .select('id, user_id, username')
+    .eq('username', studentId)
+    .single();
+  
+  if (studentData && !studentError) {
+    const resolvedId = studentData.user_id || studentData.id;
+    console.log("✅ Resolved username to ID:", { username: studentId, resolvedId });
+    return resolvedId;
+  }
+
+  console.log("⚠️ Could not resolve student ID, using as-is:", studentId);
+  return studentId;
+};
+
 // Award Pokemon to student (creates a copy in their collection)
 export const awardPokemonToStudent = async (
   studentId: string,
@@ -98,6 +125,9 @@ export const awardPokemonToStudent = async (
       return false;
     }
 
+    // Resolve student ID to proper format
+    const actualStudentId = await resolveStudentId(studentId);
+
     // Verify Pokemon exists in unified pool
     const { data: pokemonExists, error: checkError } = await supabase
       .from('pokemon_pool')
@@ -112,24 +142,7 @@ export const awardPokemonToStudent = async (
 
     console.log("✅ Pokemon verified in unified pool:", pokemonExists.name);
 
-    // Get the actual student ID from the students table if we have a username
-    let actualStudentId = studentId;
-    
-    // Check if we need to look up the student by username
-    if (studentId && !studentId.includes('-')) {
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('id, user_id')
-        .eq('username', studentId)
-        .single();
-      
-      if (studentData && !studentError) {
-        actualStudentId = studentData.user_id || studentData.id;
-        console.log("✅ Found student ID by username:", actualStudentId);
-      }
-    }
-
-    // Insert into student's collection using the service role to bypass RLS temporarily
+    // Insert into student's collection
     const { data: insertData, error } = await supabase
       .from('student_pokemon_collection')
       .insert({
@@ -160,7 +173,7 @@ export const awardPokemonToStudent = async (
   }
 };
 
-// Get student's Pokemon collection
+// Get student's Pokemon collection - FIXED to handle both old and new data
 export const getStudentPokemonCollection = async (studentId: string): Promise<StudentPokemonCollection[]> => {
   try {
     console.log("📦 Fetching student's Pokemon collection:", studentId);
@@ -170,24 +183,12 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
       return [];
     }
 
-    // Get the actual student ID if we have a username
-    let actualStudentId = studentId;
-    
-    if (studentId && !studentId.includes('-')) {
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('id, user_id')
-        .eq('username', studentId)
-        .single();
-      
-      if (studentData && !studentError) {
-        actualStudentId = studentData.user_id || studentData.id;
-      }
-    }
-
+    // Resolve student ID to proper format
+    const actualStudentId = await resolveStudentId(studentId);
     console.log("🔍 Using student ID for collection query:", actualStudentId);
 
-    const { data, error } = await supabase
+    // Get from student_pokemon_collection (new unified system)
+    const { data: unifiedData, error: unifiedError } = await supabase
       .from('student_pokemon_collection')
       .select(`
         *,
@@ -196,13 +197,65 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
       .eq('student_id', actualStudentId)
       .order('awarded_at', { ascending: false });
 
-    if (error) {
-      console.error("❌ Error fetching student's collection:", error);
-      return [];
+    if (unifiedError) {
+      console.error("❌ Error fetching from unified collection:", unifiedError);
     }
 
-    console.log(`✅ Fetched ${data?.length || 0} Pokemon from student's collection`);
-    return data || [];
+    const unifiedCollection = unifiedData || [];
+    console.log(`📦 Found ${unifiedCollection.length} Pokemon in unified collection`);
+
+    // ALSO check pokemon_collections table (legacy teacher awards)
+    const { data: legacyData, error: legacyError } = await supabase
+      .from('pokemon_collections')
+      .select(`
+        id,
+        pokemon_id,
+        obtained_at,
+        pokemon_catalog (
+          id,
+          name,
+          image,
+          type,
+          type2,
+          rarity,
+          power_stats
+        )
+      `)
+      .eq('student_id', actualStudentId);
+
+    if (legacyError) {
+      console.log("ℹ️ No legacy collection found (this is normal):", legacyError.message);
+    }
+
+    const legacyCollection = legacyData || [];
+    console.log(`📦 Found ${legacyCollection.length} Pokemon in legacy collection`);
+
+    // Convert legacy format to unified format
+    const convertedLegacy = legacyCollection.map(item => ({
+      id: item.id,
+      student_id: actualStudentId,
+      pokemon_id: item.pokemon_id,
+      source: 'teacher_award' as const,
+      awarded_at: item.obtained_at,
+      pokemon: item.pokemon_catalog ? {
+        id: item.pokemon_catalog.id,
+        name: item.pokemon_catalog.name,
+        image_url: item.pokemon_catalog.image || '/placeholder.svg',
+        type_1: item.pokemon_catalog.type || 'normal',
+        type_2: item.pokemon_catalog.type2 || undefined,
+        rarity: item.pokemon_catalog.rarity || 'common',
+        price: 15,
+        power_stats: item.pokemon_catalog.power_stats,
+        created_at: new Date().toISOString(),
+        description: ''
+      } : undefined
+    }));
+
+    // Combine both collections
+    const allCollection = [...unifiedCollection, ...convertedLegacy];
+    
+    console.log(`✅ Total collection: ${allCollection.length} Pokemon (${unifiedCollection.length} unified + ${convertedLegacy.length} legacy)`);
+    return allCollection;
   } catch (error) {
     console.error("❌ Unexpected error fetching student's collection:", error);
     return [];
