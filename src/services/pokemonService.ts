@@ -58,18 +58,31 @@ export const getPokemonCatalog = async (): Promise<PokemonCatalogItem[]> => {
   try {
     console.log("🌍 Fetching Pokemon catalog...");
 
-    const { data, error } = await supabase
+    // First try pokemon_catalog table
+    const { data: catalogData, error: catalogError } = await supabase
       .from('pokemon_catalog')
       .select('*')
       .order('name');
 
-    if (error) {
-      console.error("❌ Error fetching Pokemon catalog:", error);
+    if (catalogData && catalogData.length > 0) {
+      console.log(`✅ Fetched ${catalogData.length} Pokemon from pokemon_catalog`);
+      return catalogData;
+    }
+
+    // Fallback to pokemon_pool table if catalog is empty
+    console.log("⚠️ pokemon_catalog is empty, trying pokemon_pool...");
+    const { data: poolData, error: poolError } = await supabase
+      .from('pokemon_pool')
+      .select('*')
+      .order('name');
+
+    if (poolError) {
+      console.error("❌ Error fetching from pokemon_pool:", poolError);
       return [];
     }
 
-    console.log(`✅ Fetched ${data?.length || 0} Pokemon from catalog`);
-    return data || [];
+    console.log(`✅ Fetched ${poolData?.length || 0} Pokemon from pokemon_pool`);
+    return poolData || [];
   } catch (error) {
     console.error("❌ Unexpected error fetching Pokemon catalog:", error);
     return [];
@@ -92,15 +105,33 @@ export const awardPokemonToStudent = async (
   try {
     console.log("🎁 Awarding Pokemon to student:", { studentId, pokemonId, source, awardedBy });
 
-    // Verify Pokemon exists in catalog
-    const { data: pokemon, error: pokemonError } = await supabase
+    // Verify Pokemon exists in catalog or pool
+    let pokemon = null;
+    
+    // Try pokemon_catalog first
+    const { data: catalogPokemon, error: catalogError } = await supabase
       .from('pokemon_catalog')
       .select('*')
       .eq('id', pokemonId)
-      .single();
+      .maybeSingle();
 
-    if (pokemonError || !pokemon) {
-      console.error("❌ Pokemon not found in catalog:", { pokemonId, error: pokemonError });
+    if (catalogPokemon) {
+      pokemon = catalogPokemon;
+    } else {
+      // Try pokemon_pool as fallback
+      const { data: poolPokemon, error: poolError } = await supabase
+        .from('pokemon_pool')
+        .select('*')
+        .eq('id', pokemonId)
+        .maybeSingle();
+
+      if (poolPokemon) {
+        pokemon = poolPokemon;
+      }
+    }
+
+    if (!pokemon) {
+      console.error("❌ Pokemon not found in any catalog:", { pokemonId });
       return { success: false, error: "Pokemon not found in catalog" };
     }
 
