@@ -1,10 +1,10 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Package, Star, Award } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
-import { getStudentPokemonCollection, type StudentPokemonCollection as UnifiedStudentPokemonCollection } from "@/services/unifiedPokemonService";
-import { StudentPokemonCollection } from "@/types/pokemon";
+import { getStudentPokemonCollection, type StudentPokemonCollection } from "@/services/pokemonService";
 
 interface StudentCollectionProps {
   studentId: string;
@@ -28,16 +28,10 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
   const fetchStudentCollection = async () => {
     setLoading(true);
     try {
+      console.log("🔄 Fetching collection for student:", studentId);
       const collection = await getStudentPokemonCollection(studentId);
-      // Convert to the expected type format
-      const convertedCollection: StudentPokemonCollection[] = collection.map(item => ({
-        ...item,
-        pokemon: item.pokemon ? {
-          ...item.pokemon,
-          image_url: item.pokemon.image_url || "/placeholder.svg"
-        } : undefined
-      }));
-      setPokemonCollection(convertedCollection);
+      console.log("📦 Collection fetched:", collection);
+      setPokemonCollection(collection);
     } catch (error) {
       console.error("Error fetching student collection:", error);
       setPokemonCollection([]);
@@ -90,6 +84,10 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
                           src={pokemon.image_url || '/placeholder-pokemon.png'}
                           alt={pokemon.name}
                           className="w-full h-full object-contain"
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.src = "/placeholder.svg";
+                          }}
                         />
                       </div>
                       

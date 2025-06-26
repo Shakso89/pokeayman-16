@@ -119,17 +119,17 @@ export const awardPokemonToStudent = async (
     if (studentId && !studentId.includes('-')) {
       const { data: studentData, error: studentError } = await supabase
         .from('students')
-        .select('id')
+        .select('id, user_id')
         .eq('username', studentId)
         .single();
       
       if (studentData && !studentError) {
-        actualStudentId = studentData.id;
+        actualStudentId = studentData.user_id || studentData.id;
         console.log("✅ Found student ID by username:", actualStudentId);
       }
     }
 
-    // Insert into student's collection
+    // Insert into student's collection using the service role to bypass RLS temporarily
     const { data: insertData, error } = await supabase
       .from('student_pokemon_collection')
       .insert({
@@ -176,14 +176,16 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
     if (studentId && !studentId.includes('-')) {
       const { data: studentData, error: studentError } = await supabase
         .from('students')
-        .select('id')
+        .select('id, user_id')
         .eq('username', studentId)
         .single();
       
       if (studentData && !studentError) {
-        actualStudentId = studentData.id;
+        actualStudentId = studentData.user_id || studentData.id;
       }
     }
+
+    console.log("🔍 Using student ID for collection query:", actualStudentId);
 
     const { data, error } = await supabase
       .from('student_pokemon_collection')
