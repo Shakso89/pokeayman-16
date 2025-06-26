@@ -24,6 +24,33 @@ export interface StudentPokemonCollection {
   pokemon?: Pokemon;
 }
 
+// Helper function to resolve student ID from username to proper user_id
+const resolveStudentId = async (studentId: string): Promise<string> => {
+  console.log("🔍 Resolving student ID:", studentId);
+  
+  // If it looks like a UUID, return as is
+  if (studentId && studentId.includes('-') && studentId.length > 30) {
+    console.log("✅ Already a UUID:", studentId);
+    return studentId;
+  }
+
+  // Try to find by username in students table
+  const { data: studentData, error: studentError } = await supabase
+    .from('students')
+    .select('id, user_id, username')
+    .eq('username', studentId)
+    .single();
+  
+  if (studentData && !studentError) {
+    const resolvedId = studentData.user_id || studentData.id;
+    console.log("✅ Resolved username to ID:", { username: studentId, resolvedId });
+    return resolvedId;
+  }
+
+  console.log("⚠️ Could not resolve student ID, using as-is:", studentId);
+  return studentId;
+};
+
 // Get all Pokemon from the unified pool
 export const getPokemonPool = async (): Promise<Pokemon[]> => {
   try {
@@ -80,33 +107,6 @@ export const getRandomPokemonFromPool = async (): Promise<Pokemon | null> => {
     console.error("❌ Unexpected error fetching random Pokemon:", error);
     return null;
   }
-};
-
-// Helper function to resolve student ID from username to proper user_id
-const resolveStudentId = async (studentId: string): Promise<string> => {
-  console.log("🔍 Resolving student ID:", studentId);
-  
-  // If it looks like a UUID, return as is
-  if (studentId && studentId.includes('-') && studentId.length > 30) {
-    console.log("✅ Already a UUID:", studentId);
-    return studentId;
-  }
-
-  // Try to find by username in students table
-  const { data: studentData, error: studentError } = await supabase
-    .from('students')
-    .select('id, user_id, username')
-    .eq('username', studentId)
-    .single();
-  
-  if (studentData && !studentError) {
-    const resolvedId = studentData.user_id || studentData.id;
-    console.log("✅ Resolved username to ID:", { username: studentId, resolvedId });
-    return resolvedId;
-  }
-
-  console.log("⚠️ Could not resolve student ID, using as-is:", studentId);
-  return studentId;
 };
 
 // Award Pokemon to student (creates a copy in their collection)
@@ -230,7 +230,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
     const legacyCollection = legacyData || [];
     console.log(`📦 Found ${legacyCollection.length} Pokemon in legacy collection`);
 
-    // Convert legacy format to unified format
+    // Convert legacy format to unified format - FIXED
     const convertedLegacy = legacyCollection.map(item => ({
       id: item.id,
       student_id: actualStudentId,
@@ -243,7 +243,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
         image_url: item.pokemon_catalog.image || '/placeholder.svg',
         type_1: item.pokemon_catalog.type || 'normal',
         type_2: item.pokemon_catalog.type2 || undefined,
-        rarity: item.pokemon_catalog.rarity || 'common',
+        rarity: (item.pokemon_catalog.rarity || 'common') as 'common' | 'uncommon' | 'rare' | 'legendary',
         price: 15,
         power_stats: item.pokemon_catalog.power_stats,
         created_at: new Date().toISOString(),
