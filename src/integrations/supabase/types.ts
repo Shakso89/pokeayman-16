@@ -465,6 +465,41 @@ export type Database = {
         }
         Relationships: []
       }
+      pokemon_collection: {
+        Row: {
+          awarded_at: string
+          awarded_by: string | null
+          id: string
+          pokemon_id: string
+          source: string | null
+          student_id: string
+        }
+        Insert: {
+          awarded_at?: string
+          awarded_by?: string | null
+          id?: string
+          pokemon_id: string
+          source?: string | null
+          student_id: string
+        }
+        Update: {
+          awarded_at?: string
+          awarded_by?: string | null
+          id?: string
+          pokemon_id?: string
+          source?: string | null
+          student_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "student_pokemon_collection_pokemon_id_fkey"
+            columns: ["pokemon_id"]
+            isOneToOne: false
+            referencedRelation: "pokemon_pool"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       pokemon_pool: {
         Row: {
           created_at: string
@@ -571,41 +606,6 @@ export type Database = {
             columns: ["student_id"]
             isOneToOne: false
             referencedRelation: "students"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      student_pokemon_collection: {
-        Row: {
-          awarded_at: string
-          awarded_by: string | null
-          id: string
-          pokemon_id: string
-          source: string | null
-          student_id: string
-        }
-        Insert: {
-          awarded_at?: string
-          awarded_by?: string | null
-          id?: string
-          pokemon_id: string
-          source?: string | null
-          student_id: string
-        }
-        Update: {
-          awarded_at?: string
-          awarded_by?: string | null
-          id?: string
-          pokemon_id?: string
-          source?: string | null
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "student_pokemon_collection_pokemon_id_fkey"
-            columns: ["pokemon_id"]
-            isOneToOne: false
-            referencedRelation: "pokemon_pool"
             referencedColumns: ["id"]
           },
         ]

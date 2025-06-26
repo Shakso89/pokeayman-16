@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -420,7 +419,7 @@ const StudentProfilePage: React.FC = () => {
                 ) : pokemonCollection.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {pokemonCollection.map((collection) => {
-                      const pokemon = collection.pokemon;
+                      const pokemon = collection.pokemon_pool;
                       if (!pokemon) return null;
 
                       return (
