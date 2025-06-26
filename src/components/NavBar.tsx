@@ -157,10 +157,11 @@ export const NavBar: React.FC<NavBarProps> = ({
       />
 
       <SelectSchoolDialog
-        isOpen={isSelectSchoolOpen}
-        onClose={() => setIsSelectSchoolOpen(false)}
-        onSelectSchool={(schoolId) => {
-          console.log("Selected school:", schoolId);
+        open={isSelectSchoolOpen}
+        onOpenChange={setIsSelectSchoolOpen}
+        teacherId={localStorage.getItem("teacherId") || ""}
+        onClassCreated={() => {
+          console.log("Class created successfully");
           setIsSelectSchoolOpen(false);
         }}
       />
