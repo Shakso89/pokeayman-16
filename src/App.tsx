@@ -2,50 +2,50 @@
 import React from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { Toaster } from '@/components/ui/toaster';
-import LandingPage from '@/pages/LandingPage';
+import Index from '@/pages/Index';
 import TeacherLogin from '@/pages/TeacherLogin';
 import StudentLogin from '@/pages/StudentLogin';
 import TeacherDashboard from '@/pages/TeacherDashboard';
 import StudentDashboard from '@/pages/StudentDashboard';
-import ClassDetails from '@/pages/ClassDetails';
+import ClassDetailsPage from '@/pages/ClassDetailsPage';
 import StudentDetailPage from '@/pages/StudentDetailPage';
 import StudentProfilePage from '@/pages/StudentProfilePage';
-import ProtectedRoute from '@/components/ProtectedRoute';
+import ProtectedRoute from '@/components/auth/ProtectedRoute';
 
 function App() {
   return (
     <div className="App">
       <Routes>
-        <Route path="/" element={<LandingPage />} />
+        <Route path="/" element={<Index />} />
         <Route path="/teacher-login" element={<TeacherLogin />} />
         <Route path="/student-login" element={<StudentLogin />} />
         
         <Route path="/teacher-dashboard" element={
-          <ProtectedRoute userType="teacher">
+          <ProtectedRoute requiredUserType="teacher">
             <TeacherDashboard />
           </ProtectedRoute>
         } />
         
         <Route path="/class/:classId" element={
-          <ProtectedRoute userType="teacher">
-            <ClassDetails />
+          <ProtectedRoute requiredUserType="teacher">
+            <ClassDetailsPage />
           </ProtectedRoute>
         } />
         
         <Route path="/teacher/student/:studentId" element={
-          <ProtectedRoute userType="teacher">
+          <ProtectedRoute requiredUserType="teacher">
             <StudentDetailPage />
           </ProtectedRoute>
         } />
         
         <Route path="/student-dashboard" element={
-          <ProtectedRoute userType="student">
+          <ProtectedRoute requiredUserType="student">
             <StudentDashboard />
           </ProtectedRoute>
         } />
         
         <Route path="/student-profile" element={
-          <ProtectedRoute userType="student">
+          <ProtectedRoute requiredUserType="student">
             <StudentProfilePage />
           </ProtectedRoute>
         } />
