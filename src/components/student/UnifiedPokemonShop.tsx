@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, ShoppingBag, Coins } from "lucide-react";
-import { getPokemonPool, purchasePokemonFromShop, type Pokemon } from "@/services/pokemonService";
+import { getPokemonCatalog, purchasePokemonFromShop, type PokemonCatalogItem } from "@/services/pokemonService";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
 
@@ -22,8 +22,8 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
   onPurchase
 }) => {
   const { t } = useTranslation();
-  const [pokemon, setPokemon] = useState<Pokemon[]>([]);
-  const [filteredPokemon, setFilteredPokemon] = useState<Pokemon[]>([]);
+  const [pokemon, setPokemon] = useState<PokemonCatalogItem[]>([]);
+  const [filteredPokemon, setFilteredPokemon] = useState<PokemonCatalogItem[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRarity, setSelectedRarity] = useState<string>("all");
   const [loading, setLoading] = useState(true);
@@ -41,7 +41,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
     setLoading(true);
     try {
       console.log("🛒 Fetching unified Pokemon pool for shop...");
-      const poolData = await getPokemonPool();
+      const poolData = await getPokemonCatalog();
       console.log(`🛒 Fetched ${poolData.length} Pokemon from unified pool`);
       setPokemon(poolData);
     } catch (error) {
@@ -77,7 +77,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
     setFilteredPokemon(filtered);
   };
 
-  const handlePurchase = async (pokemon: Pokemon) => {
+  const handlePurchase = async (pokemon: PokemonCatalogItem) => {
     console.log("🛒 Starting purchase process:", { pokemonId: pokemon.id, pokemonName: pokemon.name, price: pokemon.price, studentCoins, studentId });
 
     if (studentCoins < pokemon.price) {

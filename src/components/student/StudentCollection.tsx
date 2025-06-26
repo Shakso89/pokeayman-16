@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -25,8 +26,6 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
   const [error, setError] = useState<string | null>(null); // To display any fetch errors
 
   // Memoized function to fetch the student's Pokémon collection
-  // Using useCallback prevents unnecessary re-creation of this function,
-  // which is good for performance and useEffect dependencies.
   const fetchStudentCollection = useCallback(async () => {
     setLoading(true);
     setError(null); // Clear any previous errors
@@ -67,21 +66,18 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
     fetchStudentCollection();
 
     // Set up real-time subscription for immediate updates
-    // This listens to changes in the 'student_pokemon_collection' table for the current student
     const channel = supabase
-      .channel(`student-pokemon-changes-${studentId}`) // Unique channel name per student
+      .channel(`student-pokemon-changes-${studentId}`)
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen for INSERT, UPDATE, DELETE events
+          event: '*',
           schema: 'public',
-          table: 'student_pokemon_collection', // <--- CRITICAL FIX: Correct table name for real-time listener!
-          filter: `student_id=eq.${studentId}` // Filter to only changes relevant to this student
+          table: 'pokemon_collections',
+          filter: `student_id=eq.${studentId}`
         },
         (payload) => {
           console.log('🔄 Real-time Pokemon collection update detected:', payload);
-          // When a change occurs, re-fetch the entire collection to ensure UI consistency
-          // For very large collections, you might optimize by processing payload directly.
           fetchStudentCollection();
         }
       )
@@ -91,10 +87,6 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
     return () => {
       supabase.removeChannel(channel);
     };
-    // Dependencies for useEffect:
-    // - studentId: If student changes, re-run effect to fetch new data and subscribe new channel.
-    // - refreshTrigger: Allows a parent component to force a re-fetch.
-    // - fetchStudentCollection: Important because it's a useCallback function used here.
   }, [studentId, refreshTrigger, fetchStudentCollection]);
 
   // Handler for the manual refresh button
@@ -108,7 +100,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
       case 'legendary': return 'bg-yellow-500 text-white';
       case 'rare': return 'bg-purple-500 text-white';
       case 'uncommon': return 'bg-blue-500 text-white';
-      case 'common': return 'bg-green-500 text-white'; // Added common
+      case 'common': return 'bg-green-500 text-white';
       default: return 'bg-gray-500 text-white';
     }
   };
@@ -118,7 +110,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
     switch (source) {
       case 'shop_purchase': return '🛒';
       case 'teacher_award': return '🎁';
-      case 'event_reward': return '🎉'; // Example for other sources
+      case 'event_reward': return '🎉';
       default: return '⭐';
     }
   };
@@ -129,13 +121,13 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
         <CardTitle className="flex items-center gap-2 justify-between">
           <div className="flex items-center gap-2">
             <Award className="h-6 w-6" />
-            My Pokémon Collection ({pokemonCollection.length}) {/* Dynamically displays count */}
+            My Pokémon Collection ({pokemonCollection.length})
           </div>
           <Button
             variant="ghost"
             size="sm"
             onClick={handleRefresh}
-            disabled={loading} // Disable refresh button when loading
+            disabled={loading}
             className="text-white hover:bg-white/20"
           >
             <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
@@ -144,19 +136,14 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
       </CardHeader>
       <CardContent className="p-6">
         {loading ? (
-          // Show loading indicator
           <div className="text-center py-4 text-gray-500">Loading Pokémon...</div>
         ) : error ? (
-          // Show error message if fetch failed
           <div className="text-center py-4 text-red-500">Error: {error}</div>
         ) : pokemonCollection.length > 0 ? (
-          // Display Pokémon grid if collection is not empty
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {pokemonCollection.map((collectionItem) => {
-              // Ensure we are accessing the nested 'pokemon_catalog' object for details
               const pokemon = collectionItem.pokemon_catalog;
 
-              // Do not render if the joined Pokémon data is missing (e.g., if pokemon_id is invalid)
               if (!pokemon) {
                 console.warn("Pokemon data missing for collection item with ID:", collectionItem.id);
                 return null;
@@ -168,11 +155,10 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
                     <div className="space-y-2">
                       <div className="aspect-square bg-gray-50 rounded-lg flex items-center justify-center">
                         <img
-                          src={pokemon.image_url || '/placeholder-pokemon.png'} // Use image_url from the joined data
+                          src={pokemon.image_url || '/placeholder-pokemon.png'}
                           alt={pokemon.name}
                           className="w-full h-full object-contain"
                           onError={(e) => {
-                            // Fallback image if the original image fails to load
                             const target = e.target as HTMLImageElement;
                             target.src = "/placeholder.svg";
                           }}
@@ -183,12 +169,12 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
                         <h3 className="font-medium text-sm text-center">{pokemon.name}</h3>
 
                         <div className="flex justify-center gap-1">
-                          {pokemon.type_1 && ( // Render type_1 badge only if it exists
+                          {pokemon.type_1 && (
                             <Badge variant="outline" className="text-xs">
                               {pokemon.type_1}
                             </Badge>
                           )}
-                          {pokemon.type_2 && ( // Render type_2 badge only if it exists
+                          {pokemon.type_2 && (
                             <Badge variant="outline" className="text-xs">
                               {pokemon.type_2}
                             </Badge>
@@ -196,7 +182,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
                         </div>
 
                         <div className="flex justify-center">
-                          {pokemon.rarity && ( // Render rarity badge only if it exists
+                          {pokemon.rarity && (
                             <Badge className={`${getRarityColor(pokemon.rarity)} text-xs`}>
                               {pokemon.rarity}
                             </Badge>
@@ -205,7 +191,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
 
                         <div className="text-center">
                           <span className="text-xs text-gray-500" title={`Source: ${collectionItem.source}`}>
-                            {getSourceIcon(collectionItem.source)} {/* Uses source from collection item */}
+                            {getSourceIcon(collectionItem.source)}
                           </span>
                         </div>
                       </div>
@@ -216,7 +202,6 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
             })}
           </div>
         ) : (
-          // Display message when no Pokémon are in the collection
           <div className="text-center py-8 text-gray-500">
             <Award className="h-12 w-12 mx-auto mb-4 text-gray-300" />
             <p>No Pokémon in your collection yet.</p>

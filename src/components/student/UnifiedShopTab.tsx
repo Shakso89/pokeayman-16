@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Coins, ShoppingCart, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { purchasePokemonFromShop, type Pokemon } from "@/services/pokemonService";
+import { purchasePokemonFromShop, type PokemonCatalogItem } from "@/services/pokemonService";
 import { getStudentCoinsEnhanced } from "@/services/enhancedCoinService";
 
 interface UnifiedShopTabProps {
@@ -20,7 +20,7 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
   studentCoins,
   onDataUpdate
 }) => {
-  const [pokemonPool, setPokemonPool] = useState<Pokemon[]>([]);
+  const [pokemonPool, setPokemonPool] = useState<PokemonCatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [currentCoins, setCurrentCoins] = useState(studentCoins);
@@ -48,7 +48,7 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
     setLoading(true);
     try {
       const { data, error } = await supabase
-        .from('pokemon_pool')
+        .from('pokemon_catalog')
         .select('*')
         .order('rarity', { ascending: false })
         .order('name');
@@ -67,7 +67,7 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
     }
   };
 
-  const handlePurchase = async (pokemon: Pokemon) => {
+  const handlePurchase = async (pokemon: PokemonCatalogItem) => {
     // Re-fetch current coins to ensure we have the latest balance
     const latestCoinData = await getStudentCoinsEnhanced(studentId);
     const latestCoins = latestCoinData.coins;

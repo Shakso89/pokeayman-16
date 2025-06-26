@@ -1,3 +1,4 @@
+
 // src/services/pokemonService.ts
 
 import { supabase } from "@/integrations/supabase/client";
@@ -8,8 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
  * Defines the structure of a single Pokémon entry as it exists in your `pokemon_catalog` table.
  * IMPORTANT: Ensure these property names (e.g., `image_url`, `type_1`)
  * exactly match the column names in your `pokemon_catalog` table in Supabase.
- * If your table is actually named `pokemon_pool`, rename this interface to `PokemonPoolItem`
- * and adjust usage accordingly.
  */
 export interface PokemonCatalogItem {
   id: string;
@@ -24,10 +23,12 @@ export interface PokemonCatalogItem {
   created_at: string;
 }
 
+// Legacy type alias for backward compatibility
+export type Pokemon = PokemonCatalogItem;
+
 /**
- * Defines the structure of a single entry in the `student_pokemon_collection` table,
+ * Defines the structure of a single entry in the `pokemon_collections` table,
  * including the joined Pokémon details from `pokemon_catalog`.
- * This is the shape of data you expect to receive from the `getStudentPokemonCollection` function.
  */
 export interface StudentPokemonCollectionItem {
   id: string; // The primary key ID of this specific collection entry
@@ -40,11 +41,12 @@ export interface StudentPokemonCollectionItem {
   /**
    * The joined data from the `pokemon_catalog` table.
    * This property will contain all the details of the Pokémon itself.
-   * It's crucial that the 'select' query in `getStudentPokemonCollection` uses
-   * `pokemon_catalog(...)` to populate this.
    */
   pokemon_catalog: PokemonCatalogItem | null; // `null` if the join failed for some reason
 }
+
+// Legacy type alias for backward compatibility
+export type StudentPokemonCollection = StudentPokemonCollectionItem;
 
 // --- Service Functions ---
 
@@ -57,7 +59,7 @@ export const getPokemonCatalog = async (): Promise<PokemonCatalogItem[]> => {
     console.log("🌍 Fetching Pokemon catalog...");
 
     const { data, error } = await supabase
-      .from('pokemon_catalog') // <--- FIX: Use pokemon_catalog (or your actual pool table name)
+      .from('pokemon_catalog')
       .select('*')
       .order('name');
 
@@ -74,13 +76,12 @@ export const getPokemonCatalog = async (): Promise<PokemonCatalogItem[]> => {
   }
 };
 
+// Legacy function alias for backward compatibility
+export const getPokemonPool = getPokemonCatalog;
+
 /**
  * Award Pokemon to a student and add it to their collection.
- * This inserts a new record into `student_pokemon_collection`.
- * @param studentId The ID of the student.
- * @param pokemonId The ID of the Pokemon from the catalog to award.
- * @param source The source of the award (e.g., 'teacher_award', 'shop_purchase').
- * @param awardedBy Optional: The ID of the entity that awarded the Pokemon (e.g., teacher ID).
+ * This inserts a new record into `pokemon_collections`.
  */
 export const awardPokemonToStudent = async (
   studentId: string,
@@ -93,7 +94,7 @@ export const awardPokemonToStudent = async (
 
     // Verify Pokemon exists in catalog
     const { data: pokemon, error: pokemonError } = await supabase
-      .from('pokemon_catalog') // <--- FIX: Use pokemon_catalog
+      .from('pokemon_catalog')
       .select('*')
       .eq('id', pokemonId)
       .single();
@@ -105,19 +106,19 @@ export const awardPokemonToStudent = async (
 
     console.log("✅ Pokemon verified in catalog:", pokemon.name);
 
-    // Insert into student's collection - USE CORRECT TABLE NAME
+    // Insert into student's collection
     const { data: result, error: insertError } = await supabase
-      .from('student_pokemon_collection') // <--- CRITICAL FIX: Use student_pokemon_collection
+      .from('pokemon_collections')
       .insert({
         student_id: studentId,
         pokemon_id: pokemonId,
         source,
         awarded_by: awardedBy,
-        awarded_at: new Date().toISOString()
+        obtained_at: new Date().toISOString()
       })
       .select(`
         *,
-        pokemon_catalog(*) // <--- FIX: Join to pokemon_catalog for nested data
+        pokemon_catalog(*)
       `)
       .single();
 
@@ -127,7 +128,6 @@ export const awardPokemonToStudent = async (
     }
 
     console.log("✅ Pokemon awarded successfully:", result);
-    // Ensure the returned pokemon matches the PokemonCatalogItem type
     return { success: true, pokemon: pokemon };
   } catch (error) {
     console.error("❌ Unexpected error awarding Pokemon:", error);
@@ -151,18 +151,18 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
 
     // Use the correct table name with proper joins
     const { data, error } = await supabase
-      .from('student_pokemon_collection') // <--- CRITICAL FIX: Use student_pokemon_collection
+      .from('pokemon_collections')
       .select(`
         id,
         student_id,
         pokemon_id,
         source,
         awarded_by,
-        awarded_at,
-        pokemon_catalog(*) // <--- CRITICAL FIX: Join to pokemon_catalog for details
+        obtained_at,
+        pokemon_catalog(*)
       `)
       .eq('student_id', studentId)
-      .order('awarded_at', { ascending: false });
+      .order('obtained_at', { ascending: false });
 
     if (error) {
       console.error("❌ Error fetching student's collection:", error);
@@ -184,10 +184,6 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
  * Handles the complete process of purchasing a Pokemon from the shop,
  * including coin deduction and adding the Pokemon to the collection.
  * Includes a basic refund mechanism if the Pokemon award fails.
- *
- * @param studentId The ID of the student making the purchase.
- * @param pokemonId The ID of the Pokemon to purchase.
- * @param price The cost of the Pokemon.
  */
 export const purchasePokemonFromShop = async (
   studentId: string,
@@ -198,14 +194,13 @@ export const purchasePokemonFromShop = async (
     console.log("🛒 Starting Pokemon purchase:", { studentId, pokemonId, price });
 
     // Dynamically import the enhanced coin service to avoid circular dependencies
-    // if this file is also imported by coin service.
     const { deductCoinsFromStudentEnhanced, awardCoinsToStudentEnhanced } = await import("./enhancedCoinService");
 
     // --- Step 1: Deduct coins ---
     const coinResult = await deductCoinsFromStudentEnhanced(
       studentId,
       price,
-      `Purchased Pokemon: ${pokemonId}`, // More specific description
+      `Purchased Pokemon: ${pokemonId}`,
       'shop_purchase'
     );
 
@@ -226,7 +221,7 @@ export const purchasePokemonFromShop = async (
       await awardCoinsToStudentEnhanced(
         studentId,
         price,
-        `Refund for failed Pokemon purchase: ${pokemonId}`, // Specific refund reason
+        `Refund for failed Pokemon purchase: ${pokemonId}`,
         "refund"
       );
       console.log("⚠️ Coins refunded due to failed Pokemon award.");
@@ -250,19 +245,8 @@ export const removePokemonFromStudent = async (collectionId: string): Promise<bo
   try {
     console.log("🗑️ Removing Pokemon from collection:", collectionId);
 
-    // No need to fetch student_id before deletion for real-time sync if your real-time listener
-    // on 'student_pokemon_collection' is configured to listen to all events and refetch for the user.
-    // However, if you need the student_id for specific logging or other actions, keep this part.
-    /*
-    const { data: collectionItem } = await supabase
-      .from('student_pokemon_collection') // Use correct table name
-      .select('student_id')
-      .eq('id', collectionId)
-      .single();
-    */
-
     const { error } = await supabase
-      .from('student_pokemon_collection') // <--- CRITICAL FIX: Use student_pokemon_collection
+      .from('pokemon_collections')
       .delete()
       .eq('id', collectionId);
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,7 +23,7 @@ import {
 import { NavBar } from "@/components/NavBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
-import { getStudentPokemonCollection, type StudentPokemonCollection } from "@/services/pokemonService";
+import { getStudentPokemonCollection, type StudentPokemonCollectionItem } from "@/services/pokemonService";
 import { supabase } from "@/integrations/supabase/client";
 
 const StudentProfilePage: React.FC = () => {
@@ -49,7 +50,7 @@ const StudentProfilePage: React.FC = () => {
   } = useStudentProfile(studentId);
 
   const [activeTab, setActiveTab] = useState("overview");
-  const [pokemonCollection, setPokemonCollection] = useState<StudentPokemonCollection[]>([]);
+  const [pokemonCollection, setPokemonCollection] = useState<StudentPokemonCollectionItem[]>([]);
   const [pokemonLoading, setPokemonLoading] = useState(false);
   const [coins, setCoins] = useState(0);
   const [schoolInfo, setSchoolInfo] = useState<{ schoolName: string; className: string }>({
@@ -76,7 +77,7 @@ const StudentProfilePage: React.FC = () => {
           {
             event: '*',
             schema: 'public',
-            table: 'pokemon_collection',
+            table: 'pokemon_collections',
             filter: `student_id=eq.${studentId}`
           },
           () => {
@@ -469,7 +470,7 @@ const StudentProfilePage: React.FC = () => {
                 ) : pokemonCollection.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {pokemonCollection.map((collection) => {
-                      const pokemon = collection.pokemon_pool;
+                      const pokemon = collection.pokemon_catalog;
                       if (!pokemon) return null;
 
                       return (

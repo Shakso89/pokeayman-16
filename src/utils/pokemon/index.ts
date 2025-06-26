@@ -1,13 +1,13 @@
 
 // Re-export everything from the unified Pokemon service
 export {
-  getPokemonPool,
+  getPokemonCatalog as getPokemonPool,
   awardPokemonToStudent,
   getStudentPokemonCollection,
   purchasePokemonFromShop,
   removePokemonFromStudent,
-  type Pokemon,
-  type StudentPokemonCollection
+  type PokemonCatalogItem as Pokemon,
+  type StudentPokemonCollectionItem as StudentPokemonCollection
 } from '@/services/pokemonService';
 
 // Legacy exports for backward compatibility - these now use the unified service
