@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -8,8 +7,9 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Trophy, Book } from "lucide-react";
-import { useStudentData } from "@/hooks/useStudentData";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { getStudentCoinsEnhanced } from "@/services/enhancedCoinService";
 
 // Import our components
 import StudentHeader from "@/components/student/StudentHeader";
@@ -40,38 +40,123 @@ const StudentDashboard: React.FC = () => {
   const { toast } = useToast();
   const [searchParams] = useSearchParams();
   
-  const { studentInfo, pokemon: pokemons, loading: dataLoading, error } = useStudentData(studentId);
-  
   const [activeTab, setActiveTab] = useState("home");
   const [activeBattles, setActiveBattles] = useState<any[]>([]);
   const [showSchoolPool, setShowSchoolPool] = useState(false);
   const [isLoadingPool, setIsLoadingPool] = useState(false);
+  const [studentInfo, setStudentInfo] = useState<any>(null);
+  const [coins, setCoins] = useState(0);
+  const [studentClasses, setStudentClasses] = useState<string[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
 
-  // Extract profile data from studentInfo
-  const profile = studentInfo;
-  const coins = studentInfo?.coins || 0;
+  // Enhanced data loading function
+  const loadStudentData = useCallback(async () => {
+    if (!studentId || studentId === 'undefined') {
+      setDataLoading(false);
+      return;
+    }
 
-  // Parse class IDs - handle both single class and comma-separated classes
-  const studentClasses = profile?.class_id ? 
-    (typeof profile.class_id === 'string' ? profile.class_id.split(',').filter(Boolean) : [profile.class_id]) 
-    : [];
+    try {
+      setDataLoading(true);
+      console.log("🔄 Loading enhanced student data for:", studentId);
 
-  console.log("Student classes parsed:", { 
-    rawClassId: profile?.class_id, 
-    parsedClasses: studentClasses,
-    studentInfo: profile 
-  });
+      // Get student profile from unified source
+      const { data: profileData, error: profileError } = await supabase
+        .from('student_profiles')
+        .select('*')
+        .eq('user_id', studentId)
+        .single();
 
-  const refreshData = () => {
-    // This would trigger a re-fetch of student data
-    window.location.reload();
-  };
+      if (profileError) {
+        console.error("❌ Error loading student profile:", profileError);
+        // Fallback to students table
+        const { data: studentData } = await supabase
+          .from('students')
+          .select('*')
+          .eq('user_id', studentId)
+          .single();
+
+        if (studentData) {
+          setStudentInfo(studentData);
+          setCoins(studentData.coins || 0);
+          setStudentClasses(studentData.class_id ? [studentData.class_id] : []);
+        }
+      } else {
+        setStudentInfo(profileData);
+        setCoins(profileData.coins || 0);
+        setStudentClasses(profileData.class_id ? [profileData.class_id] : []);
+      }
+
+      // Also get coins using enhanced service for accuracy
+      const coinData = await getStudentCoinsEnhanced(studentId);
+      setCoins(coinData.coins);
+
+      console.log("✅ Student data loaded successfully");
+    } catch (error) {
+      console.error("❌ Error loading student data:", error);
+    } finally {
+      setDataLoading(false);
+    }
+  }, [studentId]);
+
+  // Initial data load
+  useEffect(() => {
+    loadStudentData();
+  }, [loadStudentData]);
+
+  // Real-time subscription for data changes
+  useEffect(() => {
+    if (!studentId || studentId === 'undefined') return;
+
+    console.log("🔄 Setting up real-time subscriptions for:", studentId);
+
+    // Subscribe to student profile changes
+    const profileChannel = supabase
+      .channel('student-dashboard-profile')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'student_profiles',
+          filter: `user_id=eq.${studentId}`
+        },
+        (payload) => {
+          console.log('🔄 Real-time profile update:', payload);
+          loadStudentData();
+        }
+      )
+      .subscribe();
+
+    // Subscribe to Pokemon collection changes
+    const pokemonChannel = supabase
+      .channel('student-dashboard-pokemon')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'student_pokemon_collection',
+          filter: `student_id=eq.${studentId}`
+        },
+        (payload) => {
+          console.log('🔄 Real-time Pokemon update:', payload);
+          loadStudentData();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(profileChannel);
+      supabase.removeChannel(pokemonChannel);
+    };
+  }, [studentId, loadStudentData]);
 
   useEffect(() => {
     console.log("StudentDashboard loaded with:", {
       studentId,
       schoolId,
-      profileClassId: profile?.class_id,
+      profileClassId: studentInfo?.class_id,
       parsedClasses: studentClasses
     });
 
@@ -83,7 +168,7 @@ const StudentDashboard: React.FC = () => {
     if (studentId) {
       loadActiveBattles();
     }
-  }, [studentId, schoolId, searchParams, profile?.class_id]);
+  }, [studentId, schoolId, searchParams, studentInfo?.class_id]);
 
   const loadActiveBattles = () => {
     if (!studentId || !schoolId) return; 
@@ -117,7 +202,7 @@ const StudentDashboard: React.FC = () => {
   };
 
   const handlePurchaseComplete = () => {
-    refreshData();
+    loadStudentData(); // Refresh all data after purchase
   };
 
   const handleHomeworkClick = () => {
@@ -138,15 +223,15 @@ const StudentDashboard: React.FC = () => {
     return <Navigate to="/student-login" />;
   }
 
-  const avatar = profile?.avatar_url || localStorage.getItem("studentAvatar") || undefined;
+  const avatar = studentInfo?.avatar_url || localStorage.getItem("studentAvatar") || undefined;
 
   return (
     <div className="min-h-screen bg-transparent">
-      <NavBar userType="student" userName={profile?.display_name || studentName} userAvatar={avatar} />
+      <NavBar userType="student" userName={studentInfo?.display_name || studentName} userAvatar={avatar} />
       
       <div className="container mx-auto py-4 md:py-8 px-2 md:px-4">
         <StudentHeader 
-          studentName={profile?.display_name || studentName} 
+          studentName={studentInfo?.display_name || studentName} 
           coins={coins} 
           activeBattles={activeBattles} 
           onOpenSchoolPool={() => setShowSchoolPool(true)} 
@@ -222,7 +307,7 @@ const StudentDashboard: React.FC = () => {
               <UnifiedShopTab
                 studentId={studentId}
                 studentCoins={coins}
-                onDataUpdate={refreshData}
+                onDataUpdate={handlePurchaseComplete}
               />
             </TabsContent>
           </Tabs>

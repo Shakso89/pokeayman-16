@@ -1,55 +1,50 @@
 
 import React, { useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useToast } from "@/hooks/use-toast";
+import { Coins, Loader2 } from "lucide-react";
 import { awardCoinsToStudentEnhanced } from "@/services/enhancedCoinService";
-import { Loader2, Coins } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 interface GiveCoinsDialogProps {
   isOpen: boolean;
   onOpenChange: (open: boolean) => void;
-  studentId: string;
   studentName: string;
-  onGiveCoins: (amount: number) => void;
+  studentId: string;
   teacherId: string;
   classId: string;
-  schoolId?: string;
+  schoolId: string;
+  onGiveCoins: (amount: number) => void;
 }
 
 const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
   isOpen,
   onOpenChange,
-  studentId,
   studentName,
-  onGiveCoins,
+  studentId,
   teacherId,
   classId,
-  schoolId
+  schoolId,
+  onGiveCoins
 }) => {
-  const { toast } = useToast();
-  const [amount, setAmount] = useState<string>("10");
-  const [reason, setReason] = useState<string>("Teacher reward");
+  const [amount, setAmount] = useState("");
+  const [reason, setReason] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const { toast } = useToast();
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    console.log("🎯 Starting coin award process", {
-      studentId,
-      studentName,
-      amount,
-      reason,
-      teacherId,
-      classId,
-      schoolId
-    });
-
-    // Validate amount
+  const handleGiveCoins = async () => {
     const coinAmount = parseInt(amount);
+    
     if (!coinAmount || coinAmount <= 0) {
       toast({
         title: "Invalid Amount",
@@ -68,30 +63,12 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
       return;
     }
 
-    // Validate student ID
-    if (!studentId || studentId === 'undefined' || studentId.trim() === '') {
-      console.error("❌ Invalid student ID:", studentId);
-      toast({
-        title: "Error",
-        description: "Invalid student ID - please try refreshing the page",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    // Validate reason
-    if (!reason || reason.trim() === '') {
-      setReason("Teacher reward");
-    }
-
     setIsLoading(true);
-
     try {
-      console.log("🎯 Awarding coins via GiveCoinsDialog", {
+      console.log("🎁 Awarding coins with enhanced service:", {
         studentId,
-        studentName,
         amount: coinAmount,
-        reason: reason.trim(),
+        reason: reason || "Teacher award",
         teacherId,
         classId,
         schoolId
@@ -100,43 +77,34 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
       const result = await awardCoinsToStudentEnhanced(
         studentId,
         coinAmount,
-        reason.trim(),
+        reason || "Teacher award",
         "teacher_award",
         classId,
         schoolId
       );
 
-      console.log("🎯 Coin award result:", result);
-
       if (result.success) {
         toast({
-          title: "Success!",
-          description: `Awarded ${coinAmount} coins to ${studentName}. New balance: ${result.newBalance || 'Unknown'}`,
+          title: "Success! 🎉",
+          description: `${coinAmount} coins awarded to ${studentName}. New balance: ${result.newBalance} coins`,
         });
         
         onGiveCoins(coinAmount);
+        setAmount("");
+        setReason("");
         onOpenChange(false);
-        
-        // Reset form
-        setAmount("10");
-        setReason("Teacher reward");
       } else {
-        const errorMessage = result.error || "Failed to award coins - unknown error";
-        console.error("❌ Coin award failed:", errorMessage);
-        
         toast({
           title: "Error",
-          description: errorMessage,
+          description: result.error || "Failed to award coins",
           variant: "destructive"
         });
       }
     } catch (error) {
-      console.error("❌ Unexpected error awarding coins:", error);
-      const errorMessage = error instanceof Error ? error.message : "An unexpected error occurred";
-      
+      console.error("❌ Error in GiveCoinsDialog:", error);
       toast({
         title: "Error",
-        description: `Failed to award coins: ${errorMessage}`,
+        description: "An unexpected error occurred",
         variant: "destructive"
       });
     } finally {
@@ -144,71 +112,90 @@ const GiveCoinsDialog: React.FC<GiveCoinsDialogProps> = ({
     }
   };
 
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (value === "" || /^\d+$/.test(value)) {
+      setAmount(value);
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Coins className="h-5 w-5 text-yellow-500" />
-            Give Coins to {studentName}
+            Award Coins to {studentName}
           </DialogTitle>
+          <DialogDescription>
+            Give coins to reward good behavior, completed homework, or achievements.
+          </DialogDescription>
         </DialogHeader>
-
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="space-y-2">
-            <Label htmlFor="amount">Amount</Label>
+        
+        <div className="grid gap-4 py-4">
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="amount" className="text-right">
+              Amount
+            </Label>
             <Input
               id="amount"
-              type="number"
-              min="1"
-              max="1000"
+              type="text"
+              placeholder="Enter amount"
               value={amount}
-              onChange={(e) => setAmount(e.target.value)}
-              placeholder="Enter coin amount"
-              disabled={isLoading}
+              onChange={handleAmountChange}
+              className="col-span-3"
+              maxLength={4}
             />
           </div>
-
-          <div className="space-y-2">
-            <Label htmlFor="reason">Reason</Label>
+          
+          <div className="grid grid-cols-4 items-start gap-4">
+            <Label htmlFor="reason" className="text-right pt-2">
+              Reason
+            </Label>
             <Textarea
               id="reason"
+              placeholder="Why are you giving these coins? (optional)"
               value={reason}
               onChange={(e) => setReason(e.target.value)}
-              placeholder="Enter reason for awarding coins"
+              className="col-span-3"
               rows={3}
-              disabled={isLoading}
+              maxLength={200}
             />
           </div>
-
-          <DialogFooter className="flex gap-2 sm:gap-0">
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={isLoading}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              disabled={isLoading || !amount || parseInt(amount) <= 0}
-              className="bg-yellow-500 hover:bg-yellow-600"
-            >
-              {isLoading ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Awarding...
-                </>
-              ) : (
-                <>
-                  <Coins className="mr-2 h-4 w-4" />
-                  Give {amount} Coins
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </form>
+          
+          {amount && (
+            <div className="text-sm text-gray-600 ml-auto">
+              Preview: {studentName} will receive {amount} coins
+            </div>
+          )}
+        </div>
+        
+        <DialogFooter>
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            disabled={isLoading}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleGiveCoins}
+            disabled={!amount || isLoading}
+            className="bg-yellow-500 hover:bg-yellow-600"
+          >
+            {isLoading ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Awarding...
+              </>
+            ) : (
+              <>
+                <Coins className="mr-2 h-4 w-4" />
+                Award {amount || "0"} Coins
+              </>
+            )}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   );

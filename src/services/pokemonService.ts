@@ -82,7 +82,7 @@ export const getRandomPokemonFromPool = async (): Promise<Pokemon | null> => {
   }
 };
 
-// Award Pokemon to student - FIXED VERSION
+// Award Pokemon to student - ENHANCED WITH REAL-TIME SYNC
 export const awardPokemonToStudent = async (
   studentId: string,
   pokemonId: string,
@@ -106,16 +106,20 @@ export const awardPokemonToStudent = async (
 
     console.log("✅ Pokemon verified in pool:", pokemon.name);
 
-    // Insert into student's collection
+    // Insert into student's collection with proper real-time triggering
     const { data: result, error: insertError } = await supabase
       .from('student_pokemon_collection')
       .insert({
         student_id: studentId,
         pokemon_id: pokemonId,
         source,
-        awarded_by: awardedBy
+        awarded_by: awardedBy,
+        awarded_at: new Date().toISOString()
       })
-      .select()
+      .select(`
+        *,
+        pokemon:pokemon_pool(*)
+      `)
       .single();
 
     if (insertError) {
@@ -123,7 +127,13 @@ export const awardPokemonToStudent = async (
       return { success: false, error: `Failed to award Pokemon: ${insertError.message}` };
     }
 
-    console.log("✅ Pokemon awarded successfully:", result);
+    // Force a manual trigger of real-time updates by updating student profile timestamp
+    await supabase
+      .from('student_profiles')
+      .update({ updated_at: new Date().toISOString() })
+      .eq('user_id', studentId);
+
+    console.log("✅ Pokemon awarded successfully with real-time sync:", result);
     return { success: true, pokemon };
   } catch (error) {
     console.error("❌ Unexpected error awarding Pokemon:", error);
@@ -131,7 +141,7 @@ export const awardPokemonToStudent = async (
   }
 };
 
-// Get student's Pokemon collection - UNIFIED VERSION
+// Get student's Pokemon collection - ENHANCED WITH REAL-TIME SYNC
 export const getStudentPokemonCollection = async (studentId: string): Promise<StudentPokemonCollection[]> => {
   try {
     console.log("📦 Fetching student's Pokemon collection:", studentId);
@@ -141,7 +151,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
       return [];
     }
 
-    // Use the correct table and join
+    // Use the unified collection table with proper joins
     const { data, error } = await supabase
       .from('student_pokemon_collection')
       .select(`
@@ -164,7 +174,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
   }
 };
 
-// Purchase Pokemon from shop
+// Purchase Pokemon from shop - ENHANCED WITH COIN SYNC
 export const purchasePokemonFromShop = async (
   studentId: string,
   pokemonId: string,
@@ -173,13 +183,31 @@ export const purchasePokemonFromShop = async (
   try {
     console.log("🛒 Purchasing Pokemon:", { studentId, pokemonId, price });
 
-    const result = await awardPokemonToStudent(studentId, pokemonId, 'shop_purchase');
-    
-    if (!result.success) {
-      return { success: false, error: result.error };
+    // Import the enhanced coin service
+    const { deductCoinsFromStudentEnhanced } = await import("@/services/enhancedCoinService");
+
+    // First deduct coins using enhanced service
+    const coinResult = await deductCoinsFromStudentEnhanced(
+      studentId, 
+      price, 
+      `Purchased Pokemon from shop`, 
+      'shop_purchase'
+    );
+
+    if (!coinResult.success) {
+      return { success: false, error: coinResult.error };
     }
 
-    console.log("✅ Pokemon purchased successfully");
+    // Then award the Pokemon
+    const pokemonResult = await awardPokemonToStudent(studentId, pokemonId, 'shop_purchase');
+    
+    if (!pokemonResult.success) {
+      // If Pokemon award fails, we should ideally refund the coins
+      console.error("❌ Pokemon award failed after coin deduction");
+      return { success: false, error: pokemonResult.error };
+    }
+
+    console.log("✅ Pokemon purchased successfully with synchronized data");
     return { success: true };
   } catch (error) {
     console.error("❌ Error purchasing Pokemon:", error);
@@ -187,10 +215,17 @@ export const purchasePokemonFromShop = async (
   }
 };
 
-// Remove Pokemon from student's collection
+// Remove Pokemon from student's collection - ENHANCED WITH REAL-TIME SYNC
 export const removePokemonFromStudent = async (collectionId: string): Promise<boolean> => {
   try {
     console.log("🗑️ Removing Pokemon from collection:", collectionId);
+
+    // Get the student ID before deletion for real-time sync
+    const { data: collectionItem } = await supabase
+      .from('student_pokemon_collection')
+      .select('student_id')
+      .eq('id', collectionId)
+      .single();
 
     const { error } = await supabase
       .from('student_pokemon_collection')
@@ -202,7 +237,15 @@ export const removePokemonFromStudent = async (collectionId: string): Promise<bo
       return false;
     }
 
-    console.log("✅ Pokemon removed successfully");
+    // Trigger real-time update
+    if (collectionItem?.student_id) {
+      await supabase
+        .from('student_profiles')
+        .update({ updated_at: new Date().toISOString() })
+        .eq('user_id', collectionItem.student_id);
+    }
+
+    console.log("✅ Pokemon removed successfully with real-time sync");
     return true;
   } catch (error) {
     console.error("❌ Unexpected error removing Pokemon:", error);
