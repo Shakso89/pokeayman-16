@@ -54,6 +54,7 @@ export const useStudentData = (studentId: string) => {
   const loadStudentData = async () => {
     try {
       setLoading(true);
+      setError(null);
       console.log("Loading student data for:", studentId);
 
       // Resolve the student ID first
@@ -191,5 +192,9 @@ export const useStudentData = (studentId: string) => {
     }
   };
 
-  return { studentInfo, pokemon, loading, error };
+  const refreshData = () => {
+    loadStudentData();
+  };
+
+  return { studentInfo, pokemon, loading, error, refreshData };
 };

@@ -51,14 +51,16 @@ export const NavBar: React.FC<NavBarProps> = ({
     if (userType === "teacher") {
       const teacherId = localStorage.getItem("teacherId");
       if (teacherId) {
+        console.log("Navigating to teacher profile:", teacherId);
         navigate(`/teacher-profile/${teacherId}`);
       } else {
         console.error("Teacher ID not found in localStorage");
-        navigate("/teacher-profile");
+        navigate("/teacher-dashboard");
       }
     } else {
       const studentId = localStorage.getItem("studentId");
       if (studentId) {
+        console.log("Navigating to student profile:", studentId);
         navigate(`/student-profile/${studentId}`);
       } else {
         console.error("Student ID not found in localStorage");

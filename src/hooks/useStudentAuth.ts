@@ -23,8 +23,9 @@ export const useStudentAuth = () => {
         return { success: false, message: "Invalid username or password" };
       }
 
-      // Simple password check (in production, use proper hashing)
+      // Check password (simple comparison - in production use proper hashing)
       if (student.password_hash !== password) {
+        console.error("Password mismatch for student:", username);
         return { success: false, message: "Invalid username or password" };
       }
 

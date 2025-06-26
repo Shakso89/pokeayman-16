@@ -53,6 +53,7 @@ export const handleTeacherLogin = async (
     if (teacher && !dbError) {
       // Verify password (simple check - in production use proper hashing)
       if (teacher.password !== password) {
+        console.error("Password mismatch for teacher:", emailToLogin);
         return { success: false, redirect: "", message: "Invalid password" };
       }
 
@@ -76,6 +77,7 @@ export const handleTeacherLogin = async (
       const isAdmin = teacher.role === 'owner' || checkIsAdmin(null, resolvedUsername);
       localStorage.setItem("isAdmin", isAdmin.toString());
 
+      console.log("✅ Teacher database login successful");
       return { 
         success: true, 
         redirect: isAdmin ? "/admin-dashboard" : "/teacher-dashboard" 
@@ -89,6 +91,7 @@ export const handleTeacherLogin = async (
     });
 
     if (authError) {
+      console.error("Supabase auth error:", authError);
       return { success: false, redirect: "", message: authError.message };
     }
 
@@ -106,6 +109,7 @@ export const handleTeacherLogin = async (
       ...user.user_metadata
     }, updateAuthState, finalIsAdmin);
 
+    console.log("✅ Teacher Supabase auth login successful");
     return { 
       success: true, 
       redirect: finalIsAdmin ? "/admin-dashboard" : "/teacher-dashboard" 

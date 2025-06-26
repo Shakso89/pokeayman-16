@@ -3,7 +3,8 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Trophy, Crown, Medal, Coins, Star, Loader2, User } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Trophy, Crown, Medal, Coins, Star, Loader2, User, RefreshCw } from "lucide-react";
 import { StudentRanking, calculateGlobalStudentRankings } from "@/services/studentRankingService";
 
 interface GlobalRankingDisplayProps {
@@ -30,6 +31,7 @@ const GlobalRankingDisplay: React.FC<GlobalRankingDisplayProps> = ({
       setLoading(true);
       setError(null);
       
+      console.log("🏆 Loading global rankings...");
       const allRankings = await calculateGlobalStudentRankings();
       
       let displayRankings = allRankings;
@@ -40,6 +42,7 @@ const GlobalRankingDisplay: React.FC<GlobalRankingDisplayProps> = ({
         displayRankings = allRankings.slice(0, limit);
       }
       
+      console.log(`✅ Loaded ${displayRankings.length} rankings`);
       setRankings(displayRankings);
     } catch (err) {
       console.error('Error loading rankings:', err);
@@ -47,6 +50,10 @@ const GlobalRankingDisplay: React.FC<GlobalRankingDisplayProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefresh = () => {
+    loadRankings();
   };
 
   const getRankIcon = (rank: number) => {
@@ -85,12 +92,10 @@ const GlobalRankingDisplay: React.FC<GlobalRankingDisplayProps> = ({
       <Card>
         <CardContent className="py-12 text-center">
           <p className="text-red-500 mb-4">{error}</p>
-          <button
-            onClick={loadRankings}
-            className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
-          >
+          <Button onClick={loadRankings} variant="outline">
+            <RefreshCw className="h-4 w-4 mr-2" />
             Retry
-          </button>
+          </Button>
         </CardContent>
       </Card>
     );
@@ -111,12 +116,22 @@ const GlobalRankingDisplay: React.FC<GlobalRankingDisplayProps> = ({
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="flex items-center gap-2">
-          <Trophy className="h-6 w-6 text-yellow-500" />
-          Global Student Rankings
-          <Badge variant="outline" className="ml-auto">
-            {rankings.length} students
-          </Badge>
+        <CardTitle className="flex items-center gap-2 justify-between">
+          <div className="flex items-center gap-2">
+            <Trophy className="h-6 w-6 text-yellow-500" />
+            Global Student Rankings
+            <Badge variant="outline">
+              {rankings.length} students
+            </Badge>
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent>

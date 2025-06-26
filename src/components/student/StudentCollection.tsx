@@ -2,7 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Package, Star, Award } from "lucide-react";
+import { Package, Star, Award, RefreshCw } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getStudentPokemonCollection, type StudentPokemonCollection } from "@/services/pokemonService";
 
@@ -40,6 +41,10 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
     }
   };
 
+  const handleRefresh = () => {
+    fetchStudentCollection();
+  };
+
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
       case 'legendary': return 'bg-yellow-500 text-white';
@@ -61,9 +66,20 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
   return (
     <Card className="shadow-md">
       <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-        <CardTitle className="flex items-center gap-2">
-          <Award className="h-6 w-6" />
-          My Pokémon Collection ({pokemonCollection.length})
+        <CardTitle className="flex items-center gap-2 justify-between">
+          <div className="flex items-center gap-2">
+            <Award className="h-6 w-6" />
+            My Pokémon Collection ({pokemonCollection.length})
+          </div>
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={handleRefresh}
+            disabled={loading}
+            className="text-white hover:bg-white/20"
+          >
+            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
+          </Button>
         </CardTitle>
       </CardHeader>
       <CardContent className="p-6">
