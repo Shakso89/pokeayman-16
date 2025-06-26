@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -23,10 +22,19 @@ import UnifiedShopTab from "@/components/student/UnifiedShopTab";
 const StudentDashboard: React.FC = () => {
   const { isAuthenticated, user, isLoading } = useUnifiedAuth();
   
-  // Derive student-specific data from the user object
-  const studentId = user?.id || "";
-  const studentName = user?.username || "";
+  // Get the actual student ID from localStorage or user object
+  const storedStudentId = localStorage.getItem("studentId");
+  const studentId = storedStudentId || user?.id || "";
+  const studentName = user?.username || localStorage.getItem("studentUsername") || "";
   const schoolId = localStorage.getItem("studentSchoolId") || "default-school-1";
+  
+  console.log("StudentDashboard auth state:", {
+    isAuthenticated,
+    user,
+    studentId,
+    studentName,
+    storedStudentId
+  });
   
   const { t } = useTranslation();
   const { toast } = useToast();
