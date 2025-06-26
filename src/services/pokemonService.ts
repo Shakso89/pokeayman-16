@@ -232,8 +232,8 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
 
     // Convert legacy format to unified format - FIXED TypeScript errors
     const convertedLegacy = legacyCollection.map(item => {
-      // Ensure pokemon_catalog exists and is an object
-      const pokemonData = item.pokemon_catalog;
+      // Properly handle pokemon_catalog - it should be a single object, not an array
+      const pokemonData = Array.isArray(item.pokemon_catalog) ? item.pokemon_catalog[0] : item.pokemon_catalog;
       
       return {
         id: item.id,
