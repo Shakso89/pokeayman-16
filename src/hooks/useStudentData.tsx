@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Pokemon } from "@/types/pokemon";
+import { getStudentPokemonCollection, type StudentPokemonCollection } from "@/services/pokemonService";
 
 interface StudentInfo {
   id: string;
@@ -18,7 +18,7 @@ interface StudentInfo {
 
 export const useStudentData = (studentId: string) => {
   const [studentInfo, setStudentInfo] = useState<StudentInfo | null>(null);
-  const [pokemon, setPokemon] = useState<Pokemon[]>([]);
+  const [pokemon, setPokemon] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,8 +48,73 @@ export const useStudentData = (studentId: string) => {
   useEffect(() => {
     if (studentId) {
       loadStudentData();
+      
+      // Set up real-time subscription for student profile updates
+      const profileChannel = supabase
+        .channel('student-profile-updates')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'student_profiles',
+            filter: `user_id=eq.${studentId}`
+          },
+          () => {
+            console.log('🔄 Real-time student profile update');
+            loadStudentData();
+          }
+        )
+        .subscribe();
+
+      // Set up real-time subscription for Pokemon collection updates
+      const pokemonChannel = supabase
+        .channel('student-pokemon-updates')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'student_pokemon_collection',
+            filter: `student_id=eq.${studentId}`
+          },
+          () => {
+            console.log('🔄 Real-time Pokemon collection update');
+            loadPokemonData(studentId);
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(profileChannel);
+        supabase.removeChannel(pokemonChannel);
+      };
     }
   }, [studentId]);
+
+  const loadPokemonData = async (resolvedId: string) => {
+    try {
+      console.log("📦 Loading Pokemon collection for:", resolvedId);
+      const pokemonData = await getStudentPokemonCollection(resolvedId);
+
+      if (pokemonData) {
+        const pokemonList = pokemonData.map((item: StudentPokemonCollection) => ({
+          id: item.pokemon?.id || item.pokemon_id,
+          name: item.pokemon?.name || `Pokemon #${item.pokemon_id}`,
+          image: item.pokemon?.image_url || '/placeholder.svg',
+          type: item.pokemon?.type_1 || 'normal',
+          type2: item.pokemon?.type_2,
+          rarity: item.pokemon?.rarity || 'common',
+          powerStats: item.pokemon?.power_stats
+        }));
+        setPokemon(pokemonList);
+        console.log(`✅ Loaded ${pokemonList.length} Pokemon for student data`);
+      }
+    } catch (pokemonError) {
+      console.error("Error loading Pokemon collection:", pokemonError);
+      setPokemon([]);
+    }
+  };
 
   const loadStudentData = async () => {
     try {
@@ -162,27 +227,7 @@ export const useStudentData = (studentId: string) => {
       });
 
       // Load Pokemon collection using the unified service
-      try {
-        const { getStudentPokemonCollection } = await import('@/services/pokemonService');
-        const pokemonData = await getStudentPokemonCollection(resolvedId);
-
-        if (pokemonData) {
-          const pokemonList = pokemonData.map(item => ({
-            id: item.pokemon?.id || item.pokemon_id,
-            name: item.pokemon?.name || `Pokemon #${item.pokemon_id}`,
-            image: item.pokemon?.image_url || '/placeholder.svg',
-            type: item.pokemon?.type_1 || 'normal',
-            type2: item.pokemon?.type_2,
-            rarity: item.pokemon?.rarity || 'common',
-            powerStats: item.pokemon?.power_stats
-          }));
-          setPokemon(pokemonList);
-          console.log(`✅ Loaded ${pokemonList.length} Pokemon for student data`);
-        }
-      } catch (pokemonError) {
-        console.error("Error loading Pokemon collection:", pokemonError);
-        setPokemon([]);
-      }
+      await loadPokemonData(resolvedId);
 
     } catch (err) {
       console.error("Error loading student data:", err);

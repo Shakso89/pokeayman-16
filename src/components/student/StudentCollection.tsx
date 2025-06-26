@@ -6,6 +6,7 @@ import { Award, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getStudentPokemonCollection, type StudentPokemonCollection } from "@/services/pokemonService";
+import { supabase } from "@/integrations/supabase/client";
 
 interface StudentCollectionProps {
   studentId: string;
@@ -23,6 +24,28 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
   useEffect(() => {
     if (studentId) {
       fetchStudentCollection();
+      
+      // Set up real-time subscription
+      const channel = supabase
+        .channel('student-pokemon-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'student_pokemon_collection',
+            filter: `student_id=eq.${studentId}`
+          },
+          (payload) => {
+            console.log('🔄 Real-time Pokemon collection update:', payload);
+            fetchStudentCollection();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(channel);
+      };
     }
   }, [studentId, refreshTrigger]);
 

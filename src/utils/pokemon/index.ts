@@ -1,20 +1,21 @@
+
 // Re-export everything from the unified Pokemon service
 export {
   getPokemonPool,
   getRandomPokemonFromPool,
   awardPokemonToStudent,
   getStudentPokemonCollection,
-  openMysteryBall,
   purchasePokemonFromShop,
+  removePokemonFromStudent,
   type Pokemon,
   type StudentPokemonCollection
 } from '@/services/pokemonService';
 
-// Keep student-specific functions from studentPokemon.ts that are still needed
+// Legacy exports for backward compatibility - these now use the unified service
 export {
   getStudentPokemons,
   assignRandomPokemonToStudent,
   assignSpecificPokemonToStudent,
   awardCoinsToStudent,
-  removePokemonFromStudent
+  removePokemonFromStudent as removePokemonFromStudentLegacy
 } from './studentPokemon';

@@ -1,5 +1,5 @@
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,6 @@ import {
   Save,
   X,
   Camera,
-  Users,
   Trophy,
   School,
   GraduationCap,
@@ -24,7 +23,8 @@ import {
 import { NavBar } from "@/components/NavBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
-import PokemonList from "@/components/student/PokemonList";
+import { getStudentPokemonCollection, type StudentPokemonCollection } from "@/services/pokemonService";
+import { supabase } from "@/integrations/supabase/client";
 
 const StudentProfilePage: React.FC = () => {
   const { studentId: routeStudentId } = useParams();
@@ -50,11 +50,96 @@ const StudentProfilePage: React.FC = () => {
   } = useStudentProfile(studentId);
 
   const [activeTab, setActiveTab] = useState("overview");
+  const [pokemonCollection, setPokemonCollection] = useState<StudentPokemonCollection[]>([]);
+  const [pokemonLoading, setPokemonLoading] = useState(false);
+  const [coins, setCoins] = useState(0);
 
   const userType = localStorage.getItem("userType") as "teacher" | "student";
   const userName = userType === "teacher" 
     ? localStorage.getItem("teacherDisplayName") || localStorage.getItem("teacherUsername") || "Teacher"
     : localStorage.getItem("studentName") || "Student";
+
+  // Fetch Pokemon collection and coins with real-time updates
+  useEffect(() => {
+    if (studentId) {
+      fetchPokemonCollection();
+      fetchStudentCoins();
+      
+      // Set up real-time subscriptions
+      const pokemonChannel = supabase
+        .channel('profile-pokemon-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'student_pokemon_collection',
+            filter: `student_id=eq.${studentId}`
+          },
+          () => {
+            console.log('🔄 Real-time Pokemon update in profile');
+            fetchPokemonCollection();
+          }
+        )
+        .subscribe();
+
+      const coinsChannel = supabase
+        .channel('profile-coins-changes')
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'student_profiles',
+            filter: `user_id=eq.${studentId}`
+          },
+          () => {
+            console.log('🔄 Real-time coins update in profile');
+            fetchStudentCoins();
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(pokemonChannel);
+        supabase.removeChannel(coinsChannel);
+      };
+    }
+  }, [studentId]);
+
+  const fetchPokemonCollection = async () => {
+    if (!studentId) return;
+    
+    setPokemonLoading(true);
+    try {
+      console.log("📦 Fetching Pokemon for profile:", studentId);
+      const collection = await getStudentPokemonCollection(studentId);
+      console.log("Pokemon collection for profile:", collection);
+      setPokemonCollection(collection);
+    } catch (error) {
+      console.error("Error fetching Pokemon collection:", error);
+    } finally {
+      setPokemonLoading(false);
+    }
+  };
+
+  const fetchStudentCoins = async () => {
+    if (!studentId) return;
+    
+    try {
+      const { data, error } = await supabase
+        .from('student_profiles')
+        .select('coins')
+        .eq('user_id', studentId)
+        .single();
+
+      if (data && !error) {
+        setCoins(data.coins || 0);
+      }
+    } catch (error) {
+      console.error("Error fetching student coins:", error);
+    }
+  };
 
   const handleAvatarUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -227,11 +312,11 @@ const StudentProfilePage: React.FC = () => {
                 <div className="flex flex-wrap justify-center md:justify-start gap-3 mb-4">
                   <Badge className="px-3 py-1 text-base bg-green-100 text-green-800">
                     <Coins className="h-4 w-4 mr-1" />
-                    {student.id ? "Loading..." : "0"} Coins
+                    {coins} Coins
                   </Badge>
                   <Badge className="px-3 py-1 text-base bg-blue-100 text-blue-800">
                     <Trophy className="h-4 w-4 mr-1" />
-                    {student.pokemonCollection.length} Pokémon
+                    {pokemonCollection.length} Pokémon
                   </Badge>
                   {student.schoolName && (
                     <Badge className="px-3 py-1 text-base bg-purple-100 text-purple-800">
@@ -255,9 +340,7 @@ const StudentProfilePage: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-green-600">
-                {student.id ? "Loading..." : "0"}
-              </div>
+              <div className="text-3xl font-bold text-green-600">{coins}</div>
             </CardContent>
           </Card>
           
@@ -269,7 +352,7 @@ const StudentProfilePage: React.FC = () => {
               </CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-bold text-blue-600">{student.pokemonCollection.length}</div>
+              <div className="text-3xl font-bold text-blue-600">{pokemonCollection.length}</div>
             </CardContent>
           </Card>
           
@@ -327,11 +410,63 @@ const StudentProfilePage: React.FC = () => {
           <TabsContent value="pokemon">
             <Card>
               <CardHeader>
-                <CardTitle>Pokémon Collection ({student.pokemonCollection.length})</CardTitle>
+                <CardTitle>Pokémon Collection ({pokemonCollection.length})</CardTitle>
               </CardHeader>
               <CardContent>
-                {student.pokemonCollection.length > 0 ? (
-                  <PokemonList pokemons={student.pokemonCollection} onPokemonClick={() => {}} />
+                {pokemonLoading ? (
+                  <div className="flex justify-center py-12">
+                    <Loader2 className="h-8 w-8 animate-spin" />
+                  </div>
+                ) : pokemonCollection.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                    {pokemonCollection.map((collection) => {
+                      const pokemon = collection.pokemon;
+                      if (!pokemon) return null;
+
+                      return (
+                        <Card key={collection.id} className="hover:shadow-md transition-shadow">
+                          <CardContent className="p-3">
+                            <div className="space-y-2">
+                              <div className="aspect-square bg-gray-50 rounded-lg flex items-center justify-center">
+                                <img
+                                  src={pokemon.image_url || '/placeholder-pokemon.png'}
+                                  alt={pokemon.name}
+                                  className="w-full h-full object-contain"
+                                  onError={(e) => {
+                                    const target = e.target as HTMLImageElement;
+                                    target.src = "/placeholder.svg";
+                                  }}
+                                />
+                              </div>
+                              
+                              <div className="space-y-1">
+                                <h3 className="font-medium text-sm text-center">{pokemon.name}</h3>
+                                
+                                <div className="flex justify-center gap-1">
+                                  <Badge variant="outline" className="text-xs">
+                                    {pokemon.type_1}
+                                  </Badge>
+                                  {pokemon.type_2 && (
+                                    <Badge variant="outline" className="text-xs">
+                                      {pokemon.type_2}
+                                    </Badge>
+                                  )}
+                                </div>
+
+                                <div className="flex justify-center">
+                                  <Badge className={`text-xs ${pokemon.rarity === 'legendary' ? 'bg-yellow-500 text-white' : 
+                                    pokemon.rarity === 'rare' ? 'bg-purple-500 text-white' : 
+                                    pokemon.rarity === 'uncommon' ? 'bg-blue-500 text-white' : 'bg-gray-500 text-white'}`}>
+                                    {pokemon.rarity}
+                                  </Badge>
+                                </div>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      );
+                    })}
+                  </div>
                 ) : (
                   <div className="text-center py-12 text-gray-500">
                     <Trophy className="mx-auto h-16 w-16 mb-4 opacity-50" />
