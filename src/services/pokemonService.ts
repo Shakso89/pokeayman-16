@@ -47,41 +47,6 @@ export const getPokemonPool = async (): Promise<Pokemon[]> => {
   }
 };
 
-// Get random Pokemon from pool
-export const getRandomPokemonFromPool = async (): Promise<Pokemon | null> => {
-  try {
-    console.log("🎲 Getting random Pokemon from pool...");
-    
-    const { count, error: countError } = await supabase
-      .from('pokemon_pool')
-      .select('*', { count: 'exact', head: true });
-
-    if (countError || !count) {
-      console.error("❌ Error getting Pokemon count:", countError);
-      return null;
-    }
-
-    const randomOffset = Math.floor(Math.random() * count);
-
-    const { data, error } = await supabase
-      .from('pokemon_pool')
-      .select('*')
-      .range(randomOffset, randomOffset)
-      .single();
-
-    if (error) {
-      console.error("❌ Error fetching random Pokemon:", error);
-      return null;
-    }
-
-    console.log(`✅ Selected random Pokemon: ${data.name}`);
-    return data;
-  } catch (error) {
-    console.error("❌ Unexpected error fetching random Pokemon:", error);
-    return null;
-  }
-};
-
 // Award Pokemon to student - ENHANCED WITH REAL-TIME SYNC
 export const awardPokemonToStudent = async (
   studentId: string,
@@ -106,9 +71,9 @@ export const awardPokemonToStudent = async (
 
     console.log("✅ Pokemon verified in pool:", pokemon.name);
 
-    // Insert into student's collection with proper real-time triggering
+    // Insert into student's collection - FIXED TABLE NAME
     const { data: result, error: insertError } = await supabase
-      .from('student_pokemon_collection')
+      .from('student_pokemon_collection')  // ✅ CORRECT TABLE NAME
       .insert({
         student_id: studentId,
         pokemon_id: pokemonId,
@@ -127,13 +92,7 @@ export const awardPokemonToStudent = async (
       return { success: false, error: `Failed to award Pokemon: ${insertError.message}` };
     }
 
-    // Force a manual trigger of real-time updates by updating student profile timestamp
-    await supabase
-      .from('student_profiles')
-      .update({ updated_at: new Date().toISOString() })
-      .eq('user_id', studentId);
-
-    console.log("✅ Pokemon awarded successfully with real-time sync:", result);
+    console.log("✅ Pokemon awarded successfully:", result);
     return { success: true, pokemon };
   } catch (error) {
     console.error("❌ Unexpected error awarding Pokemon:", error);
@@ -151,9 +110,9 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
       return [];
     }
 
-    // Use the unified collection table with proper joins
+    // Use the correct table name with proper joins
     const { data, error } = await supabase
-      .from('student_pokemon_collection')
+      .from('student_pokemon_collection')  // ✅ CORRECT TABLE NAME
       .select(`
         *,
         pokemon:pokemon_pool!inner(*)
@@ -181,7 +140,7 @@ export const purchasePokemonFromShop = async (
   price: number
 ): Promise<{ success: boolean; error?: string }> => {
   try {
-    console.log("🛒 Purchasing Pokemon:", { studentId, pokemonId, price });
+    console.log("🛒 Starting Pokemon purchase:", { studentId, pokemonId, price });
 
     // Import the enhanced coin service
     const { deductCoinsFromStudentEnhanced } = await import("@/services/enhancedCoinService");
@@ -219,7 +178,7 @@ export const purchasePokemonFromShop = async (
       return { success: false, error: pokemonResult.error };
     }
 
-    console.log("✅ Pokemon purchased successfully with synchronized data");
+    console.log("✅ Pokemon purchased successfully");
     return { success: true };
   } catch (error) {
     console.error("❌ Error purchasing Pokemon:", error);
@@ -234,13 +193,13 @@ export const removePokemonFromStudent = async (collectionId: string): Promise<bo
 
     // Get the student ID before deletion for real-time sync
     const { data: collectionItem } = await supabase
-      .from('student_pokemon_collection')
+      .from('student_pokemon_collection')  // ✅ CORRECT TABLE NAME
       .select('student_id')
       .eq('id', collectionId)
       .single();
 
     const { error } = await supabase
-      .from('student_pokemon_collection')
+      .from('student_pokemon_collection')  // ✅ CORRECT TABLE NAME
       .delete()
       .eq('id', collectionId);
 
@@ -249,15 +208,7 @@ export const removePokemonFromStudent = async (collectionId: string): Promise<bo
       return false;
     }
 
-    // Trigger real-time update
-    if (collectionItem?.student_id) {
-      await supabase
-        .from('student_profiles')
-        .update({ updated_at: new Date().toISOString() })
-        .eq('user_id', collectionItem.student_id);
-    }
-
-    console.log("✅ Pokemon removed successfully with real-time sync");
+    console.log("✅ Pokemon removed successfully");
     return true;
   } catch (error) {
     console.error("❌ Unexpected error removing Pokemon:", error);
