@@ -71,7 +71,7 @@ export const awardPokemonToStudent = async (
 
     console.log("✅ Pokemon verified in pool:", pokemon.name);
 
-    // Insert into student's collection - FIXED TABLE NAME
+    // Insert into student's collection - CORRECT TABLE NAME
     const { data: result, error: insertError } = await supabase
       .from('student_pokemon_collection')  // ✅ CORRECT TABLE NAME
       .insert({

@@ -33,7 +33,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
           {
             event: '*',
             schema: 'public',
-            table: 'student_pokemon_collection',
+            table: 'student_pokemon_collection',  // ✅ CORRECT TABLE NAME
             filter: `student_id=eq.${studentId}`
           },
           (payload) => {

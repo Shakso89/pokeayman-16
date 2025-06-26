@@ -6,8 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, ShoppingBag, Coins } from "lucide-react";
-import { getPokemonPool, awardPokemonToStudent, type Pokemon } from "@/services/pokemonService";
-import { updateStudentCoins } from "@/services/studentDatabase";
+import { getPokemonPool, purchasePokemonFromShop, type Pokemon } from "@/services/pokemonService";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
 
@@ -94,63 +93,29 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
     setPurchasing(pokemon.id);
 
     try {
-      // First, deduct coins from student
-      console.log("💰 Deducting coins from student...");
-      const coinsSuccess = await updateStudentCoins(studentId, -pokemon.price, `Purchased ${pokemon.name}`);
-      
-      if (!coinsSuccess) {
-        console.error("❌ Failed to deduct coins from student");
+      // Use the enhanced purchase function which handles everything correctly
+      const result = await purchasePokemonFromShop(studentId, pokemon.id, pokemon.price);
+
+      if (result.success) {
+        console.log(`✅ Pokemon purchased successfully: ${pokemon.name}`);
+        toast({
+          title: "🎉 Purchase Successful!",
+          description: `You bought ${pokemon.name} for ${pokemon.price} coins!`,
+        });
+        
+        if (onPurchase) {
+          onPurchase();
+        }
+      } else {
+        console.error("❌ Purchase failed:", result.error);
         toast({
           title: t("error"),
-          description: "Failed to deduct coins. Please try again.",
+          description: result.error || "Failed to purchase Pokemon",
           variant: "destructive"
         });
-        return;
       }
-
-      console.log("✅ Coins deducted successfully");
-
-      // Award a copy of the Pokémon to student's collection
-      console.log("🎁 Awarding Pokemon copy to student collection...");
-      const awardSuccess = await awardPokemonToStudent(studentId, pokemon.id, 'shop_purchase');
-
-      if (!awardSuccess) {
-        console.error("❌ Failed to award Pokemon copy to collection");
-        
-        // Refund coins if awarding failed
-        console.log("💰 Refunding coins due to award failure...");
-        await updateStudentCoins(studentId, pokemon.price, `Refund for failed ${pokemon.name} purchase`);
-        
-        toast({
-          title: t("error"),
-          description: "Failed to award Pokémon copy to your collection. Coins have been refunded.",
-          variant: "destructive"
-        });
-        return;
-      }
-
-      console.log(`✅ Pokemon copy purchased successfully: ${pokemon.name}`);
-
-      toast({
-        title: "🎉 Purchase Successful!",
-        description: `You bought ${pokemon.name} for ${pokemon.price} coins from the unified pool!`,
-      });
-      
-      if (onPurchase) {
-        onPurchase();
-      }
-
     } catch (error) {
       console.error("❌ Unexpected error during purchase:", error);
-      
-      // Attempt to refund coins on any error
-      try {
-        await updateStudentCoins(studentId, pokemon.price, `Refund for failed ${pokemon.name} purchase`);
-        console.log("💰 Coins refunded due to error");
-      } catch (refundError) {
-        console.error("❌ Failed to refund coins:", refundError);
-      }
-      
       toast({
         title: t("error"),
         description: `Failed to purchase Pokémon: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
