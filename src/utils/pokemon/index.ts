@@ -2,7 +2,6 @@
 // Re-export everything from the unified Pokemon service
 export {
   getPokemonPool,
-  getRandomPokemonFromPool,
   awardPokemonToStudent,
   getStudentPokemonCollection,
   purchasePokemonFromShop,
