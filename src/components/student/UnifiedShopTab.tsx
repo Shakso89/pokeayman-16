@@ -68,10 +68,23 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
   };
 
   const handlePurchase = async (pokemon: Pokemon) => {
-    if (currentCoins < pokemon.price) {
+    // Re-fetch current coins to ensure we have the latest balance
+    const latestCoinData = await getStudentCoinsEnhanced(studentId);
+    const latestCoins = latestCoinData.coins;
+    
+    console.log("🛒 Starting purchase process:", { 
+      pokemonId: pokemon.id, 
+      pokemonName: pokemon.name, 
+      price: pokemon.price, 
+      latestCoins, 
+      studentId 
+    });
+
+    if (latestCoins < pokemon.price) {
+      console.error("❌ Not enough coins:", { required: pokemon.price, available: latestCoins });
       toast({
         title: "Insufficient Coins",
-        description: `You need ${pokemon.price} coins but only have ${currentCoins}`,
+        description: `You need ${pokemon.price} coins but only have ${latestCoins}`,
         variant: "destructive"
       });
       return;
@@ -79,13 +92,6 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
 
     setPurchasing(pokemon.id);
     try {
-      console.log("🛒 Purchasing Pokemon with enhanced service:", {
-        studentId,
-        pokemonId: pokemon.id,
-        price: pokemon.price,
-        currentCoins
-      });
-
       const result = await purchasePokemonFromShop(studentId, pokemon.id, pokemon.price);
 
       if (result.success) {
@@ -95,17 +101,21 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
         });
 
         // Update current coins display immediately
-        const newCoins = currentCoins - pokemon.price;
+        const newCoins = latestCoins - pokemon.price;
         setCurrentCoins(newCoins);
         
         // Trigger parent component data refresh
         onDataUpdate();
       } else {
+        console.error("❌ Purchase failed:", result.error);
         toast({
           title: "Purchase Failed",
           description: result.error || "Failed to purchase Pokemon",
           variant: "destructive"
         });
+        
+        // Reload coins in case there was a partial update
+        await loadCurrentCoins();
       }
     } catch (error) {
       console.error("Error purchasing Pokemon:", error);
@@ -114,6 +124,9 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
         description: "An unexpected error occurred during purchase",
         variant: "destructive"
       });
+      
+      // Reload coins in case there was a partial update
+      await loadCurrentCoins();
     } finally {
       setPurchasing(null);
     }

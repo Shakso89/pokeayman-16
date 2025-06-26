@@ -118,7 +118,7 @@ export const awardPokemonToStudent = async (
       })
       .select(`
         *,
-        pokemon:pokemon_pool(*)
+        pokemon:pokemon_pool!inner(*)
       `)
       .single();
 
@@ -141,7 +141,7 @@ export const awardPokemonToStudent = async (
   }
 };
 
-// Get student's Pokemon collection - ENHANCED WITH REAL-TIME SYNC
+// Get student's Pokemon collection - ENHANCED WITH PROPER JOINS
 export const getStudentPokemonCollection = async (studentId: string): Promise<StudentPokemonCollection[]> => {
   try {
     console.log("📦 Fetching student's Pokemon collection:", studentId);
@@ -156,7 +156,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
       .from('student_pokemon_collection')
       .select(`
         *,
-        pokemon:pokemon_pool(*)
+        pokemon:pokemon_pool!inner(*)
       `)
       .eq('student_id', studentId)
       .order('awarded_at', { ascending: false });
@@ -174,7 +174,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
   }
 };
 
-// Purchase Pokemon from shop - ENHANCED WITH COIN SYNC
+// Purchase Pokemon from shop - ENHANCED WITH PROPER TRANSACTION HANDLING
 export const purchasePokemonFromShop = async (
   studentId: string,
   pokemonId: string,
@@ -195,15 +195,27 @@ export const purchasePokemonFromShop = async (
     );
 
     if (!coinResult.success) {
+      console.error("❌ Coin deduction failed:", coinResult.error);
       return { success: false, error: coinResult.error };
     }
+
+    console.log("✅ Coins deducted successfully, now awarding Pokemon...");
 
     // Then award the Pokemon
     const pokemonResult = await awardPokemonToStudent(studentId, pokemonId, 'shop_purchase');
     
     if (!pokemonResult.success) {
-      // If Pokemon award fails, we should ideally refund the coins
-      console.error("❌ Pokemon award failed after coin deduction");
+      console.error("❌ Pokemon award failed after coin deduction, attempting refund...");
+      
+      // Refund coins if Pokemon award fails
+      const { awardCoinsToStudentEnhanced } = await import("@/services/enhancedCoinService");
+      await awardCoinsToStudentEnhanced(
+        studentId,
+        price,
+        "Refund for failed Pokemon purchase",
+        "refund"
+      );
+      
       return { success: false, error: pokemonResult.error };
     }
 

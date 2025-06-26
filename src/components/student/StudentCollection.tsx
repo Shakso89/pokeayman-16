@@ -111,7 +111,10 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {pokemonCollection.map((collection) => {
               const pokemon = collection.pokemon;
-              if (!pokemon) return null;
+              if (!pokemon) {
+                console.warn("Pokemon data missing for collection item:", collection);
+                return null;
+              }
 
               return (
                 <Card key={collection.id} className="hover:shadow-md transition-shadow">

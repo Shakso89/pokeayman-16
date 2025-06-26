@@ -95,7 +95,7 @@ export const awardCoinsToStudentEnhanced = async (
   }
 };
 
-// Enhanced coin deduction with database sync
+// Enhanced coin deduction with database sync and proper validation
 export const deductCoinsFromStudentEnhanced = async (
   studentId: string,
   amount: number,
@@ -113,26 +113,77 @@ export const deductCoinsFromStudentEnhanced = async (
       return { success: false, error: "Amount must be positive" };
     }
 
-    // Get current profile
-    const { data: currentProfile, error: fetchError } = await supabase
+    // Get current profile with retry logic
+    let currentProfile;
+    let fetchError;
+    
+    // Try student_profiles first
+    const { data: profileData, error: profileError } = await supabase
       .from('student_profiles')
       .select('*')
       .eq('user_id', studentId)
       .single();
 
-    if (fetchError) {
-      console.error("❌ Error fetching student profile:", fetchError);
-      return { success: false, error: "Student profile not found" };
+    if (profileError) {
+      console.warn("⚠️ Student profile not found, trying students table:", profileError);
+      
+      // Fallback to students table
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('*')
+        .eq('user_id', studentId)
+        .single();
+
+      if (studentError) {
+        console.error("❌ Student not found in either table:", studentError);
+        return { success: false, error: "Student not found" };
+      }
+
+      // Create/sync profile from student data
+      const { data: syncedProfile, error: syncError } = await supabase
+        .from('student_profiles')
+        .upsert({
+          user_id: studentData.user_id,
+          username: studentData.username,
+          display_name: studentData.display_name || studentData.username,
+          coins: studentData.coins || 0,
+          spent_coins: 0,
+          school_id: studentData.school_id,
+          class_id: studentData.class_id,
+          teacher_id: studentData.teacher_id,
+          avatar_url: studentData.profile_photo,
+          school_name: studentData.school_name
+        }, {
+          onConflict: 'user_id'
+        })
+        .select()
+        .single();
+
+      if (syncError) {
+        console.error("❌ Failed to sync student profile:", syncError);
+        return { success: false, error: "Failed to sync student data" };
+      }
+
+      currentProfile = syncedProfile;
+    } else {
+      currentProfile = profileData;
     }
 
     const currentCoins = currentProfile.coins || 0;
     
+    console.log("💰 Current coins before deduction:", currentCoins);
+    
     if (currentCoins < amount) {
-      return { success: false, error: "Insufficient coins" };
+      return { 
+        success: false, 
+        error: `Insufficient coins. Required: ${amount}, Available: ${currentCoins}` 
+      };
     }
 
     const newBalance = currentCoins - amount;
     const newSpentCoins = (currentProfile.spent_coins || 0) + amount;
+
+    console.log("💰 Attempting to deduct coins:", { currentCoins, amount, newBalance });
 
     // Update both coins and spent_coins in student_profiles
     const { data: updatedProfile, error: updateError } = await supabase
@@ -148,7 +199,7 @@ export const deductCoinsFromStudentEnhanced = async (
 
     if (updateError) {
       console.error("❌ Error updating student profile:", updateError);
-      return { success: false, error: "Failed to deduct coins" };
+      return { success: false, error: `Failed to deduct coins: ${updateError.message}` };
     }
 
     // Also update the legacy students table
