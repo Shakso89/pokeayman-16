@@ -230,26 +230,31 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
     const legacyCollection = legacyData || [];
     console.log(`📦 Found ${legacyCollection.length} Pokemon in legacy collection`);
 
-    // Convert legacy format to unified format - FIXED
-    const convertedLegacy = legacyCollection.map(item => ({
-      id: item.id,
-      student_id: actualStudentId,
-      pokemon_id: item.pokemon_id,
-      source: 'teacher_award' as const,
-      awarded_at: item.obtained_at,
-      pokemon: item.pokemon_catalog ? {
-        id: item.pokemon_catalog.id,
-        name: item.pokemon_catalog.name,
-        image_url: item.pokemon_catalog.image || '/placeholder.svg',
-        type_1: item.pokemon_catalog.type || 'normal',
-        type_2: item.pokemon_catalog.type2 || undefined,
-        rarity: (item.pokemon_catalog.rarity || 'common') as 'common' | 'uncommon' | 'rare' | 'legendary',
-        price: 15,
-        power_stats: item.pokemon_catalog.power_stats,
-        created_at: new Date().toISOString(),
-        description: ''
-      } : undefined
-    }));
+    // Convert legacy format to unified format - FIXED TypeScript errors
+    const convertedLegacy = legacyCollection.map(item => {
+      // Ensure pokemon_catalog exists and is an object
+      const pokemonData = item.pokemon_catalog;
+      
+      return {
+        id: item.id,
+        student_id: actualStudentId,
+        pokemon_id: item.pokemon_id,
+        source: 'teacher_award' as const,
+        awarded_at: item.obtained_at,
+        pokemon: pokemonData ? {
+          id: pokemonData.id,
+          name: pokemonData.name,
+          image_url: pokemonData.image || '/placeholder.svg',
+          type_1: pokemonData.type || 'normal',
+          type_2: pokemonData.type2 || undefined,
+          rarity: (pokemonData.rarity || 'common') as 'common' | 'uncommon' | 'rare' | 'legendary',
+          price: 15,
+          power_stats: pokemonData.power_stats,
+          created_at: new Date().toISOString(),
+          description: ''
+        } : undefined
+      };
+    });
 
     // Combine both collections
     const allCollection = [...unifiedCollection, ...convertedLegacy];
