@@ -3,13 +3,16 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { UserPlus, Users, Trophy, Search } from "lucide-react";
+import { UserPlus, Users, Trophy, Search, Eye, Coins, Award, KeyRound, MoreHorizontal } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import AddStudentDialog from "./AddStudentDialog";
+import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
+import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
 
 interface StudentsManagementProps {
   teacherId: string;
@@ -24,6 +27,7 @@ interface Student {
   school_name?: string;
   coins: number;
   created_at: string;
+  school_id?: string;
 }
 
 const StudentsManagement: React.FC<StudentsManagementProps> = ({
@@ -37,6 +41,17 @@ const StudentsManagement: React.FC<StudentsManagementProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [isAddStudentOpen, setIsAddStudentOpen] = useState(false);
+  const [giveCoinsDialog, setGiveCoinsDialog] = useState({
+    open: false,
+    studentId: "",
+    studentName: ""
+  });
+  const [managePokemonDialog, setManagePokemonDialog] = useState({
+    open: false,
+    studentId: "",
+    studentName: "",
+    schoolId: ""
+  });
 
   useEffect(() => {
     loadStudents();
@@ -82,6 +97,7 @@ const StudentsManagement: React.FC<StudentsManagementProps> = ({
           username: student.username,
           display_name: student.display_name || student.username,
           school_name: (student.schools as any)?.name || "No School",
+          school_id: student.school_id,
           coins: profilesMap.get(student.id)?.coins || 0,
           created_at: student.created_at
         }));
@@ -108,6 +124,49 @@ const StudentsManagement: React.FC<StudentsManagementProps> = ({
 
   const handleViewRankings = () => {
     navigate('/teacher-ranking');
+  };
+
+  const handleGiveCoins = (studentId: string, studentName: string) => {
+    setGiveCoinsDialog({
+      open: true,
+      studentId,
+      studentName
+    });
+  };
+
+  const handleManagePokemon = (studentId: string, studentName: string, schoolId: string) => {
+    setManagePokemonDialog({
+      open: true,
+      studentId,
+      studentName,
+      schoolId
+    });
+  };
+
+  const handleChangePassword = async (studentId: string, studentName: string) => {
+    const newPassword = prompt(`Enter new password for ${studentName}:`);
+    if (!newPassword) return;
+
+    try {
+      const { error } = await supabase
+        .from('students')
+        .update({ password_hash: newPassword })
+        .eq('id', studentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: `Password updated for ${studentName}`
+      });
+    } catch (error) {
+      console.error("Error updating password:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update password",
+        variant: "destructive"
+      });
+    }
   };
 
   const filteredStudents = students.filter(student =>
@@ -187,8 +246,7 @@ const StudentsManagement: React.FC<StudentsManagementProps> = ({
                   {filteredStudents.map((student) => (
                     <Card 
                       key={student.id}
-                      className="hover:shadow-md transition-shadow cursor-pointer"
-                      onClick={() => handleViewStudentProfile(student.id)}
+                      className="hover:shadow-md transition-shadow"
                     >
                       <CardContent className="p-4">
                         <div className="flex items-center justify-between">
@@ -203,13 +261,61 @@ const StudentsManagement: React.FC<StudentsManagementProps> = ({
                             </div>
                           </div>
                           
-                          <div className="text-right">
-                            <div className="text-sm font-medium text-blue-600">
-                              💰 {student.coins} coins
+                          <div className="flex items-center gap-2">
+                            <div className="text-right mr-4">
+                              <div className="text-sm font-medium text-blue-600">
+                                💰 {student.coins} coins
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                Created: {new Date(student.created_at).toLocaleDateString()}
+                              </div>
                             </div>
-                            <div className="text-xs text-gray-500">
-                              Created: {new Date(student.created_at).toLocaleDateString()}
-                            </div>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleViewStudentProfile(student.id)}
+                              className="flex items-center gap-1"
+                            >
+                              <Eye className="h-4 w-4" />
+                              Profile
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleGiveCoins(student.id, student.display_name)}
+                              className="flex items-center gap-1"
+                            >
+                              <Coins className="h-4 w-4" />
+                              Coins
+                            </Button>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => handleManagePokemon(student.id, student.display_name, student.school_id || "")}
+                              className="flex items-center gap-1"
+                            >
+                              <Award className="h-4 w-4" />
+                              Pokémon
+                            </Button>
+
+                            <DropdownMenu>
+                              <DropdownMenuTrigger asChild>
+                                <Button variant="ghost" size="sm">
+                                  <MoreHorizontal className="h-4 w-4" />
+                                </Button>
+                              </DropdownMenuTrigger>
+                              <DropdownMenuContent align="end">
+                                <DropdownMenuItem
+                                  onClick={() => handleChangePassword(student.id, student.display_name)}
+                                >
+                                  <KeyRound className="mr-2 h-4 w-4" />
+                                  Change Password
+                                </DropdownMenuItem>
+                              </DropdownMenuContent>
+                            </DropdownMenu>
                           </div>
                         </div>
                       </CardContent>
@@ -248,6 +354,39 @@ const StudentsManagement: React.FC<StudentsManagementProps> = ({
         onTeacherDataUpdate={(newData) => {
           onTeacherDataUpdate(newData);
           loadStudents(); // Refresh students list
+        }}
+      />
+
+      <GiveCoinsDialog
+        isOpen={giveCoinsDialog.open}
+        onOpenChange={(open) => setGiveCoinsDialog({...giveCoinsDialog, open})}
+        studentName={giveCoinsDialog.studentName}
+        studentId={giveCoinsDialog.studentId}
+        onGiveCoins={(amount) => {
+          console.log(`Giving ${amount} coins to ${giveCoinsDialog.studentName}`);
+          toast({
+            title: "Success",
+            description: `${amount} coins awarded to ${giveCoinsDialog.studentName}`
+          });
+          setGiveCoinsDialog({open: false, studentId: "", studentName: ""});
+          loadStudents(); // Refresh to show updated coins
+        }}
+        teacherId={teacherId}
+        classId=""
+        schoolId=""
+      />
+
+      <ManagePokemonDialog
+        open={managePokemonDialog.open}
+        onOpenChange={(open) => setManagePokemonDialog({...managePokemonDialog, open})}
+        studentId={managePokemonDialog.studentId}
+        studentName={managePokemonDialog.studentName}
+        onPokemonUpdated={() => {
+          toast({
+            title: "Success",
+            description: "Pokémon updated successfully"
+          });
+          setManagePokemonDialog({open: false, studentId: "", studentName: "", schoolId: ""});
         }}
       />
     </div>
