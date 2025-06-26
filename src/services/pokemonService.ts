@@ -36,7 +36,7 @@ export interface StudentPokemonCollectionItem {
   pokemon_id: string; // Foreign key to the specific Pokémon in the pokemon_catalog
   source: 'teacher_award' | 'shop_purchase' | 'event_reward' | 'refund'; // Expanded possible sources
   awarded_by?: string; // Optional: who awarded it (e.g., teacher_id)
-  awarded_at: string; // Timestamp of when the Pokémon was added to the collection
+  obtained_at: string; // Timestamp of when the Pokémon was added to the collection (matches DB column name)
 
   /**
    * The joined data from the `pokemon_catalog` table.
