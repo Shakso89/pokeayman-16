@@ -21,7 +21,7 @@ export interface StudentPokemonCollection {
   source: 'teacher_award' | 'shop_purchase';
   awarded_by?: string;
   awarded_at: string;
-  pokemon?: Pokemon;
+  pokemon_pool?: Pokemon;
 }
 
 // Get all Pokemon from the unified pool
@@ -83,7 +83,7 @@ export const awardPokemonToStudent = async (
       })
       .select(`
         *,
-        pokemon:pokemon_pool!inner(*)
+        pokemon_pool(*)
       `)
       .single();
 
@@ -115,7 +115,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
       .from('student_pokemon_collection')  // ✅ CORRECT TABLE NAME
       .select(`
         *,
-        pokemon:pokemon_pool!inner(*)
+        pokemon_pool(*)
       `)
       .eq('student_id', studentId)
       .order('awarded_at', { ascending: false });

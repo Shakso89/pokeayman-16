@@ -110,7 +110,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
         ) : pokemonCollection.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {pokemonCollection.map((collection) => {
-              const pokemon = collection.pokemon;
+              const pokemon = collection.pokemon_pool;
               if (!pokemon) {
                 console.warn("Pokemon data missing for collection item:", collection);
                 return null;
