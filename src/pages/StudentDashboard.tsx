@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -6,7 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
-import { Trophy, Users, Package, Sword, Book } from "lucide-react";
+import { Trophy, Book } from "lucide-react";
 import { useStudentData } from "@/hooks/useStudentData";
 import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
 
@@ -16,7 +17,6 @@ import StudentCollection from "@/components/student/StudentCollection";
 import SchoolPokemonPoolDialog from "@/components/dialogs/SchoolPokemonPoolDialog";
 import StudentDashboardButtons from "@/components/student/StudentDashboardButtons";
 import StudentHomeworkTab from "@/components/student/StudentHomeworkTab";
-import UnifiedMysteryBallTab from "@/components/student/UnifiedMysteryBallTab";
 import UnifiedShopTab from "@/components/student/UnifiedShopTab";
 
 const StudentDashboard: React.FC = () => {
@@ -108,10 +108,6 @@ const StudentDashboard: React.FC = () => {
     }, 1000);
   };
 
-  const handleMysteryBallClick = () => {
-    setActiveTab("mystery-ball");
-  };
-
   const handleCollectionClick = () => {
     setActiveTab("my-pokemons");
   };
@@ -167,7 +163,7 @@ const StudentDashboard: React.FC = () => {
         
         <div className="mt-4 md:mt-6 relative">
           <Tabs defaultValue="home" className="w-full mt-4 md:mt-8" value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-5 mb-4 md:mb-8 p-1 md:p-2 rounded-full bg-transparent">
+            <TabsList className="grid w-full grid-cols-4 mb-4 md:mb-8 p-1 md:p-2 rounded-full bg-transparent">
               <TabsTrigger value="home" className="data-[state=active]:bg-green-500 data-[state=active]:text-white rounded-full px-2 md:px-6 py-2 md:py-3 font-bold text-xs md:text-lg transition-all">
                 {t("home-tab")}
               </TabsTrigger>
@@ -180,11 +176,6 @@ const StudentDashboard: React.FC = () => {
                 <span className="hidden sm:inline">{t("my-pokemon-tab")}</span>
                 <span className="sm:hidden">Pokémon</span>
               </TabsTrigger>
-              <TabsTrigger value="mystery-ball" className="data-[state=active]:bg-purple-500 data-[state=active]:text-white rounded-full px-2 md:px-6 py-2 md:py-3 font-bold text-xs md:text-lg transition-all flex items-center justify-center gap-1 md:gap-2">
-                <Package className="h-3 w-3 md:h-5 md:w-5" />
-                <span className="hidden sm:inline">{t("mystery-ball-tab")}</span>
-                <span className="sm:hidden">Ball</span>
-              </TabsTrigger>
               <TabsTrigger value="shop" className="data-[state=active]:bg-yellow-500 data-[state=active]:text-white rounded-full px-2 md:px-6 py-2 md:py-3 font-bold text-xs md:text-lg transition-all">
                 <span className="hidden sm:inline">Shop</span>
                 <span className="sm:hidden">💰</span>
@@ -195,7 +186,6 @@ const StudentDashboard: React.FC = () => {
               <StudentDashboardButtons
                 coins={coins}
                 studentId={studentId}
-                onMysteryBallClick={handleMysteryBallClick}
                 onCollectionClick={handleCollectionClick}
                 onShopClick={handleShopClick}
                 onHomeworkClick={handleHomeworkClick}
@@ -226,13 +216,6 @@ const StudentDashboard: React.FC = () => {
               ) : (
                 <StudentCollection studentId={studentId} />
               )}
-            </TabsContent>
-            
-            <TabsContent value="mystery-ball" className="mt-4">
-              <UnifiedMysteryBallTab 
-                studentId={studentId} 
-                onDataUpdate={refreshData}
-              />
             </TabsContent>
 
             <TabsContent value="shop" className="mt-4">

@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Package, Star, Award, RefreshCw } from "lucide-react";
+import { Award, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getStudentPokemonCollection, type StudentPokemonCollection } from "@/services/pokemonService";
@@ -58,8 +58,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
     switch (source) {
       case 'shop_purchase': return '🛒';
       case 'teacher_award': return '🎁';
-      case 'mystery_ball': return '⚡';
-      default: return '❓';
+      default: return '⭐';
     }
   };
 
@@ -143,7 +142,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
           <div className="text-center py-8 text-gray-500">
             <Award className="h-12 w-12 mx-auto mb-4 text-gray-300" />
             <p>No Pokémon in your collection yet.</p>
-            <p className="text-sm mt-2">Complete homework, use the Mystery Ball, or visit the shop to get your first Pokémon!</p>
+            <p className="text-sm mt-2">Complete homework or visit the shop to get your first Pokémon!</p>
           </div>
         )}
       </CardContent>

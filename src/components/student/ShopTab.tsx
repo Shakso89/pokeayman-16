@@ -1,6 +1,6 @@
 
 import React from 'react';
-import PokemonShop from './PokemonShop';
+import UnifiedShopTab from './UnifiedShopTab';
 
 interface ShopTabProps {
   studentId: string;
@@ -15,11 +15,10 @@ const ShopTab: React.FC<ShopTabProps> = ({
 }) => {
   return (
     <div className="space-y-6">
-      <PokemonShop
+      <UnifiedShopTab
         studentId={studentId}
-        coins={studentCoins}
-        onPurchase={() => {}}
-        onRefresh={onPurchaseComplete}
+        studentCoins={studentCoins}
+        onDataUpdate={onPurchaseComplete}
       />
     </div>
   );
