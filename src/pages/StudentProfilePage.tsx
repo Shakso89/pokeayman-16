@@ -52,17 +52,21 @@ const StudentProfilePage: React.FC = () => {
   const [pokemonCollection, setPokemonCollection] = useState<StudentPokemonCollection[]>([]);
   const [pokemonLoading, setPokemonLoading] = useState(false);
   const [coins, setCoins] = useState(0);
+  const [schoolInfo, setSchoolInfo] = useState<{ schoolName: string; className: string }>({
+    schoolName: '',
+    className: ''
+  });
 
   const userType = localStorage.getItem("userType") as "teacher" | "student";
   const userName = userType === "teacher" 
     ? localStorage.getItem("teacherDisplayName") || localStorage.getItem("teacherUsername") || "Teacher"
     : localStorage.getItem("studentName") || "Student";
 
-  // Fetch Pokemon collection and coins with real-time updates
+  // Fetch student profile with school and class information
   useEffect(() => {
     if (studentId) {
+      fetchStudentProfileData();
       fetchPokemonCollection();
-      fetchStudentCoins();
       
       // Set up real-time subscriptions
       const pokemonChannel = supabase
@@ -72,7 +76,7 @@ const StudentProfilePage: React.FC = () => {
           {
             event: '*',
             schema: 'public',
-            table: 'student_pokemon_collection',
+            table: 'pokemon_collection',
             filter: `student_id=eq.${studentId}`
           },
           () => {
@@ -94,7 +98,7 @@ const StudentProfilePage: React.FC = () => {
           },
           () => {
             console.log('🔄 Real-time coins update in profile');
-            fetchStudentCoins();
+            fetchStudentProfileData();
           }
         )
         .subscribe();
@@ -105,6 +109,58 @@ const StudentProfilePage: React.FC = () => {
       };
     }
   }, [studentId]);
+
+  const fetchStudentProfileData = async () => {
+    if (!studentId) return;
+    
+    try {
+      console.log("📋 Fetching student profile data for:", studentId);
+      
+      // First try student_profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from('student_profiles')
+        .select(`
+          *,
+          schools(name),
+          classes(name)
+        `)
+        .eq('user_id', studentId)
+        .single();
+
+      if (profileData && !profileError) {
+        console.log("✅ Profile data found:", profileData);
+        setCoins(profileData.coins || 0);
+        setSchoolInfo({
+          schoolName: profileData.schools?.name || profileData.school_name || 'No School Assigned',
+          className: profileData.classes?.name || 'No Class Assigned'
+        });
+      } else {
+        console.log("⚠️ No profile data in student_profiles, checking students table");
+        
+        // Fallback to students table
+        const { data: studentData, error: studentError } = await supabase
+          .from('students')
+          .select(`
+            *,
+            schools(name),
+            classes(name)
+          `)
+          .eq('user_id', studentId)
+          .single();
+
+        if (studentData && !studentError) {
+          console.log("✅ Student data found:", studentData);
+          setCoins(studentData.coins || 0);
+          setSchoolInfo({
+            schoolName: studentData.schools?.name || studentData.school_name || 'No School Assigned',
+            className: studentData.classes?.name || 'No Class Assigned'
+          });
+        }
+      }
+    } catch (error) {
+      console.error("❌ Error fetching student profile data:", error);
+    }
+  };
 
   const fetchPokemonCollection = async () => {
     if (!studentId) return;
@@ -119,24 +175,6 @@ const StudentProfilePage: React.FC = () => {
       console.error("Error fetching Pokemon collection:", error);
     } finally {
       setPokemonLoading(false);
-    }
-  };
-
-  const fetchStudentCoins = async () => {
-    if (!studentId) return;
-    
-    try {
-      const { data, error } = await supabase
-        .from('student_profiles')
-        .select('coins')
-        .eq('user_id', studentId)
-        .single();
-
-      if (data && !error) {
-        setCoins(data.coins || 0);
-      }
-    } catch (error) {
-      console.error("Error fetching student coins:", error);
     }
   };
 
@@ -317,10 +355,16 @@ const StudentProfilePage: React.FC = () => {
                     <Trophy className="h-4 w-4 mr-1" />
                     {pokemonCollection.length} Pokémon
                   </Badge>
-                  {student.schoolName && (
+                  {schoolInfo.schoolName && schoolInfo.schoolName !== 'No School Assigned' && (
                     <Badge className="px-3 py-1 text-base bg-purple-100 text-purple-800">
                       <School className="h-4 w-4 mr-1" />
-                      {student.schoolName}
+                      {schoolInfo.schoolName}
+                    </Badge>
+                  )}
+                  {schoolInfo.className && schoolInfo.className !== 'No Class Assigned' && (
+                    <Badge className="px-3 py-1 text-base bg-orange-100 text-orange-800">
+                      <GraduationCap className="h-4 w-4 mr-1" />
+                      {schoolInfo.className}
                     </Badge>
                   )}
                 </div>
@@ -391,10 +435,16 @@ const StudentProfilePage: React.FC = () => {
                     <label className="text-sm font-medium text-gray-500">Username</label>
                     <p className="text-lg">@{student.username}</p>
                   </div>
-                  {student.schoolName && (
+                  {schoolInfo.schoolName && schoolInfo.schoolName !== 'No School Assigned' && (
                     <div>
                       <label className="text-sm font-medium text-gray-500">School</label>
-                      <p className="text-lg">{student.schoolName}</p>
+                      <p className="text-lg">{schoolInfo.schoolName}</p>
+                    </div>
+                  )}
+                  {schoolInfo.className && schoolInfo.className !== 'No Class Assigned' && (
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Class</label>
+                      <p className="text-lg">{schoolInfo.className}</p>
                     </div>
                   )}
                   <div>

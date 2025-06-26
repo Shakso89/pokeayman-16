@@ -71,9 +71,9 @@ export const awardPokemonToStudent = async (
 
     console.log("✅ Pokemon verified in pool:", pokemon.name);
 
-    // Insert into student's collection - CORRECT TABLE NAME
+    // Insert into student's collection - USE CORRECT TABLE NAME
     const { data: result, error: insertError } = await supabase
-      .from('student_pokemon_collection')  // ✅ CORRECT TABLE NAME
+      .from('pokemon_collection')  // ✅ CORRECT TABLE NAME
       .insert({
         student_id: studentId,
         pokemon_id: pokemonId,
@@ -112,7 +112,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
 
     // Use the correct table name with proper joins
     const { data, error } = await supabase
-      .from('student_pokemon_collection')  // ✅ CORRECT TABLE NAME
+      .from('pokemon_collection')  // ✅ CORRECT TABLE NAME
       .select(`
         *,
         pokemon_pool(*)
@@ -193,13 +193,13 @@ export const removePokemonFromStudent = async (collectionId: string): Promise<bo
 
     // Get the student ID before deletion for real-time sync
     const { data: collectionItem } = await supabase
-      .from('student_pokemon_collection')  // ✅ CORRECT TABLE NAME
+      .from('pokemon_collection')  // ✅ CORRECT TABLE NAME
       .select('student_id')
       .eq('id', collectionId)
       .single();
 
     const { error } = await supabase
-      .from('student_pokemon_collection')  // ✅ CORRECT TABLE NAME
+      .from('pokemon_collection')  // ✅ CORRECT TABLE NAME
       .delete()
       .eq('id', collectionId);
 
