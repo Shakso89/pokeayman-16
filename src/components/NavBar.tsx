@@ -9,7 +9,6 @@ import UserSettingsModal from "./modals/UserSettingsModal";
 import NotificationBadge from "./NotificationBadge";
 import { useTranslation } from "@/hooks/useTranslation";
 import { SelectSchoolDialog } from "./teacher/class-management/SelectSchoolDialog";
-import { useSecureLogout } from "@/hooks/useSecureLogout";
 
 interface NavBarProps {
   userType: "teacher" | "student";
@@ -26,11 +25,10 @@ export const NavBar: React.FC<NavBarProps> = ({
   const { t } = useTranslation();
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
   const [isSelectSchoolOpen, setIsSelectSchoolOpen] = useState(false);
-  const { secureLogout, isLoggingOut } = useSecureLogout();
 
-  const handleLogout = async () => {
-    console.log('NavBar: Initiating logout for', userType);
-    await secureLogout();
+  const handleLogout = () => {
+    console.log('NavBar: Redirecting to logout page');
+    navigate('/logout');
   };
 
   const handleHomeClick = () => {
@@ -141,9 +139,9 @@ export const NavBar: React.FC<NavBarProps> = ({
                     {t("settings")}
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleLogout} disabled={isLoggingOut}>
+                  <DropdownMenuItem onClick={handleLogout}>
                     <LogOut className="mr-2 h-4 w-4" />
-                    {isLoggingOut ? "Logging out..." : t("logout")}
+                    {t("logout")}
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
