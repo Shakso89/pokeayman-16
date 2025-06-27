@@ -32,6 +32,7 @@ export const NavBar: React.FC<NavBarProps> = ({
   };
 
   const handleHomeClick = () => {
+    console.log('NavBar: Navigating to home dashboard');
     if (userType === "teacher") {
       navigate("/teacher-dashboard");
     } else {
@@ -68,10 +69,17 @@ export const NavBar: React.FC<NavBarProps> = ({
   };
 
   const handleRankingsClick = () => {
-    if (userType === "student") {
-      navigate("/rankings");
-    } else {
-      navigate("/teacher/rankings");
+    console.log('NavBar: Navigating to rankings page for', userType);
+    try {
+      if (userType === "student") {
+        navigate("/rankings");
+      } else {
+        navigate("/teacher/rankings");
+      }
+    } catch (error) {
+      console.error('Navigation error:', error);
+      // Fallback to dashboard if navigation fails
+      handleHomeClick();
     }
   };
 
@@ -99,11 +107,11 @@ export const NavBar: React.FC<NavBarProps> = ({
             </div>
 
             <div className="flex items-center space-x-4">
-              <Button variant="ghost" size="icon" onClick={handleHomeClick}>
+              <Button variant="ghost" size="icon" onClick={handleHomeClick} title="Home">
                 <Home className="h-5 w-5" />
               </Button>
 
-              <Button variant="ghost" size="icon" onClick={handleRankingsClick}>
+              <Button variant="ghost" size="icon" onClick={handleRankingsClick} title="Rankings">
                 <Medal className="h-5 w-5" />
               </Button>
 

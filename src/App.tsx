@@ -11,6 +11,7 @@ import StudentDashboard from '@/pages/StudentDashboard';
 import ClassDetailsPage from '@/pages/ClassDetailsPage';
 import StudentDetailPage from '@/pages/StudentDetailPage';
 import StudentProfilePage from '@/pages/StudentProfilePage';
+import RankingPage from '@/pages/RankingPage';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import LogoutPage from '@/pages/LogoutPage';
 
@@ -69,6 +70,18 @@ function App() {
         <Route path="/student-profile" element={
           <ProtectedRoute requiredUserType="student">
             <StudentProfilePage />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/rankings" element={
+          <ProtectedRoute requiredUserType="any">
+            <RankingPage />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/teacher/rankings" element={
+          <ProtectedRoute requiredUserType="teacher">
+            <RankingPage />
           </ProtectedRoute>
         } />
         
