@@ -25,6 +25,12 @@ const RecentClasses: React.FC<RecentClassesProps> = ({
   loading,
   onNavigateToClass
 }) => {
+  const handleViewClass = (classId: string) => {
+    console.log("RecentClasses - Navigating to class:", classId);
+    // Use the class details route that matches the class management behavior
+    onNavigateToClass(classId);
+  };
+
   if (loading) {
     return (
       <Card>
@@ -77,7 +83,7 @@ const RecentClasses: React.FC<RecentClassesProps> = ({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onNavigateToClass(classItem.id)}
+                  onClick={() => handleViewClass(classItem.id)}
                 >
                   View Class
                 </Button>

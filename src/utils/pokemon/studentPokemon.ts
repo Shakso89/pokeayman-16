@@ -1,4 +1,3 @@
-
 import { Pokemon } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
 import { createPokemonAwardNotification } from "@/utils/notificationService";
@@ -48,17 +47,19 @@ export const getStudentPokemons = async (studentId: string): Promise<any[]> => {
 
     console.log("🔍 Using actual user_id for lookup:", actualUserId);
 
+    // Use the correct table name: student_pokemon_collection
     const { data, error } = await supabase
-      .from('pokemon_collections')
+      .from('student_pokemon_collection')
       .select(`
         id,
         pokemon_id,
-        obtained_at,
-        pokemon_catalog (
+        awarded_at,
+        pokemon_pool!student_pokemon_collection_pokemon_id_fkey (
           id,
           name,
-          image,
-          type,
+          image_url,
+          type_1,
+          type_2,
           rarity,
           power_stats
         )
@@ -73,12 +74,12 @@ export const getStudentPokemons = async (studentId: string): Promise<any[]> => {
     console.log("📦 Found Pokemon collections:", data?.length || 0);
 
     const transformedData = (data || []).map(collection => {
-      const pokemonData = collection.pokemon_catalog as any;
+      const pokemonData = Array.isArray(collection.pokemon_pool) ? collection.pokemon_pool[0] : collection.pokemon_pool;
       return {
         id: pokemonData?.id || collection.pokemon_id,
         name: pokemonData?.name || `Pokemon #${collection.pokemon_id}`,
-        image: pokemonData?.image || '',
-        type: pokemonData?.type || 'unknown',
+        image: pokemonData?.image_url || '',
+        type: pokemonData?.type_1 || 'unknown',
         rarity: pokemonData?.rarity || 'common',
         powerStats: pokemonData?.power_stats || {},
         collectionId: collection.id
@@ -138,26 +139,26 @@ export const awardPokemonToStudent = async (
 
     console.log("✅ Using target user_id for Pokemon award:", targetUserId);
 
-    // Get the Pokemon from the catalog
-    console.log("🔍 Fetching Pokemon from catalog...");
+    // Get the Pokemon from the pokemon_pool table
+    console.log("🔍 Fetching Pokemon from pokemon_pool...");
     const { data: pokemon, error: pokemonError } = await supabase
-      .from('pokemon_catalog')
+      .from('pokemon_pool')
       .select('*')
       .eq('id', pokemonId)
       .single();
 
     if (pokemonError || !pokemon) {
-      const error = `Pokemon not found in catalog: ${pokemonError?.message || 'Unknown error'}`;
-      console.error("❌ Pokemon catalog error:", error);
+      const error = `Pokemon not found in pokemon_pool: ${pokemonError?.message || 'Unknown error'}`;
+      console.error("❌ Pokemon pool error:", error);
       return { success: false, error };
     }
 
-    console.log("✅ Pokemon found in catalog:", pokemon.name);
+    console.log("✅ Pokemon found in pokemon_pool:", pokemon.name);
 
-    // Check for duplicates using the correct user_id
+    // Check for duplicates using the correct user_id and table
     console.log("🔍 Checking for duplicate Pokemon...");
     const { data: existingPokemon } = await supabase
-      .from('pokemon_collections')
+      .from('student_pokemon_collection')
       .select('id')
       .eq('student_id', targetUserId)
       .eq('pokemon_id', pokemonId)
@@ -184,14 +185,14 @@ export const awardPokemonToStudent = async (
       }
     }
 
-    // Insert into Pokémon collection using the correct user_id
+    // Insert into student_pokemon_collection using the correct user_id
     console.log("📝 Adding Pokemon to student collection...");
     const { data: result, error: insertError } = await supabase
-      .from('pokemon_collections')
+      .from('student_pokemon_collection')
       .insert({
         student_id: targetUserId,
         pokemon_id: pokemonId,
-        school_id: schoolId || student.school_id
+        source: 'teacher_award'
       })
       .select()
       .single();
@@ -310,8 +311,9 @@ export const removePokemonFromStudent = async (
   try {
     console.log(`Removing Pokemon collection ${collectionId}`);
 
+    // Use the correct table name
     const { error } = await supabase
-      .from('pokemon_collections')
+      .from('student_pokemon_collection')
       .delete()
       .eq('id', collectionId);
 
