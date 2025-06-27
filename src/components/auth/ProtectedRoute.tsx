@@ -27,7 +27,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   useEffect(() => {
     const timer = setTimeout(() => {
       setInitialCheckDone(true);
-    }, 300); // Reduced delay for better UX
+    }, 100); // Reduced delay for better UX
     
     return () => clearTimeout(timer);
   }, []);
@@ -38,21 +38,26 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       console.log("ProtectedRoute: User not logged in");
       return false;
     }
+    
+    // Admin override check
     if (allowAdminOverride && isAdmin) {
       console.log("ProtectedRoute: Admin override allowed");
       return true;
     }
     
+    // Any user type allowed
     if (requiredUserType === "any") {
       console.log("ProtectedRoute: Any user type allowed");
       return true;
     }
+    
+    // Specific user type required
     if (requiredUserType === userType) {
       console.log("ProtectedRoute: User type matches requirement");
       return true;
     }
     
-    console.log("ProtectedRoute: Access denied", { requiredUserType, userType });
+    console.log("ProtectedRoute: Access denied", { requiredUserType, userType, isAdmin });
     return false;
   };
 
@@ -80,7 +85,8 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     userType, 
     isAdmin, 
     requiredUserType,
-    path: location.pathname 
+    path: location.pathname,
+    hasAccess: hasAccess()
   });
 
   // Handle login check
@@ -96,9 +102,20 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Check if user has required access type
   if (!hasAccess()) {
-    console.log("ProtectedRoute: User doesn't have access, redirecting to appropriate dashboard");
-    // Redirect to appropriate dashboard instead of home
+    console.log("ProtectedRoute: User doesn't have access");
+    // For admin trying to access student routes, allow it but with warning
+    if (isAdmin && requiredUserType === "student") {
+      console.log("ProtectedRoute: Admin accessing student route - allowing with override");
+      // Clear redirect info for admin override
+      if (sessionStorage.getItem('redirectAfterLogin')) {
+        sessionStorage.removeItem('redirectAfterLogin');
+      }
+      return <>{children}</>;
+    }
+    
+    // Redirect to appropriate dashboard
     const dashboardRoute = userType === 'teacher' ? '/teacher-dashboard' : '/student-dashboard';
+    console.log("ProtectedRoute: Redirecting to", dashboardRoute);
     return <Navigate to={dashboardRoute} replace />;
   }
 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useCallback } from "react";
 import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -7,7 +8,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
 import { Trophy, Book } from "lucide-react";
-import { useUnifiedAuth } from "@/hooks/useUnifiedAuth";
+import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getStudentCoinsEnhanced } from "@/services/enhancedCoinService";
 
@@ -20,17 +21,18 @@ import StudentHomeworkTab from "@/components/student/StudentHomeworkTab";
 import UnifiedShopTab from "@/components/student/UnifiedShopTab";
 
 const StudentDashboard: React.FC = () => {
-  const { isAuthenticated, user, isLoading } = useUnifiedAuth();
+  const { isLoggedIn, userType, isAdmin, loading } = useAuth();
   
-  // Get the actual student ID from localStorage or user object
+  // Get the actual student ID from localStorage
   const storedStudentId = localStorage.getItem("studentId");
-  const studentId = storedStudentId || user?.id || "";
-  const studentName = user?.username || localStorage.getItem("studentUsername") || "";
+  const studentId = storedStudentId || "";
+  const studentName = localStorage.getItem("studentName") || localStorage.getItem("studentUsername") || "";
   const schoolId = localStorage.getItem("studentSchoolId") || "default-school-1";
   
   console.log("StudentDashboard auth state:", {
-    isAuthenticated,
-    user,
+    isLoggedIn,
+    userType,
+    isAdmin,
     studentId,
     studentName,
     storedStudentId
@@ -52,6 +54,7 @@ const StudentDashboard: React.FC = () => {
   // Enhanced data loading function
   const loadStudentData = useCallback(async () => {
     if (!studentId || studentId === 'undefined') {
+      console.log("No valid student ID, skipping data load");
       setDataLoading(false);
       return;
     }
@@ -101,8 +104,12 @@ const StudentDashboard: React.FC = () => {
 
   // Initial data load
   useEffect(() => {
-    loadStudentData();
-  }, [loadStudentData]);
+    if (studentId && studentId !== 'undefined') {
+      loadStudentData();
+    } else {
+      setDataLoading(false);
+    }
+  }, [loadStudentData, studentId]);
 
   // Real-time subscription for data changes
   useEffect(() => {
@@ -153,13 +160,6 @@ const StudentDashboard: React.FC = () => {
   }, [studentId, loadStudentData]);
 
   useEffect(() => {
-    console.log("StudentDashboard loaded with:", {
-      studentId,
-      schoolId,
-      profileClassId: studentInfo?.class_id,
-      parsedClasses: studentClasses
-    });
-
     const tabParam = searchParams.get('tab');
     if (tabParam) {
       setActiveTab(tabParam);
@@ -168,7 +168,7 @@ const StudentDashboard: React.FC = () => {
     if (studentId) {
       loadActiveBattles();
     }
-  }, [studentId, schoolId, searchParams, studentInfo?.class_id]);
+  }, [studentId, schoolId, searchParams]);
 
   const loadActiveBattles = () => {
     if (!studentId || !schoolId) return; 
@@ -210,7 +210,7 @@ const StudentDashboard: React.FC = () => {
   };
 
   // Show loading while auth is being determined
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-transparent flex items-center justify-center">
         <div className="text-gray-500">Loading...</div>
@@ -218,9 +218,37 @@ const StudentDashboard: React.FC = () => {
     );
   }
 
-  // Redirect if not authenticated or not a student
-  if (!isAuthenticated || !user || user.role !== "student") {
+  // Check authentication - allow admin override for student dashboard
+  if (!isLoggedIn) {
+    console.log("StudentDashboard: Not logged in, redirecting to login");
     return <Navigate to="/student-login" />;
+  }
+
+  // If not a student and not an admin, redirect to appropriate dashboard
+  if (userType !== "student" && !isAdmin) {
+    console.log("StudentDashboard: Not a student and not admin, redirecting to teacher dashboard");
+    return <Navigate to="/teacher-dashboard" />;
+  }
+
+  // If no valid student ID, show error
+  if (!studentId || studentId === 'undefined') {
+    return (
+      <div className="min-h-screen bg-transparent">
+        <NavBar userType="student" userName="Guest" />
+        <div className="container mx-auto py-8 px-4">
+          <Card>
+            <CardContent className="py-8 text-center">
+              <p className="text-gray-500 mb-4">No student profile found.</p>
+              {isAdmin && (
+                <p className="text-sm text-blue-600">
+                  As an admin, you may need to select a specific student to view their dashboard.
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
   }
 
   const avatar = studentInfo?.avatar_url || localStorage.getItem("studentAvatar") || undefined;

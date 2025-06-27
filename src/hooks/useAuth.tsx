@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from './use-toast';
@@ -27,14 +28,42 @@ export const useAuth = () => {
     clearAuthState(updateAuthState);
   };
 
+  // Check authentication state more thoroughly
+  const checkAuthState = () => {
+    const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
+    const userType = localStorage.getItem("userType") as "teacher" | "student" | null;
+    const teacherId = localStorage.getItem("teacherId");
+    const studentId = localStorage.getItem("studentId");
+    const isAdmin = localStorage.getItem("isAdmin") === "true";
+
+    console.log("Auth state check:", { isLoggedIn, userType, teacherId, studentId, isAdmin });
+
+    if (isLoggedIn && userType) {
+      const userId = userType === "teacher" ? teacherId : studentId;
+      if (userId) {
+        updateAuthState({
+          isLoggedIn: true,
+          userType,
+          userId,
+          isAdmin,
+          session: null,
+          user: null
+        });
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
   // Refresh auth state
   const refreshAuthState = async () => {
     console.log("Refreshing auth state...");
     setLoading(true);
     
     try {
-      // First load from localStorage for immediate feedback
-      loadFromLocalStorage(updateAuthState);
+      // First check localStorage for immediate feedback
+      const hasLocalAuth = checkAuthState();
       
       // Then try to get session from Supabase
       const {
@@ -43,12 +72,10 @@ export const useAuth = () => {
 
       if (existingSession) {
         await handleSession(existingSession, updateAuthState, clearAuthStateWrapper);
-      } else {
-        // If no session and localStorage failed, clear auth state
-        if (!loadFromLocalStorage(updateAuthState)) {
-          clearAuthStateWrapper();
-          console.log("No auth session found");
-        }
+      } else if (!hasLocalAuth) {
+        // If no session and no localStorage, clear auth state
+        clearAuthStateWrapper();
+        console.log("No auth session found");
       }
     } catch (error) {
       console.error("Auth check error:", error);
@@ -78,6 +105,7 @@ export const useAuth = () => {
       localStorage.removeItem('teacherUsername');
       localStorage.removeItem('studentUsername');
       localStorage.removeItem('userEmail');
+      localStorage.removeItem('isAdmin');
 
       try {
         // Sign out from Supabase
