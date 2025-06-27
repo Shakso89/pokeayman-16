@@ -27,6 +27,8 @@ function App() {
     );
   }
 
+  console.log("App: Current auth state", { isLoggedIn, userType, loading });
+
   return (
     <div className="App">
       <Routes>

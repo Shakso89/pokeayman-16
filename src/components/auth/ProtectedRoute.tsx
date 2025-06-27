@@ -27,19 +27,32 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   useEffect(() => {
     const timer = setTimeout(() => {
       setInitialCheckDone(true);
-    }, 500); // Increased delay to ensure auth check completes
+    }, 300); // Reduced delay for better UX
     
     return () => clearTimeout(timer);
   }, []);
 
   // Determine if user has access based on type requirements
   const hasAccess = (): boolean => {
-    if (!isLoggedIn) return false;
-    if (allowAdminOverride && isAdmin) return true;
+    if (!isLoggedIn) {
+      console.log("ProtectedRoute: User not logged in");
+      return false;
+    }
+    if (allowAdminOverride && isAdmin) {
+      console.log("ProtectedRoute: Admin override allowed");
+      return true;
+    }
     
-    if (requiredUserType === "any") return true;
-    if (requiredUserType === userType) return true;
+    if (requiredUserType === "any") {
+      console.log("ProtectedRoute: Any user type allowed");
+      return true;
+    }
+    if (requiredUserType === userType) {
+      console.log("ProtectedRoute: User type matches requirement");
+      return true;
+    }
     
+    console.log("ProtectedRoute: Access denied", { requiredUserType, userType });
     return false;
   };
 
@@ -62,7 +75,13 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     );
   }
 
-  console.log("ProtectedRoute: Auth check complete", { isLoggedIn, userType, isAdmin });
+  console.log("ProtectedRoute: Auth check complete", { 
+    isLoggedIn, 
+    userType, 
+    isAdmin, 
+    requiredUserType,
+    path: location.pathname 
+  });
 
   // Handle login check
   if (!isLoggedIn) {
@@ -77,8 +96,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
   // Check if user has required access type
   if (!hasAccess()) {
-    console.log("ProtectedRoute: User doesn't have access, redirecting to home");
-    return <Navigate to="/" replace />;
+    console.log("ProtectedRoute: User doesn't have access, redirecting to appropriate dashboard");
+    // Redirect to appropriate dashboard instead of home
+    const dashboardRoute = userType === 'teacher' ? '/teacher-dashboard' : '/student-dashboard';
+    return <Navigate to={dashboardRoute} replace />;
   }
 
   // For teachers who are frozen (not activated), render a simple placeholder
@@ -104,6 +125,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
     sessionStorage.removeItem('redirectAfterLogin');
   }
 
+  console.log("ProtectedRoute: Access granted, rendering children");
   return <>{children}</>;
 };
 
