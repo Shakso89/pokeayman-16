@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -93,8 +92,8 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
     setPurchasing(pokemon.id);
 
     try {
-      // Use the enhanced purchase function which handles everything correctly
-      const result = await purchasePokemonFromShop(studentId, pokemon.id, pokemon.price);
+      // Use the correct function signature with only 2 arguments
+      const result = await purchasePokemonFromShop(studentId, pokemon.id);
 
       if (result.success) {
         console.log(`✅ Pokemon purchased successfully: ${pokemon.name}`);

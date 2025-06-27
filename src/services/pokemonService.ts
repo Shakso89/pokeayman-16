@@ -1,4 +1,3 @@
-
 import { supabase } from "@/integrations/supabase/client";
 import { deductCoinsFromStudentEnhanced } from "@/services/enhancedCoinService";
 
@@ -83,8 +82,8 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
       console.log("✅ Found collections in student_pokemon_collection:", collectionData.length);
       return collectionData.map(item => ({
         ...item,
-        pokemon: item.pokemon_pool as PokemonCatalogItem,
-        pokemon_catalog: item.pokemon_pool as PokemonCatalogItem
+        pokemon: Array.isArray(item.pokemon_pool) ? item.pokemon_pool[0] : item.pokemon_pool as PokemonCatalogItem,
+        pokemon_catalog: Array.isArray(item.pokemon_pool) ? item.pokemon_pool[0] : item.pokemon_pool as PokemonCatalogItem
       }));
     }
 
@@ -115,22 +114,25 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
     }
 
     console.log("✅ Found collections in pokemon_collections:", fallbackData?.length || 0);
-    return (fallbackData || []).map(item => ({
-      id: item.id,
-      student_id: item.student_id,
-      pokemon_id: item.pokemon_id,
-      awarded_at: item.obtained_at,
-      source: 'legacy',
-      pokemon: {
-        id: item.pokemon_catalog?.id || item.pokemon_id,
-        name: item.pokemon_catalog?.name || 'Unknown Pokemon',
-        image_url: item.pokemon_catalog?.image || '',
-        type_1: item.pokemon_catalog?.type || 'normal',
-        rarity: item.pokemon_catalog?.rarity || 'common',
-        price: 15,
-        power_stats: item.pokemon_catalog?.power_stats
-      } as PokemonCatalogItem
-    }));
+    return (fallbackData || []).map(item => {
+      const pokemonData = Array.isArray(item.pokemon_catalog) ? item.pokemon_catalog[0] : item.pokemon_catalog;
+      return {
+        id: item.id,
+        student_id: item.student_id,
+        pokemon_id: item.pokemon_id,
+        awarded_at: item.obtained_at,
+        source: 'legacy',
+        pokemon: {
+          id: pokemonData?.id || item.pokemon_id,
+          name: pokemonData?.name || 'Unknown Pokemon',
+          image_url: pokemonData?.image || '',
+          type_1: pokemonData?.type || 'normal',
+          rarity: pokemonData?.rarity || 'common',
+          price: 15,
+          power_stats: pokemonData?.power_stats
+        } as PokemonCatalogItem
+      };
+    });
 
   } catch (error) {
     console.error("❌ Unexpected error fetching student collection:", error);
