@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,7 +42,6 @@ const ClassList: React.FC<ClassListProps> = ({ schoolId, teacherId, onRefresh })
       const schoolClasses = await getClassesBySchool(schoolId);
       console.log("Fetched classes:", schoolClasses);
       
-      // For each class, get the accurate student count from student_classes
       const classesWithCounts = await Promise.all(
         schoolClasses.map(async (classItem) => {
           const { count: studentCount } = await supabase
@@ -75,12 +75,13 @@ const ClassList: React.FC<ClassListProps> = ({ schoolId, teacherId, onRefresh })
   };
 
   const handleManageClass = (classId: string) => {
-    console.log("Navigating to class details:", classId);
+    console.log("Navigating to manage class:", classId);
     navigate(`/class/${classId}`);
   };
 
   const handleViewClass = (classId: string) => {
-    console.log("Viewing class:", classId);
+    console.log("Navigating to view class:", classId);
+    // Ensure we're navigating to the correct route
     navigate(`/class/${classId}`);
   };
 

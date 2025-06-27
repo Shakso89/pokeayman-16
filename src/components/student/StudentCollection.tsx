@@ -5,14 +5,13 @@ import { Badge } from "@/components/ui/badge";
 import { Award, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
-// Import the corrected types and service function from your pokemonService.ts
 import { getStudentPokemonCollection, type StudentPokemonCollectionItem } from "@/services/pokemonService";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner"; // For user notifications
+import { toast } from "sonner";
 
 interface StudentCollectionProps {
   studentId: string;
-  refreshTrigger?: number; // Optional prop to manually trigger a re-fetch
+  refreshTrigger?: number;
 }
 
 const StudentCollection: React.FC<StudentCollectionProps> = ({
@@ -20,52 +19,47 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
   refreshTrigger = 0
 }) => {
   const { t } = useTranslation();
-  // State to hold the fetched Pokémon collection data
   const [pokemonCollection, setPokemonCollection] = useState<StudentPokemonCollectionItem[]>([]);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null); // To display any fetch errors
+  const [error, setError] = useState<string | null>(null);
 
-  // Memoized function to fetch the student's Pokémon collection
   const fetchStudentCollection = useCallback(async () => {
     setLoading(true);
-    setError(null); // Clear any previous errors
+    setError(null);
 
-    if (!studentId) {
-      console.warn("fetchStudentCollection: No studentId provided.");
+    console.log("🔍 StudentCollection: Fetching for studentId:", studentId);
+
+    if (!studentId || studentId === 'undefined') {
+      console.warn("❌ StudentCollection: Invalid studentId provided:", studentId);
       setPokemonCollection([]);
       setLoading(false);
       return;
     }
 
     try {
-      console.log("🔄 Fetching student's Pokemon collection for:", studentId);
-      // Call the service function to get the collection
       const collection = await getStudentPokemonCollection(studentId);
-      console.log("📦 Collection fetched successfully:", collection);
+      console.log("📦 StudentCollection: Fetched successfully:", collection.length);
       setPokemonCollection(collection);
     } catch (err: any) {
-      console.error("❌ Error fetching student collection:", err);
+      console.error("❌ StudentCollection: Error fetching:", err);
       setError(err.message || "Failed to load Pokémon collection.");
-      setPokemonCollection([]); // Clear collection on error
-      toast.error(err.message || "Failed to load Pokémon collection."); // Notify the user
+      setPokemonCollection([]);
+      toast.error(err.message || "Failed to load Pokémon collection.");
     } finally {
       setLoading(false);
     }
-  }, [studentId]); // This function depends on studentId, so it recreates if studentId changes
+  }, [studentId]);
 
-  // useEffect to trigger the initial fetch and set up real-time subscriptions
   useEffect(() => {
-    // If studentId is not available, we can't fetch.
-    if (!studentId) {
+    if (!studentId || studentId === 'undefined') {
       setPokemonCollection([]);
       setLoading(false);
       return;
     }
 
-    // Perform the initial data fetch
     fetchStudentCollection();
 
-    // Set up real-time subscription for immediate updates
+    // Set up real-time subscription
     const channel = supabase
       .channel(`student-pokemon-changes-${studentId}`)
       .on(
@@ -73,28 +67,25 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
         {
           event: '*',
           schema: 'public',
-          table: 'pokemon_collections',
+          table: 'student_pokemon_collection',
           filter: `student_id=eq.${studentId}`
         },
         (payload) => {
-          console.log('🔄 Real-time Pokemon collection update detected:', payload);
+          console.log('🔄 Real-time Pokemon collection update:', payload);
           fetchStudentCollection();
         }
       )
       .subscribe();
 
-    // Cleanup function: unsubscribe from the real-time channel when the component unmounts
     return () => {
       supabase.removeChannel(channel);
     };
   }, [studentId, refreshTrigger, fetchStudentCollection]);
 
-  // Handler for the manual refresh button
   const handleRefresh = () => {
-    fetchStudentCollection(); // Simply calls the memoized fetch function
+    fetchStudentCollection();
   };
 
-  // Helper function to determine rarity badge color
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
       case 'legendary': return 'bg-yellow-500 text-white';
@@ -105,7 +96,6 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
     }
   };
 
-  // Helper function to get an icon based on the Pokémon's source
   const getSourceIcon = (source: string) => {
     switch (source) {
       case 'shop_purchase': return '🛒';
@@ -142,10 +132,10 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
         ) : pokemonCollection.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {pokemonCollection.map((collectionItem) => {
-              const pokemon = collectionItem.pokemon_catalog;
+              const pokemon = collectionItem.pokemon || collectionItem.pokemon_catalog;
 
               if (!pokemon) {
-                console.warn("Pokemon data missing for collection item with ID:", collectionItem.id);
+                console.warn("Pokemon data missing for collection item:", collectionItem.id);
                 return null;
               }
 

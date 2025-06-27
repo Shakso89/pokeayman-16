@@ -1,196 +1,70 @@
 
-// src/services/pokemonService.ts
-
 import { supabase } from "@/integrations/supabase/client";
+import { deductCoinsFromStudentEnhanced } from "@/services/enhancedCoinService";
 
-// --- Type Definitions ---
-
-/**
- * Defines the structure of a single Pokémon entry as it exists in your `pokemon_catalog` table.
- * IMPORTANT: Ensure these property names (e.g., `image_url`, `type_1`)
- * exactly match the column names in your `pokemon_catalog` table in Supabase.
- */
 export interface PokemonCatalogItem {
   id: string;
   name: string;
-  image_url: string; // e.g., '/images/charmander.png'
-  type_1: string;    // e.g., 'Fire', 'Water', 'Ground'
-  type_2?: string;   // Optional: for dual-type Pokémon (e.g., 'Flying', 'Poison')
-  rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
+  image_url?: string;
+  type_1: string;
+  type_2?: string;
+  rarity: string;
   price: number;
   description?: string;
-  power_stats?: any; // Assuming JSONB or similar
-  created_at: string;
+  power_stats?: any;
 }
 
-// Legacy type alias for backward compatibility
-export type Pokemon = PokemonCatalogItem;
-
-/**
- * Defines the structure of a single entry in the `pokemon_collections` table,
- * including the joined Pokémon details from `pokemon_catalog`.
- */
 export interface StudentPokemonCollectionItem {
-  id: string; // The primary key ID of this specific collection entry
-  student_id: string; // Foreign key to the student who owns this Pokémon
-  pokemon_id: string; // Foreign key to the specific Pokémon in the pokemon_catalog
-  source: 'teacher_award' | 'shop_purchase' | 'event_reward' | 'refund'; // Expanded possible sources
-  awarded_by?: string; // Optional: who awarded it (e.g., teacher_id)
-  obtained_at: string; // Timestamp of when the Pokémon was added to the collection (matches DB column name)
-
-  /**
-   * The joined data from the `pokemon_catalog` table.
-   * This property will contain all the details of the Pokémon itself.
-   */
-  pokemon_catalog: PokemonCatalogItem | null; // `null` if the join failed for some reason
+  id: string;
+  student_id: string;
+  pokemon_id: string;
+  awarded_at: string;
+  source: string;
+  pokemon?: PokemonCatalogItem;
+  pokemon_catalog?: PokemonCatalogItem;
 }
 
-// Legacy type alias for backward compatibility
-export type StudentPokemonCollection = StudentPokemonCollectionItem;
-
-// --- Service Functions ---
-
-/**
- * Get all available Pokémon from the main catalog/pool.
- * This should target your `pokemon_catalog` table.
- */
 export const getPokemonCatalog = async (): Promise<PokemonCatalogItem[]> => {
   try {
-    console.log("🌍 Fetching Pokemon catalog...");
-
-    // First try pokemon_catalog table
-    const { data: catalogData, error: catalogError } = await supabase
-      .from('pokemon_catalog')
-      .select('*')
-      .order('name');
-
-    if (catalogData && catalogData.length > 0) {
-      console.log(`✅ Fetched ${catalogData.length} Pokemon from pokemon_catalog`);
-      return catalogData;
-    }
-
-    // Fallback to pokemon_pool table if catalog is empty
-    console.log("⚠️ pokemon_catalog is empty, trying pokemon_pool...");
-    const { data: poolData, error: poolError } = await supabase
+    console.log("🔍 Fetching Pokemon catalog from pokemon_pool...");
+    
+    const { data, error } = await supabase
       .from('pokemon_pool')
       .select('*')
       .order('name');
 
-    if (poolError) {
-      console.error("❌ Error fetching from pokemon_pool:", poolError);
-      return [];
+    if (error) {
+      console.error("❌ Error fetching Pokemon catalog:", error);
+      throw error;
     }
 
-    console.log(`✅ Fetched ${poolData?.length || 0} Pokemon from pokemon_pool`);
-    return poolData || [];
+    console.log("✅ Pokemon catalog loaded:", data?.length || 0);
+    return data || [];
   } catch (error) {
     console.error("❌ Unexpected error fetching Pokemon catalog:", error);
     return [];
   }
 };
 
-// Legacy function alias for backward compatibility
-export const getPokemonPool = getPokemonCatalog;
-
-/**
- * Award Pokemon to a student and add it to their collection.
- * This inserts a new record into `pokemon_collections`.
- */
-export const awardPokemonToStudent = async (
-  studentId: string,
-  pokemonId: string,
-  source: 'teacher_award' | 'shop_purchase' = 'teacher_award',
-  awardedBy?: string
-): Promise<{ success: boolean; error?: string; pokemon?: PokemonCatalogItem }> => {
-  try {
-    console.log("🎁 Awarding Pokemon to student:", { studentId, pokemonId, source, awardedBy });
-
-    // Verify Pokemon exists in catalog or pool
-    let pokemon = null;
-    
-    // Try pokemon_catalog first
-    const { data: catalogPokemon, error: catalogError } = await supabase
-      .from('pokemon_catalog')
-      .select('*')
-      .eq('id', pokemonId)
-      .maybeSingle();
-
-    if (catalogPokemon) {
-      pokemon = catalogPokemon;
-    } else {
-      // Try pokemon_pool as fallback
-      const { data: poolPokemon, error: poolError } = await supabase
-        .from('pokemon_pool')
-        .select('*')
-        .eq('id', pokemonId)
-        .maybeSingle();
-
-      if (poolPokemon) {
-        pokemon = poolPokemon;
-      }
-    }
-
-    if (!pokemon) {
-      console.error("❌ Pokemon not found in any catalog:", { pokemonId });
-      return { success: false, error: "Pokemon not found in catalog" };
-    }
-
-    console.log("✅ Pokemon verified in catalog:", pokemon.name);
-
-    // Insert into student's collection
-    const { data: result, error: insertError } = await supabase
-      .from('pokemon_collections')
-      .insert({
-        student_id: studentId,
-        pokemon_id: pokemonId,
-        source,
-        awarded_by: awardedBy,
-        obtained_at: new Date().toISOString()
-      })
-      .select(`
-        *,
-        pokemon_catalog(*)
-      `)
-      .single();
-
-    if (insertError) {
-      console.error("❌ Error awarding Pokemon:", insertError);
-      return { success: false, error: `Failed to award Pokemon: ${insertError.message}` };
-    }
-
-    console.log("✅ Pokemon awarded successfully:", result);
-    return { success: true, pokemon: pokemon };
-  } catch (error) {
-    console.error("❌ Unexpected error awarding Pokemon:", error);
-    return { success: false, error: "Unexpected error occurred" };
-  }
-};
-
-/**
- * Get a student's entire Pokémon collection.
- * @param studentId The ID of the student.
- * @returns A Promise resolving to an array of `StudentPokemonCollectionItem` (with joined Pokémon details).
- */
 export const getStudentPokemonCollection = async (studentId: string): Promise<StudentPokemonCollectionItem[]> => {
   try {
-    console.log("📦 Fetching student's Pokemon collection:", studentId);
-
+    console.log("🔍 Fetching student Pokemon collection for:", studentId);
+    
     if (!studentId || studentId === 'undefined') {
-      console.error("❌ Invalid studentId provided for collection fetch:", studentId);
+      console.warn("❌ Invalid studentId provided:", studentId);
       return [];
     }
 
-    // Use the correct table name with proper joins
-    const { data, error } = await supabase
-      .from('pokemon_collections')
+    // First try the new table structure
+    const { data: collectionData, error: collectionError } = await supabase
+      .from('student_pokemon_collection')
       .select(`
         id,
         student_id,
         pokemon_id,
+        awarded_at,
         source,
-        awarded_by,
-        obtained_at,
-        pokemon_catalog!inner(
+        pokemon_pool!student_pokemon_collection_pokemon_id_fkey (
           id,
           name,
           image_url,
@@ -199,104 +73,188 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
           rarity,
           price,
           description,
-          power_stats,
-          created_at
+          power_stats
+        )
+      `)
+      .eq('student_id', studentId)
+      .order('awarded_at', { ascending: false });
+
+    if (!collectionError && collectionData) {
+      console.log("✅ Found collections in student_pokemon_collection:", collectionData.length);
+      return collectionData.map(item => ({
+        ...item,
+        pokemon: item.pokemon_pool as PokemonCatalogItem,
+        pokemon_catalog: item.pokemon_pool as PokemonCatalogItem
+      }));
+    }
+
+    // Fallback to older table structure if needed
+    console.log("🔄 Trying fallback table pokemon_collections...");
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('pokemon_collections')
+      .select(`
+        id,
+        student_id,
+        pokemon_id,
+        obtained_at,
+        pokemon_catalog (
+          id,
+          name,
+          image,
+          type,
+          rarity,
+          power_stats
         )
       `)
       .eq('student_id', studentId)
       .order('obtained_at', { ascending: false });
 
-    if (error) {
-      console.error("❌ Error fetching student's collection:", error);
+    if (fallbackError) {
+      console.error("❌ Error in fallback query:", fallbackError);
       return [];
     }
 
-    // Transform the data to match our interface
-    const collection = (data || []).map(item => ({
+    console.log("✅ Found collections in pokemon_collections:", fallbackData?.length || 0);
+    return (fallbackData || []).map(item => ({
       id: item.id,
       student_id: item.student_id,
       pokemon_id: item.pokemon_id,
-      source: item.source,
-      awarded_by: item.awarded_by,
-      obtained_at: item.obtained_at,
-      pokemon_catalog: Array.isArray(item.pokemon_catalog) ? item.pokemon_catalog[0] : item.pokemon_catalog
-    })) as StudentPokemonCollectionItem[];
+      awarded_at: item.obtained_at,
+      source: 'legacy',
+      pokemon: {
+        id: item.pokemon_catalog?.id || item.pokemon_id,
+        name: item.pokemon_catalog?.name || 'Unknown Pokemon',
+        image_url: item.pokemon_catalog?.image || '',
+        type_1: item.pokemon_catalog?.type || 'normal',
+        rarity: item.pokemon_catalog?.rarity || 'common',
+        price: 15,
+        power_stats: item.pokemon_catalog?.power_stats
+      } as PokemonCatalogItem
+    }));
 
-    console.log(`✅ Fetched ${collection.length || 0} Pokemon from student's collection`);
-    return collection;
   } catch (error) {
-    console.error("❌ Unexpected error fetching student's collection:", error);
+    console.error("❌ Unexpected error fetching student collection:", error);
     return [];
   }
 };
 
-/**
- * Handles the complete process of purchasing a Pokemon from the shop,
- * including coin deduction and adding the Pokemon to the collection.
- * Includes a basic refund mechanism if the Pokemon award fails.
- */
 export const purchasePokemonFromShop = async (
   studentId: string,
-  pokemonId: string,
-  price: number
-): Promise<{ success: boolean; error?: string }> => {
+  pokemonId: string
+): Promise<{ success: boolean; error?: string; pokemon?: any }> => {
   try {
-    console.log("🛒 Starting Pokemon purchase:", { studentId, pokemonId, price });
+    console.log("🛒 Starting Pokemon purchase:", { studentId, pokemonId });
 
-    // Dynamically import the enhanced coin service to avoid circular dependencies
-    const { deductCoinsFromStudentEnhanced, awardCoinsToStudentEnhanced } = await import("./enhancedCoinService");
+    if (!studentId || studentId === 'undefined') {
+      return { success: false, error: "Invalid student ID" };
+    }
 
-    // --- Step 1: Deduct coins ---
+    // Get Pokemon details and price
+    const { data: pokemon, error: pokemonError } = await supabase
+      .from('pokemon_pool')
+      .select('*')
+      .eq('id', pokemonId)
+      .single();
+
+    if (pokemonError || !pokemon) {
+      console.error("❌ Pokemon not found:", pokemonError);
+      return { success: false, error: "Pokemon not found" };
+    }
+
+    const price = pokemon.price || 15;
+    console.log("💰 Pokemon price:", price);
+
+    // Deduct coins first
     const coinResult = await deductCoinsFromStudentEnhanced(
       studentId,
       price,
-      `Purchased Pokemon: ${pokemonId}`,
-      'shop_purchase'
+      `Shop purchase: ${pokemon.name}`,
+      "shop_purchase"
     );
 
     if (!coinResult.success) {
-      console.error("❌ Coin deduction failed:", coinResult.error);
+      console.error("❌ Failed to deduct coins:", coinResult.error);
       return { success: false, error: coinResult.error };
     }
 
-    console.log("✅ Coins deducted successfully, now awarding Pokemon...");
+    console.log("✅ Coins deducted successfully, new balance:", coinResult.newBalance);
 
-    // --- Step 2: Award the Pokemon ---
-    const pokemonResult = await awardPokemonToStudent(studentId, pokemonId, 'shop_purchase');
+    // Add Pokemon to collection
+    const { data: collection, error: collectionError } = await supabase
+      .from('student_pokemon_collection')
+      .insert({
+        student_id: studentId,
+        pokemon_id: pokemonId,
+        source: 'shop_purchase'
+      })
+      .select()
+      .single();
 
-    if (!pokemonResult.success) {
-      console.error("❌ Pokemon award failed after coin deduction, attempting refund...");
-
-      // --- Step 3 (Refund): If Pokemon award fails, refund coins ---
-      await awardCoinsToStudentEnhanced(
-        studentId,
-        price,
-        `Refund for failed Pokemon purchase: ${pokemonId}`,
-        "refund"
-      );
-      console.log("⚠️ Coins refunded due to failed Pokemon award.");
-
-      return { success: false, error: pokemonResult.error || "Failed to add Pokemon to collection." };
+    if (collectionError) {
+      console.error("❌ Failed to add Pokemon to collection:", collectionError);
+      // Try to refund coins if collection insert failed
+      try {
+        await supabase.rpc('award_coins_to_student_enhanced', {
+          p_student_id: studentId,
+          p_amount: price,
+          p_reason: 'Refund for failed purchase'
+        });
+      } catch (refundError) {
+        console.error("❌ Failed to refund coins:", refundError);
+      }
+      return { success: false, error: "Failed to add Pokemon to collection" };
     }
 
-    console.log("✅ Pokemon purchased successfully!");
-    return { success: true };
-  } catch (error: any) {
-    console.error("❌ Error purchasing Pokemon:", error);
-    return { success: false, error: `Unexpected error occurred during purchase: ${error.message}` };
+    console.log("✅ Pokemon purchase completed successfully:", collection);
+    return { 
+      success: true, 
+      pokemon: { ...pokemon, collectionId: collection.id }
+    };
+
+  } catch (error) {
+    console.error("❌ Unexpected error during Pokemon purchase:", error);
+    return { 
+      success: false, 
+      error: error instanceof Error ? error.message : "Unknown error occurred" 
+    };
   }
 };
 
-/**
- * Removes a Pokémon from a student's collection.
- * @param collectionId The ID of the specific collection entry to remove.
- */
-export const removePokemonFromStudent = async (collectionId: string): Promise<boolean> => {
+export const awardPokemonToStudent = async (
+  studentId: string,
+  pokemonId: string,
+  source: string = "teacher_award"
+): Promise<boolean> => {
   try {
-    console.log("🗑️ Removing Pokemon from collection:", collectionId);
+    console.log("🎁 Awarding Pokemon to student:", { studentId, pokemonId, source });
 
     const { error } = await supabase
-      .from('pokemon_collections')
+      .from('student_pokemon_collection')
+      .insert({
+        student_id: studentId,
+        pokemon_id: pokemonId,
+        source
+      });
+
+    if (error) {
+      console.error("❌ Error awarding Pokemon:", error);
+      return false;
+    }
+
+    console.log("✅ Pokemon awarded successfully");
+    return true;
+  } catch (error) {
+    console.error("❌ Unexpected error awarding Pokemon:", error);
+    return false;
+  }
+};
+
+export const removePokemonFromStudent = async (collectionId: string): Promise<boolean> => {
+  try {
+    console.log("🗑️ Removing Pokemon from student collection:", collectionId);
+
+    const { error } = await supabase
+      .from('student_pokemon_collection')
       .delete()
       .eq('id', collectionId);
 
@@ -307,7 +265,7 @@ export const removePokemonFromStudent = async (collectionId: string): Promise<bo
 
     console.log("✅ Pokemon removed successfully");
     return true;
-  } catch (error: any) {
+  } catch (error) {
     console.error("❌ Unexpected error removing Pokemon:", error);
     return false;
   }
