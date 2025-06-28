@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -24,6 +23,11 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
   const [isClassCreator, setIsClassCreator] = useState(false);
   const { toast } = useToast();
 
+  // Generate a simple join code from class ID
+  const generateJoinCode = (classId: string) => {
+    return classId.substring(0, 8).toUpperCase();
+  };
+
   const refreshClassDetails = async () => {
     setLoading(true);
     try {
@@ -44,7 +48,13 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
         return;
       }
 
-      setClassData(classData);
+      // Add generated join code to class data
+      const classWithCode = {
+        ...classData,
+        code: generateJoinCode(classData.id)
+      };
+
+      setClassData(classWithCode);
 
       // Fetch student profiles for the class
       const { data: studentProfiles, error: studentError } = await supabase
@@ -98,6 +108,16 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
     refreshClassDetails();
   };
 
+  const handleShowGiveCoins = (studentId: string) => {
+    setSelectedStudentId(studentId);
+    setShowGiveCoins(true);
+  };
+
+  const handleShowRemoveCoins = (studentId: string) => {
+    setSelectedStudentId(studentId);
+    setShowRemoveCoins(true);
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between space-y-2 md:space-y-0">
@@ -117,14 +137,27 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
           {isClassCreator && <TabsTrigger value="settings">Settings</TabsTrigger>}
         </TabsList>
         <TabsContent value="overview">
-          <OverviewTab classId={classId} classData={classData} students={students} />
+          <OverviewTab 
+            classId={classId} 
+            classData={classData} 
+            students={students} 
+          />
         </TabsContent>
         <TabsContent value="students">
-          <StudentListTab students={students} classId={classId} />
+          <StudentListTab 
+            students={students} 
+            classId={classId}
+            onGiveCoins={handleShowGiveCoins}
+            onRemoveCoins={handleShowRemoveCoins}
+          />
         </TabsContent>
         {isClassCreator && (
           <TabsContent value="settings">
-            <SettingsTab classId={classId} classData={classData} refreshClassDetails={refreshClassDetails} />
+            <SettingsTab 
+              classId={classId} 
+              classData={classData} 
+              refreshClassDetails={refreshClassDetails} 
+            />
           </TabsContent>
         )}
       </Tabs>

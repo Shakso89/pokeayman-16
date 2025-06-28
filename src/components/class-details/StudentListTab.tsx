@@ -4,16 +4,23 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Eye, Coins } from "lucide-react";
+import { Eye, Coins, Plus, Minus } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { StudentProfile } from '@/services/studentDatabase';
 
 interface StudentListTabProps {
   students: StudentProfile[];
   classId: string;
+  onGiveCoins?: (studentId: string) => void;
+  onRemoveCoins?: (studentId: string) => void;
 }
 
-export const StudentListTab: React.FC<StudentListTabProps> = ({ students, classId }) => {
+export const StudentListTab: React.FC<StudentListTabProps> = ({ 
+  students, 
+  classId, 
+  onGiveCoins, 
+  onRemoveCoins 
+}) => {
   const navigate = useNavigate();
 
   const handleViewStudent = (studentId: string) => {
@@ -58,14 +65,36 @@ export const StudentListTab: React.FC<StudentListTabProps> = ({ students, classI
                       {student.coins || 0}
                     </Badge>
                     
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleViewStudent(student.user_id)}
-                    >
-                      <Eye className="h-4 w-4 mr-2" />
-                      View
-                    </Button>
+                    <div className="flex items-center space-x-2">
+                      {onGiveCoins && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onGiveCoins(student.user_id)}
+                        >
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                      )}
+                      
+                      {onRemoveCoins && (
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => onRemoveCoins(student.user_id)}
+                        >
+                          <Minus className="h-4 w-4" />
+                        </Button>
+                      )}
+                      
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleViewStudent(student.user_id)}
+                      >
+                        <Eye className="h-4 w-4 mr-2" />
+                        View
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
