@@ -10,7 +10,6 @@ import {
   purchasePokemonFromShop,
   type PokemonFromPool
 } from "@/services/unifiedPokemonService";
-import { updateStudentCoins } from "@/services/studentDatabase";
 
 interface PokemonShopProps {
   studentId: string;
@@ -56,31 +55,22 @@ const PokemonShop: React.FC<PokemonShopProps> = ({
     setPurchasing(pokemon.id);
 
     try {
-      // Deduct coins first
-      const coinsSuccess = await updateStudentCoins(studentId, -pokemon.price, `Purchased ${pokemon.name}`);
+      console.log("🛒 Attempting to purchase Pokemon:", pokemon.name, "for", pokemon.price, "coins");
       
-      if (!coinsSuccess) {
-        toast.error("Failed to deduct coins");
-        return;
-      }
-
-      // Purchase the Pokemon
-      const result = await purchasePokemonFromShop(studentId, pokemon.id, pokemon.price);
+      // Use the unified service - it handles coin deduction internally
+      const result = await purchasePokemonFromShop(studentId, pokemon.id);
       
       if (result.success) {
         toast.success(`Successfully purchased ${pokemon.name}!`);
         onPurchase(pokemon, pokemon.price);
         onRefresh();
       } else {
+        console.error("❌ Purchase failed:", result.error);
         toast.error(result.error || "Failed to purchase Pokemon");
-        // Refund coins on failure
-        await updateStudentCoins(studentId, pokemon.price, `Refund for failed ${pokemon.name} purchase`);
       }
     } catch (error) {
-      console.error("Error purchasing Pokemon:", error);
-      toast.error("Purchase failed");
-      // Refund coins on error
-      await updateStudentCoins(studentId, pokemon.price, `Refund for failed ${pokemon.name} purchase`);
+      console.error("❌ Purchase error:", error);
+      toast.error("An unexpected error occurred during purchase");
     } finally {
       setPurchasing(null);
     }
