@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -7,7 +8,7 @@ import { OverviewTab } from './OverviewTab';
 import { StudentListTab } from './StudentListTab';
 import { SettingsTab } from './SettingsTab';
 import { useToast } from '@/hooks/use-toast';
-import { TeacherManagePokemonDialog } from '@/components/dialogs/TeacherManagePokemonDialog';
+import TeacherManagePokemonDialog from '@/components/dialogs/TeacherManagePokemonDialog';
 import GiveCoinsDialog from '@/components/dialogs/GiveCoinsDialog';
 import RemoveCoinsDialog from '@/components/dialogs/RemoveCoinsDialog';
 import { StudentProfile } from '@/services/studentDatabase';
@@ -19,6 +20,7 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
   const [showManagePokemon, setShowManagePokemon] = useState(false);
   const [showGiveCoins, setShowGiveCoins] = useState(false);
   const [showRemoveCoins, setShowRemoveCoins] = useState(false);
+  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [isClassCreator, setIsClassCreator] = useState(false);
   const { toast } = useToast();
 
@@ -88,6 +90,14 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
     checkClassCreator();
   }, [classData]);
 
+  const handleGiveCoins = () => {
+    refreshClassDetails();
+  };
+
+  const handleRemoveCoins = () => {
+    refreshClassDetails();
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between space-y-2 md:space-y-0">
@@ -129,23 +139,33 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
         onRefresh={refreshClassDetails}
       />
 
-      <GiveCoinsDialog
-        isOpen={showGiveCoins}
-        onOpenChange={setShowGiveCoins}
-        students={students}
-        classId={classId}
-        schoolId={classData?.school_id || ""}
-        onGiveCoins={refreshClassDetails}
-      />
+      {selectedStudentId && (
+        <>
+          <GiveCoinsDialog
+            isOpen={showGiveCoins}
+            onOpenChange={setShowGiveCoins}
+            studentId={selectedStudentId}
+            studentName={students.find(s => s.user_id === selectedStudentId)?.display_name || 'Student'}
+            teacherId={localStorage.getItem("teacherId") || ""}
+            classId={classId}
+            schoolId={classData?.school_id || ""}
+            onGiveCoins={handleGiveCoins}
+          />
 
-      <RemoveCoinsDialog
-        isOpen={showRemoveCoins}
-        onOpenChange={setShowRemoveCoins}
-        students={students}
-        classId={classId}
-        schoolId={classData?.school_id || ""}
-        onRemoveCoins={refreshClassDetails}
-      />
+          <RemoveCoinsDialog
+            isOpen={showRemoveCoins}
+            onOpenChange={setShowRemoveCoins}
+            studentId={selectedStudentId}
+            studentName={students.find(s => s.user_id === selectedStudentId)?.display_name || 'Student'}
+            teacherId={localStorage.getItem("teacherId") || ""}
+            classId={classId}
+            schoolId={classData?.school_id || ""}
+            onRemoveCoins={handleRemoveCoins}
+          />
+        </>
+      )}
     </div>
   );
 };
+
+export default ClassDetails;

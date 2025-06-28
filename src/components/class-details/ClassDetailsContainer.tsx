@@ -2,7 +2,7 @@
 import React from "react";
 import { useParams } from "react-router-dom";
 import { Loader2 } from "lucide-react";
-import ClassDetails from "./ClassDetails";
+import { ClassDetails } from "./ClassDetails";
 
 const ClassDetailsContainer: React.FC = () => {
   const { classId, id } = useParams<{ classId?: string; id?: string }>();
