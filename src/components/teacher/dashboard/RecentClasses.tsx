@@ -26,8 +26,7 @@ const RecentClasses: React.FC<RecentClassesProps> = ({
   onNavigateToClass
 }) => {
   const handleViewClass = (classId: string) => {
-    console.log("RecentClasses - Navigating to class:", classId);
-    // Use the class details route that matches the class management behavior
+    console.log("RecentClasses - Navigating to class details:", classId);
     onNavigateToClass(classId);
   };
 
