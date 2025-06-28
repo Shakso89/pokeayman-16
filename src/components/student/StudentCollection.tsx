@@ -1,67 +1,53 @@
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Award, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { RefreshCw, Trophy } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { getStudentPokemonCollection } from "@/services/unifiedPokemonService";
 import { supabase } from "@/integrations/supabase/client";
-import { toast } from "sonner";
 
 interface StudentCollectionProps {
   studentId: string;
-  refreshTrigger?: number;
 }
 
-const StudentCollection: React.FC<StudentCollectionProps> = ({
-  studentId,
-  refreshTrigger = 0
-}) => {
+const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
   const { t } = useTranslation();
   const [pokemonCollection, setPokemonCollection] = useState<any[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  const fetchStudentCollection = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-
-    console.log("🔍 StudentCollection: Fetching for studentId:", studentId);
-
+  const loadCollection = async () => {
     if (!studentId || studentId === 'undefined') {
-      console.warn("❌ StudentCollection: Invalid studentId provided:", studentId);
-      setPokemonCollection([]);
       setLoading(false);
       return;
     }
 
     try {
+      console.log("🔄 Loading Pokemon collection for student:", studentId);
       const collection = await getStudentPokemonCollection(studentId);
-      console.log("📦 StudentCollection: Fetched successfully:", collection.length);
+      console.log("✅ Pokemon collection loaded:", collection.length);
       setPokemonCollection(collection);
-    } catch (err: any) {
-      console.error("❌ StudentCollection: Error fetching:", err);
-      setError(err.message || "Failed to load Pokémon collection.");
-      setPokemonCollection([]);
-      toast.error(err.message || "Failed to load Pokémon collection.");
+    } catch (error) {
+      console.error("❌ Error loading Pokemon collection:", error);
     } finally {
       setLoading(false);
     }
-  }, [studentId]);
+  };
 
   useEffect(() => {
-    if (!studentId || studentId === 'undefined') {
-      setPokemonCollection([]);
-      setLoading(false);
-      return;
-    }
+    loadCollection();
+  }, [studentId]);
 
-    fetchStudentCollection();
+  // Set up real-time subscription
+  useEffect(() => {
+    if (!studentId || studentId === 'undefined') return;
 
-    // Set up real-time subscription for both tables
-    const mainChannel = supabase
-      .channel(`student-pokemon-main-${studentId}`)
+    console.log("🔄 Setting up real-time subscription for Pokemon collection");
+
+    const channel = supabase
+      .channel('student-pokemon-collection')
       .on(
         'postgres_changes',
         {
@@ -71,37 +57,21 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
           filter: `student_id=eq.${studentId}`
         },
         (payload) => {
-          console.log('🔄 Real-time Pokemon collection update (main):', payload);
-          fetchStudentCollection();
-        }
-      )
-      .subscribe();
-
-    const fallbackChannel = supabase
-      .channel(`student-pokemon-fallback-${studentId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'pokemon_collections',
-          filter: `student_id=eq.${studentId}`
-        },
-        (payload) => {
-          console.log('🔄 Real-time Pokemon collection update (fallback):', payload);
-          fetchStudentCollection();
+          console.log('🔄 Real-time Pokemon collection update:', payload);
+          loadCollection();
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(mainChannel);
-      supabase.removeChannel(fallbackChannel);
+      supabase.removeChannel(channel);
     };
-  }, [studentId, refreshTrigger, fetchStudentCollection]);
+  }, [studentId]);
 
-  const handleRefresh = () => {
-    fetchStudentCollection();
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadCollection();
+    setRefreshing(false);
   };
 
   const getRarityColor = (rarity: string) => {
@@ -114,110 +84,109 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
     }
   };
 
-  const getSourceIcon = (source: string) => {
-    switch (source) {
-      case 'shop_purchase': return '🛒';
-      case 'teacher_award': return '🎁';
-      case 'event_reward': return '🎉';
-      default: return '⭐';
-    }
-  };
+  if (loading) {
+    return (
+      <div className="flex justify-center py-8">
+        <div className="text-gray-500">Loading your collection...</div>
+      </div>
+    );
+  }
 
   return (
-    <Card className="shadow-md">
-      <CardHeader className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-        <CardTitle className="flex items-center gap-2 justify-between">
-          <div className="flex items-center gap-2">
-            <Award className="h-6 w-6" />
-            My Pokémon Collection ({pokemonCollection.length})
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={handleRefresh}
-            disabled={loading}
-            className="text-white hover:bg-white/20"
-          >
-            <RefreshCw className={`h-4 w-4 ${loading ? 'animate-spin' : ''}`} />
-          </Button>
-        </CardTitle>
-      </CardHeader>
-      <CardContent className="p-6">
-        {loading ? (
-          <div className="text-center py-4 text-gray-500">Loading Pokémon...</div>
-        ) : error ? (
-          <div className="text-center py-4 text-red-500">Error: {error}</div>
-        ) : pokemonCollection.length > 0 ? (
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-            {pokemonCollection.map((collectionItem) => {
-              const pokemon = collectionItem.pokemon;
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Trophy className="h-6 w-6" />
+              My Pokémon Collection ({pokemonCollection.length})
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleRefresh}
+              disabled={refreshing}
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </Button>
+          </CardTitle>
+        </CardHeader>
+      </Card>
 
-              if (!pokemon) {
-                console.warn("Pokemon data missing for collection item:", collectionItem.id);
-                return null;
-              }
+      {pokemonCollection.length > 0 ? (
+        <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+          {pokemonCollection.map((item) => {
+            const pokemon = item.pokemon;
+            if (!pokemon) return null;
 
-              return (
-                <Card key={collectionItem.id} className="hover:shadow-md transition-shadow">
-                  <CardContent className="p-3">
+            return (
+              <Card key={item.id} className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="space-y-3">
+                    {/* Pokemon Image */}
+                    <div className="aspect-square bg-gray-50 rounded-lg flex items-center justify-center">
+                      <img
+                        src={pokemon.image_url || '/placeholder-pokemon.png'}
+                        alt={pokemon.name}
+                        className="w-full h-full object-contain"
+                        onError={(e) => {
+                          const target = e.target as HTMLImageElement;
+                          target.src = "/placeholder.svg";
+                        }}
+                      />
+                    </div>
+
+                    {/* Pokemon Info */}
                     <div className="space-y-2">
-                      <div className="aspect-square bg-gray-50 rounded-lg flex items-center justify-center">
-                        <img
-                          src={pokemon.image_url || '/placeholder-pokemon.png'}
-                          alt={pokemon.name}
-                          className="w-full h-full object-contain"
-                          onError={(e) => {
-                            const target = e.target as HTMLImageElement;
-                            target.src = "/placeholder.svg";
-                          }}
-                        />
+                      <h3 className="font-medium text-sm text-center">{pokemon.name}</h3>
+                      
+                      <div className="flex justify-center gap-1">
+                        {pokemon.type_1 && (
+                          <Badge variant="outline" className="text-xs">
+                            {pokemon.type_1}
+                          </Badge>
+                        )}
+                        {pokemon.type_2 && (
+                          <Badge variant="outline" className="text-xs">
+                            {pokemon.type_2}
+                          </Badge>
+                        )}
                       </div>
 
-                      <div className="space-y-1">
-                        <h3 className="font-medium text-sm text-center">{pokemon.name}</h3>
+                      <div className="flex justify-center">
+                        <Badge className={`${getRarityColor(pokemon.rarity)} text-xs`}>
+                          {pokemon.rarity}
+                        </Badge>
+                      </div>
 
-                        <div className="flex justify-center gap-1">
-                          {pokemon.type_1 && (
-                            <Badge variant="outline" className="text-xs">
-                              {pokemon.type_1}
-                            </Badge>
-                          )}
-                          {pokemon.type_2 && (
-                            <Badge variant="outline" className="text-xs">
-                              {pokemon.type_2}
-                            </Badge>
-                          )}
-                        </div>
-
-                        <div className="flex justify-center">
-                          {pokemon.rarity && (
-                            <Badge className={`${getRarityColor(pokemon.rarity)} text-xs`}>
-                              {pokemon.rarity}
-                            </Badge>
-                          )}
-                        </div>
-
-                        <div className="text-center">
-                          <span className="text-xs text-gray-500" title={`Source: ${collectionItem.source}`}>
-                            {getSourceIcon(collectionItem.source)}
-                          </span>
-                        </div>
+                      <div className="text-center">
+                        <Badge variant="secondary" className="text-xs">
+                          {item.source.replace('_', ' ')}
+                        </Badge>
                       </div>
                     </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        ) : (
-          <div className="text-center py-8 text-gray-500">
-            <Award className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-            <p>No Pokémon in your collection yet.</p>
-            <p className="text-sm mt-2">Complete homework or visit the shop to get your first Pokémon!</p>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+                  </div>
+                </CardContent>
+              </Card>
+            );
+          })}
+        </div>
+      ) : (
+        <Card>
+          <CardContent className="py-8 text-center">
+            <div className="flex flex-col items-center space-y-4">
+              <Trophy className="h-16 w-16 text-gray-300" />
+              <div>
+                <p className="text-gray-500 font-medium">No Pokémon in your collection yet.</p>
+                <p className="text-sm text-gray-400 mt-2">
+                  Complete homework or visit the shop to get your first Pokémon!
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+    </div>
   );
 };
 

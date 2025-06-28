@@ -49,8 +49,9 @@ const StudentDashboard: React.FC = () => {
   const [coins, setCoins] = useState(0);
   const [studentClasses, setStudentClasses] = useState<string[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
+  const [refreshKey, setRefreshKey] = useState(0);
 
-  // Enhanced data loading function
+  // Enhanced data loading function with better error handling
   const loadStudentData = useCallback(async () => {
     if (!studentId || studentId === 'undefined') {
       console.log("No valid student ID, skipping data load");
@@ -67,23 +68,23 @@ const StudentDashboard: React.FC = () => {
         .from('student_profiles')
         .select('*')
         .eq('user_id', studentId)
-        .single();
+        .maybeSingle();
 
       if (profileError) {
         console.error("❌ Error loading student profile:", profileError);
         // Fallback to students table
-        const { data: studentData } = await supabase
+        const { data: studentData, error: studentError } = await supabase
           .from('students')
           .select('*')
           .eq('user_id', studentId)
-          .single();
+          .maybeSingle();
 
-        if (studentData) {
+        if (!studentError && studentData) {
           setStudentInfo(studentData);
           setCoins(studentData.coins || 0);
           setStudentClasses(studentData.class_id ? [studentData.class_id] : []);
         }
-      } else {
+      } else if (profileData) {
         setStudentInfo(profileData);
         setCoins(profileData.coins || 0);
         setStudentClasses(profileData.class_id ? [profileData.class_id] : []);
@@ -96,10 +97,15 @@ const StudentDashboard: React.FC = () => {
       console.log("✅ Student data loaded successfully");
     } catch (error) {
       console.error("❌ Error loading student data:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load student data",
+        variant: "destructive"
+      });
     } finally {
       setDataLoading(false);
     }
-  }, [studentId]);
+  }, [studentId, toast]);
 
   // Initial data load
   useEffect(() => {
@@ -110,11 +116,11 @@ const StudentDashboard: React.FC = () => {
     }
   }, [loadStudentData, studentId]);
 
-  // Real-time subscription for data changes
+  // Enhanced real-time subscription for data changes
   useEffect(() => {
     if (!studentId || studentId === 'undefined') return;
 
-    console.log("🔄 Setting up real-time subscriptions for:", studentId);
+    console.log("🔄 Setting up enhanced real-time subscriptions for:", studentId);
 
     // Subscribe to student profile changes
     const profileChannel = supabase
@@ -130,6 +136,7 @@ const StudentDashboard: React.FC = () => {
         (payload) => {
           console.log('🔄 Real-time profile update:', payload);
           loadStudentData();
+          setRefreshKey(prev => prev + 1);
         }
       )
       .subscribe();
@@ -148,6 +155,25 @@ const StudentDashboard: React.FC = () => {
         (payload) => {
           console.log('🔄 Real-time Pokemon update:', payload);
           loadStudentData();
+          setRefreshKey(prev => prev + 1);
+        }
+      )
+      .subscribe();
+
+    // Subscribe to coin history changes
+    const coinChannel = supabase
+      .channel('student-dashboard-coins')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'coin_history',
+          filter: `user_id=eq.${studentId}`
+        },
+        (payload) => {
+          console.log('🔄 Real-time coin update:', payload);
+          loadStudentData();
         }
       )
       .subscribe();
@@ -155,6 +181,7 @@ const StudentDashboard: React.FC = () => {
     return () => {
       supabase.removeChannel(profileChannel);
       supabase.removeChannel(pokemonChannel);
+      supabase.removeChannel(coinChannel);
     };
   }, [studentId, loadStudentData]);
 
@@ -201,7 +228,9 @@ const StudentDashboard: React.FC = () => {
   };
 
   const handlePurchaseComplete = () => {
+    console.log("🔄 Purchase completed, refreshing data...");
     loadStudentData(); // Refresh all data after purchase
+    setRefreshKey(prev => prev + 1); // Force component refresh
   };
 
   const handleHomeworkClick = () => {
@@ -298,9 +327,9 @@ const StudentDashboard: React.FC = () => {
               <StudentDashboardButtons
                 coins={coins}
                 studentId={studentId}
-                onCollectionClick={handleCollectionClick}
-                onShopClick={handleShopClick}
-                onHomeworkClick={handleHomeworkClick}
+                onCollectionClick={() => setActiveTab("my-pokemons")}
+                onShopClick={() => setActiveTab("shop")}
+                onHomeworkClick={() => setActiveTab("my-classes")}
               />
             </TabsContent>
 
@@ -326,7 +355,10 @@ const StudentDashboard: React.FC = () => {
                   <div className="text-gray-500">{t("loading-collection")}</div>
                 </div>
               ) : (
-                <StudentCollection studentId={studentId} />
+                <StudentCollection 
+                  studentId={studentId} 
+                  key={`collection-${refreshKey}`}
+                />
               )}
             </TabsContent>
 
@@ -335,6 +367,7 @@ const StudentDashboard: React.FC = () => {
                 studentId={studentId}
                 studentCoins={coins}
                 onDataUpdate={handlePurchaseComplete}
+                key={`shop-${refreshKey}`}
               />
             </TabsContent>
           </Tabs>

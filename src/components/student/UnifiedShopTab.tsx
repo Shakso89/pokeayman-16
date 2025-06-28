@@ -3,10 +3,11 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coins, ShoppingCart } from "lucide-react";
+import { Coins, ShoppingCart, RefreshCw } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "sonner";
-import { getPokemonCatalog, purchasePokemonFromShop, type PokemonCatalogItem } from "@/services/pokemonService";
+import { getPokemonCatalog, type PokemonCatalogItem } from "@/services/pokemonService";
+import { purchasePokemonFromShop } from "@/services/unifiedPokemonService";
 
 interface UnifiedShopTabProps {
   studentId: string;
@@ -23,6 +24,7 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
   const [pokemonCatalog, setPokemonCatalog] = useState<PokemonCatalogItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadPokemonCatalog();
@@ -41,6 +43,14 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    await loadPokemonCatalog();
+    onDataUpdate(); // Refresh parent data
+    setRefreshing(false);
+    toast.success("Shop refreshed!");
   };
 
   const handlePurchase = async (pokemon: PokemonCatalogItem) => {
@@ -65,8 +75,14 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
       
       if (result.success) {
         toast.success(`Successfully purchased ${pokemon.name}!`);
-        onDataUpdate(); // Refresh student data
+        onDataUpdate(); // Refresh student data including coins and collection
+        
+        // Small delay to ensure data sync
+        setTimeout(() => {
+          onDataUpdate();
+        }, 500);
       } else {
+        console.error("❌ Purchase failed:", result.error);
         toast.error(result.error || "Failed to purchase Pokemon");
       }
     } catch (error) {
@@ -100,9 +116,19 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
       {/* Header */}
       <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <ShoppingCart className="h-6 w-6" />
-            Pokémon Shop
+          <CardTitle className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <ShoppingCart className="h-6 w-6" />
+              Pokémon Shop
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={handleRefresh}
+              disabled={refreshing}
+            >
+              <RefreshCw className={`h-4 w-4 ${refreshing ? 'animate-spin' : ''}`} />
+            </Button>
           </CardTitle>
           <div className="flex items-center gap-2 text-sm">
             <Coins className="h-4 w-4 text-yellow-500" />
