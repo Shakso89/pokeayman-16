@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from './use-toast';
@@ -56,7 +55,7 @@ export const useAuth = () => {
     return false;
   };
 
-  // Refresh auth state
+  // Refresh auth state - simplified to prevent conflicts
   const refreshAuthState = async () => {
     console.log("Refreshing auth state...");
     setLoading(true);
@@ -65,22 +64,24 @@ export const useAuth = () => {
       // First check localStorage for immediate feedback
       const hasLocalAuth = checkAuthState();
       
-      // Then try to get session from Supabase
-      const {
-        data: { session: existingSession },
-      } = await supabase.auth.getSession();
+      // Only check Supabase session if we don't have local auth
+      if (!hasLocalAuth) {
+        const {
+          data: { session: existingSession },
+        } = await supabase.auth.getSession();
 
-      if (existingSession) {
-        await handleSession(existingSession, updateAuthState, clearAuthStateWrapper);
-      } else if (!hasLocalAuth) {
-        // If no session and no localStorage, clear auth state
-        clearAuthStateWrapper();
-        console.log("No auth session found");
+        if (existingSession) {
+          await handleSession(existingSession, updateAuthState, clearAuthStateWrapper);
+        } else {
+          // If no session and no localStorage, clear auth state
+          clearAuthStateWrapper();
+          console.log("No auth session found");
+        }
       }
     } catch (error) {
       console.error("Auth check error:", error);
-      // Keep the localStorage state if it exists
-      if (!authState.isLoggedIn) {
+      // Keep the localStorage state if it exists and don't clear it on error
+      if (!authState.isLoggedIn && !checkAuthState()) {
         clearAuthStateWrapper();
       }
     } finally {
@@ -98,21 +99,19 @@ export const useAuth = () => {
       clearAuthStateWrapper();
 
       // Clear all localStorage items
-      localStorage.removeItem('isLoggedIn');
-      localStorage.removeItem('userType');
-      localStorage.removeItem('teacherId');
-      localStorage.removeItem('studentId');
-      localStorage.removeItem('teacherUsername');
-      localStorage.removeItem('studentUsername');
-      localStorage.removeItem('userEmail');
-      localStorage.removeItem('isAdmin');
+      const keysToRemove = [
+        'isLoggedIn', 'userType', 'teacherId', 'studentId', 
+        'teacherUsername', 'studentUsername', 'userEmail', 'isAdmin'
+      ];
+      
+      keysToRemove.forEach(key => localStorage.removeItem(key));
 
       try {
-        // Sign out from Supabase
+        // Sign out from Supabase - don't let this block the logout
         const { error } = await supabase.auth.signOut();
         
         if (error) {
-          console.error("Supabase signout error:", error);
+          console.warn("Supabase signout warning:", error);
           // Don't throw error, just log it - logout should always succeed
         }
 
@@ -125,7 +124,7 @@ export const useAuth = () => {
         
         return true;
       } catch (supabaseError) {
-        console.error("Supabase logout error:", supabaseError);
+        console.warn("Supabase logout warning:", supabaseError);
         
         toast({
           title: "Logout completed",
@@ -136,6 +135,14 @@ export const useAuth = () => {
       }
     } catch (error: any) {
       console.error("General logout error:", error);
+      
+      // Force cleanup even on error
+      clearAuthStateWrapper();
+      const keysToRemove = [
+        'isLoggedIn', 'userType', 'teacherId', 'studentId', 
+        'teacherUsername', 'studentUsername', 'userEmail', 'isAdmin'
+      ];
+      keysToRemove.forEach(key => localStorage.removeItem(key));
       
       toast({
         title: "Logout completed",
@@ -152,16 +159,21 @@ export const useAuth = () => {
   useEffect(() => {
     console.log("Setting up auth state listeners");
     
-    // Set up auth state listener
+    // Set up auth state listener - simplified to prevent conflicts
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, newSession) => {
       console.log("Auth state changed:", event);
 
-      if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
-        if (newSession) await handleSession(newSession, updateAuthState, clearAuthStateWrapper);
-      } else if (event === "SIGNED_OUT") {
-        clearAuthStateWrapper();
+      // Only handle Supabase auth events if we don't have local auth
+      const hasLocalAuth = localStorage.getItem("isLoggedIn") === "true";
+      
+      if (!hasLocalAuth) {
+        if (event === "SIGNED_IN" || event === "TOKEN_REFRESHED") {
+          if (newSession) await handleSession(newSession, updateAuthState, clearAuthStateWrapper);
+        } else if (event === "SIGNED_OUT") {
+          clearAuthStateWrapper();
+        }
       }
     });
 

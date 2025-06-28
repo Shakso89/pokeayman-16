@@ -6,13 +6,13 @@ import { Loader2 } from 'lucide-react';
 import { motion } from 'framer-motion';
 
 const LogoutPage: React.FC = () => {
-  const { secureLogout } = useSecureLogout();
+  const { secureLogout, isLoggingOut } = useSecureLogout();
   const navigate = useNavigate();
   const [hasStarted, setHasStarted] = useState(false);
 
   useEffect(() => {
     // Prevent multiple logout attempts
-    if (hasStarted) return;
+    if (hasStarted || isLoggingOut) return;
     
     setHasStarted(true);
     
@@ -28,10 +28,10 @@ const LogoutPage: React.FC = () => {
       } catch (error: unknown) {
         console.error("LogoutPage: Logout error:", error);
         
-        // Force redirect even on error
+        // Force redirect even on error after a short delay
         setTimeout(() => {
           navigate('/', { replace: true });
-        }, 1500);
+        }, 1000);
       }
     };
 
@@ -39,7 +39,7 @@ const LogoutPage: React.FC = () => {
     const safetyTimeout = setTimeout(() => {
       console.log("Safety timeout triggered, forcing redirect");
       navigate('/', { replace: true });
-    }, 5000);
+    }, 3000); // Reduced timeout
 
     // Start logout process immediately
     performLogout().finally(() => {
@@ -49,7 +49,7 @@ const LogoutPage: React.FC = () => {
     return () => {
       clearTimeout(safetyTimeout);
     };
-  }, [secureLogout, navigate, hasStarted]);
+  }, [secureLogout, navigate, hasStarted, isLoggingOut]);
 
   return (
     <motion.div 

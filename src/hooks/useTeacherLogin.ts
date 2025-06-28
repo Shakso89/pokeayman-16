@@ -11,6 +11,8 @@ export const useTeacherLogin = () => {
   const [loginInProgress, setLoginInProgress] = useState(false);
 
   const handleLogin = async (username: string, password: string) => {
+    if (loginInProgress) return; // Prevent multiple login attempts
+    
     setLoginInProgress(true);
     setError("");
 
@@ -21,11 +23,19 @@ export const useTeacherLogin = () => {
       const result = await handleTeacherLogin(username, password, () => {});
       
       if (result.success) {
-        // Small delay to ensure state is set before navigating
+        console.log("Login successful, preparing navigation...");
+        
+        // Small delay to ensure localStorage is set before navigating
         setTimeout(async () => {
-          await refreshAuthState();
-          navigate(result.redirect, { replace: true });
-        }, 100);
+          try {
+            await refreshAuthState();
+            navigate(result.redirect, { replace: true });
+          } catch (refreshError) {
+            console.warn("Auth refresh warning:", refreshError);
+            // Navigate anyway if refresh fails
+            navigate(result.redirect, { replace: true });
+          }
+        }, 200);
       } else {
         throw new Error(result.message || "Login failed");
       }

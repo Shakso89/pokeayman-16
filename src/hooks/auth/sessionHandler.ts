@@ -6,7 +6,7 @@ import { checkIsAdmin, isSpecialAdminEmail } from './adminUtils';
 import { setupStudentAuth } from './studentAuth';
 import { setupTeacherAuth } from './teacherAuth';
 
-// Handle changes in authentication session
+// Handle changes in authentication session - simplified to prevent conflicts
 export const handleSession = async (
   newSession: Session | null,
   updateAuthState: (newState: Partial<AuthState>) => void,
@@ -16,6 +16,13 @@ export const handleSession = async (
     // If no session, clear auth state
     if (!newSession || !newSession.user) {
       clearAuthState();
+      return;
+    }
+    
+    // Check if we already have local auth - don't override it
+    const hasLocalAuth = localStorage.getItem("isLoggedIn") === "true";
+    if (hasLocalAuth) {
+      console.log("Local auth already exists, skipping session handling");
       return;
     }
     
@@ -85,8 +92,9 @@ export const handleSession = async (
   } catch (error) {
     console.error("Error in handleSession:", error);
     
-    // Try to recover with basic session data
-    if (newSession?.user) {
+    // Try to recover with basic session data if possible
+    if (newSession?.user && !localStorage.getItem("isLoggedIn")) {
+      console.log("Attempting session recovery...");
       const sessionUser = newSession.user;
       const isAdminUser = checkIsAdmin(sessionUser);
       

@@ -16,37 +16,46 @@ export const useSecureLogout = () => {
     try {
       console.log('Starting secure logout process...');
       
-      // Sign out from Supabase
-      const { error } = await supabase.auth.signOut();
-      
-      if (error) {
-        console.error('Supabase logout error:', error);
-        // Continue with local cleanup even if Supabase logout fails
-      }
-
-      // Clear all localStorage data
+      // Store user type before clearing
       const userType = localStorage.getItem("userType");
-      localStorage.clear();
+      
+      // Clear all localStorage data immediately
+      const keysToRemove = [
+        'isLoggedIn', 'userType', 'teacherId', 'studentId', 
+        'teacherUsername', 'studentUsername', 'userEmail', 'isAdmin'
+      ];
+      
+      keysToRemove.forEach(key => localStorage.removeItem(key));
       
       // Clear sessionStorage as well
       sessionStorage.clear();
       
+      try {
+        // Sign out from Supabase - don't let this block the logout
+        const { error } = await supabase.auth.signOut();
+        
+        if (error) {
+          console.warn('Supabase logout warning:', error);
+          // Continue with local cleanup even if Supabase logout fails
+        }
+      } catch (supabaseError) {
+        console.warn('Supabase logout error:', supabaseError);
+        // Continue with logout process
+      }
+
       // Show success message
       toast({
         title: "Logged Out",
         description: "You have been securely logged out.",
       });
       
-      console.log('Logout completed, redirecting to home...');
+      console.log('Logout completed, redirecting...');
       
-      // Navigate to appropriate login page based on user type
-      if (userType === "teacher") {
-        navigate('/teacher-login', { replace: true });
-      } else if (userType === "student") {
-        navigate('/student-login', { replace: true });
-      } else {
-        navigate('/', { replace: true });
-      }
+      // Navigate to appropriate login page based on previous user type
+      const redirectPath = userType === "teacher" ? '/teacher-login' : 
+                          userType === "student" ? '/student-login' : '/';
+      
+      navigate(redirectPath, { replace: true });
       
     } catch (error) {
       console.error('Unexpected logout error:', error);
