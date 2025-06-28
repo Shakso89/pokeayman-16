@@ -48,7 +48,7 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadPokemonCatalog();
-    onDataUpdate(); // Refresh parent data
+    onDataUpdate();
     setRefreshing(false);
     toast.success("Shop refreshed!");
   };
@@ -74,13 +74,13 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
       const result = await purchasePokemonFromShop(studentId, pokemon.id);
       
       if (result.success) {
-        toast.success(`Successfully purchased ${pokemon.name}!`);
-        onDataUpdate(); // Refresh student data including coins and collection
+        toast.success(`Successfully purchased ${pokemon.name}! Added to your collection.`);
+        onDataUpdate(); // This will refresh coins and collection
         
-        // Small delay to ensure data sync
+        // Additional refresh after a short delay to ensure sync
         setTimeout(() => {
           onDataUpdate();
-        }, 500);
+        }, 1000);
       } else {
         console.error("❌ Purchase failed:", result.error);
         toast.error(result.error || "Failed to purchase Pokemon");

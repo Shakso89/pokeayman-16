@@ -5,32 +5,81 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Trophy } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
-import { getStudentPokemonCollection } from "@/services/unifiedPokemonService";
 import { supabase } from "@/integrations/supabase/client";
 
 interface StudentCollectionProps {
   studentId: string;
 }
 
+interface PokemonCollectionItem {
+  id: string;
+  student_id: string;
+  pokemon_id: string;
+  awarded_at: string;
+  source: string;
+  pokemon_pool?: {
+    id: string;
+    name: string;
+    image_url?: string;
+    type_1: string;
+    type_2?: string;
+    rarity: string;
+    price: number;
+    description?: string;
+    power_stats?: any;
+  };
+}
+
 const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
   const { t } = useTranslation();
-  const [pokemonCollection, setPokemonCollection] = useState<any[]>([]);
+  const [pokemonCollection, setPokemonCollection] = useState<PokemonCollectionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const loadCollection = async () => {
     if (!studentId || studentId === 'undefined') {
+      console.warn("❌ Invalid studentId provided:", studentId);
       setLoading(false);
       return;
     }
 
     try {
       console.log("🔄 Loading Pokemon collection for student:", studentId);
-      const collection = await getStudentPokemonCollection(studentId);
-      console.log("✅ Pokemon collection loaded:", collection.length);
-      setPokemonCollection(collection);
+      
+      // Fetch from student_pokemon_collection table with proper join
+      const { data: collection, error } = await supabase
+        .from('student_pokemon_collection')
+        .select(`
+          id,
+          student_id,
+          pokemon_id,
+          awarded_at,
+          source,
+          pokemon_pool!student_pokemon_collection_pokemon_id_fkey (
+            id,
+            name,
+            image_url,
+            type_1,
+            type_2,
+            rarity,
+            price,
+            description,
+            power_stats
+          )
+        `)
+        .eq('student_id', studentId)
+        .order('awarded_at', { ascending: false });
+
+      if (error) {
+        console.error("❌ Error loading Pokemon collection:", error);
+        setPokemonCollection([]);
+      } else {
+        console.log("✅ Pokemon collection loaded:", collection?.length || 0);
+        setPokemonCollection(collection || []);
+      }
     } catch (error) {
-      console.error("❌ Error loading Pokemon collection:", error);
+      console.error("❌ Unexpected error loading Pokemon collection:", error);
+      setPokemonCollection([]);
     } finally {
       setLoading(false);
     }
@@ -116,7 +165,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
       {pokemonCollection.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {pokemonCollection.map((item) => {
-            const pokemon = item.pokemon;
+            const pokemon = item.pokemon_pool;
             if (!pokemon) return null;
 
             return (

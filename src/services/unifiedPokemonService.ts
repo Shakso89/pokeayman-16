@@ -7,7 +7,7 @@ export interface StudentPokemonCollection {
   pokemon_id: string;
   awarded_at: string;
   source: string;
-  pokemon?: {
+  pokemon_pool?: {
     id: string;
     name: string;
     image_url?: string;
@@ -18,7 +18,6 @@ export interface StudentPokemonCollection {
     description?: string;
     power_stats?: any;
   };
-  pokemon_catalog?: any;
 }
 
 export interface PokemonFromPool {
@@ -42,8 +41,8 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
       return [];
     }
 
-    // Try the main student_pokemon_collection table with proper join
-    const { data: mainCollection, error: mainError } = await supabase
+    // Use student_pokemon_collection as primary source
+    const { data: collection, error } = await supabase
       .from('student_pokemon_collection')
       .select(`
         id,
@@ -66,44 +65,13 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
       .eq('student_id', studentId)
       .order('awarded_at', { ascending: false });
 
-    if (!mainError && mainCollection && mainCollection.length > 0) {
-      console.log("✅ Found collections in student_pokemon_collection:", mainCollection.length);
-      return mainCollection.map(item => ({
-        ...item,
-        pokemon: Array.isArray(item.pokemon_pool) ? item.pokemon_pool[0] : item.pokemon_pool
-      }));
-    }
-
-    // Fallback to pokemon_collections table
-    console.log("🔄 Trying fallback table pokemon_collections...");
-    const { data: fallbackData, error: fallbackError } = await supabase
-      .from('pokemon_collections')
-      .select('*')
-      .eq('student_id', studentId)
-      .order('obtained_at', { ascending: false });
-
-    if (fallbackError) {
-      console.error("❌ Error in fallback query:", fallbackError);
+    if (error) {
+      console.error("❌ Error fetching Pokemon collection:", error);
       return [];
     }
 
-    console.log("✅ Found collections in pokemon_collections:", fallbackData?.length || 0);
-    return (fallbackData || []).map(item => ({
-      id: item.id,
-      student_id: item.student_id,
-      pokemon_id: item.pokemon_id,
-      awarded_at: item.obtained_at,
-      source: 'legacy',
-      pokemon: {
-        id: item.pokemon_id,
-        name: item.pokemon_name || 'Unknown Pokemon',
-        image_url: item.pokemon_image || '',
-        type_1: item.pokemon_type || 'normal',
-        rarity: item.pokemon_rarity || 'common',
-        price: 15,
-        power_stats: item.pokemon_catalog?.power_stats
-      }
-    }));
+    console.log("✅ Found collections in student_pokemon_collection:", collection?.length || 0);
+    return collection || [];
 
   } catch (error) {
     console.error("❌ Unexpected error in unified Pokemon service:", error);
@@ -129,7 +97,7 @@ export const getPokemonPool = async (): Promise<PokemonFromPool[]> => {
     return (data || []).map(item => ({
       id: item.id,
       name: item.name,
-      image_url: item.image_url || '/placeholder.svg', // Provide default to ensure it's always a string
+      image_url: item.image_url || '/placeholder.svg',
       type_1: item.type_1,
       type_2: item.type_2,
       rarity: item.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
@@ -245,7 +213,24 @@ export const purchasePokemonFromShop = async (
     const price = pokemon.price || 15;
     console.log("💰 Pokemon price:", price);
 
-    // Deduct coins first using enhanced service
+    // Check if student has enough coins
+    const { data: studentData, error: studentError } = await supabase
+      .from('student_profiles')
+      .select('coins')
+      .eq('user_id', studentId)
+      .single();
+
+    if (studentError || !studentData) {
+      console.error("❌ Student not found:", studentError);
+      return { success: false, error: "Student not found" };
+    }
+
+    if (studentData.coins < price) {
+      console.error("❌ Insufficient coins:", studentData.coins, "< required:", price);
+      return { success: false, error: `Not enough coins! You need ${price} coins but only have ${studentData.coins}.` };
+    }
+
+    // Deduct coins using enhanced service
     const coinResult = await removeCoinsFromStudentEnhanced(
       studentId,
       price,
@@ -255,12 +240,12 @@ export const purchasePokemonFromShop = async (
 
     if (!coinResult.success) {
       console.error("❌ Failed to deduct coins:", coinResult.error);
-      return { success: false, error: coinResult.error || "Not enough coins" };
+      return { success: false, error: coinResult.error || "Failed to deduct coins" };
     }
 
     console.log("✅ Coins deducted successfully, new balance:", coinResult.newBalance);
 
-    // Add Pokemon to collection
+    // Add Pokemon to collection using student_pokemon_collection table
     const { data: collection, error: collectionError } = await supabase
       .from('student_pokemon_collection')
       .insert({
@@ -273,6 +258,13 @@ export const purchasePokemonFromShop = async (
 
     if (collectionError) {
       console.error("❌ Failed to add Pokemon to collection:", collectionError);
+      // Try to refund coins if collection insert failed
+      await removeCoinsFromStudentEnhanced(
+        studentId,
+        -price,
+        `Refund for failed ${pokemon.name} purchase`,
+        "refund"
+      );
       return { success: false, error: "Failed to add Pokemon to collection" };
     }
 

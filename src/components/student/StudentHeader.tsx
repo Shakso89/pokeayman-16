@@ -1,12 +1,17 @@
 
-import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coins, Trophy, Users, Eye } from "lucide-react";
-import { useTranslation } from "@/hooks/useTranslation";
-import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { 
+  DropdownMenu, 
+  DropdownMenuContent, 
+  DropdownMenuItem, 
+  DropdownMenuTrigger 
+} from "@/components/ui/dropdown-menu";
+import { User, Coins, Trophy, Settings, Eye } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 interface StudentHeaderProps {
   studentName: string;
@@ -15,122 +20,76 @@ interface StudentHeaderProps {
   onOpenSchoolPool: () => void;
 }
 
-interface ClassInfo {
-  id: string;
-  name: string;
-}
-
 const StudentHeader: React.FC<StudentHeaderProps> = ({
   studentName,
   coins,
   activeBattles,
   onOpenSchoolPool
 }) => {
-  const { t } = useTranslation();
-  const [classInfo, setClassInfo] = useState<ClassInfo[]>([]);
-  const studentId = localStorage.getItem("studentId");
   const navigate = useNavigate();
+  const studentId = localStorage.getItem("studentId");
+  const avatar = localStorage.getItem("studentAvatar");
 
-  useEffect(() => {
+  const handleViewProfile = () => {
     if (studentId) {
-      loadClassInfo();
+      navigate(`/student-profile/${studentId}`);
     }
-  }, [studentId]);
-
-  const loadClassInfo = async () => {
-    try {
-      // First try to get class info from student_profiles
-      const { data: profileData } = await supabase
-        .from("student_profiles")
-        .select("class_id")
-        .eq("user_id", studentId)
-        .single();
-
-      if (profileData?.class_id) {
-        // Get class names from the classes table
-        const { data: classData } = await supabase
-          .from("classes")
-          .select("id, name")
-          .eq("id", profileData.class_id);
-
-        if (classData && classData.length > 0) {
-          setClassInfo(classData);
-          return;
-        }
-      }
-
-      // Fallback: try to get from students table
-      const { data: studentData } = await supabase
-        .from("students")
-        .select("class_id")
-        .eq("id", studentId)
-        .single();
-
-      if (studentData?.class_id) {
-        const { data: classData } = await supabase
-          .from("classes")
-          .select("id, name")
-          .eq("id", studentData.class_id);
-
-        if (classData && classData.length > 0) {
-          setClassInfo(classData);
-        }
-      }
-    } catch (error) {
-      console.error("Error loading class info:", error);
-    }
-  };
-
-  const handleRankingsClick = () => {
-    navigate("/student-ranking");
   };
 
   return (
-    <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0 shadow-lg">
-      <CardContent className="p-4 md:p-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0">
-          <div className="flex-1">
-            <h1 className="text-2xl md:text-3xl font-bold mb-2">
-              {t("hi")} {studentName}!
-            </h1>
+    <Card className="bg-gradient-to-r from-blue-500 to-purple-600 text-white border-0">
+      <CardContent className="p-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Avatar className="h-16 w-16 border-4 border-white/20 cursor-pointer hover:border-white/40 transition-colors">
+                  <AvatarImage src={avatar || undefined} />
+                  <AvatarFallback className="bg-white/20 text-white text-xl">
+                    {studentName?.[0]?.toUpperCase() || "S"}
+                  </AvatarFallback>
+                </Avatar>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48">
+                <DropdownMenuItem onClick={handleViewProfile} className="cursor-pointer">
+                  <Eye className="mr-2 h-4 w-4" />
+                  View Profile
+                </DropdownMenuItem>
+                <DropdownMenuItem className="cursor-pointer">
+                  <Settings className="mr-2 h-4 w-4" />
+                  Settings
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             
-            <div className="flex flex-wrap items-center gap-2 md:gap-3">
-              <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black font-bold flex items-center gap-1">
-                <Coins className="h-4 w-4" />
-                {coins} {t("coins")}
-              </Badge>
-              
-              {classInfo.length > 0 && (
-                <Badge className="bg-green-500 hover:bg-green-600 text-white font-bold">
-                  📚 {classInfo[0].name}
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold">Welcome, {studentName}!</h1>
+              <div className="flex items-center gap-4 mt-2">
+                <Badge className="bg-yellow-500 hover:bg-yellow-600 text-black font-semibold">
+                  <Coins className="mr-1 h-4 w-4" />
+                  {coins} coins
                 </Badge>
-              )}
-              
-              {activeBattles.length > 0 && (
-                <Badge className="bg-red-500 hover:bg-red-600 text-white font-bold animate-pulse">
-                  ⚔️ {activeBattles.length} Active Battle{activeBattles.length > 1 ? 's' : ''}
+                <Badge className="bg-green-500 hover:bg-green-600 text-white">
+                  <Trophy className="mr-1 h-4 w-4" />
+                  Active Student
                 </Badge>
-              )}
+              </div>
             </div>
           </div>
-
-          <div className="flex gap-2">
-            <Button
-              onClick={handleRankingsClick}
-              variant="secondary"
-              className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm flex items-center gap-2"
-            >
-              <Trophy className="h-4 w-4" />
-              Rankings
-            </Button>
-            
-            <Button
+          
+          <div className="hidden md:flex items-center space-x-4">
+            {activeBattles.length > 0 && (
+              <Badge variant="secondary" className="bg-red-500 text-white">
+                {activeBattles.length} Active Battle{activeBattles.length !== 1 ? 's' : ''}
+              </Badge>
+            )}
+            <Button 
+              variant="outline" 
+              className="bg-white/10 border-white/20 text-white hover:bg-white/20"
               onClick={onOpenSchoolPool}
-              variant="secondary"
-              className="bg-white/20 hover:bg-white/30 text-white border-white/30 backdrop-blur-sm flex items-center gap-2"
             >
-              <Eye className="h-4 w-4" />
-              {t("school-pool")}
+              <Trophy className="mr-2 h-4 w-4" />
+              School Pool
             </Button>
           </div>
         </div>
