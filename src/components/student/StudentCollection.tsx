@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Award, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "@/hooks/useTranslation";
-import { getStudentPokemonCollection, type StudentPokemonCollectionItem } from "@/services/pokemonService";
+import { getStudentPokemonCollection } from "@/services/unifiedPokemonService";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -19,7 +19,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
   refreshTrigger = 0
 }) => {
   const { t } = useTranslation();
-  const [pokemonCollection, setPokemonCollection] = useState<StudentPokemonCollectionItem[]>([]);
+  const [pokemonCollection, setPokemonCollection] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,9 +59,9 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
 
     fetchStudentCollection();
 
-    // Set up real-time subscription
-    const channel = supabase
-      .channel(`student-pokemon-changes-${studentId}`)
+    // Set up real-time subscription for both tables
+    const mainChannel = supabase
+      .channel(`student-pokemon-main-${studentId}`)
       .on(
         'postgres_changes',
         {
@@ -71,14 +71,32 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
           filter: `student_id=eq.${studentId}`
         },
         (payload) => {
-          console.log('🔄 Real-time Pokemon collection update:', payload);
+          console.log('🔄 Real-time Pokemon collection update (main):', payload);
+          fetchStudentCollection();
+        }
+      )
+      .subscribe();
+
+    const fallbackChannel = supabase
+      .channel(`student-pokemon-fallback-${studentId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'pokemon_collections',
+          filter: `student_id=eq.${studentId}`
+        },
+        (payload) => {
+          console.log('🔄 Real-time Pokemon collection update (fallback):', payload);
           fetchStudentCollection();
         }
       )
       .subscribe();
 
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(mainChannel);
+      supabase.removeChannel(fallbackChannel);
     };
   }, [studentId, refreshTrigger, fetchStudentCollection]);
 
@@ -132,7 +150,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({
         ) : pokemonCollection.length > 0 ? (
           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
             {pokemonCollection.map((collectionItem) => {
-              const pokemon = collectionItem.pokemon || collectionItem.pokemon_catalog;
+              const pokemon = collectionItem.pokemon;
 
               if (!pokemon) {
                 console.warn("Pokemon data missing for collection item:", collectionItem.id);

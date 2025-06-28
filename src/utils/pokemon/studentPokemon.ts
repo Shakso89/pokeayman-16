@@ -5,6 +5,7 @@ import { createAdminNotification } from "@/services/adminNotificationService";
 import { awardCoinsToStudentEnhanced } from "@/services/enhancedCoinService";
 import { getOrCreateStudentProfile } from "@/services/studentDatabase";
 import { assignPokemonFromPool } from "@/services/schoolPokemonService";
+import { getStudentPokemonCollection } from "@/services/unifiedPokemonService";
 
 export interface StudentPokemon {
   studentId: string;
@@ -20,61 +21,12 @@ export const getStudentPokemons = async (studentId: string): Promise<any[]> => {
       return [];
     }
 
-    // Determine the correct user_id to use for Pokemon lookup
-    let actualUserId = studentId;
-    
-    // First check if this is already a user_id by looking in student_profiles
-    const { data: profileCheck } = await supabase
-      .from('student_profiles')
-      .select('user_id')
-      .eq('user_id', studentId)
-      .maybeSingle();
-    
-    if (profileCheck) {
-      actualUserId = profileCheck.user_id;
-    } else {
-      // Check if studentId is an ID from students table, get the user_id
-      const { data: studentData } = await supabase
-        .from('students')
-        .select('user_id')
-        .eq('id', studentId)
-        .maybeSingle();
-      
-      if (studentData?.user_id) {
-        actualUserId = studentData.user_id;
-      }
-    }
+    // Use the unified collection service
+    const collections = await getStudentPokemonCollection(studentId);
+    console.log("📦 Found Pokemon collections:", collections.length);
 
-    console.log("🔍 Using actual user_id for lookup:", actualUserId);
-
-    // Use the correct table name: student_pokemon_collection
-    const { data, error } = await supabase
-      .from('student_pokemon_collection')
-      .select(`
-        id,
-        pokemon_id,
-        awarded_at,
-        pokemon_pool!student_pokemon_collection_pokemon_id_fkey (
-          id,
-          name,
-          image_url,
-          type_1,
-          type_2,
-          rarity,
-          power_stats
-        )
-      `)
-      .eq('student_id', actualUserId);
-
-    if (error) {
-      console.error("❌ Error fetching student's Pokémon:", error);
-      return [];
-    }
-
-    console.log("📦 Found Pokemon collections:", data?.length || 0);
-
-    const transformedData = (data || []).map(collection => {
-      const pokemonData = Array.isArray(collection.pokemon_pool) ? collection.pokemon_pool[0] : collection.pokemon_pool;
+    const transformedData = collections.map(collection => {
+      const pokemonData = collection.pokemon;
       return {
         id: pokemonData?.id || collection.pokemon_id,
         name: pokemonData?.name || `Pokemon #${collection.pokemon_id}`,

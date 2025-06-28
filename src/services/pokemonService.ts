@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { removeCoinsFromStudentEnhanced } from '@/services/enhancedCoinService';
 import { getStudentPokemonCount } from '@/utils/creditSystem';
+import { getStudentPokemonCollection as getUnifiedCollection } from '@/services/unifiedPokemonService';
 
 export interface PokemonCatalogItem {
   id: string;
@@ -22,6 +23,15 @@ export interface StudentPokemonCollectionItem {
   source: string;
   pokemon?: PokemonCatalogItem;
   pokemon_catalog?: PokemonCatalogItem;
+}
+
+export interface StudentPokemonCollection {
+  id: string;
+  student_id: string;
+  pokemon_id: string;
+  awarded_at: string;
+  source: string;
+  pokemon?: PokemonCatalogItem;
 }
 
 export const getPokemonCatalog = async (): Promise<PokemonCatalogItem[]> => {
@@ -46,99 +56,8 @@ export const getPokemonCatalog = async (): Promise<PokemonCatalogItem[]> => {
   }
 };
 
-export const getStudentPokemonCollection = async (studentId: string): Promise<StudentPokemonCollectionItem[]> => {
-  try {
-    console.log("🔍 Fetching student Pokemon collection for:", studentId);
-    
-    if (!studentId || studentId === 'undefined') {
-      console.warn("❌ Invalid studentId provided:", studentId);
-      return [];
-    }
-
-    // First try the new table structure
-    const { data: collectionData, error: collectionError } = await supabase
-      .from('student_pokemon_collection')
-      .select(`
-        id,
-        student_id,
-        pokemon_id,
-        awarded_at,
-        source,
-        pokemon_pool!student_pokemon_collection_pokemon_id_fkey (
-          id,
-          name,
-          image_url,
-          type_1,
-          type_2,
-          rarity,
-          price,
-          description,
-          power_stats
-        )
-      `)
-      .eq('student_id', studentId)
-      .order('awarded_at', { ascending: false });
-
-    if (!collectionError && collectionData) {
-      console.log("✅ Found collections in student_pokemon_collection:", collectionData.length);
-      return collectionData.map(item => ({
-        ...item,
-        pokemon: Array.isArray(item.pokemon_pool) ? item.pokemon_pool[0] : item.pokemon_pool as PokemonCatalogItem,
-        pokemon_catalog: Array.isArray(item.pokemon_pool) ? item.pokemon_pool[0] : item.pokemon_pool as PokemonCatalogItem
-      }));
-    }
-
-    // Fallback to older table structure if needed
-    console.log("🔄 Trying fallback table pokemon_collections...");
-    const { data: fallbackData, error: fallbackError } = await supabase
-      .from('pokemon_collections')
-      .select(`
-        id,
-        student_id,
-        pokemon_id,
-        obtained_at,
-        pokemon_catalog (
-          id,
-          name,
-          image,
-          type,
-          rarity,
-          power_stats
-        )
-      `)
-      .eq('student_id', studentId)
-      .order('obtained_at', { ascending: false });
-
-    if (fallbackError) {
-      console.error("❌ Error in fallback query:", fallbackError);
-      return [];
-    }
-
-    console.log("✅ Found collections in pokemon_collections:", fallbackData?.length || 0);
-    return (fallbackData || []).map(item => {
-      const pokemonData = Array.isArray(item.pokemon_catalog) ? item.pokemon_catalog[0] : item.pokemon_catalog;
-      return {
-        id: item.id,
-        student_id: item.student_id,
-        pokemon_id: item.pokemon_id,
-        awarded_at: item.obtained_at,
-        source: 'legacy',
-        pokemon: {
-          id: pokemonData?.id || item.pokemon_id,
-          name: pokemonData?.name || 'Unknown Pokemon',
-          image_url: pokemonData?.image || '',
-          type_1: pokemonData?.type || 'normal',
-          rarity: pokemonData?.rarity || 'common',
-          price: 15,
-          power_stats: pokemonData?.power_stats
-        } as PokemonCatalogItem
-      };
-    });
-
-  } catch (error) {
-    console.error("❌ Unexpected error fetching student collection:", error);
-    return [];
-  }
+export const getStudentPokemonCollection = async (studentId: string): Promise<StudentPokemonCollection[]> => {
+  return await getUnifiedCollection(studentId);
 };
 
 export const purchasePokemonFromShop = async (
