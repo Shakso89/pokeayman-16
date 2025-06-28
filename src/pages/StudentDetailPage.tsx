@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +13,7 @@ import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
 import RemoveCoinsDialog from "@/components/dialogs/RemoveCoinsDialog";
 import { getStudentPokemonCollection } from "@/services/unifiedPokemonService";
+import { useStudentCoinData } from "@/hooks/useStudentCoinData";
 
 interface StudentDetail {
   id: string;
@@ -36,6 +36,9 @@ const StudentDetailPage: React.FC = () => {
   const [showManagePokemon, setShowManagePokemon] = useState(false);
   const [showGiveCoins, setShowGiveCoins] = useState(false);
   const [showRemoveCoins, setShowRemoveCoins] = useState(false);
+
+  // Use the coin data hook for real-time updates
+  const { coins, spentCoins, refreshCoinData } = useStudentCoinData(studentId || "");
 
   useEffect(() => {
     if (studentId) {
@@ -123,7 +126,7 @@ const StudentDetailPage: React.FC = () => {
         username: studentData.username,
         displayName: studentData.display_name || studentData.username,
         avatar: studentData.profile_photo,
-        coins: studentData.coins || 0,
+        coins: coins || studentData.coins || 0, // Use hook data if available
         pokemonCount: transformedPokemon.length,
         homeworkCount: homeworkData?.length || 0,
         lastActive: studentData.last_login || studentData.created_at,
@@ -140,11 +143,17 @@ const StudentDetailPage: React.FC = () => {
   };
 
   const handleBackClick = () => {
-    navigate(-1);
+    // Better back navigation - go to previous page or teacher dashboard
+    if (window.history.length > 1) {
+      navigate(-1);
+    } else {
+      navigate('/teacher-dashboard');
+    }
   };
 
   const handleRefreshData = () => {
     fetchStudentDetails();
+    refreshCoinData(); // Refresh coin data specifically
   };
 
   if (loading) {
@@ -225,7 +234,7 @@ const StudentDetailPage: React.FC = () => {
                 <div className="flex gap-4 mt-2">
                   <Badge variant="outline">
                     <Coins className="h-3 w-3 mr-1" />
-                    {student.coins} coins
+                    {coins} coins {/* Use real-time coin data */}
                   </Badge>
                   <Badge variant="outline">
                     <Trophy className="h-3 w-3 mr-1" />
@@ -253,7 +262,7 @@ const StudentDetailPage: React.FC = () => {
               <CardTitle className="text-sm font-medium text-gray-500">Total Coins</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{student.coins}</div>
+              <div className="text-2xl font-bold">{coins}</div> {/* Use real-time coin data */}
             </CardContent>
           </Card>
           

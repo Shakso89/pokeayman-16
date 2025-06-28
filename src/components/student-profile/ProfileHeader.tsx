@@ -16,7 +16,18 @@ export const ProfileHeader: React.FC<ProfileHeaderProps> = ({ title, onBack }) =
     if (onBack) {
       onBack();
     } else {
-      navigate(-1);
+      // Improved back navigation
+      if (window.history.length > 1) {
+        navigate(-1);
+      } else {
+        // Fallback based on user type
+        const userType = localStorage.getItem("userType");
+        if (userType === "teacher") {
+          navigate('/teacher-dashboard');
+        } else {
+          navigate('/student-dashboard');
+        }
+      }
     }
   };
 

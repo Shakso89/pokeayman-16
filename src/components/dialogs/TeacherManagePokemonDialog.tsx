@@ -122,7 +122,7 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
       
       const result = await awardPokemonToStudent(
         studentId,
-        selectedPokemonId,
+        parseInt(selectedPokemonId), // Convert string to number
         'teacher_award',
         classId,
         schoolId
