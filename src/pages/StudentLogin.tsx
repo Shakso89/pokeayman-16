@@ -25,6 +25,7 @@ const StudentLogin: React.FC = () => {
         const userType = localStorage.getItem("userType");
         
         if (isLoggedIn && userType === "student") {
+          console.log("Student already logged in, redirecting to dashboard");
           navigate("/student-dashboard", { replace: true });
           return;
         }
@@ -63,7 +64,11 @@ const StudentLogin: React.FC = () => {
           title: "Welcome!",
           description: "Login successful",
         });
-        navigate("/student-dashboard", { replace: true });
+        
+        // Add a small delay to ensure localStorage is set
+        setTimeout(() => {
+          navigate("/student-dashboard", { replace: true });
+        }, 100);
       } else {
         toast({
           title: "Login Error",

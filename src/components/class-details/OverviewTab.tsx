@@ -48,7 +48,7 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({ classId, classData, st
             <CardTitle className="text-sm font-medium">Class Code</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-lg font-mono">{classData?.join_code || 'N/A'}</div>
+            <div className="text-lg font-mono">{classData?.code || 'N/A'}</div>
           </CardContent>
         </Card>
       </div>

@@ -50,7 +50,7 @@ export const SettingsTab: React.FC<SettingsTabProps> = ({ classId, classData, re
             <Label htmlFor="join-code">Join Code</Label>
             <Input
               id="join-code"
-              value={classData?.join_code || ''}
+              value={classData?.code || ''}
               readOnly
               className="bg-gray-50 font-mono"
             />

@@ -39,6 +39,9 @@ export const useStudentAuth = () => {
         .update({ last_login: new Date().toISOString() })
         .eq('id', student.id);
 
+      // Clear any existing auth state first
+      localStorage.clear();
+
       // Set local storage for session
       localStorage.setItem("isLoggedIn", "true");
       localStorage.setItem("userType", "student");
