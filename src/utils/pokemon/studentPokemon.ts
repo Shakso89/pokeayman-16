@@ -5,7 +5,7 @@ import { createAdminNotification } from "@/services/adminNotificationService";
 import { awardCoinsToStudentEnhanced } from "@/services/enhancedCoinService";
 import { getOrCreateStudentProfile } from "@/services/studentDatabase";
 import { assignPokemonFromPool } from "@/services/schoolPokemonService";
-import { getStudentPokemonCollection } from "@/services/unifiedPokemonService";
+import { getStudentPokemonCollection as getUnifiedCollection } from "@/services/unifiedPokemonService";
 
 export interface StudentPokemon {
   studentId: string;
@@ -22,7 +22,7 @@ export const getStudentPokemons = async (studentId: string): Promise<any[]> => {
     }
 
     // Use the unified collection service
-    const collections = await getStudentPokemonCollection(studentId);
+    const collections = await getUnifiedCollection(studentId);
     console.log("📦 Found Pokemon collections:", collections.length);
 
     const transformedData = collections.map(collection => {
@@ -46,7 +46,7 @@ export const getStudentPokemons = async (studentId: string): Promise<any[]> => {
   }
 };
 
-export const getStudentPokemonCollection = getStudentPokemons;
+export const getStudentPokemonCollectionData = getStudentPokemons;
 
 export const awardPokemonToStudent = async (
   userId: string,

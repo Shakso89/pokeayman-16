@@ -61,7 +61,7 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
         image_url: collection.pokemon?.image_url || '',
         type_1: collection.pokemon?.type_1 || 'normal',
         type_2: collection.pokemon?.type_2,
-        rarity: collection.pokemon?.rarity || 'common',
+        rarity: (collection.pokemon?.rarity as 'common' | 'uncommon' | 'rare' | 'legendary') || 'common',
         price: collection.pokemon?.price || 15,
         description: collection.pokemon?.description,
         power_stats: collection.pokemon?.power_stats,
