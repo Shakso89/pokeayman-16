@@ -74,8 +74,7 @@ export const EnhancedGiveCoinsDialog: React.FC<EnhancedGiveCoinsDialogProps> = (
         studentId,
         coinAmount,
         reason,
-        "manual_award",
-        "teacher_action"
+        "manual_award"
       );
 
       // Restore console functions

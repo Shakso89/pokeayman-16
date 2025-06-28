@@ -1,5 +1,6 @@
-import { supabase } from "@/integrations/supabase/client";
-import { deductCoinsFromStudentEnhanced } from "@/services/enhancedCoinService";
+import { supabase } from '@/integrations/supabase/client';
+import { removeCoinsFromStudentEnhanced } from '@/services/enhancedCoinService';
+import { getStudentPokemonCount } from '@/utils/creditSystem';
 
 export interface PokemonCatalogItem {
   id: string;
@@ -167,7 +168,7 @@ export const purchasePokemonFromShop = async (
     console.log("💰 Pokemon price:", price);
 
     // Deduct coins first
-    const coinResult = await deductCoinsFromStudentEnhanced(
+    const coinResult = await removeCoinsFromStudentEnhanced(
       studentId,
       price,
       `Shop purchase: ${pokemon.name}`,
