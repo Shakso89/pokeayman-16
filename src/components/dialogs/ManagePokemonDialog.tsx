@@ -56,15 +56,15 @@ const ManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
       
       // Transform to match our interface
       const transformedPokemons: StudentCollectionPokemon[] = collections.map(collection => ({
-        id: collection.pokemon?.id || collection.pokemon_id,
-        name: collection.pokemon?.name || 'Unknown Pokemon',
-        image_url: collection.pokemon?.image_url || '',
-        type_1: collection.pokemon?.type_1 || 'normal',
-        type_2: collection.pokemon?.type_2,
-        rarity: (collection.pokemon?.rarity as 'common' | 'uncommon' | 'rare' | 'legendary') || 'common',
-        price: collection.pokemon?.price || 15,
-        description: collection.pokemon?.description,
-        power_stats: collection.pokemon?.power_stats,
+        id: collection.pokemon_pool?.id || collection.pokemon_id,
+        name: collection.pokemon_pool?.name || 'Unknown Pokemon',
+        image_url: collection.pokemon_pool?.image_url || '',
+        type_1: collection.pokemon_pool?.type_1 || 'normal',
+        type_2: collection.pokemon_pool?.type_2,
+        rarity: (collection.pokemon_pool?.rarity as 'common' | 'uncommon' | 'rare' | 'legendary') || 'common',
+        price: collection.pokemon_pool?.price || 15,
+        description: collection.pokemon_pool?.description,
+        power_stats: collection.pokemon_pool?.power_stats,
         collectionId: collection.id
       }));
       

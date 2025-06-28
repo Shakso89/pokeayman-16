@@ -13,7 +13,7 @@ export const handlePokemonDuplicate = async (studentId: string, pokemon: Pokemon
   
   // Check if student already owns this Pokémon (by ID or name)
   const hasDuplicate = collections.some(collection => {
-    const pokemonData = collection.pokemon;
+    const pokemonData = collection.pokemon_pool;
     return pokemonData && (
       pokemonData.id === pokemon.id || 
       pokemonData.name === pokemon.name

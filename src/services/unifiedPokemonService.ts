@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { removeCoinsFromStudentEnhanced } from '@/services/enhancedCoinService';
 
@@ -41,7 +42,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
       return [];
     }
 
-    // Use student_pokemon_collection as primary source
+    // Use student_pokemon_collection as primary source with proper join
     const { data: collection, error } = await supabase
       .from('student_pokemon_collection')
       .select(`
@@ -71,7 +72,14 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
     }
 
     console.log("✅ Found collections in student_pokemon_collection:", collection?.length || 0);
-    return collection || [];
+    
+    // Transform the data to handle the foreign key relationship correctly
+    const processedCollection = (collection || []).map(item => ({
+      ...item,
+      pokemon_pool: Array.isArray(item.pokemon_pool) ? item.pokemon_pool[0] : item.pokemon_pool
+    }));
+
+    return processedCollection;
 
   } catch (error) {
     console.error("❌ Unexpected error in unified Pokemon service:", error);

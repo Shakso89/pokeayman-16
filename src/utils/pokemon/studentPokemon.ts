@@ -1,3 +1,4 @@
+
 import { Pokemon } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
 import { createPokemonAwardNotification } from "@/utils/notificationService";
@@ -26,7 +27,7 @@ export const getStudentPokemons = async (studentId: string): Promise<any[]> => {
     console.log("📦 Found Pokemon collections:", collections.length);
 
     const transformedData = collections.map(collection => {
-      const pokemonData = collection.pokemon;
+      const pokemonData = collection.pokemon_pool;
       return {
         id: pokemonData?.id || collection.pokemon_id,
         name: pokemonData?.name || `Pokemon #${collection.pokemon_id}`,
