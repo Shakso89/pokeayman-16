@@ -75,7 +75,14 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
         setPokemonCollection([]);
       } else {
         console.log("✅ Pokemon collection loaded:", collection?.length || 0);
-        setPokemonCollection(collection || []);
+        
+        // Transform the data to handle the foreign key relationship correctly
+        const processedCollection = (collection || []).map(item => ({
+          ...item,
+          pokemon_pool: Array.isArray(item.pokemon_pool) ? item.pokemon_pool[0] : item.pokemon_pool
+        }));
+        
+        setPokemonCollection(processedCollection);
       }
     } catch (error) {
       console.error("❌ Unexpected error loading Pokemon collection:", error);
