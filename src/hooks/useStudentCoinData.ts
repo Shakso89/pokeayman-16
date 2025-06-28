@@ -1,7 +1,7 @@
 
 import { useState, useEffect } from 'react';
 import { getStudentCoins } from '@/services/studentCoinService';
-import { getStudentPokemonCollection } from '@/utils/pokemon/studentPokemon';
+import { getStudentPokemonCollection } from '@/services/unifiedPokemonService';
 
 export const useStudentCoinData = (studentId: string) => {
   const [coins, setCoins] = useState(0);
@@ -28,7 +28,7 @@ export const useStudentCoinData = (studentId: string) => {
           setSpentCoins(0);
         }
 
-        // Get Pokemon count
+        // Get Pokemon count using unified service
         const pokemonCollection = await getStudentPokemonCollection(studentId);
         setPokemonCount(pokemonCollection.length);
       } catch (error) {
@@ -54,7 +54,7 @@ export const useStudentCoinData = (studentId: string) => {
         setSpentCoins(coinData.spentCoins);
       }
 
-      // Refresh Pokemon count
+      // Refresh Pokemon count using unified service
       const pokemonCollection = await getStudentPokemonCollection(studentId);
       setPokemonCount(pokemonCollection.length);
     } catch (error) {

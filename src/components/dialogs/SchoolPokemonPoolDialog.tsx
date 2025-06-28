@@ -1,12 +1,10 @@
-
 import React, { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useTranslation } from "@/hooks/useTranslation";
-import { getPokemonPool } from "@/services/unifiedPokemonService";
-import { Pokemon } from "@/types/pokemon";
+import { getPokemonPool, PokemonFromPool } from "@/services/unifiedPokemonService";
 
 interface SchoolPokemonPoolDialogProps {
   isOpen: boolean;
@@ -20,7 +18,7 @@ const SchoolPokemonPoolDialog: React.FC<SchoolPokemonPoolDialogProps> = ({
   schoolId,
 }) => {
   const { t } = useTranslation();
-  const [pokemonPool, setPokemonPool] = useState<Pokemon[]>([]);
+  const [pokemonPool, setPokemonPool] = useState<PokemonFromPool[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {

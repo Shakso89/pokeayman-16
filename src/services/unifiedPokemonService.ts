@@ -25,7 +25,7 @@ export interface StudentPokemonCollection {
 export interface PokemonFromPool {
   id: string;
   name: string;
-  image_url?: string;
+  image_url: string; // Make this required to match Pokemon interface
   type_1: string;
   type_2?: string;
   rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
@@ -130,7 +130,7 @@ export const getPokemonPool = async (): Promise<PokemonFromPool[]> => {
     return (data || []).map(item => ({
       id: item.id,
       name: item.name,
-      image_url: item.image_url,
+      image_url: item.image_url || '/placeholder.svg', // Provide default to ensure it's always a string
       type_1: item.type_1,
       type_2: item.type_2,
       rarity: item.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',

@@ -1,19 +1,24 @@
 
-import { getStudentPokemonCollection, awardCoinsToStudent } from "./studentPokemon";
+import { getStudentPokemonCollection } from "@/services/unifiedPokemonService";
+import { awardCoinsToStudent } from "./studentPokemon";
 import { Pokemon } from "@/types/pokemon";
 
 // Check if student already owns a Pokémon and award coins if duplicate
 export const handlePokemonDuplicate = async (studentId: string, pokemon: Pokemon): Promise<boolean> => {
-  const collection = await getStudentPokemonCollection(studentId);
+  const collections = await getStudentPokemonCollection(studentId);
   
-  if (!collection) {
+  if (!collections || collections.length === 0) {
     return false; // Student doesn't have a collection yet, so no duplicates
   }
   
-  // Check if student already owns this Pokémon (by name)
-  const hasDuplicate = collection.some(ownedPokemon => 
-    ownedPokemon.name === pokemon.name
-  );
+  // Check if student already owns this Pokémon (by ID or name)
+  const hasDuplicate = collections.some(collection => {
+    const pokemonData = collection.pokemon;
+    return pokemonData && (
+      pokemonData.id === pokemon.id || 
+      pokemonData.name === pokemon.name
+    );
+  });
   
   if (hasDuplicate) {
     // Award 3 coins instead of giving duplicate Pokémon
