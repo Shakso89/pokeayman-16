@@ -182,7 +182,7 @@ export const checkAndConsumeCreditsForHomeworkPost = async (teacherId: string): 
     // Check if teacher has credits
     const { data: credits, error } = await supabase
       .from('teacher_credits')
-      .select('credits, unlimited_credits')
+      .select('credits, unlimited_credits, used_credits')
       .eq('teacher_id', teacherId)
       .maybeSingle();
 
@@ -255,7 +255,7 @@ export const checkAndConsumeCreditsForHomeworkApproval = async (
     // Check if teacher has credits
     const { data: credits, error } = await supabase
       .from('teacher_credits')
-      .select('credits, unlimited_credits')
+      .select('credits, unlimited_credits, used_credits')
       .eq('teacher_id', teacherId)
       .maybeSingle();
 

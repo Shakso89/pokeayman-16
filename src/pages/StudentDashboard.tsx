@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useCallback } from "react";
 import { Navigate, Link, useSearchParams } from "react-router-dom";
 import { NavBar } from "@/components/NavBar";
@@ -91,8 +90,8 @@ const StudentDashboard: React.FC = () => {
       }
 
       // Also get coins using enhanced service for accuracy
-      const coinData = await getStudentCoinsEnhanced(studentId);
-      setCoins(coinData.coins);
+      const coinAmount = await getStudentCoinsEnhanced(studentId);
+      setCoins(coinAmount);
 
       console.log("✅ Student data loaded successfully");
     } catch (error) {
