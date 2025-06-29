@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -44,9 +45,12 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
   const { toast } = useToast();
 
   const refreshClassDetails = async () => {
+    console.log("Starting refreshClassDetails for classId:", classId);
     setLoading(true);
+    
     try {
-      // Fetch class data with school information
+      // Fetch class data with proper error handling
+      console.log("Fetching class data...");
       const { data: classData, error: classError } = await supabase
         .from('classes')
         .select(`
@@ -58,7 +62,9 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
           )
         `)
         .eq('id', classId)
-        .single();
+        .maybeSingle();
+
+      console.log("Class query result:", { classData, classError });
 
       if (classError) {
         console.error('Error fetching class data:', classError);
@@ -67,16 +73,32 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
           title: "Error",
           description: "Failed to load class details"
         });
+        setLoading(false);
         return;
       }
 
+      if (!classData) {
+        console.log('No class found with ID:', classId);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Class not found"
+        });
+        setLoading(false);
+        return;
+      }
+
+      console.log("Setting class data:", classData);
       setClassData(classData);
 
       // Fetch student profiles for the class
+      console.log("Fetching student profiles...");
       const { data: studentProfiles, error: studentError } = await supabase
         .from('student_profiles')
         .select('*')
         .eq('class_id', classId);
+
+      console.log("Student profiles result:", { studentProfiles, studentError });
 
       if (studentError) {
         console.error('Error fetching student profiles:', studentError);
@@ -85,45 +107,60 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
           title: "Error",
           description: "Failed to load student profiles"
         });
-        return;
+      } else {
+        console.log("Setting students:", studentProfiles);
+        setStudents(studentProfiles || []);
       }
 
-      setStudents(studentProfiles);
-
       // Fetch pending homework submissions count
-      const { count: pendingCount } = await supabase
-        .from('homework_submissions')
-        .select('*', { count: 'exact', head: true })
-        .eq('status', 'pending')
-        .in('homework_id', 
-          await supabase
-            .from('homework')
-            .select('id')
-            .eq('class_id', classId)
-            .then(({ data }) => data?.map(h => h.id) || [])
-        );
+      console.log("Fetching pending submissions...");
+      try {
+        const { data: homeworkIds } = await supabase
+          .from('homework')
+          .select('id')
+          .eq('class_id', classId);
 
-      setPendingSubmissions(pendingCount || 0);
+        if (homeworkIds && homeworkIds.length > 0) {
+          const { count: pendingCount } = await supabase
+            .from('homework_submissions')
+            .select('*', { count: 'exact', head: true })
+            .eq('status', 'pending')
+            .in('homework_id', homeworkIds.map(h => h.id));
+
+          console.log("Pending submissions count:", pendingCount);
+          setPendingSubmissions(pendingCount || 0);
+        } else {
+          setPendingSubmissions(0);
+        }
+      } catch (error) {
+        console.error('Error fetching pending submissions:', error);
+        setPendingSubmissions(0);
+      }
 
     } catch (error) {
-      console.error('Unexpected error:', error);
+      console.error('Unexpected error in refreshClassDetails:', error);
       toast({
         variant: "destructive",
         title: "Error",
         description: "An unexpected error occurred"
       });
     } finally {
+      console.log("Setting loading to false");
       setLoading(false);
     }
   };
 
   useEffect(() => {
-    refreshClassDetails();
-  }, [classId, toast]);
+    console.log("useEffect triggered with classId:", classId);
+    if (classId) {
+      refreshClassDetails();
+    }
+  }, [classId]);
 
   useEffect(() => {
     const checkClassCreator = async () => {
       const teacherId = localStorage.getItem("teacherId");
+      console.log("Checking class creator:", { teacherId, classData });
       if (classData && teacherId) {
         setIsClassCreator(classData.teacher_id === teacherId);
       }
@@ -230,6 +267,8 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
     });
     refreshClassDetails();
   };
+
+  console.log("Render state:", { loading, classData: !!classData, studentsCount: students.length });
 
   if (loading) {
     return (
