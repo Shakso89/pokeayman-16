@@ -1,3 +1,4 @@
+
 export interface Pokemon {
   id: string;
   name: string;
@@ -68,6 +69,11 @@ export interface ClassData {
   top_student_id?: string;
   created_at: string;
   code?: string;
+  schools?: {
+    id: string;
+    name: string;
+    top_student_id?: string;
+  };
 }
 
 export interface Homework {
