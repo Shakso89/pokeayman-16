@@ -2,8 +2,9 @@
 import React from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Coins, Book, Trophy, ShoppingCart } from "lucide-react";
+import { Coins, Book, Trophy, ShoppingCart, Users } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
+import { useNavigate } from "react-router-dom";
 
 interface StudentDashboardButtonsProps {
   coins: number;
@@ -21,6 +22,21 @@ const StudentDashboardButtons: React.FC<StudentDashboardButtonsProps> = ({
   onHomeworkClick
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
+
+  const handleRankingsClick = () => {
+    navigate("/student-ranking");
+  };
+
+  const handleViewClassClick = () => {
+    // Navigate to a class details page - you might need to adjust this based on your routing
+    const classId = localStorage.getItem("studentClassId"); // Assuming class ID is stored
+    if (classId) {
+      navigate(`/student/class/${classId}`);
+    } else {
+      console.warn("No class ID found for student");
+    }
+  };
 
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
@@ -66,6 +82,34 @@ const StudentDashboardButtons: React.FC<StudentDashboardButtonsProps> = ({
           </div>
           <Button className="w-full bg-yellow-500 hover:bg-yellow-600">
             Visit Shop
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Rankings Button */}
+      <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={handleRankingsClick}>
+        <CardContent className="p-4 md:p-6 text-center">
+          <Trophy className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-3 md:mb-4 text-orange-500" />
+          <h3 className="text-lg md:text-xl font-bold mb-2">Rankings</h3>
+          <p className="text-sm md:text-base text-gray-600 mb-3 md:mb-4">
+            View student rankings and leaderboards
+          </p>
+          <Button className="w-full bg-orange-500 hover:bg-orange-600">
+            View Rankings
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* View Class Button */}
+      <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={handleViewClassClick}>
+        <CardContent className="p-4 md:p-6 text-center">
+          <Users className="h-12 w-12 md:h-16 md:w-16 mx-auto mb-3 md:mb-4 text-green-500" />
+          <h3 className="text-lg md:text-xl font-bold mb-2">My Class</h3>
+          <p className="text-sm md:text-base text-gray-600 mb-3 md:mb-4">
+            View your classmates and class information
+          </p>
+          <Button className="w-full bg-green-500 hover:bg-green-600">
+            View Class
           </Button>
         </CardContent>
       </Card>
