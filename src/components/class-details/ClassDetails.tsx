@@ -1,40 +1,63 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
 import { ClassData } from '@/types/pokemon';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { OverviewTab } from './OverviewTab';
-import { StudentListTab } from './StudentListTab';
-import { SettingsTab } from './SettingsTab';
 import { useToast } from '@/hooks/use-toast';
-import TeacherManagePokemonDialog from '@/components/dialogs/TeacherManagePokemonDialog';
-import GiveCoinsDialog from '@/components/dialogs/GiveCoinsDialog';
-import RemoveCoinsDialog from '@/components/dialogs/RemoveCoinsDialog';
 import { StudentProfile } from '@/services/studentDatabase';
+import ClassManagementHeader from './ClassManagementHeader';
+import ClassDialogs from './ClassDialogs';
 
 export const ClassDetails = ({ classId }: { classId: string }) => {
   const [classData, setClassData] = useState<ClassData | null>(null);
   const [students, setStudents] = useState<StudentProfile[]>([]);
   const [loading, setLoading] = useState(true);
-  const [showManagePokemon, setShowManagePokemon] = useState(false);
-  const [showGiveCoins, setShowGiveCoins] = useState(false);
-  const [showRemoveCoins, setShowRemoveCoins] = useState(false);
-  const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [isClassCreator, setIsClassCreator] = useState(false);
-  const { toast } = useToast();
+  const [pendingSubmissions, setPendingSubmissions] = useState(0);
+  
+  // Dialog states
+  const [isStudentListOpen, setIsStudentListOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [removeStudentDialog, setRemoveStudentDialog] = useState({
+    open: false,
+    studentId: '',
+    studentName: ''
+  });
+  const [managePokemonDialog, setManagePokemonDialog] = useState({
+    open: false,
+    studentId: '',
+    studentName: '',
+    schoolId: ''
+  });
+  const [giveCoinsDialog, setGiveCoinsDialog] = useState({
+    open: false,
+    studentId: '',
+    studentName: ''
+  });
+  const [removeCoinsDialog, setRemoveCoinsDialog] = useState({
+    open: false,
+    studentId: '',
+    studentName: ''
+  });
+  const [schoolPoolDialogOpen, setSchoolPoolDialogOpen] = useState(false);
+  const [teacherManagePokemonDialogOpen, setTeacherManagePokemonDialogOpen] = useState(false);
 
-  // Generate a simple join code from class ID
-  const generateJoinCode = (classId: string) => {
-    return classId.substring(0, 8).toUpperCase();
-  };
+  const { toast } = useToast();
 
   const refreshClassDetails = async () => {
     setLoading(true);
     try {
-      // Fetch class data
+      // Fetch class data with school information
       const { data: classData, error: classError } = await supabase
         .from('classes')
-        .select('*')
+        .select(`
+          *,
+          schools (
+            id,
+            name,
+            top_student_id
+          )
+        `)
         .eq('id', classId)
         .single();
 
@@ -48,13 +71,7 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
         return;
       }
 
-      // Add generated join code to class data
-      const classWithCode = {
-        ...classData,
-        code: generateJoinCode(classData.id)
-      };
-
-      setClassData(classWithCode);
+      setClassData(classData);
 
       // Fetch student profiles for the class
       const { data: studentProfiles, error: studentError } = await supabase
@@ -73,6 +90,22 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
       }
 
       setStudents(studentProfiles);
+
+      // Fetch pending homework submissions count
+      const { count: pendingCount } = await supabase
+        .from('homework_submissions')
+        .select('*', { count: 'exact', head: true })
+        .eq('status', 'pending')
+        .in('homework_id', 
+          await supabase
+            .from('homework')
+            .select('id')
+            .eq('class_id', classId)
+            .then(({ data }) => data?.map(h => h.id) || [])
+        );
+
+      setPendingSubmissions(pendingCount || 0);
+
     } catch (error) {
       console.error('Unexpected error:', error);
       toast({
@@ -100,103 +133,319 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
     checkClassCreator();
   }, [classData]);
 
-  const handleGiveCoins = () => {
+  // Event handlers
+  const handleAddStudent = () => setIsStudentListOpen(true);
+  const handleSwitchToHomework = () => {
+    // Navigate to homework management
+    window.location.href = `/teacher-dashboard?tab=homework&classId=${classId}`;
+  };
+  const handleDeleteClass = () => setDeleteDialogOpen(true);
+  const handleViewSchoolPool = () => setSchoolPoolDialogOpen(true);
+  const handleAddAssistant = () => {
+    toast({
+      title: "Feature Coming Soon",
+      description: "Assistant management will be available soon"
+    });
+  };
+  const handleManagePokemon = () => setTeacherManagePokemonDialogOpen(true);
+
+  const handleStudentsAdded = (studentIds: string[]) => {
+    toast({
+      title: "Success",
+      description: `${studentIds.length} students added to class`
+    });
     refreshClassDetails();
   };
 
-  const handleRemoveCoins = () => {
+  const handleConfirmDeleteClass = async () => {
+    try {
+      const { error } = await supabase
+        .from('classes')
+        .delete()
+        .eq('id', classId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Class deleted successfully"
+      });
+      
+      window.location.href = '/teacher-dashboard';
+    } catch (error) {
+      console.error('Error deleting class:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to delete class"
+      });
+    }
+    setDeleteDialogOpen(false);
+  };
+
+  const handleRemoveStudent = async (studentId: string) => {
+    try {
+      const { error } = await supabase
+        .from('student_profiles')
+        .update({ class_id: null })
+        .eq('user_id', studentId);
+
+      if (error) throw error;
+
+      toast({
+        title: "Success",
+        description: "Student removed from class"
+      });
+      refreshClassDetails();
+    } catch (error) {
+      console.error('Error removing student:', error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to remove student"
+      });
+    }
+    setRemoveStudentDialog({ open: false, studentId: '', studentName: '' });
+  };
+
+  const handleGiveCoins = (amount: number) => {
+    toast({
+      title: "Success",
+      description: `${amount} coins awarded`
+    });
     refreshClassDetails();
   };
 
-  const handleShowGiveCoins = (studentId: string) => {
-    setSelectedStudentId(studentId);
-    setShowGiveCoins(true);
+  const handleRemoveCoins = (amount: number) => {
+    toast({
+      title: "Success", 
+      description: `${amount} coins removed`
+    });
+    refreshClassDetails();
   };
 
-  const handleShowRemoveCoins = (studentId: string) => {
-    setSelectedStudentId(studentId);
-    setShowRemoveCoins(true);
+  const handlePokemonRemoved = () => {
+    toast({
+      title: "Success",
+      description: "Pokemon updated successfully"
+    });
+    refreshClassDetails();
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between space-y-2 md:space-y-0">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">
-            {classData?.name || "Loading..."}
-          </h2>
-          <p className="text-muted-foreground">
-            {classData?.description || "Loading class description..."}
-          </p>
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-primary mx-auto mb-4"></div>
+          <p>Loading class details...</p>
         </div>
       </div>
-      <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="students">Students</TabsTrigger>
-          {isClassCreator && <TabsTrigger value="settings">Settings</TabsTrigger>}
-        </TabsList>
-        <TabsContent value="overview">
-          <OverviewTab 
-            classId={classId} 
-            classData={classData} 
-            students={students} 
-          />
-        </TabsContent>
-        <TabsContent value="students">
-          <StudentListTab 
-            students={students} 
-            classId={classId}
-            onGiveCoins={handleShowGiveCoins}
-            onRemoveCoins={handleShowRemoveCoins}
-          />
-        </TabsContent>
-        {isClassCreator && (
-          <TabsContent value="settings">
-            <SettingsTab 
-              classId={classId} 
-              classData={classData} 
-              refreshClassDetails={refreshClassDetails} 
-            />
-          </TabsContent>
-        )}
-      </Tabs>
-      
-      <TeacherManagePokemonDialog
-        isOpen={showManagePokemon}
-        onOpenChange={setShowManagePokemon}
-        students={students}
-        schoolId={classData?.school_id || ""}
-        classId={classId}
+    );
+  }
+
+  if (!classData) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-gray-500">Class not found</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50">
+      <ClassManagementHeader
+        classData={classData}
+        studentsCount={students.length}
         isClassCreator={isClassCreator}
-        onRefresh={refreshClassDetails}
+        onAddStudent={handleAddStudent}
+        onSwitchToHomework={handleSwitchToHomework}
+        pendingSubmissions={pendingSubmissions}
+        onDeleteClass={handleDeleteClass}
+        onViewSchoolPool={handleViewSchoolPool}
+        onAddAssistant={handleAddAssistant}
+        onManagePokemon={handleManagePokemon}
+        students={students}
+        onStarAssigned={refreshClassDetails}
       />
 
-      {selectedStudentId && (
-        <>
-          <GiveCoinsDialog
-            isOpen={showGiveCoins}
-            onOpenChange={setShowGiveCoins}
-            studentId={selectedStudentId}
-            studentName={students.find(s => s.user_id === selectedStudentId)?.display_name || 'Student'}
-            teacherId={localStorage.getItem("teacherId") || ""}
-            classId={classId}
-            schoolId={classData?.school_id || ""}
-            onGiveCoins={handleGiveCoins}
-          />
+      {/* Main Content Area */}
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+          {/* Students Grid - Takes up 3 columns */}
+          <div className="lg:col-span-3">
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                <span>Class Students ({students.length})</span>
+              </h2>
+              
+              {students.length > 0 ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                  {students.map((student) => (
+                    <div key={student.id} className="bg-gray-50 rounded-lg p-4 border hover:shadow-md transition-shadow">
+                      <div className="flex items-center gap-3 mb-3">
+                        <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center text-white font-semibold">
+                          {(student.display_name || student.username).charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <h3 className="font-medium text-gray-900">
+                            {student.display_name || student.username}
+                          </h3>
+                          <p className="text-sm text-gray-500">@{student.username}</p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex justify-between items-center mb-3">
+                        <div className="flex items-center gap-4">
+                          <span className="flex items-center gap-1 text-yellow-600">
+                            <span className="text-lg">🪙</span>
+                            <span className="font-semibold">{student.coins || 0}</span>
+                          </span>
+                          <span className="flex items-center gap-1 text-blue-600">
+                            <span className="text-lg">⚡</span>
+                            <span className="font-semibold">0</span>
+                          </span>
+                        </div>
+                      </div>
 
-          <RemoveCoinsDialog
-            isOpen={showRemoveCoins}
-            onOpenChange={setShowRemoveCoins}
-            studentId={selectedStudentId}
-            studentName={students.find(s => s.user_id === selectedStudentId)?.display_name || 'Student'}
-            teacherId={localStorage.getItem("teacherId") || ""}
-            classId={classId}
-            schoolId={classData?.school_id || ""}
-            onRemoveCoins={handleRemoveCoins}
-          />
-        </>
-      )}
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => window.location.href = `/teacher/student/${student.user_id}`}
+                            className="flex-1 px-3 py-1.5 text-xs bg-blue-100 text-blue-700 rounded-md hover:bg-blue-200 transition-colors"
+                          >
+                            View Profile
+                          </button>
+                          <button
+                            onClick={() => setGiveCoinsDialog({
+                              open: true,
+                              studentId: student.user_id,
+                              studentName: student.display_name || student.username
+                            })}
+                            className="flex-1 px-3 py-1.5 text-xs bg-green-100 text-green-700 rounded-md hover:bg-green-200 transition-colors"
+                          >
+                            Give Coins
+                          </button>
+                        </div>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => setManagePokemonDialog({
+                              open: true,
+                              studentId: student.user_id,
+                              studentName: student.display_name || student.username,
+                              schoolId: classData.school_id || ''
+                            })}
+                            className="flex-1 px-3 py-1.5 text-xs bg-purple-100 text-purple-700 rounded-md hover:bg-purple-200 transition-colors"
+                          >
+                            Manage Pokémon
+                          </button>
+                          <button
+                            onClick={() => setRemoveCoinsDialog({
+                              open: true,
+                              studentId: student.user_id,
+                              studentName: student.display_name || student.username
+                            })}
+                            className="flex-1 px-3 py-1.5 text-xs bg-orange-100 text-orange-700 rounded-md hover:bg-orange-200 transition-colors"
+                          >
+                            Remove Coins
+                          </button>
+                        </div>
+                        {isClassCreator && (
+                          <button
+                            onClick={() => setRemoveStudentDialog({
+                              open: true,
+                              studentId: student.user_id,
+                              studentName: student.display_name || student.username
+                            })}
+                            className="w-full px-3 py-1.5 text-xs bg-red-100 text-red-700 rounded-md hover:bg-red-200 transition-colors"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <div className="text-gray-400 mb-4">
+                    <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                  </div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">No Students Yet</h3>
+                  <p className="text-gray-500 mb-4">Add students to your class to get started</p>
+                  <button
+                    onClick={handleAddStudent}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                  >
+                    Add Students
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Side Panel - Takes up 1 column */}
+          <div className="lg:col-span-1">
+            <div className="bg-white rounded-xl shadow-sm border p-6">
+              <h3 className="text-lg font-semibold mb-4">Class Information</h3>
+              
+              <div className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Class ID</label>
+                  <p className="text-sm font-mono bg-gray-100 p-2 rounded">{classId.substring(0, 8)}</p>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-500">School</label>
+                  <p className="text-sm">{classData.schools?.name || 'Not assigned'}</p>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Students</label>
+                  <p className="text-2xl font-bold text-blue-600">{students.length}</p>
+                </div>
+                
+                <div>
+                  <label className="text-sm font-medium text-gray-500">Pending Submissions</label>
+                  <p className="text-2xl font-bold text-orange-600">{pendingSubmissions}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ClassDialogs
+        classId={classId}
+        isStudentListOpen={isStudentListOpen}
+        onStudentListOpenChange={setIsStudentListOpen}
+        onStudentsAdded={handleStudentsAdded}
+        students={students}
+        deleteDialogOpen={deleteDialogOpen}
+        onDeleteDialogOpenChange={setDeleteDialogOpen}
+        onDeleteClass={handleConfirmDeleteClass}
+        removeStudentDialog={removeStudentDialog}
+        onRemoveStudentDialogChange={setRemoveStudentDialog}
+        onRemoveStudent={handleRemoveStudent}
+        isClassCreator={isClassCreator}
+        managePokemonDialog={managePokemonDialog}
+        onManagePokemonDialogChange={setManagePokemonDialog}
+        onPokemonRemoved={handlePokemonRemoved}
+        giveCoinsDialog={giveCoinsDialog}
+        onGiveCoinsDialogChange={setGiveCoinsDialog}
+        onGiveCoins={handleGiveCoins}
+        removeCoinsDialog={removeCoinsDialog}
+        onRemoveCoinsDialogChange={setRemoveCoinsDialog}
+        onRemoveCoins={handleRemoveCoins}
+        schoolPoolDialogOpen={schoolPoolDialogOpen}
+        onSchoolPoolDialogChange={setSchoolPoolDialogOpen}
+        schoolId={classData.school_id || ''}
+        teacherId={localStorage.getItem("teacherId") || ""}
+        teacherManagePokemonDialogOpen={teacherManagePokemonDialogOpen}
+        onTeacherManagePokemonDialogChange={setTeacherManagePokemonDialogOpen}
+        onRefresh={refreshClassDetails}
+      />
     </div>
   );
 };
