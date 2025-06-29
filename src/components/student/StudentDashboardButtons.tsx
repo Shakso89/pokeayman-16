@@ -25,16 +25,29 @@ const StudentDashboardButtons: React.FC<StudentDashboardButtonsProps> = ({
   const navigate = useNavigate();
 
   const handleRankingsClick = () => {
+    console.log("Rankings button clicked, navigating to /student-ranking");
     navigate("/student-ranking");
   };
 
   const handleViewClassClick = () => {
-    // Navigate to a class details page - you might need to adjust this based on your routing
-    const classId = localStorage.getItem("studentClassId"); // Assuming class ID is stored
+    // Try to get class ID from localStorage
+    const classId = localStorage.getItem("studentClassId");
+    
     if (classId) {
+      console.log("Class button clicked, navigating to class:", classId);
       navigate(`/student/class/${classId}`);
     } else {
-      console.warn("No class ID found for student");
+      // If no specific class ID, try to get from student profile
+      const studentProfile = JSON.parse(localStorage.getItem("studentProfile") || "{}");
+      const profileClassId = studentProfile.class_id;
+      
+      if (profileClassId) {
+        console.log("Using profile class ID:", profileClassId);
+        navigate(`/student/class/${profileClassId}`);
+      } else {
+        console.warn("No class ID found for student, showing alert");
+        alert("You are not enrolled in any class yet. Please contact your teacher to be added to a class.");
+      }
     }
   };
 

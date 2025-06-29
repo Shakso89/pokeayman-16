@@ -14,6 +14,7 @@ import StudentProfilePage from '@/pages/StudentProfilePage';
 import RankingPage from '@/pages/RankingPage';
 import StudentClassDetailsPage from '@/pages/StudentClassDetailsPage';
 import StudentRankingPage from '@/pages/StudentRankingPage';
+import SchoolClassesPage from '@/pages/SchoolClassesPage';
 import ProtectedRoute from '@/components/auth/ProtectedRoute';
 import LogoutPage from '@/pages/LogoutPage';
 
@@ -74,6 +75,12 @@ function App() {
         <Route path="/student/class/:classId" element={
           <ProtectedRoute requiredUserType="student">
             <StudentClassDetailsPage />
+          </ProtectedRoute>
+        } />
+        
+        <Route path="/school/:schoolId/classes" element={
+          <ProtectedRoute requiredUserType="any">
+            <SchoolClassesPage />
           </ProtectedRoute>
         } />
         
