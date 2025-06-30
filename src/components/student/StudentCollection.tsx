@@ -197,7 +197,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
                 </p>
               </div>
             </div>
-          </div>
+          </CardContent>
         </Card>
       )}
     </div>
