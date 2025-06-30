@@ -49,7 +49,6 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
       console.log("🔄 Loading Pokemon collection for student:", studentId);
       setError(null);
       
-      // Use the unified service to get Pokemon collection
       const collection = await getStudentPokemonCollection(studentId);
       
       console.log("✅ Pokemon collection loaded:", collection?.length || 0);
@@ -198,7 +197,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
                 </p>
               </div>
             </div>
-          </CardContent>
+          </div>
         </Card>
       )}
     </div>

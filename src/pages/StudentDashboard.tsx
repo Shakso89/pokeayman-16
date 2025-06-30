@@ -63,7 +63,7 @@ const StudentDashboard: React.FC = () => {
       setDataLoading(true);
       console.log("🔄 Loading enhanced student data for:", studentId);
 
-      // Get student profile from unified source
+      // Get student profile with better error handling
       const { data: profileData, error: profileError } = await supabase
         .from('student_profiles')
         .select('*')
@@ -72,7 +72,8 @@ const StudentDashboard: React.FC = () => {
 
       if (profileError) {
         console.error("❌ Error loading student profile:", profileError);
-        // Fallback to students table
+        
+        // Fallback to students table if profile not found
         const { data: studentData, error: studentError } = await supabase
           .from('students')
           .select('*')
@@ -80,7 +81,27 @@ const StudentDashboard: React.FC = () => {
           .maybeSingle();
 
         if (!studentError && studentData) {
-          setStudentInfo(studentData);
+          // Sync to student_profiles for future use
+          const { data: syncedProfile } = await supabase
+            .from('student_profiles')
+            .upsert({
+              user_id: studentData.user_id || studentData.id,
+              username: studentData.username,
+              display_name: studentData.display_name || studentData.username,
+              coins: studentData.coins || 0,
+              spent_coins: 0,
+              school_id: studentData.school_id,
+              class_id: studentData.class_id,
+              teacher_id: studentData.teacher_id,
+              avatar_url: studentData.profile_photo,
+              school_name: studentData.school_name
+            }, {
+              onConflict: 'user_id'
+            })
+            .select()
+            .single();
+
+          setStudentInfo(syncedProfile || studentData);
           setCoins(studentData.coins || 0);
           setStudentClasses(studentData.class_id ? [studentData.class_id] : []);
         }
@@ -90,9 +111,13 @@ const StudentDashboard: React.FC = () => {
         setStudentClasses(profileData.class_id ? [profileData.class_id] : []);
       }
 
-      // Also get coins using enhanced service for accuracy
-      const coinAmount = await getStudentCoinsEnhanced(studentId);
-      setCoins(coinAmount);
+      // Get accurate coin amount
+      try {
+        const coinAmount = await getStudentCoinsEnhanced(studentId);
+        setCoins(coinAmount);
+      } catch (coinError) {
+        console.warn("Could not get enhanced coins, using profile coins");
+      }
 
       console.log("✅ Student data loaded successfully");
     } catch (error) {
@@ -229,8 +254,8 @@ const StudentDashboard: React.FC = () => {
 
   const handlePurchaseComplete = () => {
     console.log("🔄 Purchase completed, refreshing data...");
-    loadStudentData(); // Refresh all data after purchase
-    setRefreshKey(prev => prev + 1); // Force component refresh
+    loadStudentData();
+    setRefreshKey(prev => prev + 1);
   };
 
   const handleHomeworkClick = () => {

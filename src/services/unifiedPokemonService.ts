@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 import { removeCoinsFromStudentEnhanced } from '@/services/enhancedCoinService';
 
@@ -49,7 +50,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
         pokemon_id,
         awarded_at,
         source,
-        pokemon_pool!student_pokemon_collection_pokemon_id_fkey (
+        pokemon_pool (
           id,
           name,
           image_url,
@@ -66,21 +67,16 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
 
     if (error) {
       console.error("❌ Error fetching Pokemon collection:", error);
-      throw error;
+      return [];
     }
 
     console.log("✅ Found collections in student_pokemon_collection:", collection?.length || 0);
     
-    const processedCollection = (collection || []).map(item => ({
-      ...item,
-      pokemon_pool: Array.isArray(item.pokemon_pool) ? item.pokemon_pool[0] : item.pokemon_pool
-    }));
-
-    return processedCollection;
+    return collection || [];
 
   } catch (error) {
     console.error("❌ Unexpected error in unified Pokemon service:", error);
-    throw error;
+    return [];
   }
 };
 
@@ -163,22 +159,25 @@ export const purchasePokemonFromShop = async (
       return { success: false, error: `Not enough coins! You need ${price} coins but only have ${studentData.coins}.` };
     }
 
-    // Deduct coins using enhanced service
-    const coinResult = await removeCoinsFromStudentEnhanced(
-      studentId,
-      price,
-      `Shop purchase: ${pokemon.name}`,
-      "shop_purchase"
-    );
+    // Start transaction by deducting coins first
+    const { data: updatedStudent, error: coinError } = await supabase
+      .from('student_profiles')
+      .update({ 
+        coins: studentData.coins - price,
+        spent_coins: (studentData.spent_coins || 0) + price
+      })
+      .eq('user_id', studentId)
+      .select()
+      .single();
 
-    if (!coinResult.success) {
-      console.error("❌ Failed to deduct coins:", coinResult.error);
-      return { success: false, error: coinResult.error || "Failed to deduct coins" };
+    if (coinError || !updatedStudent) {
+      console.error("❌ Failed to deduct coins:", coinError);
+      return { success: false, error: "Failed to deduct coins" };
     }
 
-    console.log("✅ Coins deducted successfully, new balance:", coinResult.newBalance);
+    console.log("✅ Coins deducted successfully, new balance:", updatedStudent.coins);
 
-    // Add Pokemon to collection using student_pokemon_collection table
+    // Add Pokemon to collection
     const { data: collection, error: collectionError } = await supabase
       .from('student_pokemon_collection')
       .insert({
@@ -191,15 +190,29 @@ export const purchasePokemonFromShop = async (
 
     if (collectionError) {
       console.error("❌ Failed to add Pokemon to collection:", collectionError);
-      // Try to refund coins if collection insert failed
-      await removeCoinsFromStudentEnhanced(
-        studentId,
-        -price,
-        `Refund for failed ${pokemon.name} purchase`,
-        "refund"
-      );
+      
+      // Refund coins if collection insert failed
+      await supabase
+        .from('student_profiles')
+        .update({ 
+          coins: studentData.coins,
+          spent_coins: (studentData.spent_coins || 0)
+        })
+        .eq('user_id', studentId);
+        
       return { success: false, error: "Failed to add Pokemon to collection" };
     }
+
+    // Log coin transaction
+    await supabase
+      .from('coin_history')
+      .insert({
+        user_id: studentId,
+        change_amount: -price,
+        reason: `Shop purchase: ${pokemon.name}`,
+        related_entity_type: 'pokemon_purchase',
+        related_entity_id: collection.id
+      });
 
     console.log("✅ Pokemon purchase completed successfully:", collection);
     return { 

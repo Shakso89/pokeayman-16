@@ -649,6 +649,13 @@ export type Database = {
         }
         Relationships: [
           {
+            foreignKeyName: "fk_pokemon_pool"
+            columns: ["pokemon_id"]
+            isOneToOne: false
+            referencedRelation: "pokemon_pool"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "student_pokemon_collection_pokemon_id_fkey"
             columns: ["pokemon_id"]
             isOneToOne: false
