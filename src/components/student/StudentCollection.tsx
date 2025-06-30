@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Trophy } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
-import { supabase } from "@/integrations/supabase/client";
+import { getStudentPokemonCollection } from "@/services/unifiedPokemonService";
 
 interface StudentCollectionProps {
   studentId: string;
@@ -35,57 +35,28 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
   const [pokemonCollection, setPokemonCollection] = useState<PokemonCollectionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const loadCollection = async () => {
     if (!studentId || studentId === 'undefined') {
       console.warn("❌ Invalid studentId provided:", studentId);
       setLoading(false);
+      setError("Invalid student ID");
       return;
     }
 
     try {
       console.log("🔄 Loading Pokemon collection for student:", studentId);
+      setError(null);
       
-      // Fetch from student_pokemon_collection table with proper join
-      const { data: collection, error } = await supabase
-        .from('student_pokemon_collection')
-        .select(`
-          id,
-          student_id,
-          pokemon_id,
-          awarded_at,
-          source,
-          pokemon_pool!student_pokemon_collection_pokemon_id_fkey (
-            id,
-            name,
-            image_url,
-            type_1,
-            type_2,
-            rarity,
-            price,
-            description,
-            power_stats
-          )
-        `)
-        .eq('student_id', studentId)
-        .order('awarded_at', { ascending: false });
-
-      if (error) {
-        console.error("❌ Error loading Pokemon collection:", error);
-        setPokemonCollection([]);
-      } else {
-        console.log("✅ Pokemon collection loaded:", collection?.length || 0);
-        
-        // Transform the data to handle the foreign key relationship correctly
-        const processedCollection = (collection || []).map(item => ({
-          ...item,
-          pokemon_pool: Array.isArray(item.pokemon_pool) ? item.pokemon_pool[0] : item.pokemon_pool
-        }));
-        
-        setPokemonCollection(processedCollection);
-      }
+      // Use the unified service to get Pokemon collection
+      const collection = await getStudentPokemonCollection(studentId);
+      
+      console.log("✅ Pokemon collection loaded:", collection?.length || 0);
+      setPokemonCollection(collection || []);
     } catch (error) {
-      console.error("❌ Unexpected error loading Pokemon collection:", error);
+      console.error("❌ Error loading Pokemon collection:", error);
+      setError("Failed to load Pokemon collection");
       setPokemonCollection([]);
     } finally {
       setLoading(false);
@@ -94,34 +65,6 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
 
   useEffect(() => {
     loadCollection();
-  }, [studentId]);
-
-  // Set up real-time subscription
-  useEffect(() => {
-    if (!studentId || studentId === 'undefined') return;
-
-    console.log("🔄 Setting up real-time subscription for Pokemon collection");
-
-    const channel = supabase
-      .channel('student-pokemon-collection')
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'student_pokemon_collection',
-          filter: `student_id=eq.${studentId}`
-        },
-        (payload) => {
-          console.log('🔄 Real-time Pokemon collection update:', payload);
-          loadCollection();
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
   }, [studentId]);
 
   const handleRefresh = async () => {
@@ -145,6 +88,24 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
       <div className="flex justify-center py-8">
         <div className="text-gray-500">Loading your collection...</div>
       </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center">
+          <div className="flex flex-col items-center space-y-4">
+            <Trophy className="h-16 w-16 text-red-300" />
+            <div>
+              <p className="text-red-500 font-medium">{error}</p>
+              <Button onClick={handleRefresh} className="mt-2">
+                Try Again
+              </Button>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -179,10 +140,9 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
               <Card key={item.id} className="hover:shadow-md transition-shadow">
                 <CardContent className="p-4">
                   <div className="space-y-3">
-                    {/* Pokemon Image */}
                     <div className="aspect-square bg-gray-50 rounded-lg flex items-center justify-center">
                       <img
-                        src={pokemon.image_url || '/placeholder-pokemon.png'}
+                        src={pokemon.image_url || '/placeholder.svg'}
                         alt={pokemon.name}
                         className="w-full h-full object-contain"
                         onError={(e) => {
@@ -192,7 +152,6 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
                       />
                     </div>
 
-                    {/* Pokemon Info */}
                     <div className="space-y-2">
                       <h3 className="font-medium text-sm text-center">{pokemon.name}</h3>
                       

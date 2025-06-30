@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -5,7 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, ShoppingBag, Coins } from "lucide-react";
-import { getPokemonCatalog, purchasePokemonFromShop, type PokemonCatalogItem } from "@/services/pokemonService";
+import { getPokemonPool, purchasePokemonFromShop } from "@/services/unifiedPokemonService";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
 
@@ -15,14 +16,26 @@ interface UnifiedPokemonShopProps {
   onPurchase?: () => void;
 }
 
+interface PokemonFromPool {
+  id: string;
+  name: string;
+  image_url: string;
+  type_1: string;
+  type_2?: string;
+  rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
+  price: number;
+  description?: string;
+  power_stats?: any;
+}
+
 const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
   studentId,
   studentCoins,
   onPurchase
 }) => {
   const { t } = useTranslation();
-  const [pokemon, setPokemon] = useState<PokemonCatalogItem[]>([]);
-  const [filteredPokemon, setFilteredPokemon] = useState<PokemonCatalogItem[]>([]);
+  const [pokemon, setPokemon] = useState<PokemonFromPool[]>([]);
+  const [filteredPokemon, setFilteredPokemon] = useState<PokemonFromPool[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRarity, setSelectedRarity] = useState<string>("all");
   const [loading, setLoading] = useState(true);
@@ -40,13 +53,13 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
     setLoading(true);
     try {
       console.log("🛒 Fetching unified Pokemon pool for shop...");
-      const poolData = await getPokemonCatalog();
+      const poolData = await getPokemonPool();
       console.log(`🛒 Fetched ${poolData.length} Pokemon from unified pool`);
       setPokemon(poolData);
     } catch (error) {
       console.error("Error fetching Pokémon pool:", error);
       toast({
-        title: t("error"),
+        title: "Error",
         description: "Failed to load Pokémon shop",
         variant: "destructive"
       });
@@ -70,20 +83,34 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
       filtered = filtered.filter(p => p.rarity === selectedRarity);
     }
 
-    // Sort by price
     filtered.sort((a, b) => a.price - b.price);
-
     setFilteredPokemon(filtered);
   };
 
-  const handlePurchase = async (pokemon: PokemonCatalogItem) => {
-    console.log("🛒 Starting purchase process:", { pokemonId: pokemon.id, pokemonName: pokemon.name, price: pokemon.price, studentCoins, studentId });
+  const handlePurchase = async (pokemon: PokemonFromPool) => {
+    console.log("🛒 Starting purchase process:", { 
+      pokemonId: pokemon.id, 
+      pokemonName: pokemon.name, 
+      price: pokemon.price, 
+      studentCoins, 
+      studentId 
+    });
 
     if (studentCoins < pokemon.price) {
       console.error("❌ Not enough coins:", { required: pokemon.price, available: studentCoins });
       toast({
-        title: t("error"),
+        title: "Error",
         description: `Not enough coins! You need ${pokemon.price} coins but only have ${studentCoins}.`,
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (!studentId || studentId === 'undefined') {
+      console.error("❌ Invalid student ID");
+      toast({
+        title: "Error",
+        description: "Invalid student ID. Please try logging in again.",
         variant: "destructive"
       });
       return;
@@ -92,8 +119,10 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
     setPurchasing(pokemon.id);
 
     try {
-      // Use the correct function signature with only 2 arguments
+      console.log("🛒 Calling purchasePokemonFromShop with:", { studentId, pokemonId: pokemon.id });
+      
       const result = await purchasePokemonFromShop(studentId, pokemon.id);
+      console.log("🛒 Purchase result:", result);
 
       if (result.success) {
         console.log(`✅ Pokemon purchased successfully: ${pokemon.name}`);
@@ -108,7 +137,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
       } else {
         console.error("❌ Purchase failed:", result.error);
         toast({
-          title: t("error"),
+          title: "Error",
           description: result.error || "Failed to purchase Pokemon",
           variant: "destructive"
         });
@@ -116,7 +145,7 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
     } catch (error) {
       console.error("❌ Unexpected error during purchase:", error);
       toast({
-        title: t("error"),
+        title: "Error",
         description: `Failed to purchase Pokémon: ${error instanceof Error ? error.message : 'Unknown error'}. Please try again.`,
         variant: "destructive"
       });
@@ -152,7 +181,6 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center justify-between">
@@ -174,7 +202,6 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
         </CardContent>
       </Card>
 
-      {/* Filters */}
       <Card>
         <CardContent className="pt-6">
           <div className="flex flex-col md:flex-row gap-4">
@@ -203,7 +230,6 @@ const UnifiedPokemonShop: React.FC<UnifiedPokemonShopProps> = ({
         </CardContent>
       </Card>
 
-      {/* Pokémon Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
         {filteredPokemon.map((pokemon) => (
           <Card key={pokemon.id} className="hover:shadow-lg transition-shadow">

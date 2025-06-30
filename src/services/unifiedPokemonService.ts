@@ -1,4 +1,3 @@
-
 import { supabase } from '@/integrations/supabase/client';
 import { removeCoinsFromStudentEnhanced } from '@/services/enhancedCoinService';
 
@@ -42,7 +41,6 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
       return [];
     }
 
-    // Use student_pokemon_collection as primary source with proper join
     const { data: collection, error } = await supabase
       .from('student_pokemon_collection')
       .select(`
@@ -68,12 +66,11 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
 
     if (error) {
       console.error("❌ Error fetching Pokemon collection:", error);
-      return [];
+      throw error;
     }
 
     console.log("✅ Found collections in student_pokemon_collection:", collection?.length || 0);
     
-    // Transform the data to handle the foreign key relationship correctly
     const processedCollection = (collection || []).map(item => ({
       ...item,
       pokemon_pool: Array.isArray(item.pokemon_pool) ? item.pokemon_pool[0] : item.pokemon_pool
@@ -83,7 +80,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
 
   } catch (error) {
     console.error("❌ Unexpected error in unified Pokemon service:", error);
-    return [];
+    throw error;
   }
 };
 
@@ -115,83 +112,7 @@ export const getPokemonPool = async (): Promise<PokemonFromPool[]> => {
     }));
   } catch (error) {
     console.error("❌ Unexpected error fetching Pokemon pool:", error);
-    return [];
-  }
-};
-
-export const getPokemonPoolStats = async () => {
-  try {
-    const { data, error } = await supabase
-      .from('pokemon_pool')
-      .select('rarity');
-
-    if (error) throw error;
-
-    const stats = {
-      total: data?.length || 0,
-      byRarity: {} as Record<string, number>
-    };
-
-    data?.forEach(item => {
-      const rarity = item.rarity || 'common';
-      stats.byRarity[rarity] = (stats.byRarity[rarity] || 0) + 1;
-    });
-
-    return stats;
-  } catch (error) {
-    console.error("❌ Error fetching Pokemon pool stats:", error);
-    return { total: 0, byRarity: {} };
-  }
-};
-
-export const awardPokemonToStudent = async (
-  studentId: string,
-  pokemonId: string,
-  source: string = 'teacher_award'
-): Promise<boolean> => {
-  try {
-    console.log("🎁 Awarding Pokemon to student:", { studentId, pokemonId, source });
-
-    const { error } = await supabase
-      .from('student_pokemon_collection')
-      .insert({
-        student_id: studentId,
-        pokemon_id: pokemonId,
-        source
-      });
-
-    if (error) {
-      console.error("❌ Error awarding Pokemon:", error);
-      return false;
-    }
-
-    console.log("✅ Pokemon awarded successfully");
-    return true;
-  } catch (error) {
-    console.error("❌ Unexpected error awarding Pokemon:", error);
-    return false;
-  }
-};
-
-export const removePokemonFromStudent = async (collectionId: string): Promise<boolean> => {
-  try {
-    console.log("🗑️ Removing Pokemon from student collection:", collectionId);
-
-    const { error } = await supabase
-      .from('student_pokemon_collection')
-      .delete()
-      .eq('id', collectionId);
-
-    if (error) {
-      console.error("❌ Error removing Pokemon:", error);
-      return false;
-    }
-
-    console.log("✅ Pokemon removed successfully");
-    return true;
-  } catch (error) {
-    console.error("❌ Unexpected error removing Pokemon:", error);
-    return false;
+    throw error;
   }
 };
 
@@ -204,6 +125,10 @@ export const purchasePokemonFromShop = async (
 
     if (!studentId || studentId === 'undefined') {
       return { success: false, error: "Invalid student ID" };
+    }
+
+    if (!pokemonId) {
+      return { success: false, error: "Invalid Pokemon ID" };
     }
 
     // Get Pokemon details and price
@@ -291,6 +216,82 @@ export const purchasePokemonFromShop = async (
   }
 };
 
+export const getPokemonPoolStats = async () => {
+  try {
+    const { data, error } = await supabase
+      .from('pokemon_pool')
+      .select('rarity');
+
+    if (error) throw error;
+
+    const stats = {
+      total: data?.length || 0,
+      byRarity: {} as Record<string, number>
+    };
+
+    data?.forEach(item => {
+      const rarity = item.rarity || 'common';
+      stats.byRarity[rarity] = (stats.byRarity[rarity] || 0) + 1;
+    });
+
+    return stats;
+  } catch (error) {
+    console.error("❌ Error fetching Pokemon pool stats:", error);
+    return { total: 0, byRarity: {} };
+  }
+};
+
+export const awardPokemonToStudent = async (
+  studentId: string,
+  pokemonId: string,
+  source: string = 'teacher_award'
+): Promise<boolean> => {
+  try {
+    console.log("🎁 Awarding Pokemon to student:", { studentId, pokemonId, source });
+
+    const { error } = await supabase
+      .from('student_pokemon_collection')
+      .insert({
+        student_id: studentId,
+        pokemon_id: pokemonId,
+        source
+      });
+
+    if (error) {
+      console.error("❌ Error awarding Pokemon:", error);
+      return false;
+    }
+
+    console.log("✅ Pokemon awarded successfully");
+    return true;
+  } catch (error) {
+    console.error("❌ Unexpected error awarding Pokemon:", error);
+    return false;
+  }
+};
+
+export const removePokemonFromStudent = async (collectionId: string): Promise<boolean> => {
+  try {
+    console.log("🗑️ Removing Pokemon from student collection:", collectionId);
+
+    const { error } = await supabase
+      .from('student_pokemon_collection')
+      .delete()
+      .eq('id', collectionId);
+
+    if (error) {
+      console.error("❌ Error removing Pokemon:", error);
+      return false;
+    }
+
+    console.log("✅ Pokemon removed successfully");
+    return true;
+  } catch (error) {
+    console.error("❌ Unexpected error removing Pokemon:", error);
+    return false;
+  }
+};
+
 export const addPokemonToCollection = async (
   studentId: string,
   pokemonId: string,
@@ -299,7 +300,6 @@ export const addPokemonToCollection = async (
   try {
     console.log("📝 Adding Pokemon to collection:", { studentId, pokemonId, source });
 
-    // Try to add to main collection first
     const { error: mainError } = await supabase
       .from('student_pokemon_collection')
       .insert({
