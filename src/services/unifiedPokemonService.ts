@@ -72,7 +72,13 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
 
     console.log("✅ Found collections in student_pokemon_collection:", collection?.length || 0);
     
-    return collection || [];
+    // Transform the data to ensure pokemon_pool is a single object, not an array
+    const transformedCollection = collection?.map(item => ({
+      ...item,
+      pokemon_pool: Array.isArray(item.pokemon_pool) ? item.pokemon_pool[0] : item.pokemon_pool
+    })) || [];
+
+    return transformedCollection;
 
   } catch (error) {
     console.error("❌ Unexpected error in unified Pokemon service:", error);
@@ -145,7 +151,7 @@ export const purchasePokemonFromShop = async (
     // Check if student has enough coins
     const { data: studentData, error: studentError } = await supabase
       .from('student_profiles')
-      .select('coins')
+      .select('coins, spent_coins')
       .eq('user_id', studentId)
       .single();
 
