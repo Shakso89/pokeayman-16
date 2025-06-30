@@ -27,39 +27,17 @@ const StudentHomeworkTab: React.FC<StudentHomeworkTabProps> = ({
   const [selectedHomework, setSelectedHomework] = useState<Homework | null>(null);
   const [isSubmissionDialogOpen, setIsSubmissionDialogOpen] = useState(false);
 
-  useEffect(() => {
-    if (classIds && classIds.length > 0) {
-      loadHomework();
-      loadSubmissions();
-
-      // Subscribe to real-time updates
-      const homeworkChannel = supabase
-        .channel('student-homework')
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'homework', filter: `class_id=in.(${classIds.join(',')})` }, () => {
-          loadHomework();
-        })
-        .on('postgres_changes', { event: '*', schema: 'public', table: 'homework_submissions', filter: `student_id=eq.${studentId}` }, () => {
-          loadSubmissions();
-        })
-        .subscribe();
-
-      return () => {
-        supabase.removeChannel(homeworkChannel);
-      };
-    } else {
-      setIsLoading(false);
-      setHomework([]);
-    }
-  }, [classIds, studentId]);
-
   const loadHomework = async () => {
     if (!classIds || classIds.length === 0) {
+      console.log("No class IDs provided, skipping homework load");
       setHomework([]);
       setIsLoading(false);
       return;
     }
-    setIsLoading(true);
+
     try {
+      console.log("Loading homework for classes:", classIds);
+      
       const { data, error } = await supabase
         .from('homework')
         .select('*')
@@ -67,28 +45,98 @@ const StudentHomeworkTab: React.FC<StudentHomeworkTabProps> = ({
         .gt('expires_at', new Date().toISOString())
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error loading homework:", error);
+        throw error;
+      }
+      
+      console.log("Homework loaded:", data?.length || 0);
       setHomework(data || []);
     } catch (error) {
       console.error('Error loading homework:', error);
-    } finally {
-      setIsLoading(false);
+      setHomework([]);
     }
   };
 
   const loadSubmissions = async () => {
+    if (!studentId || studentId === 'undefined') {
+      console.log("Invalid student ID, skipping submissions load");
+      setSubmissions([]);
+      return;
+    }
+
     try {
+      console.log("Loading submissions for student:", studentId);
+      
       const { data, error } = await supabase
         .from('homework_submissions')
         .select('*')
         .eq('student_id', studentId);
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error loading submissions:", error);
+        throw error;
+      }
+      
+      console.log("Submissions loaded:", data?.length || 0);
       setSubmissions(data || []);
     } catch (error) {
       console.error('Error loading submissions:', error);
+      setSubmissions([]);
     }
   };
+
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([loadHomework(), loadSubmissions()]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (studentId && studentId !== 'undefined') {
+      loadData();
+    } else {
+      setIsLoading(false);
+      setHomework([]);
+      setSubmissions([]);
+    }
+  }, [classIds, studentId]);
+
+  useEffect(() => {
+    if (!classIds?.length || !studentId || studentId === 'undefined') return;
+
+    console.log("Setting up homework subscriptions");
+
+    // Subscribe to real-time updates
+    const homeworkChannel = supabase
+      .channel('student-homework')
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'homework', 
+        filter: `class_id=in.(${classIds.join(',')})` 
+      }, () => {
+        console.log("Homework changed, reloading");
+        loadHomework();
+      })
+      .on('postgres_changes', { 
+        event: '*', 
+        schema: 'public', 
+        table: 'homework_submissions', 
+        filter: `student_id=eq.${studentId}` 
+      }, () => {
+        console.log("Submissions changed, reloading");
+        loadSubmissions();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(homeworkChannel);
+    };
+  }, [classIds, studentId]);
 
   const getSubmissionStatus = (homeworkId: string) => {
     return submissions.find(sub => sub.homework_id === homeworkId);
@@ -121,6 +169,16 @@ const StudentHomeworkTab: React.FC<StudentHomeworkTabProps> = ({
       <div className="flex justify-center items-center p-8">
         <p className="text-gray-500">Loading homework...</p>
       </div>
+    );
+  }
+
+  if (!classIds || classIds.length === 0) {
+    return (
+      <Card>
+        <CardContent className="py-8 text-center">
+          <p className="text-gray-500">You are not enrolled in any class yet, so you can't see homework assignments.</p>
+        </CardContent>
+      </Card>
     );
   }
 

@@ -63,7 +63,13 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
   };
 
   useEffect(() => {
-    loadCollection();
+    if (studentId && studentId !== 'undefined') {
+      setLoading(true);
+      loadCollection();
+    } else {
+      setLoading(false);
+      setError("No student ID provided");
+    }
   }, [studentId]);
 
   const handleRefresh = async () => {
