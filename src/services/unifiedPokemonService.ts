@@ -50,7 +50,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
         pokemon_id,
         awarded_at,
         source,
-        pokemon_pool (
+        pokemon_pool!inner (
           id,
           name,
           image_url,
