@@ -148,7 +148,7 @@ export const purchasePokemonFromShop = async (
     const price = pokemon.price || 15;
     console.log("💰 Pokemon price:", price);
 
-    // Check if student has enough coins
+    // Check if student has enough coins and get current data
     const { data: studentData, error: studentError } = await supabase
       .from('student_profiles')
       .select('coins, spent_coins')

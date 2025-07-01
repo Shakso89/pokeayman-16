@@ -63,13 +63,25 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
   };
 
   useEffect(() => {
-    if (studentId && studentId !== 'undefined') {
-      setLoading(true);
-      loadCollection();
-    } else {
-      setLoading(false);
-      setError("No student ID provided");
-    }
+    let mounted = true;
+
+    const loadData = async () => {
+      if (studentId && studentId !== 'undefined') {
+        setLoading(true);
+        await loadCollection();
+      } else {
+        if (mounted) {
+          setLoading(false);
+          setError("No student ID provided");
+        }
+      }
+    };
+
+    loadData();
+
+    return () => {
+      mounted = false;
+    };
   }, [studentId]);
 
   const handleRefresh = async () => {
@@ -203,8 +215,8 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
                 </p>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </CardContent>
       )}
     </div>
   );

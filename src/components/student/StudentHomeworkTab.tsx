@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -26,12 +26,14 @@ const StudentHomeworkTab: React.FC<StudentHomeworkTabProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [selectedHomework, setSelectedHomework] = useState<Homework | null>(null);
   const [isSubmissionDialogOpen, setIsSubmissionDialogOpen] = useState(false);
+  const mountedRef = useRef(true);
 
   const loadHomework = async () => {
     if (!classIds || classIds.length === 0) {
       console.log("No class IDs provided, skipping homework load");
-      setHomework([]);
-      setIsLoading(false);
+      if (mountedRef.current) {
+        setHomework([]);
+      }
       return;
     }
 
@@ -51,17 +53,23 @@ const StudentHomeworkTab: React.FC<StudentHomeworkTabProps> = ({
       }
       
       console.log("Homework loaded:", data?.length || 0);
-      setHomework(data || []);
+      if (mountedRef.current) {
+        setHomework(data || []);
+      }
     } catch (error) {
       console.error('Error loading homework:', error);
-      setHomework([]);
+      if (mountedRef.current) {
+        setHomework([]);
+      }
     }
   };
 
   const loadSubmissions = async () => {
     if (!studentId || studentId === 'undefined') {
       console.log("Invalid student ID, skipping submissions load");
-      setSubmissions([]);
+      if (mountedRef.current) {
+        setSubmissions([]);
+      }
       return;
     }
 
@@ -79,30 +87,44 @@ const StudentHomeworkTab: React.FC<StudentHomeworkTabProps> = ({
       }
       
       console.log("Submissions loaded:", data?.length || 0);
-      setSubmissions(data || []);
+      if (mountedRef.current) {
+        setSubmissions(data || []);
+      }
     } catch (error) {
       console.error('Error loading submissions:', error);
-      setSubmissions([]);
+      if (mountedRef.current) {
+        setSubmissions([]);
+      }
     }
   };
 
   useEffect(() => {
+    mountedRef.current = true;
+
     const loadData = async () => {
-      setIsLoading(true);
-      try {
-        await Promise.all([loadHomework(), loadSubmissions()]);
-      } finally {
-        setIsLoading(false);
+      if (studentId && studentId !== 'undefined') {
+        setIsLoading(true);
+        try {
+          await Promise.all([loadHomework(), loadSubmissions()]);
+        } finally {
+          if (mountedRef.current) {
+            setIsLoading(false);
+          }
+        }
+      } else {
+        if (mountedRef.current) {
+          setIsLoading(false);
+          setHomework([]);
+          setSubmissions([]);
+        }
       }
     };
 
-    if (studentId && studentId !== 'undefined') {
-      loadData();
-    } else {
-      setIsLoading(false);
-      setHomework([]);
-      setSubmissions([]);
-    }
+    loadData();
+
+    return () => {
+      mountedRef.current = false;
+    };
   }, [classIds, studentId]);
 
   useEffect(() => {
@@ -120,7 +142,9 @@ const StudentHomeworkTab: React.FC<StudentHomeworkTabProps> = ({
         filter: `class_id=in.(${classIds.join(',')})` 
       }, () => {
         console.log("Homework changed, reloading");
-        loadHomework();
+        if (mountedRef.current) {
+          loadHomework();
+        }
       })
       .on('postgres_changes', { 
         event: '*', 
@@ -129,7 +153,9 @@ const StudentHomeworkTab: React.FC<StudentHomeworkTabProps> = ({
         filter: `student_id=eq.${studentId}` 
       }, () => {
         console.log("Submissions changed, reloading");
-        loadSubmissions();
+        if (mountedRef.current) {
+          loadSubmissions();
+        }
       })
       .subscribe();
 
