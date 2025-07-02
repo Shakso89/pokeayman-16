@@ -69,6 +69,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
       setPokemonCollection([]);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 

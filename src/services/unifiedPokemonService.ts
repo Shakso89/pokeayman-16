@@ -224,7 +224,8 @@ export const purchasePokemonFromShop = async (
       .insert({
         student_id: studentId,
         pokemon_id: pokemonId,
-        source: 'shop_purchase'
+        source: 'shop_purchase',
+        awarded_at: new Date().toISOString()
       })
       .select()
       .single();
