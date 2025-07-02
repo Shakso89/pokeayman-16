@@ -1,3 +1,4 @@
+
 import { supabase } from '@/integrations/supabase/client';
 
 export interface StudentPokemonCollection {
@@ -48,7 +49,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
         pokemon_id,
         awarded_at,
         source,
-        pokemon_pool!inner (
+        pokemon_pool (
           id,
           name,
           image_url,
@@ -146,34 +147,63 @@ export const purchasePokemonFromShop = async (
     const price = pokemon.price || 15;
     console.log("💰 Pokemon price:", price);
 
-    // Get current student data from both tables
-    const { data: studentData, error: studentError } = await supabase
-      .from('students')
-      .select('coins, id')
-      .eq('id', studentId)
-      .single();
-
+    // Get current student data - prioritize student_profiles
     const { data: profileData, error: profileError } = await supabase
       .from('student_profiles')
       .select('coins, spent_coins, user_id')
       .eq('user_id', studentId)
       .single();
 
-    // Use profile data if available, otherwise fallback to student data
-    const currentCoins = profileData?.coins ?? studentData?.coins ?? 0;
-    const currentSpentCoins = profileData?.spent_coins ?? 0;
+    let currentCoins = 0;
+    let currentSpentCoins = 0;
 
+    if (profileData) {
+      currentCoins = profileData.coins || 0;
+      currentSpentCoins = profileData.spent_coins || 0;
+      console.log("💰 Using profile data - Current coins:", currentCoins);
+    } else {
+      // Fallback to students table
+      const { data: studentData, error: studentError } = await supabase
+        .from('students')
+        .select('coins, id')
+        .eq('id', studentId)
+        .single();
+
+      if (studentError || !studentData) {
+        console.error("❌ Student not found:", studentError);
+        return { success: false, error: "Student not found" };
+      }
+
+      currentCoins = studentData.coins || 0;
+      console.log("💰 Using student data - Current coins:", currentCoins);
+    }
+
+    // Check if student has enough coins
     if (currentCoins < price) {
       console.error("❌ Insufficient coins:", currentCoins, "< required:", price);
       return { success: false, error: `Not enough coins! You need ${price} coins but only have ${currentCoins}.` };
     }
 
-    // Update coins in both tables (if they exist)
     const newCoins = currentCoins - price;
     const newSpentCoins = currentSpentCoins + price;
 
-    // Update student table
-    if (studentData) {
+    // Start transaction: Update coins first
+    if (profileData) {
+      console.log("🔄 Updating student_profiles coins...");
+      const { error: profileUpdateError } = await supabase
+        .from('student_profiles')
+        .update({ 
+          coins: newCoins,
+          spent_coins: newSpentCoins
+        })
+        .eq('user_id', studentId);
+
+      if (profileUpdateError) {
+        console.error("❌ Failed to update profile coins:", profileUpdateError);
+        return { success: false, error: "Failed to deduct coins from profile" };
+      }
+    } else {
+      console.log("🔄 Updating students coins...");
       const { error: studentUpdateError } = await supabase
         .from('students')
         .update({ coins: newCoins })
@@ -185,32 +215,10 @@ export const purchasePokemonFromShop = async (
       }
     }
 
-    // Update profile table
-    if (profileData) {
-      const { error: profileUpdateError } = await supabase
-        .from('student_profiles')
-        .update({ 
-          coins: newCoins,
-          spent_coins: newSpentCoins
-        })
-        .eq('user_id', studentId);
-
-      if (profileUpdateError) {
-        console.error("❌ Failed to update profile coins:", profileUpdateError);
-        // Rollback student coins if profile update fails
-        if (studentData) {
-          await supabase
-            .from('students')
-            .update({ coins: currentCoins })
-            .eq('id', studentId);
-        }
-        return { success: false, error: "Failed to deduct coins from profile" };
-      }
-    }
-
     console.log("✅ Coins deducted successfully, new balance:", newCoins);
 
     // Add Pokemon to collection
+    console.log("🔄 Adding Pokemon to collection...");
     const { data: collection, error: collectionError } = await supabase
       .from('student_pokemon_collection')
       .insert({
@@ -224,13 +232,8 @@ export const purchasePokemonFromShop = async (
     if (collectionError) {
       console.error("❌ Failed to add Pokemon to collection:", collectionError);
       
-      // Refund coins if collection insert failed
-      if (studentData) {
-        await supabase
-          .from('students')
-          .update({ coins: currentCoins })
-          .eq('id', studentId);
-      }
+      // Rollback coin deduction
+      console.log("🔄 Rolling back coin deduction...");
       if (profileData) {
         await supabase
           .from('student_profiles')
@@ -239,21 +242,31 @@ export const purchasePokemonFromShop = async (
             spent_coins: currentSpentCoins
           })
           .eq('user_id', studentId);
+      } else {
+        await supabase
+          .from('students')
+          .update({ coins: currentCoins })
+          .eq('id', studentId);
       }
         
       return { success: false, error: "Failed to add Pokemon to collection" };
     }
 
     // Log coin transaction
-    await supabase
-      .from('coin_history')
-      .insert({
-        user_id: studentId,
-        change_amount: -price,
-        reason: `Shop purchase: ${pokemon.name}`,
-        related_entity_type: 'pokemon_purchase',
-        related_entity_id: collection.id
-      });
+    try {
+      await supabase
+        .from('coin_history')
+        .insert({
+          user_id: studentId,
+          change_amount: -price,
+          reason: `Shop purchase: ${pokemon.name}`,
+          related_entity_type: 'pokemon_purchase',
+          related_entity_id: collection.id
+        });
+    } catch (historyError) {
+      console.warn("⚠️ Failed to log coin history:", historyError);
+      // Don't fail the whole transaction for history logging
+    }
 
     console.log("✅ Pokemon purchase completed successfully:", collection);
     return { 

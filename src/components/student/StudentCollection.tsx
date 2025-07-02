@@ -52,7 +52,17 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
       const collection = await getStudentPokemonCollection(studentId);
       
       console.log("✅ Pokemon collection loaded:", collection?.length || 0);
-      setPokemonCollection(collection || []);
+      console.log("📦 Collection data:", collection);
+      
+      // Filter out any items without proper pokemon_pool data
+      const validCollection = collection.filter(item => 
+        item.pokemon_pool && 
+        item.pokemon_pool.name && 
+        item.pokemon_pool.id
+      );
+      
+      console.log("✅ Valid collection items:", validCollection.length);
+      setPokemonCollection(validCollection || []);
     } catch (error) {
       console.error("❌ Error loading Pokemon collection:", error);
       setError("Failed to load Pokemon collection");
@@ -151,7 +161,10 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
           {pokemonCollection.map((item) => {
             const pokemon = item.pokemon_pool;
-            if (!pokemon) return null;
+            if (!pokemon) {
+              console.warn("⚠️ Missing pokemon_pool data for item:", item);
+              return null;
+            }
 
             return (
               <Card key={item.id} className="hover:shadow-md transition-shadow">

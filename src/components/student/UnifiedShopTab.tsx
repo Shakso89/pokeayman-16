@@ -75,7 +75,9 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
       
       if (result.success) {
         toast.success(`Successfully purchased ${pokemon.name}! Added to your collection.`);
-        onDataUpdate(); // This will refresh coins and collection
+        
+        // Refresh data immediately
+        onDataUpdate();
         
         // Additional refresh after a short delay to ensure sync
         setTimeout(() => {
