@@ -7,37 +7,24 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import PokemonOrbit from "@/components/PokemonOrbit";
 import { toast } from "@/hooks/use-toast";
 import { useStudentAuth } from "@/hooks/useStudentAuth";
+import { useStudentSession } from "@/hooks/useStudentSession";
 import { Loader2 } from "lucide-react";
 
 const StudentLogin: React.FC = () => {
   const navigate = useNavigate();
   const { isLoading: studentAuthLoading, loginStudent } = useStudentAuth();
+  const { isLoggedIn, loading: sessionLoading } = useStudentSession();
 
   const [usernameOrEmail, setUsernameOrEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isProcessing, setIsProcessing] = useState(false);
-  const [checkingSession, setCheckingSession] = useState(true);
 
   useEffect(() => {
-    const checkSession = async () => {
-      try {
-        const isLoggedIn = localStorage.getItem("isLoggedIn") === "true";
-        const userType = localStorage.getItem("userType");
-        
-        if (isLoggedIn && userType === "student") {
-          console.log("Student already logged in, redirecting to dashboard");
-          navigate("/student-dashboard", { replace: true });
-          return;
-        }
-      } catch (err) {
-        console.log("Session check error:", err);
-      }
-      
-      setCheckingSession(false);
-    };
-    
-    checkSession();
-  }, [navigate]);
+    if (!sessionLoading && isLoggedIn) {
+      console.log("Student already logged in, redirecting to dashboard");
+      navigate("/student-dashboard", { replace: true });
+    }
+  }, [isLoggedIn, sessionLoading, navigate]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -88,7 +75,7 @@ const StudentLogin: React.FC = () => {
     }
   };
 
-  if (checkingSession) {
+  if (sessionLoading) {
     return (
       <div className="min-h-screen flex flex-col items-center justify-center bg-gradient-to-br from-purple-400 via-pink-500 to-red-500 p-4">
         <img

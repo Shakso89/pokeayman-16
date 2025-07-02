@@ -465,53 +465,6 @@ export type Database = {
         }
         Relationships: []
       }
-      pokemon_collections: {
-        Row: {
-          id: string
-          obtained_at: string
-          pokemon_catalog: Json | null
-          pokemon_id: string
-          pokemon_image: string | null
-          pokemon_level: number | null
-          pokemon_name: string | null
-          pokemon_rarity: string | null
-          pokemon_type: string | null
-          student_id: string
-        }
-        Insert: {
-          id?: string
-          obtained_at?: string
-          pokemon_catalog?: Json | null
-          pokemon_id: string
-          pokemon_image?: string | null
-          pokemon_level?: number | null
-          pokemon_name?: string | null
-          pokemon_rarity?: string | null
-          pokemon_type?: string | null
-          student_id: string
-        }
-        Update: {
-          id?: string
-          obtained_at?: string
-          pokemon_catalog?: Json | null
-          pokemon_id?: string
-          pokemon_image?: string | null
-          pokemon_level?: number | null
-          pokemon_name?: string | null
-          pokemon_rarity?: string | null
-          pokemon_type?: string | null
-          student_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "pokemon_collections_student_id_fkey"
-            columns: ["student_id"]
-            isOneToOne: false
-            referencedRelation: "student_profiles"
-            referencedColumns: ["user_id"]
-          },
-        ]
-      }
       pokemon_pool: {
         Row: {
           created_at: string

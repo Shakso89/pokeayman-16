@@ -1,6 +1,4 @@
-
 import { supabase } from '@/integrations/supabase/client';
-import { removeCoinsFromStudentEnhanced } from '@/services/enhancedCoinService';
 
 export interface StudentPokemonCollection {
   id: string;
@@ -148,40 +146,69 @@ export const purchasePokemonFromShop = async (
     const price = pokemon.price || 15;
     console.log("💰 Pokemon price:", price);
 
-    // Check if student has enough coins and get current data
+    // Get current student data from both tables
     const { data: studentData, error: studentError } = await supabase
+      .from('students')
+      .select('coins, id')
+      .eq('id', studentId)
+      .single();
+
+    const { data: profileData, error: profileError } = await supabase
       .from('student_profiles')
-      .select('coins, spent_coins')
+      .select('coins, spent_coins, user_id')
       .eq('user_id', studentId)
       .single();
 
-    if (studentError || !studentData) {
-      console.error("❌ Student not found:", studentError);
-      return { success: false, error: "Student not found" };
+    // Use profile data if available, otherwise fallback to student data
+    const currentCoins = profileData?.coins ?? studentData?.coins ?? 0;
+    const currentSpentCoins = profileData?.spent_coins ?? 0;
+
+    if (currentCoins < price) {
+      console.error("❌ Insufficient coins:", currentCoins, "< required:", price);
+      return { success: false, error: `Not enough coins! You need ${price} coins but only have ${currentCoins}.` };
     }
 
-    if (studentData.coins < price) {
-      console.error("❌ Insufficient coins:", studentData.coins, "< required:", price);
-      return { success: false, error: `Not enough coins! You need ${price} coins but only have ${studentData.coins}.` };
+    // Update coins in both tables (if they exist)
+    const newCoins = currentCoins - price;
+    const newSpentCoins = currentSpentCoins + price;
+
+    // Update student table
+    if (studentData) {
+      const { error: studentUpdateError } = await supabase
+        .from('students')
+        .update({ coins: newCoins })
+        .eq('id', studentId);
+
+      if (studentUpdateError) {
+        console.error("❌ Failed to update student coins:", studentUpdateError);
+        return { success: false, error: "Failed to deduct coins from student record" };
+      }
     }
 
-    // Start transaction by deducting coins first
-    const { data: updatedStudent, error: coinError } = await supabase
-      .from('student_profiles')
-      .update({ 
-        coins: studentData.coins - price,
-        spent_coins: (studentData.spent_coins || 0) + price
-      })
-      .eq('user_id', studentId)
-      .select()
-      .single();
+    // Update profile table
+    if (profileData) {
+      const { error: profileUpdateError } = await supabase
+        .from('student_profiles')
+        .update({ 
+          coins: newCoins,
+          spent_coins: newSpentCoins
+        })
+        .eq('user_id', studentId);
 
-    if (coinError || !updatedStudent) {
-      console.error("❌ Failed to deduct coins:", coinError);
-      return { success: false, error: "Failed to deduct coins" };
+      if (profileUpdateError) {
+        console.error("❌ Failed to update profile coins:", profileUpdateError);
+        // Rollback student coins if profile update fails
+        if (studentData) {
+          await supabase
+            .from('students')
+            .update({ coins: currentCoins })
+            .eq('id', studentId);
+        }
+        return { success: false, error: "Failed to deduct coins from profile" };
+      }
     }
 
-    console.log("✅ Coins deducted successfully, new balance:", updatedStudent.coins);
+    console.log("✅ Coins deducted successfully, new balance:", newCoins);
 
     // Add Pokemon to collection
     const { data: collection, error: collectionError } = await supabase
@@ -198,13 +225,21 @@ export const purchasePokemonFromShop = async (
       console.error("❌ Failed to add Pokemon to collection:", collectionError);
       
       // Refund coins if collection insert failed
-      await supabase
-        .from('student_profiles')
-        .update({ 
-          coins: studentData.coins,
-          spent_coins: (studentData.spent_coins || 0)
-        })
-        .eq('user_id', studentId);
+      if (studentData) {
+        await supabase
+          .from('students')
+          .update({ coins: currentCoins })
+          .eq('id', studentId);
+      }
+      if (profileData) {
+        await supabase
+          .from('student_profiles')
+          .update({ 
+            coins: currentCoins,
+            spent_coins: currentSpentCoins
+          })
+          .eq('user_id', studentId);
+      }
         
       return { success: false, error: "Failed to add Pokemon to collection" };
     }
@@ -332,25 +367,8 @@ export const addPokemonToCollection = async (
       return { success: true };
     }
 
-    // Fallback to pokemon_collections table
-    console.log("🔄 Trying fallback insertion to pokemon_collections...");
-    const { error: fallbackError } = await supabase
-      .from('pokemon_collections')
-      .insert({
-        student_id: studentId,
-        pokemon_id: pokemonId,
-        pokemon_name: `Pokemon #${pokemonId}`,
-        pokemon_type: 'normal',
-        pokemon_rarity: 'common'
-      });
-
-    if (fallbackError) {
-      console.error("❌ Failed to add Pokemon to collection:", fallbackError);
-      return { success: false, error: fallbackError.message };
-    }
-
-    console.log("✅ Pokemon added to pokemon_collections");
-    return { success: true };
+    console.error("❌ Failed to add Pokemon to collection:", mainError);
+    return { success: false, error: mainError.message };
 
   } catch (error) {
     console.error("❌ Unexpected error adding Pokemon:", error);

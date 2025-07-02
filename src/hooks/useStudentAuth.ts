@@ -39,6 +39,28 @@ export const useStudentAuth = () => {
         .update({ last_login: new Date().toISOString() })
         .eq('id', student.id);
 
+      // Ensure student profile exists
+      const { data: existingProfile } = await supabase
+        .from('student_profiles')
+        .select('*')
+        .eq('user_id', student.id)
+        .single();
+
+      if (!existingProfile) {
+        // Create student profile if it doesn't exist
+        await supabase
+          .from('student_profiles')
+          .insert({
+            user_id: student.id,
+            username: student.username,
+            display_name: student.display_name || student.username,
+            class_id: student.class_id,
+            school_id: student.school_id,
+            teacher_id: student.teacher_id,
+            coins: student.coins || 0
+          });
+      }
+
       // Clear any existing auth state first
       localStorage.clear();
 
@@ -49,6 +71,7 @@ export const useStudentAuth = () => {
       localStorage.setItem("studentUsername", student.username);
       localStorage.setItem("studentName", student.display_name || student.username);
       localStorage.setItem("studentDisplayName", student.display_name || student.username);
+      if (student.class_id) localStorage.setItem("studentClassId", student.class_id);
 
       console.log("✅ Student login successful");
       return { success: true };
@@ -69,6 +92,7 @@ export const useStudentAuth = () => {
       localStorage.removeItem("studentUsername");
       localStorage.removeItem("studentName");
       localStorage.removeItem("studentDisplayName");
+      localStorage.removeItem("studentClassId");
       
       return { success: true };
     } catch (error) {
