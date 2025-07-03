@@ -10,6 +10,7 @@ import { Trophy, Book } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { getStudentCoinsEnhanced } from "@/services/enhancedCoinService";
+import { robustSupabaseQuery, getNetworkStatus } from "@/services/networkService";
 
 // Import our components
 import StudentHeader from "@/components/student/StudentHeader";
@@ -50,6 +51,7 @@ const StudentDashboard: React.FC = () => {
   const [studentClasses, setStudentClasses] = useState<string[]>([]);
   const [dataLoading, setDataLoading] = useState(true);
   const [refreshKey, setRefreshKey] = useState(0);
+  const [networkIssue, setNetworkIssue] = useState(false);
 
   // Enhanced data loading function with better error handling
   const loadStudentData = useCallback(async () => {
@@ -61,54 +63,92 @@ const StudentDashboard: React.FC = () => {
 
     try {
       setDataLoading(true);
+      setNetworkIssue(false);
       console.log("🔄 Loading enhanced student data for:", studentId);
 
-      // Get student profile with better error handling
-      const { data: profileData, error: profileError } = await supabase
-        .from('student_profiles')
-        .select('*')
-        .eq('user_id', studentId)
-        .maybeSingle();
+      // Check network status first
+      const networkStatus = getNetworkStatus();
+      if (!networkStatus.isOnline) {
+        console.warn("📡 No internet connection");
+        setNetworkIssue(true);
+        setDataLoading(false);
+        return;
+      }
+
+      // Get student profile with robust error handling
+      const profileResult = await robustSupabaseQuery(async () => {
+        const result = await supabase
+          .from('student_profiles')
+          .select('*')
+          .eq('user_id', studentId)
+          .maybeSingle();
+        return result;
+      });
+
+      if (profileResult.networkIssue) {
+        console.error("🌐 Network connectivity issue detected");
+        setNetworkIssue(true);
+        setDataLoading(false);
+        return;
+      }
+
+      const { data: profileData, error: profileError } = profileResult;
 
       if (profileError) {
         console.error("❌ Error loading student profile:", profileError);
         
         // Fallback to students table if profile not found
-        const { data: studentData, error: studentError } = await supabase
-          .from('students')
-          .select('*')
-          .eq('user_id', studentId)
-          .maybeSingle();
+        const studentResult = await robustSupabaseQuery(async () => {
+          const result = await supabase
+            .from('students')
+            .select('*')
+            .eq('user_id', studentId)
+            .maybeSingle();
+          return result;
+        });
+
+        if (studentResult.networkIssue) {
+          console.error("🌐 Students table query failed due to network issue");
+          setNetworkIssue(true);
+          setDataLoading(false);
+          return;
+        }
+
+        const { data: studentData, error: studentError } = studentResult;
 
         if (!studentError && studentData) {
+          // Type assertion for studentData
+          const student = studentData as any;
+          
           // Sync to student_profiles for future use
           const { data: syncedProfile } = await supabase
             .from('student_profiles')
             .upsert({
-              user_id: studentData.user_id || studentData.id,
-              username: studentData.username,
-              display_name: studentData.display_name || studentData.username,
-              coins: studentData.coins || 0,
+              user_id: student.user_id || student.id,
+              username: student.username,
+              display_name: student.display_name || student.username,
+              coins: student.coins || 0,
               spent_coins: 0,
-              school_id: studentData.school_id,
-              class_id: studentData.class_id,
-              teacher_id: studentData.teacher_id,
-              avatar_url: studentData.profile_photo,
-              school_name: studentData.school_name
+              school_id: student.school_id,
+              class_id: student.class_id,
+              teacher_id: student.teacher_id,
+              avatar_url: student.profile_photo,
+              school_name: student.school_name
             }, {
               onConflict: 'user_id'
             })
             .select()
             .single();
 
-          setStudentInfo(syncedProfile || studentData);
-          setCoins(studentData.coins || 0);
-          setStudentClasses(studentData.class_id ? [studentData.class_id] : []);
+          setStudentInfo(syncedProfile || student);
+          setCoins(student.coins || 0);
+          setStudentClasses(student.class_id ? [student.class_id] : []);
         }
       } else if (profileData) {
-        setStudentInfo(profileData);
-        setCoins(profileData.coins || 0);
-        setStudentClasses(profileData.class_id ? [profileData.class_id] : []);
+        const profile = profileData as any;
+        setStudentInfo(profile);
+        setCoins(profile.coins || 0);
+        setStudentClasses(profile.class_id ? [profile.class_id] : []);
       }
 
       // Get accurate coin amount
@@ -122,9 +162,10 @@ const StudentDashboard: React.FC = () => {
       console.log("✅ Student data loaded successfully");
     } catch (error) {
       console.error("❌ Error loading student data:", error);
+      setNetworkIssue(true);
       toast({
-        title: "Error",
-        description: "Failed to load student data",
+        title: "Connection Issue",
+        description: "Having trouble connecting to the server. Please check your internet connection.",
         variant: "destructive"
       });
     } finally {
@@ -310,7 +351,18 @@ const StudentDashboard: React.FC = () => {
     <div className="min-h-screen bg-transparent">
       <NavBar userType="student" userName={studentInfo?.display_name || studentName} userAvatar={avatar} />
       
-      <div className="container mx-auto py-4 md:py-8 px-2 md:px-4">
+        <div className="container mx-auto py-4 md:py-8 px-2 md:px-4">
+        {networkIssue && (
+          <Card className="mb-4 border-yellow-500 bg-yellow-50">
+            <CardContent className="py-4">
+              <div className="flex items-center gap-2 text-yellow-700">
+                <span>⚠️</span>
+                <span>Connection issue detected. Some features may not work properly. Please check your internet connection.</span>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+        
         <StudentHeader 
           studentName={studentInfo?.display_name || studentName} 
           coins={coins} 
