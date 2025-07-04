@@ -36,10 +36,20 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
   try {
     console.log("🔍 Unified Pokemon Service: Fetching collection for:", studentId);
     
-    if (!studentId || studentId === 'undefined') {
+    if (!studentId || studentId === 'undefined' || studentId === '') {
       console.warn("❌ Invalid studentId provided:", studentId);
       return [];
     }
+
+    // First, try to get the student's actual user_id from student_profiles
+    const { data: studentProfile } = await supabase
+      .from('student_profiles')
+      .select('user_id, id')
+      .eq('user_id', studentId)
+      .single();
+
+    const targetStudentId = studentProfile?.user_id || studentId;
+    console.log("🔍 Using target student ID:", targetStudentId);
 
     const { data: collection, error } = await supabase
       .from('student_pokemon_collection')
@@ -49,7 +59,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
         pokemon_id,
         awarded_at,
         source,
-        pokemon_pool (
+        pokemon_pool!fk_pokemon_pool (
           id,
           name,
           image_url,
@@ -61,11 +71,12 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
           power_stats
         )
       `)
-      .eq('student_id', studentId)
+      .eq('student_id', targetStudentId)
       .order('awarded_at', { ascending: false });
 
     if (error) {
       console.error("❌ Error fetching Pokemon collection:", error);
+      console.error("❌ Error details:", error.message, error.details);
       return [];
     }
 
@@ -77,6 +88,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
       pokemon_pool: Array.isArray(item.pokemon_pool) ? item.pokemon_pool[0] : item.pokemon_pool
     })) || [];
 
+    console.log("✅ Transformed collection:", transformedCollection);
     return transformedCollection;
 
   } catch (error) {

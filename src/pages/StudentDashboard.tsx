@@ -23,9 +23,22 @@ import UnifiedShopTab from "@/components/student/UnifiedShopTab";
 const StudentDashboard: React.FC = () => {
   const { isLoggedIn, userType, isAdmin, loading } = useAuth();
   
-  // Get the actual student ID from localStorage
+  // Get the actual student ID from localStorage or use auth.uid()
   const storedStudentId = localStorage.getItem("studentId");
-  const studentId = storedStudentId || "";
+  
+  // Get current user from Supabase auth
+  const [currentUser, setCurrentUser] = useState<any>(null);
+  
+  useEffect(() => {
+    const getCurrentUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      setCurrentUser(user);
+    };
+    getCurrentUser();
+  }, []);
+  
+  // Use auth.uid() if available, otherwise fall back to localStorage
+  const studentId = currentUser?.id || storedStudentId || "";
   const studentName = localStorage.getItem("studentName") || localStorage.getItem("studentUsername") || "";
   const schoolId = localStorage.getItem("studentSchoolId") || "default-school-1";
   
