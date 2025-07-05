@@ -214,8 +214,11 @@ const StudentDashboard: React.FC = () => {
         },
         (payload) => {
           console.log('🔄 Real-time profile update:', payload);
-          loadStudentData();
-          setRefreshKey(prev => prev + 1);
+          // Avoid infinite loops by only refreshing on actual changes
+          if (payload.eventType !== 'UPDATE' || payload.new !== payload.old) {
+            loadStudentData();
+            setRefreshKey(prev => prev + 1);
+          }
         }
       )
       .subscribe();
