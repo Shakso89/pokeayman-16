@@ -115,7 +115,7 @@ const StudentDashboard: React.FC = () => {
           const result = await supabase
             .from('students')
             .select('*')
-            .eq('user_id', studentId)
+            .eq('id', studentId)
             .maybeSingle();
           return result;
         });
