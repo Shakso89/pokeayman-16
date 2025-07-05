@@ -40,6 +40,7 @@ export const useAuth = () => {
     if (isLoggedIn && userType) {
       const userId = userType === "teacher" ? teacherId : studentId;
       if (userId) {
+        console.log("Setting auth state:", { isLoggedIn: true, userType, userId, isAdmin });
         updateAuthState({
           isLoggedIn: true,
           userType,
@@ -52,6 +53,15 @@ export const useAuth = () => {
       }
     }
     
+    console.log("Auth state check failed - clearing state");
+    updateAuthState({
+      isLoggedIn: false,
+      userType: null,
+      userId: null,
+      isAdmin: false,
+      session: null,
+      user: null
+    });
     return false;
   };
 

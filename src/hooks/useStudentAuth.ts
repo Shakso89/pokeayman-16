@@ -72,6 +72,10 @@ export const useStudentAuth = () => {
       localStorage.setItem("studentName", student.display_name || student.username);
       localStorage.setItem("studentDisplayName", student.display_name || student.username);
       if (student.class_id) localStorage.setItem("studentClassId", student.class_id);
+      if (student.school_id) localStorage.setItem("studentSchoolId", student.school_id);
+
+      // Trigger auth state refresh in the main auth context
+      window.dispatchEvent(new Event('storage'));
 
       console.log("✅ Student login successful");
       return { success: true };

@@ -52,10 +52,8 @@ const StudentLogin: React.FC = () => {
           description: "Login successful",
         });
         
-        // Add a small delay to ensure localStorage is set
-        setTimeout(() => {
-          navigate("/student-dashboard", { replace: true });
-        }, 100);
+        // Force refresh to ensure auth state is updated
+        window.location.href = "/student-dashboard";
       } else {
         toast({
           title: "Login Error",
