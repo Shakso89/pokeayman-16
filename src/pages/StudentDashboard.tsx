@@ -443,16 +443,10 @@ const StudentDashboard: React.FC = () => {
             </TabsContent>
             
             <TabsContent value="my-pokemons" className="mt-4">
-              {dataLoading ? (
-                <div className="flex justify-center py-8">
-                  <div className="text-gray-500">{t("loading-collection")}</div>
-                </div>
-              ) : (
-                <StudentCollection 
-                  studentId={studentId} 
-                  key={`collection-${refreshKey}`}
-                />
-              )}
+              <StudentCollection 
+                studentId={studentId} 
+                key={`collection-${refreshKey}`}
+              />
             </TabsContent>
 
             <TabsContent value="shop" className="mt-4">

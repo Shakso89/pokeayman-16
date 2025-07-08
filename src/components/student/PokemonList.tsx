@@ -64,9 +64,13 @@ const PokemonList: React.FC<PokemonListProps> = ({
                 <div className="flex flex-col items-center">
                   <div className="w-20 h-20 mb-2">
                     <img
-                      src={pokemon.image_url}
+                      src={pokemon.image_url || '/placeholder.svg'}
                       alt={pokemon.name}
                       className="w-full h-full object-contain"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "/placeholder.svg";
+                      }}
                     />
                   </div>
                   <h3 className="text-sm font-medium text-center">{pokemon.name}</h3>
