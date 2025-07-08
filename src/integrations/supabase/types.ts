@@ -509,6 +509,44 @@ export type Database = {
         }
         Relationships: []
       }
+      school_pokemon_pools: {
+        Row: {
+          assigned_at: string | null
+          assigned_to: string | null
+          created_at: string
+          id: string
+          is_assigned: boolean | null
+          pokemon_id: string
+          school_id: string
+        }
+        Insert: {
+          assigned_at?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          is_assigned?: boolean | null
+          pokemon_id: string
+          school_id: string
+        }
+        Update: {
+          assigned_at?: string | null
+          assigned_to?: string | null
+          created_at?: string
+          id?: string
+          is_assigned?: boolean | null
+          pokemon_id?: string
+          school_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "fk_school_pokemon_pool_pokemon"
+            columns: ["pokemon_id"]
+            isOneToOne: false
+            referencedRelation: "pokemon_pool"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       schools: {
         Row: {
           created_at: string

@@ -87,7 +87,7 @@ export const getUserAssignedPokemon = async (userId: string): Promise<Pokemon[]>
     const { data, error } = await supabase
       .from('school_pokemon_pools')
       .select(`
-        pokemon_pool!inner(*)
+        pokemon_pool!fk_school_pokemon_pool_pokemon (*)
       `)
       .eq('assigned_to', userId)
       .eq('is_assigned', true);

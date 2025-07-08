@@ -57,7 +57,7 @@ export const getSchoolPokemonPool = async (schoolId: string): Promise<SchoolPool
     .from('school_pokemon_pools')
     .select(`
       id,
-      pokemon_pool!inner(*)
+      pokemon_pool!fk_school_pokemon_pool_pokemon (*)
     `)
     .eq('school_id', schoolId);
 
