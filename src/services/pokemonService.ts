@@ -23,6 +23,7 @@ export interface StudentPokemonCollectionItem {
   source: string;
   pokemon?: PokemonCatalogItem;
   pokemon_catalog?: PokemonCatalogItem;
+  pokemon_pool?: PokemonCatalogItem;
 }
 
 export interface StudentPokemonCollection {

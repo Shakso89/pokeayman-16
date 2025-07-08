@@ -7,7 +7,7 @@ import { Pokemon } from "@/types/pokemon";
 export const getSchoolPokemonPool = async (schoolId: string): Promise<SchoolPokemonPool[]> => {
   try {
     const { data, error } = await supabase
-      .from('pokemon_pools')
+      .from('school_pokemon_pools')
       .select('*')
       .eq('school_id', schoolId);
 
@@ -37,7 +37,7 @@ export const assignPokemonToUser = async (
 ): Promise<boolean> => {
   try {
     const { error } = await supabase
-      .from('pokemon_pools')
+      .from('school_pokemon_pools')
       .update({
         is_assigned: true,
         assigned_to: userId,
@@ -61,7 +61,7 @@ export const assignPokemonToUser = async (
 export const unassignPokemonFromUser = async (poolId: string): Promise<boolean> => {
   try {
     const { error } = await supabase
-      .from('pokemon_pools')
+      .from('school_pokemon_pools')
       .update({
         is_assigned: false,
         assigned_to: null,
@@ -85,9 +85,9 @@ export const unassignPokemonFromUser = async (poolId: string): Promise<boolean> 
 export const getUserAssignedPokemon = async (userId: string): Promise<Pokemon[]> => {
   try {
     const { data, error } = await supabase
-      .from('pokemon_pools')
+      .from('school_pokemon_pools')
       .select(`
-        pokemon_catalog!inner(*)
+        pokemon_pool!inner(*)
       `)
       .eq('assigned_to', userId)
       .eq('is_assigned', true);
@@ -98,15 +98,15 @@ export const getUserAssignedPokemon = async (userId: string): Promise<Pokemon[]>
     }
 
     return data.map((item: any) => ({
-      id: item.pokemon_catalog.id,
-      name: item.pokemon_catalog.name,
-      image_url: item.pokemon_catalog.image || '',
-      type_1: item.pokemon_catalog.type || 'normal',
-      type_2: undefined,
-      rarity: item.pokemon_catalog.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
-      price: 15,
-      description: undefined,
-      power_stats: item.pokemon_catalog.power_stats
+      id: item.pokemon_pool.id,
+      name: item.pokemon_pool.name,
+      image_url: item.pokemon_pool.image_url || '',
+      type_1: item.pokemon_pool.type_1 || 'normal',
+      type_2: item.pokemon_pool.type_2,
+      rarity: item.pokemon_pool.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
+      price: item.pokemon_pool.price || 15,
+      description: item.pokemon_pool.description,
+      power_stats: item.pokemon_pool.power_stats
     }));
   } catch (error) {
     console.error('Error fetching user Pokemon:', error);

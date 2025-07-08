@@ -48,24 +48,24 @@ const ReportsPage: React.FC = () => {
       const reportsPromises = (studentsData || []).map(async (student) => {
         // Get Pokemon count and data
         const { data: pokemonData } = await supabase
-          .from("pokemon_collections")
+          .from("student_pokemon_collection")
           .select(`
             *,
-            pokemon_catalog!inner(*)
+            pokemon_pool!fk_pokemon_pool (*)
           `)
           .eq("student_id", student.id);
 
         // Transform Pokemon data
         const pokemon: Pokemon[] = (pokemonData || []).map((item: any) => ({
-          id: item.pokemon_catalog.id,
-          name: item.pokemon_catalog.name,
-          image_url: item.pokemon_catalog.image || '',
-          type_1: item.pokemon_catalog.type || 'normal',
-          type_2: undefined,
-          rarity: item.pokemon_catalog.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
-          price: 15,
-          description: undefined,
-          power_stats: item.pokemon_catalog.power_stats
+          id: item.pokemon_pool.id,
+          name: item.pokemon_pool.name,
+          image_url: item.pokemon_pool.image_url || '',
+          type_1: item.pokemon_pool.type_1 || 'normal',
+          type_2: item.pokemon_pool.type_2,
+          rarity: item.pokemon_pool.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
+          price: item.pokemon_pool.price || 15,
+          description: item.pokemon_pool.description,
+          power_stats: item.pokemon_pool.power_stats
         }));
 
         // Get homework submissions count

@@ -75,7 +75,7 @@ const SchoolRankingTab: React.FC<SchoolRankingTabProps> = ({ schoolId }) => {
       // and we can process successful ones while noting failures.
       const studentsWithCountsPromises = studentsData.map(async (student) => {
         const { data: pokemonData, error: pokemonError } = await supabase
-          .from('pokemon_collections')
+          .from('student_pokemon_collection')
           .select('id') // Only select ID for count, more efficient
           .eq('student_id', student.id);
 

@@ -77,7 +77,7 @@ const StudentProfilePage: React.FC = () => {
           {
             event: '*',
             schema: 'public',
-            table: 'pokemon_collections',
+            table: 'student_pokemon_collection',
             filter: `student_id=eq.${studentId}`
           },
           () => {
@@ -470,7 +470,7 @@ const StudentProfilePage: React.FC = () => {
                 ) : pokemonCollection.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
                     {pokemonCollection.map((collection) => {
-                      const pokemon = collection.pokemon_catalog;
+                      const pokemon = collection.pokemon_pool;
                       if (!pokemon) return null;
 
                       return (

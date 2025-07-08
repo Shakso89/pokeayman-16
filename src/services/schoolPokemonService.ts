@@ -134,11 +134,11 @@ export const assignPokemonFromPool = async (schoolId: string, studentId: string)
     
     // Add to student's collection
     const { error } = await supabase
-      .from('pokemon_collections')
+      .from('student_pokemon_collection')
       .insert({
         student_id: studentId,
-        pokemon_id: parseInt(selectedPokemon.id),
-        school_id: schoolId
+        pokemon_id: selectedPokemon.id,
+        source: 'school_pool'
       });
     
     if (error) {

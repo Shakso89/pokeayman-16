@@ -69,7 +69,7 @@ const StudentRankingsPage: React.FC = () => {
         // Get Pokemon counts for each student
         const studentsWithPokemon = await Promise.all((studentsData || []).map(async (student) => {
           const { data: pokemonData } = await supabase
-            .from('pokemon_collections')
+            .from('student_pokemon_collection')
             .select('id')
             .eq('student_id', student.user_id);
 

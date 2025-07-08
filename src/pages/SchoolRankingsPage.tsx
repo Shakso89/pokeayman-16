@@ -169,7 +169,7 @@ const SchoolRankingsPage: React.FC = () => {
           let pokemonCountMap = new Map();
           if (studentIds.length > 0) {
             const { data: pokemonCounts } = await supabase
-              .from('pokemon_collections')
+              .from('student_pokemon_collection')
               .select('student_id')
               .in('student_id', studentIds);
 

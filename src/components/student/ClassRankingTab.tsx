@@ -78,8 +78,11 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
         const studentsWithCounts = await Promise.all(
           (studentsData || []).map(async (student) => {
             const { data: pokemonData } = await supabase
-              .from('pokemon_collections')
-              .select('*, pokemon_catalog!inner(*)')
+              .from('student_pokemon_collection')
+              .select(`
+                *,
+                pokemon_pool!fk_pokemon_pool (*)
+              `)
               .eq('student_id', student.id);
 
             const pokemonCount = pokemonData?.length || 0;
@@ -121,22 +124,25 @@ const ClassRankingTab: React.FC<ClassRankingTabProps> = ({ classId }) => {
     setSelectedStudent(student);
     try {
       const { data, error } = await supabase
-        .from('pokemon_collections')
-        .select('*, pokemon_catalog!inner(*)')
+        .from('student_pokemon_collection')
+        .select(`
+          *,
+          pokemon_pool!fk_pokemon_pool (*)
+        `)
         .eq('student_id', student.id);
       
       if (error) throw error;
       
       const pokemons: Pokemon[] = (data || []).map((item: any) => ({
-        id: item.pokemon_catalog.id,
-        name: item.pokemon_catalog.name,
-        image_url: item.pokemon_catalog.image || '',
-        type_1: item.pokemon_catalog.type || 'normal',
-        type_2: undefined,
-        rarity: item.pokemon_catalog.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
-        price: 15,
-        description: undefined,
-        power_stats: item.pokemon_catalog.power_stats
+        id: item.pokemon_pool.id,
+        name: item.pokemon_pool.name,
+        image_url: item.pokemon_pool.image_url || '',
+        type_1: item.pokemon_pool.type_1 || 'normal',
+        type_2: item.pokemon_pool.type_2,
+        rarity: item.pokemon_pool.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
+        price: item.pokemon_pool.price || 15,
+        description: item.pokemon_pool.description,
+        power_stats: item.pokemon_pool.power_stats
       }));
       
       setStudentPokemons(pokemons);

@@ -8,7 +8,7 @@ export const initializeSchoolPokemonPool = async (schoolId: string): Promise<boo
   
   // First check if school already has a pool to avoid duplicates
   const { data: existingPool, error: checkError } = await supabase
-    .from('pokemon_pools')
+    .from('school_pokemon_pools')
     .select('id')
     .eq('school_id', schoolId)
     .limit(1);
@@ -24,7 +24,7 @@ export const initializeSchoolPokemonPool = async (schoolId: string): Promise<boo
   }
   
   const { data: catalog, error: catalogError } = await supabase
-    .from('pokemon_catalog')
+    .from('pokemon_pool')
     .select('id');
   
   if (catalogError || !catalog || catalog.length === 0) {
@@ -45,7 +45,7 @@ export const initializeSchoolPokemonPool = async (schoolId: string): Promise<boo
     pokemon_id: pokemon.id,
   }));
   const { error: insertError } = await supabase
-    .from('pokemon_pools')
+    .from('school_pokemon_pools')
     .insert(pokemonsToInsert);
   if (insertError) return false;
   return true;
@@ -54,26 +54,29 @@ export const initializeSchoolPokemonPool = async (schoolId: string): Promise<boo
 // Get school pool: just catalog (all available Pokémon can always be awarded, not depleted!)
 export const getSchoolPokemonPool = async (schoolId: string): Promise<SchoolPoolPokemon[] | null> => {
   const { data, error } = await supabase
-    .from('pokemon_pools')
-    .select('id, pokemon_catalog!inner(*)')
+    .from('school_pokemon_pools')
+    .select(`
+      id,
+      pokemon_pool!inner(*)
+    `)
     .eq('school_id', schoolId);
 
   if (error || !data) return [];
 
   const pool: SchoolPoolPokemon[] = data
     .map((item: any) => {
-      if (!item.pokemon_catalog) return null;
+      if (!item.pokemon_pool) return null;
       const pokemon: SchoolPoolPokemon = {
         poolEntryId: item.id,
-        id: item.pokemon_catalog.id,
-        name: item.pokemon_catalog.name,
-        image_url: item.pokemon_catalog.image,
-        type_1: item.pokemon_catalog.type,
-        rarity: item.pokemon_catalog.rarity,
-        price: item.pokemon_catalog.price || 15,
+        id: item.pokemon_pool.id,
+        name: item.pokemon_pool.name,
+        image_url: item.pokemon_pool.image_url,
+        type_1: item.pokemon_pool.type_1,
+        rarity: item.pokemon_pool.rarity,
+        price: item.pokemon_pool.price || 15,
       };
-      if (item.pokemon_catalog.power_stats) {
-        pokemon.power_stats = item.pokemon_catalog.power_stats;
+      if (item.pokemon_pool.power_stats) {
+        pokemon.power_stats = item.pokemon_pool.power_stats;
       }
       return pokemon;
     })
@@ -102,7 +105,7 @@ export const forceUpdateAllSchoolPools = async (): Promise<boolean> => {
       try {
         // Delete existing pool entries for this school
         const { error: deleteError } = await supabase
-          .from('pokemon_pools')
+          .from('school_pokemon_pools')
           .delete()
           .eq('school_id', school.id);
           

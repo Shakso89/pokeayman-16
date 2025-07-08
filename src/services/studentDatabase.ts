@@ -442,11 +442,11 @@ export const addPokemonToCollection = async (
 ): Promise<boolean> => {
   try {
     const { error } = await supabase
-      .from('pokemon_collections')
+      .from('student_pokemon_collection')
       .insert({
         student_id: studentId,
         pokemon_id: pokemonId,
-        school_id: schoolId
+        source: 'manual_award'
       });
 
     if (error) {
