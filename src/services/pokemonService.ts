@@ -22,7 +22,7 @@ export interface StudentPokemonCollectionItem {
   awarded_at: string;
   source: string;
   awarded_by?: string;
-  pokemon_pool?: PokemonCatalogItem;
+  pokemon_pool?: PokemonCatalogItem; // Changed from optional array to optional single object
 }
 
 // Get Pokemon catalog (all available Pokemon)
@@ -88,7 +88,19 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
     }
 
     console.log("✅ Pokemon collection loaded:", data?.length || 0);
-    return data || [];
+    
+    // Fix the type mismatch by ensuring pokemon_pool is a single object
+    const transformedData = data?.map(item => ({
+      id: item.id,
+      student_id: item.student_id,
+      pokemon_id: item.pokemon_id,
+      awarded_at: item.awarded_at,
+      source: item.source || 'unknown',
+      awarded_by: item.awarded_by,
+      pokemon_pool: Array.isArray(item.pokemon_pool) ? item.pokemon_pool[0] : item.pokemon_pool
+    })) || [];
+
+    return transformedData;
   } catch (error) {
     console.error("❌ Unexpected error fetching Pokemon collection:", error);
     return [];

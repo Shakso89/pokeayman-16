@@ -5,7 +5,7 @@ export interface RankingStudent {
   id: string;
   user_id: string;
   username: string;
-  display_name?: string;
+  display_name: string; // Changed from optional to required to match usage
   avatar_url?: string;
   coins: number;
   pokemon_count: number;
@@ -70,7 +70,7 @@ export const getStudentRankings = async (schoolId?: string): Promise<RankingStud
         id: profile.id,
         user_id: profile.user_id,
         username: profile.username,
-        display_name: profile.display_name,
+        display_name: profile.display_name || profile.username, // Ensure display_name is always set
         avatar_url: profile.avatar_url,
         coins: profile.coins || 0,
         pokemon_count: pokemonCount,
@@ -107,7 +107,7 @@ export const calculateGlobalStudentRankings = async (): Promise<StudentRanking[]
     const transformedRankings: StudentRanking[] = rankings.map(student => ({
       ...student,
       avatarUrl: student.avatar_url,
-      displayName: student.display_name || student.username,
+      displayName: student.display_name,
       pokemonCount: student.pokemon_count,
       pokemonValue: student.pokemon_count * 3,
       totalScore: student.total_score,

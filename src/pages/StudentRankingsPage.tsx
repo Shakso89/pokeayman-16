@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AppHeader from '@/components/AppHeader';
@@ -7,21 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, ArrowLeft, Trophy, Coins, Award, Crown } from 'lucide-react';
-import { getStudentRankings, getStudentRank } from '@/services/studentRankingService';
-
-interface RankingStudent {
-  id: string;
-  user_id: string;
-  username: string;
-  display_name: string;
-  coins: number;
-  pokemon_count: number;
-  total_score: number;
-  avatar_url?: string;
-  class_name?: string;
-  school_name?: string;
-  rank?: number;
-}
+import { getStudentRankings, getStudentRank, type RankingStudent } from '@/services/studentRankingService';
 
 const StudentRankingsPage: React.FC = () => {
   const navigate = useNavigate();
