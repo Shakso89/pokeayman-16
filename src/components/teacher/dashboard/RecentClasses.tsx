@@ -1,8 +1,10 @@
+
 import React from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Users, BookOpen, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 
 // Define a more specific type for a student.
 // Here, we only need to count them, so an array of objects with at least an 'id' is sufficient.
@@ -27,7 +29,7 @@ interface Class {
 interface RecentClassesProps {
   classes: Class[];
   loading: boolean;
-  onNavigateToClass: (classId: string) => void;
+  onNavigateToClass?: (classId: string) => void;
 }
 
 const RecentClasses: React.FC<RecentClassesProps> = ({
@@ -35,9 +37,18 @@ const RecentClasses: React.FC<RecentClassesProps> = ({
   loading,
   onNavigateToClass
 }) => {
+  const navigate = useNavigate();
+
   const handleViewClass = (classId: string) => {
     console.log("RecentClasses - Navigating to class details:", classId);
-    onNavigateToClass(classId);
+    
+    // Use the onNavigateToClass prop if provided, otherwise navigate directly
+    if (onNavigateToClass) {
+      onNavigateToClass(classId);
+    } else {
+      // Navigate directly to the class details page
+      navigate(`/class/${classId}`);
+    }
   };
 
   if (loading) {
