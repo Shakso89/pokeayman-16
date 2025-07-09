@@ -53,7 +53,7 @@ const StudentDetailPage: React.FC = () => {
       setLoading(true);
       console.log('🔍 Fetching student details for ID:', studentId);
 
-      // Get student basic info - try both students and student_profiles tables
+      // Get student basic info
       let studentData;
       let studentError;
       
@@ -95,21 +95,21 @@ const StudentDetailPage: React.FC = () => {
       }
 
       // Get student's Pokemon using the unified collection system
-      console.log('🔍 Fetching Pokemon collection...');
+      console.log('🔍 Fetching Pokemon collection using unified service...');
       const pokemonCollections = await getStudentPokemonCollection(studentId);
       console.log('📦 Pokemon collections found:', pokemonCollections.length);
 
       // Transform to match Pokemon interface
       const transformedPokemon: Pokemon[] = pokemonCollections.map((collection: any) => ({
-        id: collection.pokemon?.id || collection.pokemon_id,
-        name: collection.pokemon?.name || 'Unknown Pokemon',
-        image_url: collection.pokemon?.image_url || '',
-        type_1: collection.pokemon?.type_1 || 'normal',
-        type_2: collection.pokemon?.type_2,
-        rarity: collection.pokemon?.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
-        price: collection.pokemon?.price || 15,
-        description: collection.pokemon?.description,
-        power_stats: collection.pokemon?.power_stats
+        id: collection.pokemon_pool?.id || collection.pokemon_id,
+        name: collection.pokemon_pool?.name || 'Unknown Pokemon',
+        image_url: collection.pokemon_pool?.image_url || '',
+        type_1: collection.pokemon_pool?.type_1 || 'normal',
+        type_2: collection.pokemon_pool?.type_2,
+        rarity: collection.pokemon_pool?.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
+        price: collection.pokemon_pool?.price || 15,
+        description: collection.pokemon_pool?.description,
+        power_stats: collection.pokemon_pool?.power_stats
       }));
 
       console.log('✅ Transformed Pokemon data:', transformedPokemon.length);

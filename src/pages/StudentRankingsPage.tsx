@@ -1,13 +1,13 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { supabase } from '@/integrations/supabase/client';
 import AppHeader from '@/components/AppHeader';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Loader2, ArrowLeft, Trophy, Coins, Award, Crown } from 'lucide-react';
+import { getStudentRankings, getStudentRank } from '@/services/studentRankingService';
 
 interface RankingStudent {
   id: string;
@@ -20,6 +20,7 @@ interface RankingStudent {
   avatar_url?: string;
   class_name?: string;
   school_name?: string;
+  rank?: number;
 }
 
 const StudentRankingsPage: React.FC = () => {
@@ -43,63 +44,17 @@ const StudentRankingsPage: React.FC = () => {
       try {
         console.log("🔍 Fetching student rankings...");
 
-        // Get all students from the school with their Pokemon counts
-        const { data: studentsData, error } = await supabase
-          .from('student_profiles')
-          .select(`
-            id,
-            user_id,
-            username,
-            display_name,
-            coins,
-            avatar_url,
-            school_id,
-            class_id
-          `)
-          .eq('school_id', schoolId || 'default-school-1')
-          .order('coins', { ascending: false });
-
-        if (error) {
-          console.error("❌ Error fetching students:", error);
-          return;
-        }
-
-        console.log("📦 Found students:", studentsData?.length || 0);
-
-        // Get Pokemon counts for each student
-        const studentsWithPokemon = await Promise.all((studentsData || []).map(async (student) => {
-          const { data: pokemonData } = await supabase
-            .from('student_pokemon_collection')
-            .select('id')
-            .eq('student_id', student.user_id);
-
-          const pokemonCount = pokemonData?.length || 0;
-          const totalScore = student.coins + (pokemonCount * 3); // Pokemon worth 3 points each
-
-          return {
-            ...student,
-            pokemon_count: pokemonCount,
-            total_score: totalScore,
-            class_name: '', // Will be populated if needed
-            school_name: '' // Will be populated if needed
-          };
-        }));
-
-        // Sort by total score (coins + pokemon value)
-        const sortedStudents = studentsWithPokemon.sort((a, b) => b.total_score - a.total_score);
-
-        setRankings(sortedStudents);
+        // Use the unified ranking service
+        const rankingsData = await getStudentRankings(schoolId || undefined);
+        setRankings(rankingsData);
 
         // Find current student's rank
-        const currentRank = sortedStudents.findIndex(student => 
-          student.user_id === currentStudentId || student.id === currentStudentId
-        );
-        
-        if (currentRank !== -1) {
-          setCurrentStudentRank(currentRank + 1);
+        if (currentStudentId) {
+          const rank = await getStudentRank(currentStudentId, schoolId || undefined);
+          setCurrentStudentRank(rank);
         }
 
-        console.log("✅ Rankings loaded successfully:", sortedStudents.length);
+        console.log("✅ Rankings loaded successfully:", rankingsData.length);
       } catch (error) {
         console.error("❌ Error loading rankings:", error);
       } finally {
@@ -180,8 +135,7 @@ const StudentRankingsPage: React.FC = () => {
           <CardContent>
             {rankings.length > 0 ? (
               <div className="space-y-4">
-                {rankings.map((student, index) => {
-                  const rank = index + 1;
+                {rankings.map((student) => {
                   const isCurrentStudent = student.user_id === currentStudentId || student.id === currentStudentId;
                   
                   return (
@@ -195,7 +149,7 @@ const StudentRankingsPage: React.FC = () => {
                     >
                       <div className="flex items-center gap-4">
                         <div className="flex items-center justify-center w-12 h-12">
-                          {getRankIcon(rank)}
+                          {getRankIcon(student.rank || 0)}
                         </div>
                         
                         <Avatar className="h-12 w-12">
@@ -234,7 +188,7 @@ const StudentRankingsPage: React.FC = () => {
                         </div>
                         
                         <div className="text-center">
-                          <div className={`px-3 py-1 rounded-full text-sm font-bold ${getRankBadgeColor(rank)}`}>
+                          <div className={`px-3 py-1 rounded-full text-sm font-bold ${getRankBadgeColor(student.rank || 0)}`}>
                             {student.total_score} pts
                           </div>
                           <p className="text-xs text-gray-500 mt-1">Total</p>

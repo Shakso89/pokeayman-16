@@ -1,141 +1,96 @@
 
-import { supabase } from "@/integrations/supabase/client";
-import { calculatePokemonValue } from "./pokemonValueService";
+import { supabase } from '@/integrations/supabase/client';
+import { getStudentPokemonCount } from './unifiedPokemonService';
 
-export interface StudentRanking {
+export interface RankingStudent {
   id: string;
+  user_id: string;
   username: string;
-  displayName: string;
-  avatarUrl?: string;
-  schoolName?: string;
+  display_name: string;
   coins: number;
-  pokemonCount: number;
-  pokemonValue: number;
-  totalScore: number;
-  rank: number;
+  pokemon_count: number;
+  total_score: number;
+  avatar_url?: string;
+  class_name?: string;
+  school_name?: string;
+  rank?: number;
 }
 
-export interface PokemonCollectionValue {
-  studentId: string;
-  totalValue: number;
-  pokemonCount: number;
-}
-
-export const calculateStudentPokemonValue = async (studentId: string): Promise<PokemonCollectionValue> => {
+export const getStudentRankings = async (schoolId?: string): Promise<RankingStudent[]> => {
   try {
-    // Use the correct table: pokemon_collections
-    const { data: collection, error } = await supabase
-      .from('pokemon_collections')
-      .select(`
-        pokemon_pools!inner (
-          id,
-          name,
-          rarity,
-          price
-        )
-      `)
-      .eq('student_id', studentId);
+    console.log("🔍 Fetching student rankings for school:", schoolId);
 
-    if (error) {
-      console.error('Error fetching student pokemon:', error);
-      return { studentId, totalValue: 0, pokemonCount: 0 };
-    }
-
-    let totalValue = 0;
-    const pokemonCount = collection?.length || 0;
-
-    (collection || []).forEach((item: any) => {
-      if (item.pokemon_pools) {
-        const pokemon = item.pokemon_pools;
-        const value = pokemon.price || calculatePokemonValue(pokemon.rarity);
-        totalValue += value;
-      }
-    });
-
-    return {
-      studentId,
-      totalValue,
-      pokemonCount
-    };
-  } catch (error) {
-    console.error('Error calculating pokemon value for student:', studentId, error);
-    return { studentId, totalValue: 0, pokemonCount: 0 };
-  }
-};
-
-export const calculateGlobalStudentRankings = async (): Promise<StudentRanking[]> => {
-  try {
-    console.log('Fetching global student rankings...');
-
-    // Fetch all student profiles
-    const { data: students, error: studentsError } = await supabase
+    // Build the query
+    let query = supabase
       .from('student_profiles')
       .select(`
+        id,
         user_id,
         username,
         display_name,
+        coins,
         avatar_url,
-        school_name,
-        coins
+        school_id,
+        class_id,
+        school_name
       `);
 
-    if (studentsError) {
-      console.error('Error fetching students:', studentsError);
+    // Add school filter if provided
+    if (schoolId && schoolId !== 'all') {
+      query = query.eq('school_id', schoolId);
+    }
+
+    const { data: studentsData, error } = await query.order('coins', { ascending: false });
+
+    if (error) {
+      console.error("❌ Error fetching students:", error);
       return [];
     }
 
-    if (!students || students.length === 0) {
-      console.log('No students found');
-      return [];
-    }
+    console.log("📦 Found students:", studentsData?.length || 0);
 
-    console.log(`Found ${students.length} students`);
+    // Get Pokemon counts for each student using the unified service
+    const studentsWithPokemon = await Promise.all((studentsData || []).map(async (student) => {
+      const pokemonCount = await getStudentPokemonCount(student.user_id);
+      const totalScore = student.coins + (pokemonCount * 3); // Pokemon worth 3 points each
 
-    // Calculate pokemon values for all students
-    const studentRankings = await Promise.all(
-      students.map(async (student) => {
-        const pokemonData = await calculateStudentPokemonValue(student.user_id);
-        
-        // Calculate total score: coins + pokemon value
-        const totalScore = (student.coins || 0) + pokemonData.totalValue;
-        
-        return {
-          id: student.user_id,
-          username: student.username,
-          displayName: student.display_name || student.username,
-          avatarUrl: student.avatar_url,
-          schoolName: student.school_name,
-          coins: student.coins || 0,
-          pokemonCount: pokemonData.pokemonCount,
-          pokemonValue: pokemonData.totalValue,
-          totalScore,
-          rank: 0 // Will be set after sorting
-        };
-      })
-    );
-
-    // Sort by total score (descending) and assign ranks
-    const sortedRankings = studentRankings
-      .sort((a, b) => b.totalScore - a.totalScore)
-      .map((student, index) => ({
+      return {
         ...student,
-        rank: index + 1
-      }));
+        pokemon_count: pokemonCount,
+        total_score: totalScore,
+        class_name: '', // Will be populated if needed
+        school_name: student.school_name || '' 
+      };
+    }));
 
-    console.log(`Calculated rankings for ${sortedRankings.length} students`);
-    return sortedRankings;
+    // Sort by total score (coins + pokemon value)
+    const sortedStudents = studentsWithPokemon.sort((a, b) => b.total_score - a.total_score);
+
+    // Add rank to each student
+    const rankedStudents = sortedStudents.map((student, index) => ({
+      ...student,
+      rank: index + 1
+    }));
+
+    console.log("✅ Rankings calculated successfully:", rankedStudents.length);
+    return rankedStudents;
+
   } catch (error) {
-    console.error('Error calculating global rankings:', error);
+    console.error("❌ Error calculating rankings:", error);
     return [];
   }
 };
 
-export const getTopStudents = async (limit: number = 10): Promise<StudentRanking[]> => {
-  const allRankings = await calculateGlobalStudentRankings();
-  return allRankings.slice(0, limit);
-};
-
-export const getStudentRank = async (studentId: string): Promise<StudentRanking | null> => {
-  const allRankings = await calculateGlobalStudentRankings();
-  return allRankings.find(ranking => ranking.id === studentId) || null;
+export const getStudentRank = async (studentId: string, schoolId?: string): Promise<number | null> => {
+  try {
+    const rankings = await getStudentRankings(schoolId);
+    const studentRank = rankings.find(student => 
+      student.user_id === studentId || student.id === studentId
+    );
+    
+    return studentRank?.rank || null;
+  } catch (error) {
+    console.error("❌ Error getting student rank:", error);
+    return null;
+  }
 };

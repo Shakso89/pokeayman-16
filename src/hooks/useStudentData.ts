@@ -2,6 +2,7 @@
 import { useState, useEffect } from "react";
 import { Pokemon } from "@/types/pokemon";
 import { supabase } from "@/integrations/supabase/client";
+import { getStudentPokemonCollection } from "@/services/unifiedPokemonService";
 
 export const useStudentData = (studentId: string | null) => {
   const [studentInfo, setStudentInfo] = useState<any>(null);
@@ -26,31 +27,25 @@ export const useStudentData = (studentId: string | null) => {
         if (studentError) throw studentError;
         setStudentInfo(student);
 
-        // Fetch student's Pokemon collection with full pokemon pool data
-        const { data: pokemonData, error: pokemonError } = await supabase
-          .from('student_pokemon_collection')
-          .select(`
-            *,
-            pokemon_pool!fk_pokemon_pool (*)
-          `)
-          .eq('student_id', studentId);
-
-        if (pokemonError) throw pokemonError;
+        // Fetch student's Pokemon collection using unified service
+        console.log('🔍 Fetching Pokemon collection using unified service...');
+        const pokemonCollections = await getStudentPokemonCollection(studentId);
 
         // Transform the data to match Pokemon interface
-        const transformedPokemons: Pokemon[] = (pokemonData || []).map((item: any) => ({
-          id: item.pokemon_pool.id,
-          name: item.pokemon_pool.name,
-          image_url: item.pokemon_pool.image_url || '',
-          type_1: item.pokemon_pool.type_1 || 'normal',
-          type_2: item.pokemon_pool.type_2,
-          rarity: item.pokemon_pool.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
-          price: item.pokemon_pool.price || 15,
-          description: item.pokemon_pool.description,
-          power_stats: item.pokemon_pool.power_stats
+        const transformedPokemons: Pokemon[] = pokemonCollections.map((collection: any) => ({
+          id: collection.pokemon_pool?.id || collection.pokemon_id,
+          name: collection.pokemon_pool?.name || 'Unknown Pokemon',
+          image_url: collection.pokemon_pool?.image_url || '',
+          type_1: collection.pokemon_pool?.type_1 || 'normal',
+          type_2: collection.pokemon_pool?.type_2,
+          rarity: collection.pokemon_pool?.rarity as 'common' | 'uncommon' | 'rare' | 'legendary',
+          price: collection.pokemon_pool?.price || 15,
+          description: collection.pokemon_pool?.description,
+          power_stats: collection.pokemon_pool?.power_stats
         }));
 
         setPokemon(transformedPokemons);
+        console.log('✅ Unified Pokemon data loaded:', transformedPokemons.length);
       } catch (err) {
         console.error('Error fetching student data:', err);
         setError(err instanceof Error ? err.message : 'An error occurred');

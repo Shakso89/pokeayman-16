@@ -2,16 +2,12 @@
 import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Trash2, Plus, Search } from 'lucide-react';
+import { Trash2, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getStudentPokemonCollection } from '@/services/unifiedPokemonService';
-import { awardPokemonToStudent, assignRandomPokemonToStudent } from '@/utils/pokemon/studentPokemon';
+import { getStudentPokemonCollection, awardPokemonToStudent, removePokemonFromStudent } from '@/services/unifiedPokemonService';
 import { StudentProfile } from '@/services/studentDatabase';
 
 interface ManagePokemonDialogProps {
@@ -52,9 +48,6 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 }) => {
   const [studentId, setStudentId] = useState<string>('');
   const [studentPokemons, setStudentPokemons] = useState<StudentCollectionPokemon[]>([]);
-  const [availablePokemons, setAvailablePokemons] = useState<any[]>([]);
-  const [selectedPokemonId, setSelectedPokemonId] = useState<string>('');
-  const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'award' | 'remove'>('award');
   const { toast } = useToast();
@@ -98,108 +91,6 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     }
   };
 
-  const handleAwardPokemon = async () => {
-    if (!studentId) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please select a student"
-      });
-      return;
-    }
-
-    if (!selectedPokemonId) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please select a Pokémon to award"
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      console.log('🎁 Awarding Pokemon:', selectedPokemonId, 'to student:', studentId);
-      
-      const result = await awardPokemonToStudent(
-        studentId,
-        parseInt(selectedPokemonId), // Convert string to number
-        'teacher_award',
-        classId,
-        schoolId
-      );
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: `Pokémon awarded to student successfully!`
-        });
-        
-        await loadStudentPokemon();
-        setSelectedPokemonId('');
-        onRefresh();
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to award Pokémon"
-        });
-      }
-    } catch (error) {
-      console.error('❌ Error awarding Pokemon:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred while awarding Pokémon"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAssignRandomPokemon = async () => {
-    if (!studentId) {
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "Please select a student"
-      });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      console.log('🎁 Awarding random Pokemon to student:', studentId);
-      
-      const result = await assignRandomPokemonToStudent(schoolId, studentId, classId);
-
-      if (result.success) {
-        toast({
-          title: "Success",
-          description: `Random Pokémon awarded to student successfully!`
-        });
-        
-        await loadStudentPokemon();
-        onRefresh();
-      } else {
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to award random Pokémon"
-        });
-      }
-    } catch (error) {
-      console.error('❌ Error awarding random Pokemon:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred while awarding random Pokémon"
-      });
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleRemovePokemon = async (pokemon: StudentCollectionPokemon) => {
     if (!pokemon.collectionId) {
       toast({
@@ -214,8 +105,7 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     try {
       console.log('🗑️ Removing Pokemon collection:', pokemon.collectionId);
       
-      // const success = await removePokemonFromStudent(pokemon.collectionId);
-      const success = true; // TODO: Implement removePokemonFromStudent
+      const success = await removePokemonFromStudent(pokemon.collectionId);
 
       if (success) {
         toast({
@@ -253,10 +143,6 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     }
   };
 
-  const filteredAvailablePokemons = availablePokemons.filter(pokemon =>
-    pokemon.name.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
@@ -287,7 +173,6 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
           <div className="flex gap-4">
             <div className="flex-1">
-              <Label htmlFor="student-select">Select Student</Label>
               <Select value={studentId} onValueChange={setStudentId}>
                 <SelectTrigger>
                   <SelectValue placeholder="Choose a student" />
@@ -301,112 +186,7 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
                 </SelectContent>
               </Select>
             </div>
-            {activeTab === "award" && (
-              <Button
-                onClick={handleAssignRandomPokemon}
-                disabled={loading || !studentId}
-              >
-                <Plus className="h-4 w-4 mr-2" />
-                Award Random
-              </Button>
-            )}
           </div>
-
-          {activeTab === "award" && (
-            <div className="space-y-4">
-              <h3 className="text-lg font-semibold">Award Specific Pokémon</h3>
-              
-              {/* <div className="flex gap-4">
-                <div className="flex-1">
-                  <Label htmlFor="search">Search Available Pokémon</Label>
-                  <div className="relative">
-                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                    <Input
-                      id="search"
-                      placeholder="Search Pokémon..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-8"
-                    />
-                  </div>
-                </div>
-                
-                <div className="flex-1">
-                  <Label htmlFor="pokemon-select">Select Pokémon</Label>
-                  <Select value={selectedPokemonId} onValueChange={setSelectedPokemonId}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Choose a Pokémon" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {filteredAvailablePokemons.map((pokemon) => (
-                        <SelectItem key={pokemon.id} value={pokemon.id.toString()}>
-                          <div className="flex items-center gap-2">
-                            <Badge variant="outline" className={getRarityColor(pokemon.rarity || 'common')}>
-                              {pokemon.rarity}
-                            </Badge>
-                            {pokemon.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="flex items-end">
-                  <Button 
-                    onClick={handleAwardPokemon} 
-                    disabled={loading || !selectedPokemonId}
-                  >
-                    <Plus className="h-4 w-4 mr-2" />
-                    Award
-                  </Button>
-                </div>
-              </div> */}
-
-              {/* <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 max-h-96 overflow-y-auto">
-                {filteredAvailablePokemons.map((pokemon) => (
-                  <Card key={pokemon.id} className="relative">
-                    <CardContent className="p-4">
-                      <div className="flex flex-col items-center space-y-2">
-                        <Badge 
-                          variant="outline" 
-                          className={`${getRarityColor(pokemon.rarity || 'common')} text-white`}
-                        >
-                          {pokemon.rarity}
-                        </Badge>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => setSelectedPokemonId(pokemon.id.toString())}
-                          className="text-blue-500 hover:text-blue-700 hover:bg-blue-50"
-                        >
-                          <Plus className="h-4 w-4" />
-                        </Button>
-                      </div>
-                      
-                      {pokemon.image_url && (
-                        <div className="mb-2">
-                          <img 
-                            src={pokemon.image_url} 
-                            alt={pokemon.name}
-                            className="w-full h-32 object-contain bg-gray-50 rounded"
-                            onError={(e) => {
-                              e.currentTarget.src = "/placeholder.svg";
-                            }}
-                          />
-                        </div>
-                      )}
-                      
-                      <h4 className="font-medium text-sm">{pokemon.name}</h4>
-                      <p className="text-xs text-gray-500 capitalize">
-                        {pokemon.type_1}{pokemon.type_2 ? `/${pokemon.type_2}` : ''}
-                      </p>
-                    </CardContent>
-                  </Card>
-                ))}
-              </div> */}
-            </div>
-          )}
 
           {activeTab === "remove" && (
             <div className="space-y-4">
