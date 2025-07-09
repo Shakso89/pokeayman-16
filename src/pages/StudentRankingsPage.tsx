@@ -29,13 +29,13 @@ const StudentRankingsPage: React.FC = () => {
       try {
         console.log("🔍 Fetching student rankings...");
 
-        // Use the unified ranking service
-        const rankingsData = await getStudentRankings(schoolId || undefined);
+        // Use the unified ranking service - no parameters needed
+        const rankingsData = await getStudentRankings();
         setRankings(rankingsData);
 
-        // Find current student's rank
+        // Find current student's rank - only pass studentId parameter
         if (currentStudentId) {
-          const rank = await getStudentRank(currentStudentId, schoolId || undefined);
+          const rank = await getStudentRank(currentStudentId);
           setCurrentStudentRank(rank);
         }
 
@@ -48,7 +48,7 @@ const StudentRankingsPage: React.FC = () => {
     };
 
     fetchRankings();
-  }, [schoolId, currentStudentId]);
+  }, [currentStudentId]);
 
   const getRankIcon = (rank: number) => {
     switch (rank) {
