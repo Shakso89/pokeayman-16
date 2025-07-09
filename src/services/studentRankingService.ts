@@ -10,27 +10,31 @@ export interface RankingStudent {
   coins: number;
   pokemon_count: number;
   total_score: number;
-  school_id?: string;
+  class_name?: string;
   school_name?: string;
   rank?: number;
 }
 
-// Export alias for backward compatibility
-export type StudentRanking = RankingStudent & {
-  avatarUrl?: string;
+export interface StudentRanking {
+  id: string;
+  username: string;
   displayName: string;
+  avatarUrl?: string;
+  coins: number;
   pokemonCount: number;
   pokemonValue: number;
   totalScore: number;
+  className?: string;
   schoolName?: string;
-};
+  rank?: number;
+}
 
-export const getStudentRankings = async (schoolId?: string): Promise<RankingStudent[]> => {
+export const getStudentRankings = async (): Promise<RankingStudent[]> => {
   try {
-    console.log("🏆 Fetching student rankings...", schoolId ? `for school: ${schoolId}` : "globally");
+    console.log("🔍 Fetching student rankings...");
 
-    // Build the query with Pokemon count from student_pokemon_collection
-    let query = supabase
+    // Get all student profiles with their Pokemon counts
+    const { data: profiles, error: profileError } = await supabase
       .from('student_profiles')
       .select(`
         id,
@@ -39,32 +43,43 @@ export const getStudentRankings = async (schoolId?: string): Promise<RankingStud
         display_name,
         avatar_url,
         coins,
+        class_id,
         school_id,
-        school_name,
-        student_pokemon_collection!inner(id)
+        school_name
       `);
 
-    // Add school filter if provided
-    if (schoolId) {
-      query = query.eq('school_id', schoolId);
-    }
-
-    const { data: profiles, error } = await query;
-
-    if (error) {
-      console.error("❌ Error fetching student profiles:", error);
+    if (profileError) {
+      console.error("❌ Error fetching student profiles:", profileError);
       return [];
     }
 
-    if (!profiles) {
-      console.log("📭 No students found");
+    if (!profiles || profiles.length === 0) {
+      console.log("ℹ️ No student profiles found");
       return [];
     }
 
-    // Calculate rankings with Pokemon counts
+    // Get Pokemon counts for all students using the correct table name
+    const { data: pokemonCounts, error: pokemonError } = await supabase
+      .from('student_pokemon_collection')
+      .select('student_id');
+
+    if (pokemonError) {
+      console.warn("⚠️ Error fetching Pokemon counts:", pokemonError);
+    }
+
+    // Count Pokemon for each student
+    const pokemonCountMap = new Map<string, number>();
+    if (pokemonCounts) {
+      pokemonCounts.forEach(item => {
+        const count = pokemonCountMap.get(item.student_id) || 0;
+        pokemonCountMap.set(item.student_id, count + 1);
+      });
+    }
+
+    // Transform the data and calculate rankings
     const rankings: RankingStudent[] = profiles.map(profile => {
-      const pokemonCount = profile.student_pokemon_collection?.length || 0;
-      const totalScore = profile.coins + (pokemonCount * 3);
+      const pokemonCount = pokemonCountMap.get(profile.user_id) || 0;
+      const totalScore = (profile.coins || 0) + (pokemonCount * 3);
 
       return {
         id: profile.id,
@@ -75,21 +90,20 @@ export const getStudentRankings = async (schoolId?: string): Promise<RankingStud
         coins: profile.coins || 0,
         pokemon_count: pokemonCount,
         total_score: totalScore,
-        school_id: profile.school_id,
         school_name: profile.school_name
       };
     });
 
-    // Sort by total score descending and assign ranks
-    const sortedRankings = rankings
-      .sort((a, b) => b.total_score - a.total_score)
-      .map((student, index) => ({
-        ...student,
-        rank: index + 1
-      }));
+    // Sort by total score (coins + pokemon_count * 3) in descending order
+    rankings.sort((a, b) => b.total_score - a.total_score);
 
-    console.log("✅ Student rankings calculated:", sortedRankings.length);
-    return sortedRankings;
+    // Add rank numbers
+    rankings.forEach((student, index) => {
+      student.rank = index + 1;
+    });
+
+    console.log("✅ Student rankings calculated:", rankings.length);
+    return rankings;
 
   } catch (error) {
     console.error("❌ Unexpected error fetching student rankings:", error);
@@ -99,11 +113,8 @@ export const getStudentRankings = async (schoolId?: string): Promise<RankingStud
 
 export const calculateGlobalStudentRankings = async (): Promise<StudentRanking[]> => {
   try {
-    console.log("🏆 Calculating global student rankings...");
+    const rankings = await getStudentRankings();
     
-    const rankings = await getStudentRankings(); // Get all students (no school filter)
-    
-    // Transform to StudentRanking format for backward compatibility
     const transformedRankings: StudentRanking[] = rankings.map(student => ({
       ...student,
       avatarUrl: student.avatar_url,
@@ -111,10 +122,10 @@ export const calculateGlobalStudentRankings = async (): Promise<StudentRanking[]
       pokemonCount: student.pokemon_count,
       pokemonValue: student.pokemon_count * 3,
       totalScore: student.total_score,
+      className: student.class_name,
       schoolName: student.school_name
     }));
 
-    console.log("✅ Global rankings calculated:", transformedRankings.length);
     return transformedRankings;
   } catch (error) {
     console.error("❌ Error calculating global rankings:", error);
@@ -122,43 +133,185 @@ export const calculateGlobalStudentRankings = async (): Promise<StudentRanking[]
   }
 };
 
-export const getStudentRank = async (studentId: string, schoolId?: string): Promise<number | null> => {
+export const getStudentRank = async (studentId: string): Promise<number> => {
   try {
-    const rankings = await getStudentRankings(schoolId);
-    const student = rankings.find(s => s.user_id === studentId || s.id === studentId);
-    return student?.rank || null;
+    const rankings = await getStudentRankings();
+    const studentRank = rankings.find(student => student.user_id === studentId);
+    return studentRank?.rank || 0;
   } catch (error) {
     console.error("❌ Error getting student rank:", error);
-    return null;
+    return 0;
   }
 };
 
-export const getSchoolTopStudents = async (schoolId: string, limit: number = 10): Promise<RankingStudent[]> => {
+export const getClassRankings = async (classId: string): Promise<RankingStudent[]> => {
   try {
-    const rankings = await getStudentRankings(schoolId);
-    return rankings.slice(0, limit);
+    console.log("🔍 Fetching class rankings for class:", classId);
+
+    // Get student profiles for the specific class
+    const { data: profiles, error: profileError } = await supabase
+      .from('student_profiles')
+      .select(`
+        id,
+        user_id,
+        username,
+        display_name,
+        avatar_url,
+        coins,
+        class_id,
+        school_id,
+        school_name
+      `)
+      .eq('class_id', classId);
+
+    if (profileError) {
+      console.error("❌ Error fetching class student profiles:", profileError);
+      return [];
+    }
+
+    if (!profiles || profiles.length === 0) {
+      console.log("ℹ️ No students found in class");
+      return [];
+    }
+
+    const studentIds = profiles.map(p => p.user_id);
+
+    // Get Pokemon counts for students in this class using the correct table name
+    const { data: pokemonCounts, error: pokemonError } = await supabase
+      .from('student_pokemon_collection')
+      .select('student_id')
+      .in('student_id', studentIds);
+
+    if (pokemonError) {
+      console.warn("⚠️ Error fetching Pokemon counts for class:", pokemonError);
+    }
+
+    // Count Pokemon for each student
+    const pokemonCountMap = new Map<string, number>();
+    if (pokemonCounts) {
+      pokemonCounts.forEach(item => {
+        const count = pokemonCountMap.get(item.student_id) || 0;
+        pokemonCountMap.set(item.student_id, count + 1);
+      });
+    }
+
+    // Transform the data and calculate rankings
+    const rankings: RankingStudent[] = profiles.map(profile => {
+      const pokemonCount = pokemonCountMap.get(profile.user_id) || 0;
+      const totalScore = (profile.coins || 0) + (pokemonCount * 3);
+
+      return {
+        id: profile.id,
+        user_id: profile.user_id,
+        username: profile.username,
+        display_name: profile.display_name || profile.username,
+        avatar_url: profile.avatar_url,
+        coins: profile.coins || 0,
+        pokemon_count: pokemonCount,
+        total_score: totalScore,
+        school_name: profile.school_name
+      };
+    });
+
+    // Sort by total score in descending order
+    rankings.sort((a, b) => b.total_score - a.total_score);
+
+    // Add rank numbers
+    rankings.forEach((student, index) => {
+      student.rank = index + 1;
+    });
+
+    console.log("✅ Class rankings calculated:", rankings.length);
+    return rankings;
+
   } catch (error) {
-    console.error("❌ Error getting school top students:", error);
+    console.error("❌ Unexpected error fetching class rankings:", error);
     return [];
   }
 };
 
-// Get Pokemon count for a specific student
-export const getStudentPokemonCount = async (studentId: string): Promise<number> => {
+export const getSchoolRankings = async (schoolId: string): Promise<RankingStudent[]> => {
   try {
-    const { data, error } = await supabase
-      .from('student_pokemon_collection')
-      .select('id')
-      .eq('student_id', studentId);
+    console.log("🔍 Fetching school rankings for school:", schoolId);
 
-    if (error) {
-      console.error("❌ Error fetching Pokemon count:", error);
-      return 0;
+    // Get student profiles for the specific school
+    const { data: profiles, error: profileError } = await supabase
+      .from('student_profiles')
+      .select(`
+        id,
+        user_id,
+        username,
+        display_name,
+        avatar_url,
+        coins,
+        class_id,
+        school_id,
+        school_name
+      `)
+      .eq('school_id', schoolId);
+
+    if (profileError) {
+      console.error("❌ Error fetching school student profiles:", profileError);
+      return [];
     }
 
-    return data?.length || 0;
+    if (!profiles || profiles.length === 0) {
+      console.log("ℹ️ No students found in school");
+      return [];
+    }
+
+    const studentIds = profiles.map(p => p.user_id);
+
+    // Get Pokemon counts for students in this school using the correct table name
+    const { data: pokemonCounts, error: pokemonError } = await supabase
+      .from('student_pokemon_collection')
+      .select('student_id')
+      .in('student_id', studentIds);
+
+    if (pokemonError) {
+      console.warn("⚠️ Error fetching Pokemon counts for school:", pokemonError);
+    }
+
+    // Count Pokemon for each student
+    const pokemonCountMap = new Map<string, number>();
+    if (pokemonCounts) {
+      pokemonCounts.forEach(item => {
+        const count = pokemonCountMap.get(item.student_id) || 0;
+        pokemonCountMap.set(item.student_id, count + 1);
+      });
+    }
+
+    // Transform the data and calculate rankings
+    const rankings: RankingStudent[] = profiles.map(profile => {
+      const pokemonCount = pokemonCountMap.get(profile.user_id) || 0;
+      const totalScore = (profile.coins || 0) + (pokemonCount * 3);
+
+      return {
+        id: profile.id,
+        user_id: profile.user_id,
+        username: profile.username,
+        display_name: profile.display_name || profile.username,
+        avatar_url: profile.avatar_url,
+        coins: profile.coins || 0,
+        pokemon_count: pokemonCount,
+        total_score: totalScore,
+        school_name: profile.school_name
+      };
+    });
+
+    // Sort by total score in descending order
+    rankings.sort((a, b) => b.total_score - a.total_score);
+
+    // Add rank numbers
+    rankings.forEach((student, index) => {
+      student.rank = index + 1;
+    });
+
+    console.log("✅ School rankings calculated:", rankings.length);
+    return rankings;
+
   } catch (error) {
-    console.error("❌ Unexpected error fetching Pokemon count:", error);
-    return 0;
+    console.error("❌ Unexpected error fetching school rankings:", error);
+    return [];
   }
 };
