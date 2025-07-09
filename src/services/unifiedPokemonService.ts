@@ -79,7 +79,8 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
       pokemon_id: item.pokemon_id,
       awarded_at: item.awarded_at,
       source: item.source || 'unknown',
-      pokemon_pool: item.pokemon_pool
+      // Fix: pokemon_pool should be a single object, not an array
+      pokemon_pool: Array.isArray(item.pokemon_pool) ? item.pokemon_pool[0] : item.pokemon_pool
     })) || [];
 
     console.log("✅ Transformed collection:", transformedCollection);

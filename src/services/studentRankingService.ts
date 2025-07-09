@@ -16,6 +16,16 @@ export interface RankingStudent {
   rank?: number;
 }
 
+// Export alias for backward compatibility
+export type StudentRanking = RankingStudent & {
+  avatarUrl?: string;
+  displayName: string;
+  pokemonCount: number;
+  pokemonValue: number;
+  totalScore: number;
+  schoolName?: string;
+};
+
 export const getStudentRankings = async (schoolId?: string): Promise<RankingStudent[]> => {
   try {
     console.log("🔍 Fetching student rankings for school:", schoolId);
@@ -77,6 +87,31 @@ export const getStudentRankings = async (schoolId?: string): Promise<RankingStud
 
   } catch (error) {
     console.error("❌ Error calculating rankings:", error);
+    return [];
+  }
+};
+
+export const calculateGlobalStudentRankings = async (): Promise<StudentRanking[]> => {
+  try {
+    console.log("🏆 Calculating global student rankings...");
+    
+    const rankings = await getStudentRankings(); // Get all students (no school filter)
+    
+    // Transform to StudentRanking format for backward compatibility
+    const transformedRankings: StudentRanking[] = rankings.map(student => ({
+      ...student,
+      avatarUrl: student.avatar_url,
+      displayName: student.display_name || student.username,
+      pokemonCount: student.pokemon_count,
+      pokemonValue: student.pokemon_count * 3,
+      totalScore: student.total_score,
+      schoolName: student.school_name
+    }));
+
+    console.log("✅ Global rankings calculated:", transformedRankings.length);
+    return transformedRankings;
+  } catch (error) {
+    console.error("❌ Error calculating global rankings:", error);
     return [];
   }
 };
