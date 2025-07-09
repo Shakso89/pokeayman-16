@@ -1,4 +1,3 @@
-
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { supabase } from '@/integrations/supabase/client';
@@ -95,53 +94,6 @@ const SchoolRankingsPage: React.FC = () => {
 
         if (!studentsData || studentsData.length === 0) {
           console.log("⚠️ No students found for school:", schoolId);
-          
-          // Try to fetch from students table as fallback
-          const { data: fallbackStudents, error: fallbackError } = await supabase
-            .from('students')
-            .select('id, username, display_name, school_id')
-            .eq('school_id', schoolId);
-            
-          if (!fallbackError && fallbackStudents && fallbackStudents.length > 0) {
-            console.log("🔄 Found students in students table, creating profiles...");
-            
-            // Create profiles for these students
-            for (const student of fallbackStudents) {
-              try {
-                await supabase
-                  .from('student_profiles')
-                  .upsert({
-                    user_id: student.id,
-                    username: student.username,
-                    display_name: student.display_name || student.username,
-                    school_id: student.school_id,
-                    coins: 0,
-                    spent_coins: 0
-                  });
-              } catch (profileError) {
-                console.warn("Failed to create profile for:", student.id, profileError);
-              }
-            }
-            
-            // Retry fetching student profiles
-            const { data: retryStudentsData } = await supabase
-              .from('student_profiles')
-              .select(`
-                id,
-                user_id,
-                username,
-                display_name,
-                coins,
-                class_id
-              `)
-              .eq('school_id', schoolId)
-              .order('coins', { ascending: false });
-              
-            if (retryStudentsData) {
-              console.log("✅ Successfully fetched students after profile creation:", retryStudentsData.length);
-            }
-          }
-          
           setStudentRankings([]);
         } else {
           // Get class names and pokemon counts for each student
@@ -165,11 +117,11 @@ const SchoolRankingsPage: React.FC = () => {
             }
           }
 
-          // Fetch pokemon counts
+          // Fetch pokemon counts from the correct table: pokemon_collections
           let pokemonCountMap = new Map();
           if (studentIds.length > 0) {
             const { data: pokemonCounts } = await supabase
-              .from('student_pokemon_collection')
+              .from('pokemon_collections')
               .select('student_id')
               .in('student_id', studentIds);
 
@@ -177,7 +129,7 @@ const SchoolRankingsPage: React.FC = () => {
               pokemonCounts.forEach(p => {
                 pokemonCountMap.set(p.student_id, (pokemonCountMap.get(p.student_id) || 0) + 1);
               });
-              console.log("🎮 Pokemon counts loaded for students");
+              console.log("🎮 Pokemon counts loaded for students:", pokemonCountMap.size);
             }
           }
 

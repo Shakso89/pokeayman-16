@@ -51,15 +51,15 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
     const targetStudentId = studentProfile?.user_id || studentId;
     console.log("🔍 Using target student ID:", targetStudentId);
 
+    // Query the correct table: pokemon_collections (not student_pokemon_collection)
     const { data: collection, error } = await supabase
-      .from('student_pokemon_collection')
+      .from('pokemon_collections')
       .select(`
         id,
         student_id,
         pokemon_id,
-        awarded_at,
-        source,
-        pokemon_pool!fk_pokemon_pool (
+        obtained_at,
+        pokemon_pools!inner (
           id,
           name,
           image_url,
@@ -72,7 +72,7 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
         )
       `)
       .eq('student_id', targetStudentId)
-      .order('awarded_at', { ascending: false });
+      .order('obtained_at', { ascending: false });
 
     if (error) {
       console.error("❌ Error fetching Pokemon collection:", error);
@@ -80,12 +80,16 @@ export const getStudentPokemonCollection = async (studentId: string): Promise<St
       return [];
     }
 
-    console.log("✅ Found collections in student_pokemon_collection:", collection?.length || 0);
+    console.log("✅ Found collections in pokemon_collections:", collection?.length || 0);
     
-    // Transform the data to ensure pokemon_pool is a single object, not an array
+    // Transform the data to match the expected format
     const transformedCollection = collection?.map(item => ({
-      ...item,
-      pokemon_pool: Array.isArray(item.pokemon_pool) ? item.pokemon_pool[0] : item.pokemon_pool
+      id: item.id,
+      student_id: item.student_id,
+      pokemon_id: item.pokemon_id,
+      awarded_at: item.obtained_at,
+      source: 'collection',
+      pokemon_pool: Array.isArray(item.pokemon_pools) ? item.pokemon_pools[0] : item.pokemon_pools
     })) || [];
 
     console.log("✅ Transformed collection:", transformedCollection);
@@ -174,20 +178,8 @@ export const purchasePokemonFromShop = async (
       currentSpentCoins = profileData.spent_coins || 0;
       console.log("💰 Using profile data - Current coins:", currentCoins);
     } else {
-      // Fallback to students table
-      const { data: studentData, error: studentError } = await supabase
-        .from('students')
-        .select('coins, id')
-        .eq('id', studentId)
-        .single();
-
-      if (studentError || !studentData) {
-        console.error("❌ Student not found:", studentError);
-        return { success: false, error: "Student not found" };
-      }
-
-      currentCoins = studentData.coins || 0;
-      console.log("💰 Using student data - Current coins:", currentCoins);
+      console.error("❌ Student profile not found:", profileError);
+      return { success: false, error: "Student not found" };
     }
 
     // Check if student has enough coins
@@ -200,44 +192,30 @@ export const purchasePokemonFromShop = async (
     const newSpentCoins = currentSpentCoins + price;
 
     // Start transaction: Update coins first
-    if (profileData) {
-      console.log("🔄 Updating student_profiles coins...");
-      const { error: profileUpdateError } = await supabase
-        .from('student_profiles')
-        .update({ 
-          coins: newCoins,
-          spent_coins: newSpentCoins
-        })
-        .eq('user_id', studentId);
+    console.log("🔄 Updating student_profiles coins...");
+    const { error: profileUpdateError } = await supabase
+      .from('student_profiles')
+      .update({ 
+        coins: newCoins,
+        spent_coins: newSpentCoins
+      })
+      .eq('user_id', studentId);
 
-      if (profileUpdateError) {
-        console.error("❌ Failed to update profile coins:", profileUpdateError);
-        return { success: false, error: "Failed to deduct coins from profile" };
-      }
-    } else {
-      console.log("🔄 Updating students coins...");
-      const { error: studentUpdateError } = await supabase
-        .from('students')
-        .update({ coins: newCoins })
-        .eq('id', studentId);
-
-      if (studentUpdateError) {
-        console.error("❌ Failed to update student coins:", studentUpdateError);
-        return { success: false, error: "Failed to deduct coins from student record" };
-      }
+    if (profileUpdateError) {
+      console.error("❌ Failed to update profile coins:", profileUpdateError);
+      return { success: false, error: "Failed to deduct coins from profile" };
     }
 
     console.log("✅ Coins deducted successfully, new balance:", newCoins);
 
-    // Add Pokemon to collection
-    console.log("🔄 Adding Pokemon to collection...");
+    // Add Pokemon to collection using the correct table
+    console.log("🔄 Adding Pokemon to pokemon_collections...");
     const { data: collection, error: collectionError } = await supabase
-      .from('student_pokemon_collection')
+      .from('pokemon_collections')
       .insert({
         student_id: studentId,
         pokemon_id: pokemonId,
-        source: 'shop_purchase',
-        awarded_at: new Date().toISOString()
+        school_id: profileData.user_id // This should be the school_id from the profile
       })
       .select()
       .single();
@@ -247,20 +225,13 @@ export const purchasePokemonFromShop = async (
       
       // Rollback coin deduction
       console.log("🔄 Rolling back coin deduction...");
-      if (profileData) {
-        await supabase
-          .from('student_profiles')
-          .update({ 
-            coins: currentCoins,
-            spent_coins: currentSpentCoins
-          })
-          .eq('user_id', studentId);
-      } else {
-        await supabase
-          .from('students')
-          .update({ coins: currentCoins })
-          .eq('id', studentId);
-      }
+      await supabase
+        .from('student_profiles')
+        .update({ 
+          coins: currentCoins,
+          spent_coins: currentSpentCoins
+        })
+        .eq('user_id', studentId);
         
       return { success: false, error: "Failed to add Pokemon to collection" };
     }
@@ -329,12 +300,19 @@ export const awardPokemonToStudent = async (
   try {
     console.log("🎁 Awarding Pokemon to student:", { studentId, pokemonId, source });
 
+    // Get student's school_id for the collection
+    const { data: studentProfile } = await supabase
+      .from('student_profiles')
+      .select('school_id')
+      .eq('user_id', studentId)
+      .single();
+
     const { error } = await supabase
-      .from('student_pokemon_collection')
+      .from('pokemon_collections')
       .insert({
         student_id: studentId,
         pokemon_id: pokemonId,
-        source
+        school_id: studentProfile?.school_id || 'default-school-1'
       });
 
     if (error) {
@@ -355,7 +333,7 @@ export const removePokemonFromStudent = async (collectionId: string): Promise<bo
     console.log("🗑️ Removing Pokemon from student collection:", collectionId);
 
     const { error } = await supabase
-      .from('student_pokemon_collection')
+      .from('pokemon_collections')
       .delete()
       .eq('id', collectionId);
 
@@ -380,16 +358,23 @@ export const addPokemonToCollection = async (
   try {
     console.log("📝 Adding Pokemon to collection:", { studentId, pokemonId, source });
 
+    // Get student's school_id for the collection
+    const { data: studentProfile } = await supabase
+      .from('student_profiles')
+      .select('school_id')
+      .eq('user_id', studentId)
+      .single();
+
     const { error: mainError } = await supabase
-      .from('student_pokemon_collection')
+      .from('pokemon_collections')
       .insert({
         student_id: studentId,
         pokemon_id: pokemonId,
-        source: source
+        school_id: studentProfile?.school_id || 'default-school-1'
       });
 
     if (!mainError) {
-      console.log("✅ Pokemon added to student_pokemon_collection");
+      console.log("✅ Pokemon added to pokemon_collections");
       return { success: true };
     }
 

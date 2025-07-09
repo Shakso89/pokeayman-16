@@ -23,10 +23,11 @@ export interface PokemonCollectionValue {
 
 export const calculateStudentPokemonValue = async (studentId: string): Promise<PokemonCollectionValue> => {
   try {
+    // Use the correct table: pokemon_collections
     const { data: collection, error } = await supabase
-      .from('student_pokemon_collection')
+      .from('pokemon_collections')
       .select(`
-        pokemon_pool (
+        pokemon_pools!inner (
           id,
           name,
           rarity,
@@ -44,8 +45,8 @@ export const calculateStudentPokemonValue = async (studentId: string): Promise<P
     const pokemonCount = collection?.length || 0;
 
     (collection || []).forEach((item: any) => {
-      if (item.pokemon_pool) {
-        const pokemon = item.pokemon_pool;
+      if (item.pokemon_pools) {
+        const pokemon = item.pokemon_pools;
         const value = pokemon.price || calculatePokemonValue(pokemon.rarity);
         totalValue += value;
       }
