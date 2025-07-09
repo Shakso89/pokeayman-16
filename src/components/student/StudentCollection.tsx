@@ -5,34 +5,15 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Trophy } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
-import { getStudentPokemonCollection } from "@/services/unifiedPokemonService";
+import { getStudentPokemonCollection, type StudentPokemonCollectionItem } from "@/services/pokemonService";
 
 interface StudentCollectionProps {
   studentId: string;
 }
 
-interface PokemonCollectionItem {
-  id: string;
-  student_id: string;
-  pokemon_id: string;
-  awarded_at: string;
-  source: string;
-  pokemon_pool?: {
-    id: string;
-    name: string;
-    image_url?: string;
-    type_1: string;
-    type_2?: string;
-    rarity: string;
-    price: number;
-    description?: string;
-    power_stats?: any;
-  };
-}
-
 const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
   const { t } = useTranslation();
-  const [pokemonCollection, setPokemonCollection] = useState<PokemonCollectionItem[]>([]);
+  const [pokemonCollection, setPokemonCollection] = useState<StudentPokemonCollectionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -52,17 +33,7 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
       const collection = await getStudentPokemonCollection(studentId);
       
       console.log("✅ Pokemon collection loaded:", collection?.length || 0);
-      console.log("📦 Collection data:", collection);
-      
-      // Filter out any items without proper pokemon_pool data
-      const validCollection = collection.filter(item => 
-        item.pokemon_pool && 
-        item.pokemon_pool.name && 
-        item.pokemon_pool.id
-      );
-      
-      console.log("✅ Valid collection items:", validCollection.length);
-      setPokemonCollection(validCollection || []);
+      setPokemonCollection(collection || []);
     } catch (error) {
       console.error("❌ Error loading Pokemon collection:", error);
       setError("Failed to load Pokemon collection");
@@ -98,7 +69,6 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
   const handleRefresh = async () => {
     setRefreshing(true);
     await loadCollection();
-    setRefreshing(false);
   };
 
   const getRarityColor = (rarity: string) => {
@@ -108,6 +78,24 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
       case 'uncommon': return 'bg-blue-500 text-white';
       case 'common': return 'bg-green-500 text-white';
       default: return 'bg-gray-500 text-white';
+    }
+  };
+
+  const getSourceColor = (source: string) => {
+    switch (source) {
+      case 'shop_purchase': return 'bg-green-100 text-green-800';
+      case 'teacher_award': return 'bg-blue-100 text-blue-800';
+      case 'mystery_ball': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getSourceLabel = (source: string) => {
+    switch (source) {
+      case 'shop_purchase': return 'Shop';
+      case 'teacher_award': return 'Award';
+      case 'mystery_ball': return 'Mystery';
+      default: return source;
     }
   };
 
@@ -205,9 +193,12 @@ const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
                         </Badge>
                       </div>
 
-                      <div className="text-center">
-                        <Badge variant="secondary" className="text-xs">
-                          {item.source.replace('_', ' ')}
+                      <div className="flex justify-center">
+                        <Badge 
+                          variant="secondary" 
+                          className={`text-xs ${getSourceColor(item.source)}`}
+                        >
+                          {getSourceLabel(item.source)}
                         </Badge>
                       </div>
                     </div>

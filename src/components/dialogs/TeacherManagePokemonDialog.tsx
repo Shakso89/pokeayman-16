@@ -7,8 +7,14 @@ import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Trash2, Plus } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import { getStudentPokemonCollection, awardPokemonToStudent, removePokemonFromStudent } from '@/services/unifiedPokemonService';
+import { 
+  getStudentPokemonCollection, 
+  awardPokemonToStudent, 
+  removePokemonFromStudent,
+  type StudentPokemonCollectionItem 
+} from '@/services/pokemonService';
 import { StudentProfile } from '@/services/studentDatabase';
+import PokemonPoolDisplay from '@/components/PokemonPoolDisplay';
 
 interface ManagePokemonDialogProps {
   isOpen: boolean;
@@ -18,23 +24,6 @@ interface ManagePokemonDialogProps {
   classId: string;
   isClassCreator: boolean;
   onRefresh: () => void;
-}
-
-interface StudentCollectionPokemon {
-  id: string;
-  name: string;
-  image_url: string;
-  type_1: string;
-  type_2?: string;
-  rarity: 'common' | 'uncommon' | 'rare' | 'legendary';
-  price: number;
-  description?: string;
-  power_stats?: {
-    hp?: number;
-    attack?: number;
-    defense?: number;
-  };
-  collectionId?: string;
 }
 
 const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
@@ -47,7 +36,7 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
   onRefresh
 }) => {
   const [studentId, setStudentId] = useState<string>('');
-  const [studentPokemons, setStudentPokemons] = useState<StudentCollectionPokemon[]>([]);
+  const [studentPokemons, setStudentPokemons] = useState<StudentPokemonCollectionItem[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState<'award' | 'remove'>('award');
   const { toast } = useToast();
@@ -60,27 +49,14 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
   const loadStudentPokemon = async () => {
     try {
+      setLoading(true);
       console.log('🔍 Loading student Pokemon collection for:', studentId);
       
       const collections = await getStudentPokemonCollection(studentId);
       console.log('📦 Student collections found:', collections.length);
       
-      // Transform to match our interface
-      const transformedPokemons: StudentCollectionPokemon[] = collections.map(collection => ({
-        id: collection.pokemon_pool?.id || collection.pokemon_id,
-        name: collection.pokemon_pool?.name || 'Unknown Pokemon',
-        image_url: collection.pokemon_pool?.image_url || '',
-        type_1: collection.pokemon_pool?.type_1 || 'normal',
-        type_2: collection.pokemon_pool?.type_2,
-        rarity: (collection.pokemon_pool?.rarity as 'common' | 'uncommon' | 'rare' | 'legendary') || 'common',
-        price: collection.pokemon_pool?.price || 15,
-        description: collection.pokemon_pool?.description,
-        power_stats: collection.pokemon_pool?.power_stats,
-        collectionId: collection.id
-      }));
-      
-      console.log('✅ Transformed student Pokemon:', transformedPokemons.length);
-      setStudentPokemons(transformedPokemons);
+      setStudentPokemons(collections);
+      console.log('✅ Pokemon collection loaded:', collections.length);
     } catch (error) {
       console.error('❌ Error loading student Pokemon:', error);
       toast({
@@ -88,11 +64,13 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
         title: "Error",
         description: "Failed to load student's Pokémon collection"
       });
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleRemovePokemon = async (pokemon: StudentCollectionPokemon) => {
-    if (!pokemon.collectionId) {
+  const handleRemovePokemon = async (pokemon: StudentPokemonCollectionItem) => {
+    if (!pokemon.id) {
       toast({
         variant: "destructive",
         title: "Error",
@@ -103,14 +81,14 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
     setLoading(true);
     try {
-      console.log('🗑️ Removing Pokemon collection:', pokemon.collectionId);
+      console.log('🗑️ Removing Pokemon collection:', pokemon.id);
       
-      const success = await removePokemonFromStudent(pokemon.collectionId);
+      const success = await removePokemonFromStudent(pokemon.id);
 
       if (success) {
         toast({
           title: "Success",
-          description: `${pokemon.name} removed from student's collection`
+          description: `${pokemon.pokemon_pool?.name || 'Pokemon'} removed from student's collection`
         });
         
         await loadStudentPokemon();
@@ -134,6 +112,28 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     }
   };
 
+  const handleAwardPokemon = async (pokemonId: string, pokemonName: string) => {
+    if (!studentId) {
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Please select a student first"
+      });
+      return;
+    }
+
+    console.log('🎁 Awarding Pokemon from dialog:', { pokemonId, pokemonName, studentId });
+    
+    // Refresh the collection after awarding
+    await loadStudentPokemon();
+    onRefresh();
+    
+    toast({
+      title: "Success",
+      description: `${pokemonName} awarded to student successfully!`
+    });
+  };
+
   const getRarityColor = (rarity: string) => {
     switch (rarity) {
       case 'legendary': return 'bg-yellow-500';
@@ -143,9 +143,27 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
     }
   };
 
+  const getSourceColor = (source: string) => {
+    switch (source) {
+      case 'shop_purchase': return 'bg-green-100 text-green-800';
+      case 'teacher_award': return 'bg-blue-100 text-blue-800';
+      case 'mystery_ball': return 'bg-purple-100 text-purple-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
+
+  const getSourceLabel = (source: string) => {
+    switch (source) {
+      case 'shop_purchase': return 'Shop';
+      case 'teacher_award': return 'Award';
+      case 'mystery_ball': return 'Mystery';
+      default: return source;
+    }
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <DialogTitle>Manage Student Pokémon</DialogTitle>
         </DialogHeader>
@@ -171,6 +189,7 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
             </Button>
           </div>
 
+          {/* Student Selection */}
           <div className="flex gap-4">
             <div className="flex-1">
               <Select value={studentId} onValueChange={setStudentId}>
@@ -188,28 +207,52 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
             </div>
           </div>
 
+          {/* Content based on active tab */}
+          {activeTab === "award" && (
+            <div className="space-y-4">
+              <h3 className="text-lg font-semibold">Award Pokémon</h3>
+              <PokemonPoolDisplay
+                showActions={!!studentId}
+                studentId={studentId}
+                onAwardPokemon={handleAwardPokemon}
+              />
+            </div>
+          )}
+
           {activeTab === "remove" && (
             <div className="space-y-4">
               <h3 className="text-lg font-semibold">
                 Current Collection ({studentPokemons.length} Pokémon)
               </h3>
               
-              {studentPokemons.length === 0 ? (
+              {loading ? (
+                <div className="text-center py-8">
+                  <p>Loading collection...</p>
+                </div>
+              ) : studentPokemons.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
-                  Student doesn't have any Pokémon yet.
+                  {studentId ? "Student doesn't have any Pokémon yet." : "Please select a student to view their collection."}
                 </div>
               ) : (
                 <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
                   {studentPokemons.map((pokemon) => (
-                    <Card key={`${pokemon.id}-${pokemon.collectionId}`} className="relative">
+                    <Card key={pokemon.id} className="relative">
                       <CardContent className="p-4">
                         <div className="flex items-start justify-between mb-2">
-                          <Badge 
-                            variant="outline" 
-                            className={`${getRarityColor(pokemon.rarity || 'common')} text-white`}
-                          >
-                            {pokemon.rarity}
-                          </Badge>
+                          <div className="flex gap-2">
+                            <Badge 
+                              variant="outline" 
+                              className={`${getRarityColor(pokemon.pokemon_pool?.rarity || 'common')} text-white`}
+                            >
+                              {pokemon.pokemon_pool?.rarity || 'common'}
+                            </Badge>
+                            <Badge 
+                              variant="secondary" 
+                              className={`text-xs ${getSourceColor(pokemon.source)}`}
+                            >
+                              {getSourceLabel(pokemon.source)}
+                            </Badge>
+                          </div>
                           <Button
                             variant="ghost"
                             size="sm"
@@ -221,11 +264,11 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
                           </Button>
                         </div>
                         
-                        {pokemon.image_url && (
+                        {pokemon.pokemon_pool?.image_url && (
                           <div className="mb-2">
                             <img 
-                              src={pokemon.image_url} 
-                              alt={pokemon.name}
+                              src={pokemon.pokemon_pool.image_url} 
+                              alt={pokemon.pokemon_pool.name}
                               className="w-full h-32 object-contain bg-gray-50 rounded"
                               onError={(e) => {
                                 e.currentTarget.src = "/placeholder.svg";
@@ -234,9 +277,12 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
                           </div>
                         )}
                         
-                        <h4 className="font-medium text-sm">{pokemon.name}</h4>
+                        <h4 className="font-medium text-sm">{pokemon.pokemon_pool?.name || 'Unknown Pokemon'}</h4>
                         <p className="text-xs text-gray-500 capitalize">
-                          {pokemon.type_1}{pokemon.type_2 ? `/${pokemon.type_2}` : ''}
+                          {pokemon.pokemon_pool?.type_1}{pokemon.pokemon_pool?.type_2 ? `/${pokemon.pokemon_pool.type_2}` : ''}
+                        </p>
+                        <p className="text-xs text-gray-400 mt-1">
+                          Added: {new Date(pokemon.awarded_at).toLocaleDateString()}
                         </p>
                       </CardContent>
                     </Card>

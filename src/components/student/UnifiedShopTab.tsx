@@ -3,11 +3,16 @@ import React, { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Coins, ShoppingCart, RefreshCw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Coins, ShoppingCart, RefreshCw, Search } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "sonner";
-import { getPokemonCatalog, type PokemonCatalogItem } from "@/services/pokemonService";
-import { purchasePokemonFromShop } from "@/services/unifiedPokemonService";
+import { 
+  getPokemonCatalog, 
+  purchasePokemonFromShop, 
+  type PokemonCatalogItem 
+} from "@/services/pokemonService";
 
 interface UnifiedShopTabProps {
   studentId: string;
@@ -22,6 +27,9 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
 }) => {
   const { t } = useTranslation();
   const [pokemonCatalog, setPokemonCatalog] = useState<PokemonCatalogItem[]>([]);
+  const [filteredPokemon, setFilteredPokemon] = useState<PokemonCatalogItem[]>([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedRarity, setSelectedRarity] = useState<string>("all");
   const [loading, setLoading] = useState(true);
   const [purchasing, setPurchasing] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
@@ -29,6 +37,10 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
   useEffect(() => {
     loadPokemonCatalog();
   }, []);
+
+  useEffect(() => {
+    filterPokemon();
+  }, [pokemonCatalog, searchTerm, selectedRarity]);
 
   const loadPokemonCatalog = async () => {
     try {
@@ -43,6 +55,25 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
     } finally {
       setLoading(false);
     }
+  };
+
+  const filterPokemon = () => {
+    let filtered = pokemonCatalog;
+
+    if (searchTerm) {
+      filtered = filtered.filter(p => 
+        p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        p.type_1.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (p.type_2 && p.type_2.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
+    }
+
+    if (selectedRarity !== "all") {
+      filtered = filtered.filter(p => p.rarity === selectedRarity);
+    }
+
+    filtered.sort((a, b) => a.price - b.price);
+    setFilteredPokemon(filtered);
   };
 
   const handleRefresh = async () => {
@@ -137,12 +168,37 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
             <span className="font-semibold">{studentCoins} coins available</span>
           </div>
         </CardHeader>
+        <CardContent>
+          <div className="flex flex-col md:flex-row gap-4">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Search Pokemon by name or type..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Tabs value={selectedRarity} onValueChange={setSelectedRarity}>
+              <TabsList>
+                <TabsTrigger value="all">All</TabsTrigger>
+                <TabsTrigger value="common">Common</TabsTrigger>
+                <TabsTrigger value="uncommon">Uncommon</TabsTrigger>
+                <TabsTrigger value="rare">Rare</TabsTrigger>
+                <TabsTrigger value="legendary">Legendary</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+          <div className="mt-2 text-sm text-gray-500">
+            Showing {filteredPokemon.length} of {pokemonCatalog.length} Pokémon
+          </div>
+        </CardContent>
       </Card>
 
       {/* Pokemon Grid */}
-      {pokemonCatalog.length > 0 ? (
+      {filteredPokemon.length > 0 ? (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-          {pokemonCatalog.map((pokemon) => {
+          {filteredPokemon.map((pokemon) => {
             const price = pokemon.price || 15;
             const canAfford = studentCoins >= price;
             const isPurchasing = purchasing === pokemon.id;
