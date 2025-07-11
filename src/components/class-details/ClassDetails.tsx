@@ -7,6 +7,7 @@ import { useToast } from '@/hooks/use-toast';
 import { StudentProfile } from '@/services/studentDatabase';
 import ClassManagementHeader from './ClassManagementHeader';
 import ClassDialogs from './ClassDialogs';
+import { addMultipleStudentsToClass } from '@/utils/classSync/studentOperations';
 
 export const ClassDetails = ({ classId }: { classId: string }) => {
   const [classData, setClassData] = useState<ClassData | null>(null);
@@ -91,25 +92,53 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
       console.log("Setting class data:", classData);
       setClassData(classData);
 
-      // Fetch student profiles for the class
-      console.log("Fetching student profiles...");
-      const { data: studentProfiles, error: studentError } = await supabase
-        .from('student_profiles')
-        .select('*')
+      // Fetch students via student_classes join table
+      console.log("Fetching students via student_classes...");
+      const { data: studentLinks, error: linksError } = await supabase
+        .from('student_classes')
+        .select('student_id')
         .eq('class_id', classId);
 
-      console.log("Student profiles result:", { studentProfiles, studentError });
-
-      if (studentError) {
-        console.error('Error fetching student profiles:', studentError);
+      if (linksError) {
+        console.error('Error fetching student links:', linksError);
         toast({
           variant: "destructive",
           title: "Error",
-          description: "Failed to load student profiles"
+          description: "Failed to load student links"
         });
+        setStudents([]);
+      } else if (studentLinks && studentLinks.length > 0) {
+        const studentIds = studentLinks.map(link => link.student_id);
+        console.log("Student IDs found:", studentIds);
+        
+        // Fetch student profiles for these IDs
+        const { data: studentProfiles, error: profilesError } = await supabase
+          .from('student_profiles')
+          .select('*')
+          .in('id', studentIds);
+
+        if (profilesError) {
+          console.error('Error fetching student profiles:', profilesError);
+          // Try fetching by user_id instead
+          const { data: profilesByUserId, error: userIdError } = await supabase
+            .from('student_profiles')
+            .select('*')
+            .in('user_id', studentIds);
+            
+          if (userIdError) {
+            console.error('Error fetching student profiles by user_id:', userIdError);
+            setStudents([]);
+          } else {
+            console.log("Setting students from profiles (by user_id):", profilesByUserId);
+            setStudents(profilesByUserId || []);
+          }
+        } else {
+          console.log("Setting students from profiles:", studentProfiles);
+          setStudents(studentProfiles || []);
+        }
       } else {
-        console.log("Setting students:", studentProfiles);
-        setStudents(studentProfiles || []);
+        console.log("No students found in class");
+        setStudents([]);
       }
 
       // Fetch pending homework submissions count
@@ -185,12 +214,31 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
   };
   const handleManagePokemon = () => setTeacherManagePokemonDialogOpen(true);
 
-  const handleStudentsAdded = (studentIds: string[]) => {
-    toast({
-      title: "Success",
-      description: `${studentIds.length} students added to class`
-    });
-    refreshClassDetails();
+  const handleStudentsAdded = async (studentIds: string[]) => {
+    console.log("🎯 Adding students to class:", studentIds);
+    
+    try {
+      const success = await addMultipleStudentsToClass(classId, studentIds);
+      
+      if (success) {
+        toast({
+          title: "Success",
+          description: `${studentIds.length} students added to class`
+        });
+        
+        // Refresh class details to show the new students
+        await refreshClassDetails();
+      } else {
+        throw new Error("Failed to add students to class");
+      }
+    } catch (error) {
+      console.error("❌ Error adding students:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: "Failed to add students to class"
+      });
+    }
   };
 
   const handleConfirmDeleteClass = async () => {
@@ -254,7 +302,7 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
 
   const handleRemoveCoins = (amount: number) => {
     toast({
-      title: "Success", 
+      title: "Success",
       description: `${amount} coins removed`
     });
     refreshClassDetails();
@@ -479,6 +527,7 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
         schoolPoolDialogOpen={schoolPoolDialogOpen}
         onSchoolPoolDialogChange={setSchoolPoolDialogOpen}
         schoolId={classData.school_id || ''}
+        studentId={undefined}
         teacherId={localStorage.getItem("teacherId") || ""}
         teacherManagePokemonDialogOpen={teacherManagePokemonDialogOpen}
         onTeacherManagePokemonDialogChange={setTeacherManagePokemonDialogOpen}

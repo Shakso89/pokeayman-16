@@ -8,6 +8,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
 import { StudentsList } from "@/components/student-profile/StudentsList";
 import { useNavigate } from "react-router-dom";
+import { addMultipleStudentsToClass } from "@/utils/classSync/studentOperations";
 
 interface StudentsTabProps {
   classId: string;
@@ -102,31 +103,32 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
 
   const handleStudentsAdded = async (studentIds: string[]) => {
     if (studentIds.length > 0) {
-      // Add students to the student_classes join table
-      const studentClassEntries = studentIds.map(studentId => ({
-        student_id: studentId,
-        class_id: classId
-      }));
-
-      const { error } = await supabase
-        .from('student_classes')
-        .insert(studentClassEntries);
-
-      if (error) {
-        console.error("Error adding students to class:", error);
+      console.log("🎯 Adding students to class:", studentIds);
+      
+      try {
+        // Use the proper student operations function
+        const success = await addMultipleStudentsToClass(classId, studentIds);
+        
+        if (success) {
+          toast({
+            title: t("success"),
+            description: `${studentIds.length} ${t("students-added-to-class")}`
+          });
+          
+          // Refresh student list after successful addition
+          console.log("🔄 Refreshing student list...");
+          await fetchStudents();
+        } else {
+          throw new Error("Failed to add students to class");
+        }
+      } catch (error) {
+        console.error("❌ Error adding students to class:", error);
         toast({
           title: t("error"),
           description: t("failed-to-add-students"),
           variant: "destructive"
         });
-        return;
       }
-
-      toast({
-        title: t("success"),
-        description: `${studentIds.length} ${t("students-added-to-class")}`
-      });
-      fetchStudents(); // Refresh student list
     }
   };
   

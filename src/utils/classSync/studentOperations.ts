@@ -37,7 +37,7 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
       console.log(`Student ${studentId} class_id updated to ${classId}`);
     }
     
-    // Also update student_profiles table
+    // Also update student_profiles table with the class_id
     const { error: profileError } = await supabase
       .from('student_profiles')
       .update({ class_id: classId })
@@ -45,9 +45,19 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
       
     if (profileError) {
       console.error("Error updating student profile class_id:", profileError);
-      // Don't fail completely if the profile update fails
+      // Try to find by id if user_id doesn't work
+      const { error: profileByIdError } = await supabase
+        .from('student_profiles')
+        .update({ class_id: classId })
+        .eq('id', studentId);
+        
+      if (profileByIdError) {
+        console.error("Error updating student profile by id:", profileByIdError);
+      } else {
+        console.log(`Student profile ${studentId} class_id updated to ${classId} (by id)`);
+      }
     } else {
-      console.log(`Student profile ${studentId} class_id updated to ${classId}`);
+      console.log(`Student profile ${studentId} class_id updated to ${classId} (by user_id)`);
     }
     
     console.log(`Student ${studentId} added to class ${classId} successfully.`);
@@ -98,10 +108,19 @@ export const removeStudentFromClass = async (classId: string, studentId: string)
       .eq('user_id', studentId);
       
     if (profileError) {
-      console.error("Error clearing student profile class_id:", profileError);
-      // Don't fail completely if the profile update fails
+      // Try by id if user_id doesn't work
+      const { error: profileByIdError } = await supabase
+        .from('student_profiles')
+        .update({ class_id: null })
+        .eq('id', studentId);
+        
+      if (profileByIdError) {
+        console.error("Error clearing student profile class_id:", profileByIdError);
+      } else {
+        console.log(`Student profile ${studentId} class_id cleared (by id)`);
+      }
     } else {
-      console.log(`Student profile ${studentId} class_id cleared`);
+      console.log(`Student profile ${studentId} class_id cleared (by user_id)`);
     }
 
     console.log(`Student ${studentId} removed from class ${classId} successfully.`);
@@ -123,47 +142,18 @@ export const addMultipleStudentsToClass = async (classId: string, studentIds: st
       return true; // Nothing to do
     }
     
-    // Add to student_classes join table
-    const recordsToInsert = studentIds.map(studentId => ({
-      class_id: classId,
-      student_id: studentId,
-    }));
+    let successCount = 0;
     
-    const { error: joinError } = await supabase
-      .from('student_classes')
-      .upsert(recordsToInsert, { onConflict: 'student_id,class_id', ignoreDuplicates: true });
-
-    if (joinError) {
-      handleDatabaseError(joinError, "Error adding multiple students to class join table");
-      return false;
-    }
-    
-    // Update all students' class_id in the students table
+    // Process each student individually to ensure proper handling
     for (const studentId of studentIds) {
-      const { error: updateError } = await supabase
-        .from('students')
-        .update({ class_id: classId })
-        .eq('id', studentId);
-        
-      if (updateError) {
-        console.error(`Error updating student ${studentId} class_id:`, updateError);
-        // Continue with other students even if one fails
-      }
-      
-      // Also update student_profiles table
-      const { error: profileError } = await supabase
-        .from('student_profiles')
-        .update({ class_id: classId })
-        .eq('user_id', studentId);
-        
-      if (profileError) {
-        console.error(`Error updating student profile ${studentId} class_id:`, profileError);
-        // Continue with other students even if one fails
+      const success = await addStudentToClass(classId, studentId);
+      if (success) {
+        successCount++;
       }
     }
     
-    console.log(`Successfully processed adding ${studentIds.length} students to class ${classId}.`);
-    return true;
+    console.log(`Successfully added ${successCount}/${studentIds.length} students to class ${classId}.`);
+    return successCount > 0; // Return true if at least one student was added
   } catch (error) {
     console.error("Error in addMultipleStudentsToClass:", error);
     return false;
