@@ -217,6 +217,15 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
   const handleStudentsAdded = async (studentIds: string[]) => {
     console.log("🎯 Adding students to class:", studentIds);
     
+    // Debug: Log current authentication state
+    const { data: { user } } = await supabase.auth.getUser();
+    const teacherId = localStorage.getItem("teacherId");
+    console.log("Auth debug:", { 
+      supabaseUserId: user?.id, 
+      localStorageTeacherId: teacherId,
+      match: user?.id === teacherId 
+    });
+    
     try {
       const success = await addMultipleStudentsToClass(classId, studentIds);
       

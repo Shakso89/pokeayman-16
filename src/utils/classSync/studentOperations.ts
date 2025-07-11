@@ -10,6 +10,23 @@ export const addStudentToClass = async (classId: string, studentId: string): Pro
   try {
     console.log(`Adding student ${studentId} to class ${classId}`);
     
+    // Debug: Check current user authentication
+    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    if (authError) {
+      console.error("Auth error:", authError);
+      return false;
+    }
+    
+    console.log("Current authenticated user:", user?.id);
+    
+    // Debug: Check if user exists in teachers table
+    const { data: teacherCheck, error: teacherError } = await supabase
+      .from('teachers')
+      .select('id, username')
+      .eq('id', user?.id);
+      
+    console.log("Teacher check result:", { teacherCheck, teacherError });
+    
     // First, add to student_classes join table
     const { error: joinError } = await supabase
       .from('student_classes')
