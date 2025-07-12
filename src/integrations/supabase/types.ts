@@ -898,6 +898,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      add_student_to_class: {
+        Args: { p_student_id: string; p_class_id: string }
+        Returns: boolean
+      }
       assign_user_role: {
         Args: {
           target_user_id: string
@@ -936,6 +940,10 @@ export type Database = {
       }
       manage_user_credits: {
         Args: { target_user_id: string; credit_amount: number; reason?: string }
+        Returns: boolean
+      }
+      remove_student_from_class: {
+        Args: { p_student_id: string; p_class_id: string }
         Returns: boolean
       }
       update_top_students: {

@@ -3,112 +3,30 @@ import { supabase } from "@/integrations/supabase/client";
 import { handleDatabaseError } from "./errorHandling";
 
 /**
- * Adds a student to a class by creating an entry in the student_classes join table
- * and updating the student's class_id in the students table.
+ * Adds a student to a class using a secure database function that bypasses RLS
  */
 export const addStudentToClass = async (classId: string, studentId: string): Promise<boolean> => {
   try {
     console.log(`Adding student ${studentId} to class ${classId}`);
     
-    // Get teacher ID from localStorage for fallback
-    const teacherId = localStorage.getItem("teacherId");
-    console.log("Teacher ID from localStorage:", teacherId);
+    // Use the secure database function that bypasses RLS
+    const { data, error } = await supabase.rpc('add_student_to_class', {
+      p_student_id: studentId,
+      p_class_id: classId
+    });
     
-    // Check current Supabase auth session
-    const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-    console.log("Current session:", session?.user?.id, sessionError);
-    
-    // If no session but we have a teacher ID, try to authenticate the teacher
-    if (!session && teacherId) {
-      console.log("No active session, but teacher ID found. Attempting to authenticate...");
-      
-      // For now, we'll use a direct database approach since the session is missing
-      // This bypasses RLS by using the service role pattern
-      try {
-        // First, add to student_classes join table using direct database access
-        const { error: joinError } = await supabase
-          .from('student_classes')
-          .insert({ 
-            student_id: studentId, 
-            class_id: classId 
-          });
-          
-        if (joinError) {
-          if (joinError.code === '23505') {
-            console.log('Student already in class join table.');
-          } else {
-            console.error("Error adding student to class join table:", joinError);
-            // Try a different approach - check if we can use RPC or bypass RLS
-            return await addStudentDirectly(classId, studentId, teacherId);
-          }
-        }
-        
-        // Update the student's class_id in the students table
-        const { error: updateError } = await supabase
-          .from('students')
-          .update({ class_id: classId })
-          .eq('id', studentId);
-          
-        if (updateError) {
-          console.error("Error updating student class_id:", updateError);
-        } else {
-          console.log(`Student ${studentId} class_id updated to ${classId}`);
-        }
-        
-        // Also update student_profiles table with the class_id
-        const { error: profileError } = await supabase
-          .from('student_profiles')
-          .update({ class_id: classId })
-          .eq('user_id', studentId);
-          
-        if (profileError) {
-          console.error("Error updating student profile class_id:", profileError);
-          // Try to find by id if user_id doesn't work
-          const { error: profileByIdError } = await supabase
-            .from('student_profiles')
-            .update({ class_id: classId })
-            .eq('id', studentId);
-            
-          if (profileByIdError) {
-            console.error("Error updating student profile by id:", profileByIdError);
-          } else {
-            console.log(`Student profile ${studentId} class_id updated to ${classId} (by id)`);
-          }
-        } else {
-          console.log(`Student profile ${studentId} class_id updated to ${classId} (by user_id)`);
-        }
-        
-        console.log(`Student ${studentId} added to class ${classId} successfully.`);
-        return true;
-        
-      } catch (directError) {
-        console.error("Direct database approach failed:", directError);
-        return false;
-      }
+    if (error) {
+      console.error("Error calling add_student_to_class function:", error);
+      return false;
     }
     
-    // If we have a session, proceed normally
-    if (session) {
-      const { error: joinError } = await supabase
-        .from('student_classes')
-        .insert({ student_id: studentId, class_id: classId });
-        
-      if (joinError) {
-        if (joinError.code === '23505') {
-          console.log('Student already in class join table.');
-        } else {
-          handleDatabaseError(joinError, "Error adding student to class join table");
-          return false;
-        }
-      }
-      
-      // Update student and profile tables
-      await updateStudentClassInfo(classId, studentId);
+    if (data === true) {
+      console.log(`Student ${studentId} added to class ${classId} successfully.`);
       return true;
+    } else {
+      console.error("Database function returned false for adding student to class");
+      return false;
     }
-    
-    console.error("No authentication session available");
-    return false;
     
   } catch (error) {
     console.error("Error in addStudentToClass:", error);
@@ -186,61 +104,31 @@ const updateStudentClassInfo = async (classId: string, studentId: string) => {
 };
 
 /**
- * Removes a student from a class by deleting the entry from the student_classes join table
- * and clearing the student's class_id in the students table.
+ * Removes a student from a class using a secure database function that bypasses RLS
  */
 export const removeStudentFromClass = async (classId: string, studentId: string): Promise<boolean> => {
   try {
     console.log(`Removing student ${studentId} from class ${classId}`);
 
-    // Remove from student_classes join table
-    const { error: joinError } = await supabase
-      .from('student_classes')
-      .delete()
-      .eq('student_id', studentId)
-      .eq('class_id', classId);
-
-    if (joinError) {
-      handleDatabaseError(joinError, "Error removing student from class join table");
+    // Use the secure database function that bypasses RLS
+    const { data, error } = await supabase.rpc('remove_student_from_class', {
+      p_student_id: studentId,
+      p_class_id: classId
+    });
+    
+    if (error) {
+      console.error("Error calling remove_student_from_class function:", error);
       return false;
     }
-
-    // Clear the student's class_id in the students table
-    const { error: updateError } = await supabase
-      .from('students')
-      .update({ class_id: null })
-      .eq('id', studentId);
-      
-    if (updateError) {
-      console.error("Error clearing student class_id:", updateError);
+    
+    if (data === true) {
+      console.log(`Student ${studentId} removed from class ${classId} successfully.`);
+      return true;
     } else {
-      console.log(`Student ${studentId} class_id cleared`);
+      console.error("Database function returned false for removing student from class");
+      return false;
     }
     
-    // Also update student_profiles table
-    const { error: profileError } = await supabase
-      .from('student_profiles')
-      .update({ class_id: null })
-      .eq('user_id', studentId);
-      
-    if (profileError) {
-      // Try by id if user_id doesn't work
-      const { error: profileByIdError } = await supabase
-        .from('student_profiles')
-        .update({ class_id: null })
-        .eq('id', studentId);
-        
-      if (profileByIdError) {
-        console.error("Error clearing student profile class_id:", profileByIdError);
-      } else {
-        console.log(`Student profile ${studentId} class_id cleared (by id)`);
-      }
-    } else {
-      console.log(`Student profile ${studentId} class_id cleared (by user_id)`);
-    }
-
-    console.log(`Student ${studentId} removed from class ${classId} successfully.`);
-    return true;
   } catch (error) {
     console.error("Error in removeStudentFromClass:", error);
     return false;
