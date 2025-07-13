@@ -84,10 +84,9 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
         .in('user_id', userIds);
         
       console.log("👤 Student profiles data:", profilesData, profilesError);
-        
-      if (studentsError) {
-        console.error("❌ Error fetching students data:", studentsError);
-        throw studentsError;
+      
+      if (profilesError) {
+        console.error("❌ Error fetching student profiles:", profilesError);
       }
       
       console.log("✅ Students data fetched:", studentsData?.length || 0);
@@ -103,6 +102,8 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
           avatar_url: profile?.avatar_url
         };
       });
+      
+      console.log("🎭 Final students with data:", studentsWithData);
       
       setStudents(studentsWithData);
     } catch (error) {

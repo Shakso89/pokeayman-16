@@ -8,11 +8,21 @@ import { StudentProfile } from '@/services/studentDatabase';
 import ClassManagementHeader from './ClassManagementHeader';
 import ClassDialogs from './ClassDialogs';
 import { addMultipleStudentsToClass } from '@/utils/classSync/studentOperations';
+import { useClassDetailsWithId } from './hooks/useClassDetailsWithId';
 
 export const ClassDetails = ({ classId }: { classId: string }) => {
-  const [classData, setClassData] = useState<ClassData | null>(null);
-  const [students, setStudents] = useState<StudentProfile[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Use the centralized hook for class and student data
+  const { 
+    classData: hookClassData, 
+    students: hookStudents, 
+    loading: hookLoading, 
+    fetchClassDetails: hookRefreshClassDetails 
+  } = useClassDetailsWithId(classId);
+  
+  // Use hook data directly
+  const classData = hookClassData;
+  const students = hookStudents;
+  const loading = hookLoading;
   const [isClassCreator, setIsClassCreator] = useState(false);
   const [pendingSubmissions, setPendingSubmissions] = useState(0);
   
@@ -45,146 +55,11 @@ export const ClassDetails = ({ classId }: { classId: string }) => {
 
   const { toast } = useToast();
 
-  const refreshClassDetails = async () => {
-    console.log("Starting refreshClassDetails for classId:", classId);
-    setLoading(true);
-    
-    try {
-      // Fetch class data with proper error handling
-      console.log("Fetching class data...");
-      const { data: classData, error: classError } = await supabase
-        .from('classes')
-        .select(`
-          *,
-          schools (
-            id,
-            name,
-            top_student_id
-          )
-        `)
-        .eq('id', classId)
-        .maybeSingle();
-
-      console.log("Class query result:", { classData, classError });
-
-      if (classError) {
-        console.error('Error fetching class data:', classError);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load class details"
-        });
-        setLoading(false);
-        return;
-      }
-
-      if (!classData) {
-        console.log('No class found with ID:', classId);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Class not found"
-        });
-        setLoading(false);
-        return;
-      }
-
-      console.log("Setting class data:", classData);
-      setClassData(classData);
-
-      // Fetch students via student_classes join table
-      console.log("Fetching students via student_classes...");
-      const { data: studentLinks, error: linksError } = await supabase
-        .from('student_classes')
-        .select('student_id')
-        .eq('class_id', classId);
-
-      if (linksError) {
-        console.error('Error fetching student links:', linksError);
-        toast({
-          variant: "destructive",
-          title: "Error",
-          description: "Failed to load student links"
-        });
-        setStudents([]);
-      } else if (studentLinks && studentLinks.length > 0) {
-        const studentIds = studentLinks.map(link => link.student_id);
-        console.log("Student IDs found:", studentIds);
-        
-        // Fetch student profiles for these IDs
-        const { data: studentProfiles, error: profilesError } = await supabase
-          .from('student_profiles')
-          .select('*')
-          .in('id', studentIds);
-
-        if (profilesError) {
-          console.error('Error fetching student profiles:', profilesError);
-          // Try fetching by user_id instead
-          const { data: profilesByUserId, error: userIdError } = await supabase
-            .from('student_profiles')
-            .select('*')
-            .in('user_id', studentIds);
-            
-          if (userIdError) {
-            console.error('Error fetching student profiles by user_id:', userIdError);
-            setStudents([]);
-          } else {
-            console.log("Setting students from profiles (by user_id):", profilesByUserId);
-            setStudents(profilesByUserId || []);
-          }
-        } else {
-          console.log("Setting students from profiles:", studentProfiles);
-          setStudents(studentProfiles || []);
-        }
-      } else {
-        console.log("No students found in class");
-        setStudents([]);
-      }
-
-      // Fetch pending homework submissions count
-      console.log("Fetching pending submissions...");
-      try {
-        const { data: homeworkIds } = await supabase
-          .from('homework')
-          .select('id')
-          .eq('class_id', classId);
-
-        if (homeworkIds && homeworkIds.length > 0) {
-          const { count: pendingCount } = await supabase
-            .from('homework_submissions')
-            .select('*', { count: 'exact', head: true })
-            .eq('status', 'pending')
-            .in('homework_id', homeworkIds.map(h => h.id));
-
-          console.log("Pending submissions count:", pendingCount);
-          setPendingSubmissions(pendingCount || 0);
-        } else {
-          setPendingSubmissions(0);
-        }
-      } catch (error) {
-        console.error('Error fetching pending submissions:', error);
-        setPendingSubmissions(0);
-      }
-
-    } catch (error) {
-      console.error('Unexpected error in refreshClassDetails:', error);
-      toast({
-        variant: "destructive",
-        title: "Error",
-        description: "An unexpected error occurred"
-      });
-    } finally {
-      console.log("Setting loading to false");
-      setLoading(false);
-    }
+  // Create a simple refresh function that uses the hook's method
+  const refreshClassDetails = () => {
+    console.log("Calling hook's fetchClassDetails");
+    hookRefreshClassDetails();
   };
-
-  useEffect(() => {
-    console.log("useEffect triggered with classId:", classId);
-    if (classId) {
-      refreshClassDetails();
-    }
-  }, [classId]);
 
   useEffect(() => {
     const checkClassCreator = async () => {
