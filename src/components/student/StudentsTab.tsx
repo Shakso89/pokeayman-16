@@ -55,6 +55,7 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
       console.log("🆔 Student IDs to fetch:", studentIds);
       
       // Fetch student details with school information and their profiles for coins/pokemon data
+      console.log("🔍 Fetching student details for IDs:", studentIds);
       const { data: studentsData, error: studentsError } = await supabase
         .from('students')
         .select(`
@@ -62,14 +63,27 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
           schools:school_id (
             id,
             name
-          ),
-          student_profiles!inner (
-            coins,
-            spent_coins,
-            avatar_url
           )
         `)
         .in('id', studentIds);
+        
+      console.log("👥 Students data from students table:", studentsData, studentsError);
+        
+      if (studentsError) {
+        console.error("❌ Error fetching students data:", studentsError);
+        throw studentsError;
+      }
+      
+      // Now fetch student profiles separately using user_id
+      const userIds = (studentsData || []).map(s => s.user_id).filter(Boolean);
+      console.log("🆔 User IDs for profiles:", userIds);
+      
+      const { data: profilesData, error: profilesError } = await supabase
+        .from('student_profiles')
+        .select('user_id, coins, spent_coins, avatar_url')
+        .in('user_id', userIds);
+        
+      console.log("👤 Student profiles data:", profilesData, profilesError);
         
       if (studentsError) {
         console.error("❌ Error fetching students data:", studentsError);
@@ -79,13 +93,16 @@ const StudentsTab: React.FC<StudentsTabProps> = ({ classId, viewOnly = false }) 
       console.log("✅ Students data fetched:", studentsData?.length || 0);
       
       // Add school name and profile data to each student
-      const studentsWithData = (studentsData || []).map(student => ({
-        ...student,
-        schoolName: student.schools?.name || "No School Assigned",
-        coins: student.student_profiles?.[0]?.coins || 0,
-        spent_coins: student.student_profiles?.[0]?.spent_coins || 0,
-        avatar_url: student.student_profiles?.[0]?.avatar_url
-      }));
+      const studentsWithData = (studentsData || []).map(student => {
+        const profile = (profilesData || []).find(p => p.user_id === student.user_id);
+        return {
+          ...student,
+          schoolName: student.schools?.name || "No School Assigned",
+          coins: profile?.coins || 0,
+          spent_coins: profile?.spent_coins || 0,
+          avatar_url: profile?.avatar_url
+        };
+      });
       
       setStudents(studentsWithData);
     } catch (error) {
