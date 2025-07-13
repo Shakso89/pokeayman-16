@@ -35,6 +35,30 @@ export const useClassDetailsWithId = (classId?: string) => {
     }
     console.log("useClassDetailsWithId - Starting fetch for ID:", classId);
     fetchClassDetails();
+
+    // Subscribe to student_classes changes for real-time updates
+    const channel = supabase
+      .channel('class-student-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen for all events (INSERT, UPDATE, DELETE)
+          schema: 'public',
+          table: 'student_classes',
+          filter: `class_id=eq.${classId}`
+        },
+        (payload) => {
+          console.log('Student class change detected:', payload);
+          // Refetch students when there's a change
+          fetchStudentsForClass(classId);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      console.log('Cleaning up class student subscription');
+      supabase.removeChannel(channel);
+    };
   }, [classId, t, isAdmin, teacherId]);
 
   const fetchClassDetails = async () => {
@@ -48,12 +72,19 @@ export const useClassDetailsWithId = (classId?: string) => {
       let fetchedClass = await getClassById(classId);
       console.log("useClassDetailsWithId - getClassById result:", fetchedClass);
 
-      // If that fails, try direct Supabase query
+      // If that fails, try direct Supabase query with school information
       if (!fetchedClass) {
         console.log("useClassDetailsWithId - Trying Supabase direct query");
         const { data: classFromSupabase, error: classError } = await supabase
           .from('classes')
-          .select('*')
+          .select(`
+            *,
+            schools (
+              id,
+              name,
+              top_student_id
+            )
+          `)
           .eq('id', classId)
           .maybeSingle();
           
@@ -63,6 +94,7 @@ export const useClassDetailsWithId = (classId?: string) => {
         }
         
         fetchedClass = classFromSupabase;
+        console.log("Class query result:", { classData: fetchedClass, classError });
       }
       
       if (!fetchedClass) {
