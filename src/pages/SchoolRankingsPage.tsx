@@ -117,11 +117,11 @@ const SchoolRankingsPage: React.FC = () => {
             }
           }
 
-          // Fetch pokemon counts from the correct table: pokemon_collections
+          // Fetch pokemon counts from the correct table: student_pokemon_collection
           let pokemonCountMap = new Map();
           if (studentIds.length > 0) {
             const { data: pokemonCounts } = await supabase
-              .from('pokemon_collections')
+              .from('student_pokemon_collection')
               .select('student_id')
               .in('student_id', studentIds);
 
