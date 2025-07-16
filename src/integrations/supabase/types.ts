@@ -613,13 +613,6 @@ export type Database = {
             referencedRelation: "pokemon_pool"
             referencedColumns: ["id"]
           },
-          {
-            foreignKeyName: "student_pokemon_collection_pokemon_id_fkey"
-            columns: ["pokemon_id"]
-            isOneToOne: false
-            referencedRelation: "pokemon_pool"
-            referencedColumns: ["id"]
-          },
         ]
       }
       student_profiles: {
