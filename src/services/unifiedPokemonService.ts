@@ -264,21 +264,25 @@ export const awardPokemonToStudent = async (
   try {
     console.log("🎁 Awarding Pokemon to student:", { studentId, pokemonId, source });
 
-    const { error } = await supabase
-      .from('student_pokemon_collection')
-      .insert({
-        student_id: studentId,
-        pokemon_id: pokemonId,
-        source: source
-      });
+    // Import the comprehensive function from studentPokemon service
+    const { awardPokemonToStudent: comprehensiveAward } = await import('@/utils/pokemon/studentPokemon');
+    
+    // Use the more robust function that handles all edge cases
+    const result = await comprehensiveAward(
+      studentId,
+      parseInt(pokemonId), // Convert string to number as expected by the function
+      "Teacher award",
+      undefined, // classId
+      undefined  // schoolId
+    );
 
-    if (error) {
-      console.error("❌ Error awarding Pokemon:", error);
+    if (result.success) {
+      console.log("✅ Pokemon awarded successfully");
+      return true;
+    } else {
+      console.error("❌ Error awarding Pokemon:", result.error);
       return false;
     }
-
-    console.log("✅ Pokemon awarded successfully");
-    return true;
   } catch (error) {
     console.error("❌ Unexpected error awarding Pokemon:", error);
     return false;
