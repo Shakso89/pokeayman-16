@@ -114,6 +114,7 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
 
   const handleAwardPokemon = async (pokemonId: string, pokemonName: string) => {
     if (!studentId) {
+      console.error("❌ No student selected for Pokemon award");
       toast({
         variant: "destructive",
         title: "Error",
@@ -122,16 +123,53 @@ const TeacherManagePokemonDialog: React.FC<ManagePokemonDialogProps> = ({
       return;
     }
 
-    console.log('🎁 Awarding Pokemon from dialog:', { pokemonId, pokemonName, studentId });
-    
-    // Refresh the collection after awarding
-    await loadStudentPokemon();
-    onRefresh();
-    
-    toast({
-      title: "Success",
-      description: `${pokemonName} awarded to student successfully!`
+    console.log('🎁 Attempting to award Pokemon:', { 
+      studentId, 
+      pokemonId, 
+      pokemonName 
     });
+    
+    try {
+      // Validate inputs before calling service
+      if (!pokemonId || pokemonId === 'undefined') {
+        console.error("❌ Invalid Pokemon ID:", pokemonId);
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Invalid Pokemon selected"
+        });
+        return;
+      }
+
+      setLoading(true);
+      const success = await awardPokemonToStudent(studentId, pokemonId, 'teacher_award');
+      
+      if (success) {
+        console.log("✅ Pokemon awarded successfully:", pokemonName);
+        toast({
+          title: "Success",
+          description: `${pokemonName} awarded successfully!`
+        });
+        await loadStudentPokemon();
+        onRefresh();
+      } else {
+        console.error("❌ Award function returned false");
+        toast({
+          variant: "destructive",
+          title: "Error",
+          description: "Failed to award Pokémon - please check console for details"
+        });
+      }
+    } catch (error) {
+      console.error("❌ Exception during Pokemon award:", error);
+      toast({
+        variant: "destructive",
+        title: "Error",
+        description: `Failed to award Pokémon: ${error instanceof Error ? error.message : 'Unknown error'}`
+      });
+    } finally {
+      setLoading(false);
+    }
   };
 
   const getRarityColor = (rarity: string) => {
