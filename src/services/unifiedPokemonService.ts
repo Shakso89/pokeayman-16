@@ -264,25 +264,61 @@ export const awardPokemonToStudent = async (
   try {
     console.log("🎁 Awarding Pokemon to student:", { studentId, pokemonId, source });
 
-    // Import the comprehensive function from studentPokemon service
-    const { awardPokemonToStudent: comprehensiveAward } = await import('@/utils/pokemon/studentPokemon');
-    
-    // Use the more robust function that handles all edge cases
-    const result = await comprehensiveAward(
-      studentId,
-      parseInt(pokemonId), // Convert string to number as expected by the function
-      "Teacher award",
-      undefined, // classId
-      undefined  // schoolId
-    );
-
-    if (result.success) {
-      console.log("✅ Pokemon awarded successfully");
-      return true;
-    } else {
-      console.error("❌ Error awarding Pokemon:", result.error);
+    if (!studentId || studentId === 'undefined') {
+      console.error("❌ Invalid student ID");
       return false;
     }
+
+    if (!pokemonId) {
+      console.error("❌ Invalid Pokemon ID");
+      return false;
+    }
+
+    // Get Pokemon details first to validate it exists
+    const { data: pokemon, error: pokemonError } = await supabase
+      .from('pokemon_pool')
+      .select('*')
+      .eq('id', pokemonId)
+      .single();
+
+    if (pokemonError || !pokemon) {
+      console.error("❌ Pokemon not found:", pokemonError);
+      return false;
+    }
+
+    console.log("✅ Pokemon found:", pokemon.name);
+
+    // Check for duplicates - allow duplicates but log it
+    const { data: existingPokemon } = await supabase
+      .from('student_pokemon_collection')
+      .select('id')
+      .eq('student_id', studentId)
+      .eq('pokemon_id', pokemonId)
+      .limit(1);
+
+    if (existingPokemon && existingPokemon.length > 0) {
+      console.log("⚠️ Student already has this Pokemon, but allowing duplicate");
+    }
+
+    // Add Pokemon to student_pokemon_collection
+    const { data: collection, error: collectionError } = await supabase
+      .from('student_pokemon_collection')
+      .insert({
+        student_id: studentId,
+        pokemon_id: pokemonId,
+        source: source
+      })
+      .select()
+      .single();
+
+    if (collectionError) {
+      console.error("❌ Failed to add Pokemon to collection:", collectionError);
+      return false;
+    }
+
+    console.log("✅ Pokemon awarded successfully:", collection);
+    return true;
+
   } catch (error) {
     console.error("❌ Unexpected error awarding Pokemon:", error);
     return false;

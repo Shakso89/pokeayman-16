@@ -51,7 +51,7 @@ export const getStudentPokemonCollectionData = getStudentPokemons;
 
 export const awardPokemonToStudent = async (
   userId: string,
-  pokemonId: number,
+  pokemonId: string, // Changed from number to string to handle UUIDs
   reason: string = "Teacher award",
   classId?: string,
   schoolId?: string
@@ -72,7 +72,7 @@ export const awardPokemonToStudent = async (
       return { success: false, error };
     }
 
-    if (!pokemonId || pokemonId <= 0) {
+    if (!pokemonId || pokemonId === '') {
       const error = "Invalid Pokemon ID";
       console.error("❌ Validation error:", error);
       return { success: false, error };
@@ -92,12 +92,12 @@ export const awardPokemonToStudent = async (
 
     console.log("✅ Using target user_id for Pokemon award:", targetUserId);
 
-    // Get the Pokemon from the pokemon_pool table
+    // Get the Pokemon from the pokemon_pool table using UUID
     console.log("🔍 Fetching Pokemon from pokemon_pool...");
     const { data: pokemon, error: pokemonError } = await supabase
       .from('pokemon_pool')
       .select('*')
-      .eq('id', pokemonId)
+      .eq('id', pokemonId) // Now using string UUID directly
       .single();
 
     if (pokemonError || !pokemon) {
@@ -144,7 +144,7 @@ export const awardPokemonToStudent = async (
       .from('student_pokemon_collection')
       .insert({
         student_id: targetUserId,
-        pokemon_id: pokemonId,
+        pokemon_id: pokemonId, // Now using string UUID directly
         source: 'teacher_award'
       })
       .select()
@@ -238,7 +238,7 @@ export const assignRandomPokemonToStudent = async (
 };
 
 export const assignSpecificPokemonToStudent = async (
-  pokemonId: number,
+  pokemonId: string, // Changed from number to string
   schoolId: string,
   userId: string,
   classId?: string
@@ -258,7 +258,7 @@ export const awardCoinsToStudent = async (
 
 export const removePokemonFromStudent = async (
   collectionId: string,
-  pokemonId?: number,
+  pokemonId?: string, // Changed from number to string
   reason: string = "Teacher removal"
 ): Promise<boolean> => {
   try {
