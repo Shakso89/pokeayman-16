@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Search, Award, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
-import { getPokemonCatalog, awardPokemonToStudent, type PokemonCatalogItem } from "@/services/pokemonService";
+import { getAllPokemon, awardPokemonToStudent, type Pokemon } from "@/services/pokemonManagementService";
 
 interface PokemonPoolDisplayProps {
   showActions?: boolean;

@@ -23,7 +23,7 @@ import {
 import { NavBar } from "@/components/NavBar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useStudentProfile } from "@/hooks/useStudentProfile";
-import { getStudentPokemonCollection, type StudentPokemonCollectionItem } from "@/services/pokemonService";
+import { getStudentPokemonCollection, type StudentPokemon } from "@/services/pokemonManagementService";
 import { supabase } from "@/integrations/supabase/client";
 
 const StudentProfilePage: React.FC = () => {
@@ -50,7 +50,7 @@ const StudentProfilePage: React.FC = () => {
   } = useStudentProfile(studentId);
 
   const [activeTab, setActiveTab] = useState("overview");
-  const [pokemonCollection, setPokemonCollection] = useState<StudentPokemonCollectionItem[]>([]);
+  const [pokemonCollection, setPokemonCollection] = useState<StudentPokemon[]>([]);
   const [pokemonLoading, setPokemonLoading] = useState(false);
   const [coins, setCoins] = useState(0);
   const [schoolInfo, setSchoolInfo] = useState<{ schoolName: string; className: string }>({

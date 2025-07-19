@@ -196,7 +196,7 @@ export const useStudentProfile = (studentId: string | undefined) => {
       if (!resolvedId) return;
 
       // Use the unified pokemon service
-      const { getStudentPokemonCollection } = await import('@/services/pokemonService');
+      const { getStudentPokemonCollection } = await import('@/services/pokemonManagementService');
       const collection = await getStudentPokemonCollection(resolvedId);
 
       const pokemons = collection?.map((item: any) => ({

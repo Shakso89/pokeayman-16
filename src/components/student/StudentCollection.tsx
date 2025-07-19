@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, Trophy } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
-import { getStudentPokemonCollection, type StudentPokemonCollectionItem } from "@/services/pokemonService";
+import { getStudentPokemonCollection, type StudentPokemon } from "@/services/pokemonManagementService";
 
 interface StudentCollectionProps {
   studentId: string;
@@ -13,7 +13,7 @@ interface StudentCollectionProps {
 
 const StudentCollection: React.FC<StudentCollectionProps> = ({ studentId }) => {
   const { t } = useTranslation();
-  const [pokemonCollection, setPokemonCollection] = useState<StudentPokemonCollectionItem[]>([]);
+  const [pokemonCollection, setPokemonCollection] = useState<StudentPokemon[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);

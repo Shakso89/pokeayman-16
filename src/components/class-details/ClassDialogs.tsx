@@ -7,7 +7,7 @@ import ManagePokemonDialog from "@/components/dialogs/ManagePokemonDialog";
 import GiveCoinsDialog from "@/components/dialogs/GiveCoinsDialog";
 import RemoveCoinsDialog from "@/components/dialogs/RemoveCoinsDialog";
 import SchoolPokemonPoolDialog from "@/components/dialogs/SchoolPokemonPoolDialog";
-import TeacherManagePokemonDialog from "@/components/dialogs/TeacherManagePokemonDialog";
+import StudentPokemonManagerDialog from "@/components/dialogs/StudentPokemonManagerDialog";
 import { StudentProfile } from "@/services/studentDatabase";
 
 interface ClassDialogsProps {
@@ -132,14 +132,11 @@ const ClassDialogs: React.FC<ClassDialogsProps> = ({
         onPokemonUpdated={onPokemonRemoved}
       />
 
-      {/* Teacher Manage Pokemon Dialog */}
-      <TeacherManagePokemonDialog
+      {/* Student Pokemon Manager Dialog */}
+      <StudentPokemonManagerDialog
         isOpen={teacherManagePokemonDialogOpen}
         onOpenChange={onTeacherManagePokemonDialogChange}
-        students={students}
-        schoolId={schoolId}
         classId={classId}
-        isClassCreator={isClassCreator}
         onRefresh={onRefresh}
       />
 

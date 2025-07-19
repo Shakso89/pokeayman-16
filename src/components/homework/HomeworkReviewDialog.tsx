@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Homework, HomeworkSubmission } from "@/types/homework";
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from "@/hooks/use-toast";
-import { awardCoinsToStudent } from "@/utils/pokemon/studentPokemon";
+import { awardPokemonToStudent } from "@/services/pokemonManagementService";
 import { createHomeworkNotification } from "@/utils/notificationService";
 
 interface HomeworkReviewDialogProps {

@@ -9,10 +9,10 @@ import { Coins, ShoppingCart, RefreshCw, Search } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "sonner";
 import { 
-  getPokemonCatalog, 
-  purchasePokemonFromShop, 
-  type PokemonCatalogItem 
-} from "@/services/pokemonService";
+  getAllPokemon, 
+  awardPokemonToStudent, 
+  type Pokemon 
+} from "@/services/pokemonManagementService";
 
 interface UnifiedShopTabProps {
   studentId: string;
