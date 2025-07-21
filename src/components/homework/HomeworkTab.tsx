@@ -4,14 +4,9 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { BookOpen, Plus, Loader2 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { Homework } from '@/types/homework';
 
-interface Homework {
-  id: string;
-  title: string;
-  description: string;
-  due_date: string;
-  class_id: string;
-  created_at: string;
+interface HomeworkWithClass extends Homework {
   classes: {
     name: string;
   } | null;
@@ -22,13 +17,7 @@ interface HomeworkTabProps {
 }
 
 // Define the raw data type from Supabase
-interface HomeworkQueryResult {
-  id: string;
-  title: string;
-  description: string;
-  due_date: string;
-  class_id: string;
-  created_at: string;
+interface HomeworkQueryResult extends Homework {
   classes: {
     name: string;
   } | {
@@ -37,7 +26,7 @@ interface HomeworkQueryResult {
 }
 
 const HomeworkTab: React.FC<HomeworkTabProps> = ({ teacherId }) => {
-  const [homework, setHomework] = useState<Homework[]>([]);
+  const [homework, setHomework] = useState<HomeworkWithClass[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -50,12 +39,7 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ teacherId }) => {
       const { data, error } = await supabase
         .from('homework')
         .select(`
-          id,
-          title,
-          description,
-          due_date,
-          class_id,
-          created_at,
+          *,
           classes!inner(name)
         `)
         .eq('teacher_id', teacherId)
@@ -65,7 +49,7 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ teacherId }) => {
       if (error) throw error;
       
       // Transform the data to match our interface
-      const transformedData: Homework[] = (data as HomeworkQueryResult[] || []).map(item => {
+      const transformedData: HomeworkWithClass[] = (data as HomeworkQueryResult[] || []).map(item => {
         // Handle the classes property more explicitly
         let className = 'Unknown Class';
         if (item.classes) {
@@ -77,12 +61,7 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ teacherId }) => {
         }
 
         return {
-          id: item.id,
-          title: item.title,
-          description: item.description,
-          due_date: item.due_date,
-          class_id: item.class_id,
-          created_at: item.created_at,
+          ...item,
           classes: {
             name: className
           }
@@ -102,20 +81,20 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ teacherId }) => {
     return new Date(dateString).toLocaleDateString();
   };
 
-  const getDueDateStatus = (dueDateString: string) => {
-    const dueDate = new Date(dueDateString);
+  const getDueDateStatus = (expiresAtString: string) => {
+    const expiresAt = new Date(expiresAtString);
     const now = new Date();
-    const diffTime = dueDate.getTime() - now.getTime();
+    const diffTime = expiresAt.getTime() - now.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
     if (diffDays < 0) {
-      return { status: 'overdue', text: 'Overdue', variant: 'destructive' as const };
+      return { status: 'expired', text: 'Expired', variant: 'destructive' as const };
     } else if (diffDays === 0) {
-      return { status: 'today', text: 'Due Today', variant: 'secondary' as const };
+      return { status: 'today', text: 'Expires Today', variant: 'secondary' as const };
     } else if (diffDays <= 3) {
-      return { status: 'soon', text: `Due in ${diffDays} days`, variant: 'secondary' as const };
+      return { status: 'soon', text: `Expires in ${diffDays} days`, variant: 'secondary' as const };
     } else {
-      return { status: 'upcoming', text: `Due ${formatDate(dueDateString)}`, variant: 'outline' as const };
+      return { status: 'upcoming', text: `Expires ${formatDate(expiresAtString)}`, variant: 'outline' as const };
     }
   };
 
@@ -162,7 +141,7 @@ const HomeworkTab: React.FC<HomeworkTabProps> = ({ teacherId }) => {
         ) : (
           <div className="space-y-4">
             {homework.map((hw) => {
-              const dueDateInfo = getDueDateStatus(hw.due_date);
+              const dueDateInfo = getDueDateStatus(hw.expires_at);
               return (
                 <div
                   key={hw.id}
