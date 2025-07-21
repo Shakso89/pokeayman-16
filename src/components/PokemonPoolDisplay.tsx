@@ -20,8 +20,8 @@ const PokemonPoolDisplay: React.FC<PokemonPoolDisplayProps> = ({
   studentId,
   onAwardPokemon
 }) => {
-  const [pokemonCatalog, setPokemonCatalog] = useState<PokemonCatalogItem[]>([]);
-  const [filteredPokemon, setFilteredPokemon] = useState<PokemonCatalogItem[]>([]);
+  const [pokemonCatalog, setPokemonCatalog] = useState<Pokemon[]>([]);
+  const [filteredPokemon, setFilteredPokemon] = useState<Pokemon[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRarity, setSelectedRarity] = useState<string>("all");
   const [loading, setLoading] = useState(true);
@@ -39,7 +39,7 @@ const PokemonPoolDisplay: React.FC<PokemonPoolDisplayProps> = ({
     setLoading(true);
     try {
       console.log("🔄 Loading Pokemon catalog...");
-      const catalog = await getPokemonCatalog();
+      const catalog = await getAllPokemon();
       console.log("✅ Pokemon catalog loaded:", catalog.length);
       setPokemonCatalog(catalog);
     } catch (error) {
@@ -69,7 +69,7 @@ const PokemonPoolDisplay: React.FC<PokemonPoolDisplayProps> = ({
     setFilteredPokemon(filtered);
   };
 
-  const handleAwardPokemon = async (pokemon: PokemonCatalogItem) => {
+  const handleAwardPokemon = async (pokemon: Pokemon) => {
     if (!studentId) {
       toast.error("No student selected");
       return;
@@ -80,18 +80,17 @@ const PokemonPoolDisplay: React.FC<PokemonPoolDisplayProps> = ({
     try {
       console.log("🎁 Awarding Pokemon:", pokemon.name, "to student:", studentId);
       
-      const teacherId = localStorage.getItem("teacherId");
-      const result = await awardPokemonToStudent(studentId, pokemon.id, teacherId || undefined);
+      const result = await awardPokemonToStudent(studentId, pokemon.id, 'teacher_award');
 
-      if (result.success) {
+      if (result) {
         toast.success(`Successfully awarded ${pokemon.name}!`);
         
         if (onAwardPokemon) {
           onAwardPokemon(pokemon.id, pokemon.name);
         }
       } else {
-        console.error("❌ Award failed:", result.error);
-        toast.error(result.error || "Failed to award Pokemon");
+        console.error("❌ Award failed");
+        toast.error("Failed to award Pokemon");
       }
     } catch (error) {
       console.error("❌ Award error:", error);

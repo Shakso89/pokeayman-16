@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Homework, HomeworkSubmission } from "@/types/homework";
 import { formatDistanceToNow } from 'date-fns';
 import { toast } from "@/hooks/use-toast";
-import { awardPokemonToStudent } from "@/services/pokemonManagementService";
+import { awardPokemonToStudent, awardCoinsToStudent } from "@/services/pokemonManagementService";
 import { createHomeworkNotification } from "@/utils/notificationService";
 
 interface HomeworkReviewDialogProps {
@@ -114,7 +114,7 @@ const HomeworkReviewDialog: React.FC<HomeworkReviewDialogProps> = ({
 
       // Award coins to student
       if (homework) {
-        awardCoinsToStudent(submission.student_id, homework.coin_reward);
+        await awardCoinsToStudent(submission.student_id, homework.coin_reward);
         
         // Create notification for student
         await createHomeworkNotification(

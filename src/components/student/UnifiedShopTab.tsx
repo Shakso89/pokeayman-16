@@ -10,7 +10,7 @@ import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "sonner";
 import { 
   getAllPokemon, 
-  awardPokemonToStudent, 
+  purchasePokemonFromShop, 
   type Pokemon 
 } from "@/services/pokemonManagementService";
 
@@ -26,8 +26,8 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
   onDataUpdate
 }) => {
   const { t } = useTranslation();
-  const [pokemonCatalog, setPokemonCatalog] = useState<PokemonCatalogItem[]>([]);
-  const [filteredPokemon, setFilteredPokemon] = useState<PokemonCatalogItem[]>([]);
+  const [pokemonCatalog, setPokemonCatalog] = useState<Pokemon[]>([]);
+  const [filteredPokemon, setFilteredPokemon] = useState<Pokemon[]>([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedRarity, setSelectedRarity] = useState<string>("all");
   const [loading, setLoading] = useState(true);
@@ -46,7 +46,7 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
     try {
       setLoading(true);
       console.log("🔄 Loading Pokemon catalog for shop...");
-      const catalog = await getPokemonCatalog();
+      const catalog = await getAllPokemon();
       console.log("✅ Pokemon catalog loaded:", catalog.length);
       setPokemonCatalog(catalog);
     } catch (error) {
@@ -84,7 +84,7 @@ const UnifiedShopTab: React.FC<UnifiedShopTabProps> = ({
     toast.success("Shop refreshed!");
   };
 
-  const handlePurchase = async (pokemon: PokemonCatalogItem) => {
+  const handlePurchase = async (pokemon: Pokemon) => {
     if (!studentId || studentId === 'undefined') {
       toast.error("Invalid student ID");
       return;

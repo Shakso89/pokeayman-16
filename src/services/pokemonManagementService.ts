@@ -11,6 +11,9 @@ export interface Pokemon {
   description: string | null;
 }
 
+// Alias for compatibility
+export type PokemonCatalogItem = Pokemon;
+
 export interface StudentPokemon {
   id: string;
   student_id: string;
@@ -47,6 +50,9 @@ export const getAllPokemon = async (): Promise<Pokemon[]> => {
   console.log(`✅ Found ${data?.length || 0} Pokemon in pool`);
   return data || [];
 };
+
+// Alias for compatibility
+export const getPokemonCatalog = getAllPokemon;
 
 /**
  * Get student's Pokemon collection
@@ -172,4 +178,109 @@ export const getClassStudents = async (classId: string): Promise<StudentData[]> 
 
   console.log(`✅ Found ${data?.length || 0} students in class`);
   return data || [];
+};
+
+/**
+ * Award coins to a student
+ */
+export const awardCoinsToStudent = async (studentId: string, coinAmount: number): Promise<void> => {
+  console.log('💰 Awarding coins:', { studentId, coinAmount });
+
+  try {
+    // First get current coins
+    const { data: profile } = await supabase
+      .from('student_profiles')
+      .select('coins')
+      .eq('user_id', studentId)
+      .single();
+
+    const currentCoins = profile?.coins || 0;
+
+    const { error } = await supabase
+      .from('student_profiles')
+      .update({ 
+        coins: currentCoins + coinAmount
+      })
+      .eq('user_id', studentId);
+
+    if (error) {
+      console.error('❌ Failed to award coins:', error);
+      throw new Error(`Failed to award coins: ${error.message}`);
+    }
+
+    console.log(`✅ Successfully awarded ${coinAmount} coins to student`);
+  } catch (error) {
+    console.error('❌ Error in awardCoinsToStudent:', error);
+    throw error;
+  }
+};
+
+/**
+ * Purchase Pokemon from shop
+ */
+export const purchasePokemonFromShop = async (studentId: string, pokemonId: string): Promise<{ success: boolean; error?: string }> => {
+  console.log('🛒 Processing shop purchase:', { studentId, pokemonId });
+
+  try {
+    // Get Pokemon price
+    const { data: pokemon, error: pokemonError } = await supabase
+      .from('pokemon_pool')
+      .select('price, name')
+      .eq('id', pokemonId)
+      .single();
+
+    if (pokemonError || !pokemon) {
+      return { success: false, error: 'Pokemon not found' };
+    }
+
+    const price = pokemon.price || 15;
+
+    // Check student has enough coins
+    const { data: profile, error: profileError } = await supabase
+      .from('student_profiles')
+      .select('coins, spent_coins')
+      .eq('user_id', studentId)
+      .single();
+
+    if (profileError || !profile) {
+      return { success: false, error: 'Student profile not found' };
+    }
+
+    if (profile.coins < price) {
+      return { success: false, error: 'Insufficient coins' };
+    }
+
+    // Deduct coins and award Pokemon in a transaction
+    const { error: deductError } = await supabase
+      .from('student_profiles')
+      .update({ 
+        coins: profile.coins - price,
+        spent_coins: (profile.spent_coins || 0) + price
+      })
+      .eq('user_id', studentId);
+
+    if (deductError) {
+      return { success: false, error: 'Failed to deduct coins' };
+    }
+
+    // Award Pokemon
+    const awarded = await awardPokemonToStudent(studentId, pokemonId, 'shop_purchase');
+    if (!awarded) {
+      // Refund coins if Pokemon award failed
+      await supabase
+        .from('student_profiles')
+        .update({ 
+          coins: profile.coins,
+          spent_coins: Math.max((profile.spent_coins || 0) - price, 0)
+        })
+        .eq('user_id', studentId);
+      
+      return { success: false, error: 'Failed to award Pokemon' };
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('❌ Error in purchasePokemonFromShop:', error);
+    return { success: false, error: 'Purchase failed' };
+  }
 };

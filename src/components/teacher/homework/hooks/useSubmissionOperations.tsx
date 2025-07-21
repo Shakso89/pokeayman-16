@@ -2,7 +2,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { HomeworkSubmission, Homework } from "@/types/homework";
-import { awardPokemonToStudent } from "@/services/pokemonManagementService";
+import { awardPokemonToStudent, awardCoinsToStudent } from "@/services/pokemonManagementService";
 import { checkAndConsumeCreditsForHomeworkApproval } from "@/utils/creditSystem";
 
 export const useSubmissionOperations = () => {
@@ -44,7 +44,7 @@ export const useSubmissionOperations = () => {
       if (error) throw error;
 
       // Award coins to student
-      awardCoinsToStudent(submission.student_id, homeworkItem.coin_reward);
+      await awardCoinsToStudent(submission.student_id, homeworkItem.coin_reward);
 
       setSubmissions(prev => 
         prev.map(sub => 

@@ -13,7 +13,7 @@ import { UserCog } from "lucide-react";
 import { useTranslation } from "@/hooks/useTranslation";
 import { toast } from "@/hooks/use-toast";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { getStudentPokemonCollection } from "@/utils/pokemon";
+import { getStudentPokemonCollection } from "@/services/pokemonManagementService";
 import ProfileTab from "./settings/ProfileTab";
 import SecurityTab from "./settings/SecurityTab";
 import { supabase } from "@/integrations/supabase/client";
